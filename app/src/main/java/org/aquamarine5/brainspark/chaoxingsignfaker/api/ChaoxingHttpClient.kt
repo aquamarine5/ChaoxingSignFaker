@@ -50,8 +50,6 @@ class ChaoxingHttpClient private constructor(
             )
         }
 
-        suspend fun createFromCache()
-
         private suspend fun getInfo(client: OkHttpClient): ChaoxingUserEntity =
             withContext(Dispatchers.IO) {
                 client.newCall(Request.Builder().get().url(URL_USER_INFO).build()).execute()

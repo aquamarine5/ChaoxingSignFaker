@@ -7,6 +7,14 @@ pluginManagement {
                 includeGroupByRegex("androidx.*")
             }
         }
+
+        maven {
+            url ="https://maven.pkg.github.com/aquamarine5/*"
+            credentials {
+                username = "aquamarine5"
+                password = System.getenv("GHP_TOKEN")
+            }
+        }
         mavenCentral()
         gradlePluginPortal()
     }

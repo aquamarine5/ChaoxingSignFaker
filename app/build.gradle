@@ -2,8 +2,26 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    id("com.google.devtools.ksp")
+    id ("androidx.room")
+
+    id ("org.aquamarine5.brainspark.stackbricks-gradle-plugin") version "1.12"
 }
 
+room {
+    schemaDirectory("$projectDir/schemas")
+}
+
+stackbricksConfig {
+    host = "cdn.aquamarine5.fun"
+    qiniuConfig {
+        accessKey = project.findProperty("qiniu.accessKey") ?: ""
+        secretKey = project.findProperty("qiniu.secretKey") ?: ""
+        bucket = "aquabucket"
+        referer = project.findProperty("qiniu.referer") ?: ""
+        println ("Qiniu config: $accessKey, $secretKey, $bucket, $referer")
+    }
+}
 android {
     namespace = "org.aquamarine5.brainspark.chaoxingsignfaker"
     compileSdk = 35
@@ -12,15 +30,15 @@ android {
         applicationId = "org.aquamarine5.brainspark.chaoxingsignfaker"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 10000250311
+        versionName = "1.0.0-alpha1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            minifyEnabled false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -40,8 +58,9 @@ android {
 }
 
 dependencies {
-    implementation("com.alibaba.fastjson2:fastjson2:2.0.56")
-    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation(libs.fastjson2)
+    implementation(libs.okhttp)
+    implementation(libs.stackbricks)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
