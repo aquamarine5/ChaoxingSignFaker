@@ -15,7 +15,7 @@ object ChaoxingActivityHelper {
 
     suspend fun getActivities(client: ChaoxingHttpClient, course: ChaoxingCourseEntity) =
         withContext(Dispatchers.IO) {
-            val url = URL_ACTIVITY_LOAD.format(course.id, course.classId)
+            val url = URL_ACTIVITY_LOAD.format(course.courseId, course.classId)
             client.newCall(Request.Builder().get().url(url).build()).execute().use {
                 val jsonResult = JSONObject.parseObject(it.body?.string())
                 val activeList = jsonResult.getJSONArray("activeList").map { activity ->
@@ -43,7 +43,8 @@ object ChaoxingActivityHelper {
                             activity.getString("nameOne"),
                             activity.getLong("id"),
                             activity.getInteger("status"),
-                            activity.getString("nameFour")
+                            activity.getString("nameFour"),
+                            course
                         )
                     }
                 )

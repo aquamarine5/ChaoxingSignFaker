@@ -17,5 +17,6 @@ data class ChaoxingSignActivityEntity(
     val nameOne:String,
     val id:Long,
     val status:Int,
-    val nameFour:String
+    val nameFour:String,
+    val course: ChaoxingCourseEntity,
 )
