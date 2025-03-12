@@ -2,15 +2,10 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
-    id("com.google.devtools.ksp")
-    id ("androidx.room")
-
     id ("org.aquamarine5.brainspark.stackbricks-gradle-plugin") version "1.12"
+    id("com.google.protobuf") version "0.9.4"
 }
 
-room {
-    schemaDirectory("$projectDir/schemas")
-}
 
 stackbricksConfig {
     host = "cdn.aquamarine5.fun"
@@ -27,6 +22,9 @@ android {
     compileSdk = 35
 
     defaultConfig {
+        ndk{
+            abiFilters "arm64-v8a", "armeabi-v7a", "x86", "x86_64"
+        }
         applicationId = "org.aquamarine5.brainspark.chaoxingsignfaker"
         minSdk = 26
         targetSdk = 35
@@ -57,7 +55,27 @@ android {
     }
 }
 
+protobuf {
+    protoc{
+        artifact="com.google.protobuf:protoc:3.18.0"
+    }
+
+    generateProtoTasks {
+        all().each { task ->
+            task.builtins {
+                java {
+                    option 'lite'
+                }
+            }
+        }
+    }
+}
+
 dependencies {
+    implementation libs.androidx.datastore
+    implementation 'com.baidu.lbsyun:BaiduMapSDK_Map:7.6.3'
+    implementation 'com.baidu.lbsyun:BaiduMapSDK_Location:9.6.4'
+    implementation  libs.protobuf.javalite
     implementation(libs.fastjson2)
     implementation(libs.okhttp)
     implementation(libs.stackbricks)

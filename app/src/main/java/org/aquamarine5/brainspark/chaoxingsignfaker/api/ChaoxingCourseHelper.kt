@@ -29,7 +29,8 @@ object ChaoxingCourseHelper {
                             content.getString("bbsid"),
                             classContent.getInteger("chatid"),
                             classContent.getInteger("clazzId"),
-                            classContent.getString("clazzName")
+                            classContent.getString("clazzName"),
+
                         )
                     )
                 }

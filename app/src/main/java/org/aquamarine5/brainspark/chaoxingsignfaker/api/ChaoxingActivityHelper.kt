@@ -44,7 +44,8 @@ object ChaoxingActivityHelper {
                             activity.getLong("id"),
                             activity.getInteger("status"),
                             activity.getString("nameFour"),
-                            course
+                            course,
+                            jsonResult.getJSONObject("ext")
                         )
                     }
                 )

@@ -9,7 +9,14 @@ pluginManagement {
         }
 
         maven {
-            url ="https://maven.pkg.github.com/aquamarine5/*"
+            url ="https://maven.pkg.github.com/aquamarine5/stackbricks-gradle-plugin"
+            credentials {
+                username = "aquamarine5"
+                password = System.getenv("GHP_TOKEN")
+            }
+        }
+        maven {
+            url ="https://maven.pkg.github.com/aquamarine5/Stackbricks"
             credentials {
                 username = "aquamarine5"
                 password = System.getenv("GHP_TOKEN")
@@ -23,6 +30,20 @@ dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
         google()
+        maven {
+            url ="https://maven.pkg.github.com/aquamarine5/stackbricks-gradle-plugin"
+            credentials {
+                username = "aquamarine5"
+                password = System.getenv("GHP_TOKEN")
+            }
+        }
+        maven {
+            url ="https://maven.pkg.github.com/aquamarine5/Stackbricks"
+            credentials {
+                username = "aquamarine5"
+                password = System.getenv("GHP_TOKEN")
+            }
+        }
         mavenCentral()
     }
 }

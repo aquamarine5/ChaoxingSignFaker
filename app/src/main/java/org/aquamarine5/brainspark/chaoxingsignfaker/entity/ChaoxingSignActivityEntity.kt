@@ -1,5 +1,6 @@
 package org.aquamarine5.brainspark.chaoxingsignfaker.entity
 
+import com.alibaba.fastjson2.JSONObject
 import java.time.Instant
 
 data class ChaoxingSignActivityEntity(
@@ -19,4 +20,5 @@ data class ChaoxingSignActivityEntity(
     val status:Int,
     val nameFour:String,
     val course: ChaoxingCourseEntity,
+    val ext:JSONObject
 )

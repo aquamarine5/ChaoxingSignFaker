@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+option java_package = "org.aquamarine5.brainspark.chaoxingsignfaker.datastore";
+option java_multiple_files = true;
+
+message ChaoxingSignFakerDataStore{
+  repeated ChaoxingLocation locations = 1;
+  ChaoxingLoginSession loginSession = 2;
+}
+
+message ChaoxingLocation{
+  float latitude = 1;
+  float longitude = 2;
+  string address = 3;
+}
+
+message ChaoxingLoginSession{
+  repeated HttpCookie cookies = 1;
+  uint32 phoneNumber=2;
+  string password=3;
+}
+
+message HttpCookie{
+  string host=1;
+  string name=2;
+  string value=3;
+}
