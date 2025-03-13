@@ -2,6 +2,8 @@ package org.aquamarine5.brainspark.chaoxingsignfaker.signer
 
 import com.alibaba.fastjson2.JSONObject
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import okhttp3.FormBody
 import okhttp3.HttpUrl
@@ -27,7 +29,7 @@ abstract class ChaoxingSigner(
 
     abstract suspend fun sign()
     abstract suspend fun beforeSign()
-    suspend fun getSignInfo(): JSONObject = withContext(Dispatchers.IO) {
+    open suspend fun getSignInfo(): JSONObject = withContext(Dispatchers.IO) {
         client.newCall(
             Request.Builder().get().url(
                 URL_SIGN_INFO.toHttpUrl().newBuilder()
@@ -39,7 +41,7 @@ abstract class ChaoxingSigner(
         }
     }
 
-    suspend fun preSign() = withContext(Dispatchers.IO) {
+    open suspend fun preSign() = withContext(Dispatchers.IO) {
         client.newCall(
             Request.Builder().post(
                 FormBody.Builder().addEncoded("ext",activityEntity.ext.toString()).build()

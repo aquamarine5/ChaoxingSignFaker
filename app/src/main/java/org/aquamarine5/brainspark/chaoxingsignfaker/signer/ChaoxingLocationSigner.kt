@@ -1,5 +1,6 @@
 package org.aquamarine5.brainspark.chaoxingsignfaker.signer
 
+import android.util.Log
 import com.alibaba.fastjson2.JSONObject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -20,8 +21,7 @@ class ChaoxingLocationSigner(
         const val URL_SIGN =
             "https://mobilelearn.chaoxing.com/pptSign/stuSignajax?&clientip=&appType=15&ifTiJiao=1&validate=&vpProbability=-1&vpStrategy="
 
-        const val URL_LOCATION_INFO =
-            "https://mobilelearn.chaoxing.com/v2/apis/active/getPPTActiveInfo"
+        const val CLASSTAG="ChaoxingLocationSigner"
     }
 
     override suspend fun sign() = withContext(Dispatchers.IO) {
@@ -39,19 +39,22 @@ class ChaoxingLocationSigner(
                     .build()
             ).get().build()
         ).execute().use {
-
+            val result=it.body?.string()
+            if(result!="success"){
+                Log.w(CLASSTAG,result?:"")
+            }
         }
     }
 
     override suspend fun beforeSign() {
-        TODO("Not yet implemented")
+        preSign()
     }
 
     suspend fun getSignLocation(): ChaoxingLocationDetailEntity =
         getSignInfo().let { jsonResult ->
             return ChaoxingLocationDetailEntity(
-                jsonResult.getFloat("latitude"),
-                jsonResult.getFloat("longitude"),
+                jsonResult.getDouble("latitude"),
+                jsonResult.getDouble("longitude"),
                 jsonResult.getString("locationRange")
             )
         }

@@ -1,7 +1,11 @@
 package org.aquamarine5.brainspark.chaoxingsignfaker.entity
 
+import com.baidu.mapapi.model.LatLng
+
 data class ChaoxingLocationDetailEntity(
-    val latitude:Float,
-    val longitude:Float,
-    val locationRange:String
-)
+    val latitude: Double,
+    val longitude: Double,
+    val locationRange: String
+) {
+    fun toLatLng() = LatLng(latitude, longitude)
+}

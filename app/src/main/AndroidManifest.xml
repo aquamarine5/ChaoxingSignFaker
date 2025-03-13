@@ -25,6 +25,11 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+
+        <meta-data
+            android:name="com.baidu.lbsapi.API_KEY"
+            android:value="vPf3wCC9gDszB86rRqrXxo2BYRoTM2DR" />
     </application>
 
 </manifest>

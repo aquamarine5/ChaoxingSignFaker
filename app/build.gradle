@@ -34,6 +34,14 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        create("release"){
+            storeFile file("..\\..\\chaoxingsignfaker.jks")
+            storePassword System.getenv("keystorePassword")
+            keyAlias "chaoxingsignfaker"
+            keyPassword System.getenv("keystorePassword")
+        }
+    }
     buildTypes {
         release {
             minifyEnabled false
@@ -41,8 +49,10 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfig signingConfigs.release
         }
     }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_21
         targetCompatibility = JavaVersion.VERSION_21
@@ -75,6 +85,7 @@ dependencies {
     implementation libs.androidx.datastore
     implementation 'com.baidu.lbsyun:BaiduMapSDK_Map:7.6.3'
     implementation 'com.baidu.lbsyun:BaiduMapSDK_Location:9.6.4'
+    implementation 'com.baidu.lbsyun:BaiduMapSDK_Search:7.6.3'
     implementation  libs.protobuf.javalite
     implementation(libs.fastjson2)
     implementation(libs.okhttp)
