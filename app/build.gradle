@@ -83,10 +83,9 @@ protobuf {
 
 dependencies {
     implementation libs.androidx.datastore
-    implementation 'com.baidu.lbsyun:BaiduMapSDK_Map:7.6.3'
-    implementation 'com.baidu.lbsyun:BaiduMapSDK_Location:9.6.4'
-    implementation 'com.baidu.lbsyun:BaiduMapSDK_Search:7.6.3'
-    implementation  libs.protobuf.javalite
+    implementation libs.baidumapsdk.map
+    implementation libs.baidumapsdk.search
+    implementation libs.protobuf.javalite
     implementation(libs.fastjson2)
     implementation(libs.okhttp)
     implementation(libs.stackbricks)

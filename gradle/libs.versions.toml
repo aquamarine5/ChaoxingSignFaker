@@ -1,5 +1,6 @@
 [versions]
 agp = "8.8.2"
+baidumapsdk_map = "7.6.3"
 datastore = "1.1.2"
 fastjson2 = "2.0.56"
 kotlin = "2.1.0"
@@ -17,6 +18,8 @@ stackbricks = "2.0.4"
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-datastore = { module = "androidx.datastore:datastore", version.ref = "datastore" }
+baidumapsdk_map = { module = "com.baidu.lbsyun:BaiduMapSDK_Map", version.ref = "baidumapsdk_map" }
+baidumapsdk_search = { module = "com.baidu.lbsyun:BaiduMapSDK_Search", version.ref = "baidumapsdk_map" }
 fastjson2 = { module = "com.alibaba.fastjson2:fastjson2", version.ref = "fastjson2" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }

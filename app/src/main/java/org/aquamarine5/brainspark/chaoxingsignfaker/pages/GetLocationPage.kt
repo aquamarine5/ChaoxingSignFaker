@@ -112,7 +112,8 @@ fun GetLocationPage(
             Row {
                 Column {
                     Text(
-                        "经度: ${"%.6f".format(clickedPosition)},纬度: ${
+                        "经度: ${
+                            "%.6f".format(clickedPosition.longitude)},纬度: ${
                             "%.6f".format(
                                 clickedPosition.latitude
                             )
@@ -123,6 +124,7 @@ fun GetLocationPage(
                 Button(onClick = {
                     if (isOutRange) {
                         Toast.makeText(this@apply, "超出范围", Toast.LENGTH_SHORT).show()
+                        return@Button
                     }
                     callback(
                         ChaoxingPostLocationEntity(
