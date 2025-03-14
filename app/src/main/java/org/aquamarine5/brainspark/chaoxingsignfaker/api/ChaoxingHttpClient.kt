@@ -4,6 +4,14 @@ import android.content.Context
 import android.net.http.HttpException
 import android.os.Build
 import androidx.annotation.RequiresExtension
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
+import androidx.navigation.compose.rememberNavController
 import com.alibaba.fastjson2.JSONObject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -14,6 +22,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingLoginSessi
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingSignFakerDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.HttpCookie
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingUserEntity
+import org.aquamarine5.brainspark.chaoxingsignfaker.screens.LoginDestination
 import java.lang.Exception
 import java.util.*
 import javax.crypto.Cipher
@@ -100,6 +109,21 @@ class ChaoxingHttpClient private constructor(
                 getInfo(okHttpClient)
             ).apply {
                 instance = this
+            }
+        }
+
+        @Composable
+        fun CheckInstance() {
+            val context = LocalContext.current
+            val navController = rememberNavController()
+            LaunchedEffect(Unit) {
+                if (instance == null) {
+                    if (!checkSession(context)) {
+                        navController.navigate(LoginDestination)
+                    } else {
+                        loadFromDataStore(context)
+                    }
+                }
             }
         }
 

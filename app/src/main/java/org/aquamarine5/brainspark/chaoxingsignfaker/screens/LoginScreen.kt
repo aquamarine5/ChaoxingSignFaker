@@ -59,7 +59,7 @@ fun LoginPage() {
                     }
                 }
             }) {
-
+                Text("登录")
             }
         }
     }

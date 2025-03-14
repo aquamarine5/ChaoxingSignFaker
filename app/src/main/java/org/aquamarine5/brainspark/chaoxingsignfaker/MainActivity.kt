@@ -41,8 +41,8 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.screens.WelcomeScreen
 import org.aquamarine5.brainspark.chaoxingsignfaker.ui.theme.ChaoxingSignFakerTheme
 
 class MainActivity : ComponentActivity() {
-    companion object{
-        const val INTENT_EXTRA_EXIT_FLAG="intent_extra_exit_flag"
+    companion object {
+        const val INTENT_EXTRA_EXIT_FLAG = "intent_extra_exit_flag"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -52,18 +52,18 @@ class MainActivity : ComponentActivity() {
         setContent {
             ChaoxingSignFakerTheme {
                 NavHost(rememberNavController(),
-                        runBlocking {
-                            applicationContext.chaoxingDataStore.data.first().apply {
-                                if(!agreeTerms) WelcomeDestination
-                                else if(!hasLoginSession()) LoginDestination
-                                else {
-                                    ChaoxingHttpClient.loadFromDataStore(this)
-                                    CourseListDestination
-                                }
+                    runBlocking {
+                        applicationContext.chaoxingDataStore.data.first().apply {
+                            if (!agreeTerms) WelcomeDestination
+                            else if (!hasLoginSession()) LoginDestination
+                            else {
+                                ChaoxingHttpClient.loadFromDataStore(this)
+                                CourseListDestination
                             }
                         }
-                    ){
-                    composable<GetLocationDestination>{
+                    }
+                ) {
+                    composable<GetLocationDestination> {
                         GetLocationPage(it.toRoute())
                     }
                     composable<CourseListDestination> {
@@ -82,7 +82,7 @@ class MainActivity : ComponentActivity() {
                         LoginPage()
                     }
 
-                    composable<CourseDetailDestination>{
+                    composable<CourseDetailDestination> {
                         CourseDetailScreen(it.toRoute())
                     }
                 }
@@ -91,7 +91,7 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onNewIntent(intent: Intent) {
-        if(intent.getBooleanExtra(INTENT_EXTRA_EXIT_FLAG, false)){
+        if (intent.getBooleanExtra(INTENT_EXTRA_EXIT_FLAG, false)) {
             finish()
         }
         super.onNewIntent(intent)
