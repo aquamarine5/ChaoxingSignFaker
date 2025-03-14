@@ -1,7 +1,9 @@
 package org.aquamarine5.brainspark.chaoxingsignfaker.entity
 
 import com.baidu.mapapi.model.LatLng
+import kotlinx.serialization.Serializable
 
+@Serializable
 data class ChaoxingLocationDetailEntity(
     val latitude: Double,
     val longitude: Double,

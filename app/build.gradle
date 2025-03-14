@@ -2,8 +2,10 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
-    id ("org.aquamarine5.brainspark.stackbricks-gradle-plugin") version "1.12"
+    id("org.aquamarine5.brainspark.stackbricks-gradle-plugin") version "1.12"
     id("com.google.protobuf") version "0.9.4"
+    id "io.sentry.android.gradle" version "5.3.0"
+    id 'org.jetbrains.kotlin.plugin.serialization' version '2.1.0'
 }
 
 
@@ -14,7 +16,7 @@ stackbricksConfig {
         secretKey = project.findProperty("qiniu.secretKey") ?: ""
         bucket = "aquabucket"
         referer = project.findProperty("qiniu.referer") ?: ""
-        println ("Qiniu config: $accessKey, $secretKey, $bucket, $referer")
+        println("Qiniu config: $accessKey, $secretKey, $bucket, $referer")
     }
 }
 android {
@@ -22,7 +24,7 @@ android {
     compileSdk = 35
 
     defaultConfig {
-        ndk{
+        ndk {
             abiFilters "arm64-v8a", "armeabi-v7a", "x86", "x86_64"
         }
         applicationId = "org.aquamarine5.brainspark.chaoxingsignfaker"
@@ -35,7 +37,7 @@ android {
     }
 
     signingConfigs {
-        create("release"){
+        create("release") {
             storeFile file("..\\..\\chaoxingsignfaker.jks")
             storePassword System.getenv("keystorePassword")
             keyAlias "chaoxingsignfaker"
@@ -46,8 +48,8 @@ android {
         release {
             minifyEnabled false
             proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
+                    getDefaultProguardFile("proguard-android-optimize.txt"),
+                    "proguard-rules.pro"
             )
             signingConfig signingConfigs.release
         }
@@ -66,8 +68,8 @@ android {
 }
 
 protobuf {
-    protoc{
-        artifact="com.google.protobuf:protoc:3.18.0"
+    protoc {
+        artifact = "com.google.protobuf:protoc:3.18.0"
     }
 
     generateProtoTasks {
@@ -82,6 +84,10 @@ protobuf {
 }
 
 dependencies {
+    implementation libs.common
+    implementation libs.asms
+    implementation(libs.kotlinx.serialization.json)
+    implementation libs.androidx.navigation.compose
     implementation libs.androidx.datastore
     implementation libs.baidumapsdk.map
     implementation libs.baidumapsdk.search

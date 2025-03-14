@@ -1,9 +1,11 @@
-package org.aquamarine5.brainspark.chaoxingsignfaker.pages
+package org.aquamarine5.brainspark.chaoxingsignfaker.screens
 
 import android.widget.Toast
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -14,11 +16,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.navigation.compose.rememberNavController
 import com.baidu.mapapi.SDKInitializer
 import com.baidu.mapapi.map.BaiduMap
 import com.baidu.mapapi.map.BaiduMapOptions
 import com.baidu.mapapi.map.CircleOptions
-import com.baidu.mapapi.map.MapPoi
 import com.baidu.mapapi.map.MapStatus
 import com.baidu.mapapi.map.MapStatusUpdateFactory
 import com.baidu.mapapi.map.MapView
@@ -31,20 +33,26 @@ import com.baidu.mapapi.search.geocode.GeoCoder
 import com.baidu.mapapi.search.geocode.OnGetGeoCoderResultListener
 import com.baidu.mapapi.search.geocode.ReverseGeoCodeOption
 import com.baidu.mapapi.search.geocode.ReverseGeoCodeResult
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationDetailEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingPostLocationEntity
 
+@Serializable
+data class GetLocationDestination(val position: ChaoxingLocationDetailEntity)
+
 @Composable
 fun GetLocationPage(
-    position: ChaoxingLocationDetailEntity,
-    callback: (ChaoxingPostLocationEntity) -> Unit
+    position: ChaoxingLocationDetailEntity
 ) {
     LocalContext.current.apply {
-        SDKInitializer.setAgreePrivacy(this, true)
         SDKInitializer.initialize(this)
         var clickedPosition by remember { mutableStateOf(position.toLatLng()) }
         var clickedName by remember { mutableStateOf("") }
         var isOutRange by remember { mutableStateOf(false) }
+        val navController= rememberNavController()
         val geoCoder = GeoCoder.newInstance().apply {
             setOnGetGeoCodeResultListener(object : OnGetGeoCoderResultListener {
                 override fun onGetGeoCodeResult(p0: GeoCodeResult?) {
@@ -108,44 +116,49 @@ fun GetLocationPage(
             }
         }
 
-        Column {
-            Row {
-                Column {
-                    Text(
-                        "经度: ${
-                            "%.6f".format(clickedPosition.longitude)},纬度: ${
-                            "%.6f".format(
-                                clickedPosition.latitude
-                            )
-                        }"
-                    )
-                    Text("位置: $clickedName")
-                }
-                Button(onClick = {
-                    if (isOutRange) {
-                        Toast.makeText(this@apply, "超出范围", Toast.LENGTH_SHORT).show()
-                        return@Button
-                    }
-                    callback(
-                        ChaoxingPostLocationEntity(
-                            clickedPosition.latitude,
-                            clickedPosition.longitude,
-                            clickedName
+        Scaffold { innerPadding->
+            Column(modifier = Modifier.padding(innerPadding)) {
+                Row {
+                    Column {
+                        Text(
+                            "经度: ${
+                                "%.6f".format(clickedPosition.longitude)
+                            },纬度: ${
+                                "%.6f".format(
+                                    clickedPosition.latitude
+                                )
+                            }"
                         )
-                    )
-                }) {
-                    Text("签到")
+                        Text("位置: $clickedName")
+                    }
+                    Button(onClick = {
+                        if (isOutRange) {
+                            Toast.makeText(this@apply, "超出范围", Toast.LENGTH_SHORT).show()
+                            return@Button
+                        }
+                        navController.navigate(
+                            LocationSignDestination(
+                                ChaoxingPostLocationEntity(
+                                    clickedPosition.latitude,
+                                    clickedPosition.longitude,
+                                    clickedName
+                                )
+                            )
+                        )
+                    }) {
+                        Text("签到")
+                    }
                 }
+                AndroidView(
+                    factory = {
+                        mapView
+                    })
             }
-            AndroidView(
-                factory = {
-                    mapView
-                })
-        }
-        DisposableEffect(Unit) {
-            onDispose {
-                mapView.onDestroy()
-                geoCoder.destroy()
+            DisposableEffect(Unit) {
+                onDispose {
+                    mapView.onDestroy()
+                    geoCoder.destroy()
+                }
             }
         }
     }

@@ -7,7 +7,7 @@ pluginManagement {
                 includeGroupByRegex("androidx.*")
             }
         }
-
+        mavenCentral()
         maven {
             url ="https://maven.pkg.github.com/aquamarine5/stackbricks-gradle-plugin"
             credentials {
@@ -22,7 +22,6 @@ pluginManagement {
                 password = System.getenv("GHP_TOKEN")
             }
         }
-        mavenCentral()
         gradlePluginPortal()
     }
 }
@@ -30,6 +29,7 @@ dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
         google()
+        mavenCentral()
         maven {
             url ="https://maven.pkg.github.com/aquamarine5/stackbricks-gradle-plugin"
             credentials {
@@ -44,7 +44,6 @@ dependencyResolutionManagement {
                 password = System.getenv("GHP_TOKEN")
             }
         }
-        mavenCentral()
     }
 }
 

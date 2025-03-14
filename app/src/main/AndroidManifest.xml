@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
+
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
@@ -30,6 +31,24 @@
         <meta-data
             android:name="com.baidu.lbsapi.API_KEY"
             android:value="vPf3wCC9gDszB86rRqrXxo2BYRoTM2DR" />
+
+        <meta-data
+            android:name="io.sentry.dsn"
+            android:value="https://8fc14f446faf3ed51b16aafb0fa11799@o4505418205364224.ingest.us.sentry.io/4508976320020480" />
+
+        <meta-data
+            android:name="io.sentry.send-default-pii"
+            android:value="true" />
+
+        <meta-data
+            android:name="io.sentry.traces.user-interaction.enable"
+            android:value="true" />
+        <meta-data
+            android:name="io.sentry.attach-screenshot"
+            android:value="true" />
+        <meta-data
+            android:name="io.sentry.attach-view-hierarchy"
+            android:value="true" />
     </application>
 
 </manifest>

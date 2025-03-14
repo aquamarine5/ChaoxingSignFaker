@@ -1,6 +1,8 @@
 [versions]
 agp = "8.8.2"
+asms = "1.8.6"
 baidumapsdk_map = "7.6.3"
+common = "9.4.7"
 datastore = "1.1.2"
 fastjson2 = "2.0.56"
 kotlin = "2.1.0"
@@ -8,9 +10,11 @@ coreKtx = "1.15.0"
 junit = "4.13.2"
 junitVersion = "1.2.1"
 espressoCore = "3.6.1"
+kotlinxSerializationJson = "1.8.0"
 lifecycleRuntimeKtx = "2.8.7"
 activityCompose = "1.10.1"
 composeBom = "2025.02.00"
+navigationCompose = "2.8.9"
 okhttp = "4.12.0"
 protobufJavalite = "3.18.0"
 stackbricks = "2.0.4"
@@ -18,8 +22,11 @@ stackbricks = "2.0.4"
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-datastore = { module = "androidx.datastore:datastore", version.ref = "datastore" }
+androidx-navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
+asms = { module = "com.umeng.umsdk:asms", version.ref = "asms" }
 baidumapsdk_map = { module = "com.baidu.lbsyun:BaiduMapSDK_Map", version.ref = "baidumapsdk_map" }
 baidumapsdk_search = { module = "com.baidu.lbsyun:BaiduMapSDK_Search", version.ref = "baidumapsdk_map" }
+common = { module = "com.umeng.umsdk:common", version.ref = "common" }
 fastjson2 = { module = "com.alibaba.fastjson2:fastjson2", version.ref = "fastjson2" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
@@ -34,6 +41,7 @@ androidx-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-toolin
 androidx-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
 androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 androidx-material3 = { group = "androidx.compose.material3", name = "material3" }
+kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
 okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp" }
 protobuf-javalite = { module = "com.google.protobuf:protobuf-javalite", version.ref = "protobufJavalite" }
 stackbricks = { module = "org.aquamarine5.brainspark:stackbricks", version.ref = "stackbricks" }

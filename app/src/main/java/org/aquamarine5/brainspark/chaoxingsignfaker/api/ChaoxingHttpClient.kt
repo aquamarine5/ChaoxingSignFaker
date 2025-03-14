@@ -1,10 +1,20 @@
 package org.aquamarine5.brainspark.chaoxingsignfaker.api
 
+import android.content.Context
+import android.net.http.HttpException
+import android.os.Build
+import androidx.annotation.RequiresExtension
 import com.alibaba.fastjson2.JSONObject
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import okhttp3.*
+import org.aquamarine5.brainspark.chaoxingsignfaker.chaoxingDataStore
+import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingLoginSession
+import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingSignFakerDataStore
+import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.HttpCookie
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingUserEntity
+import java.lang.Exception
 import java.util.*
 import javax.crypto.Cipher
 import javax.crypto.spec.IvParameterSpec
@@ -15,6 +25,8 @@ class ChaoxingHttpClient private constructor(
     val userEntity: ChaoxingUserEntity
 ) {
 
+    class ChaoxingLoginException(message: String) : Exception(message)
+
     fun newCall(request: Request): Call = okHttpClient.newCall(request)
 
     companion object {
@@ -24,9 +36,15 @@ class ChaoxingHttpClient private constructor(
         private const val URL_USER_INFO = "https://sso.chaoxing.com/apis/login/userLogin4Uname.do"
         private const val URL_LOGIN = "https://passport2.chaoxing.com/fanyalogin"
 
-        suspend fun create(phoneNumber: Int, password: String): ChaoxingHttpClient {
+        var instance: ChaoxingHttpClient? = null
+
+        suspend fun create(
+            phoneNumber: String,
+            password: String,
+            context: Context
+        ): ChaoxingHttpClient {
             val cookieJar: CookieJar = object : CookieJar {
-                val cookieStore: MutableMap<String, List<Cookie>> = mutableMapOf()
+                private val cookieStore: MutableMap<String, List<Cookie>> = mutableMapOf()
 
                 override fun saveFromResponse(url: HttpUrl, cookies: List<Cookie>) {
                     cookieStore[url.host] = cookies
@@ -45,9 +63,53 @@ class ChaoxingHttpClient private constructor(
                     )
                 }
                 .build()
+            login(client, phoneNumber, password, context)
             return ChaoxingHttpClient(
                 client, getInfo(client)
-            )
+            ).apply {
+                instance = this
+            }
+        }
+
+        suspend fun loadFromDataStore(dataStore: ChaoxingSignFakerDataStore): ChaoxingHttpClient {
+            val okHttpClient = OkHttpClient.Builder().cookieJar(object : CookieJar {
+                private val cookieStore: MutableMap<String, List<Cookie>> = mutableMapOf()
+
+                override fun saveFromResponse(url: HttpUrl, cookies: List<Cookie>) {
+                    cookieStore[url.host] = cookies
+                }
+
+                override fun loadForRequest(url: HttpUrl): List<Cookie> {
+                    return cookieStore[url.host] ?: listOf()
+                }
+            }).build().apply {
+                cookieJar.saveFromResponse(
+                    HttpUrl.Builder().host("chaoxing.com").build(),
+                    dataStore.loginSession.cookiesList
+                        .map { cookie ->
+                            Cookie.Builder()
+                                .name(cookie.name)
+                                .value(cookie.value)
+                                .domain(cookie.host)
+                                .build()
+                        }
+                )
+            }
+            return ChaoxingHttpClient(
+                okHttpClient,
+                getInfo(okHttpClient)
+            ).apply {
+                instance = this
+            }
+        }
+
+        suspend fun loadFromDataStore(context: Context): ChaoxingHttpClient =
+            withContext(Dispatchers.IO) {
+                loadFromDataStore(context.chaoxingDataStore.data.first())
+            }
+
+        suspend fun checkSession(context: Context): Boolean = withContext(Dispatchers.IO) {
+            return@withContext context.chaoxingDataStore.data.first().hasLoginSession()
         }
 
         private suspend fun getInfo(client: OkHttpClient): ChaoxingUserEntity =
@@ -68,11 +130,12 @@ class ChaoxingHttpClient private constructor(
 
         private suspend fun login(
             client: OkHttpClient,
-            phoneNumber: Int,
-            password: String
+            phoneNumber: String,
+            password: String,
+            context: Context
         ) =
             withContext(Dispatchers.IO) {
-                val uname = encryptByAES(phoneNumber.toString())
+                val uname = encryptByAES(phoneNumber)
                 val encryptedPassword = encryptByAES(password)
                 val request = Request.Builder()
                     .url(URL_LOGIN)
@@ -89,7 +152,34 @@ class ChaoxingHttpClient private constructor(
                         addEncoded("independentNameId", "0")
                     }.build())
                     .build()
+
                 client.newCall(request).execute().use {
+                    val jsonResult = JSONObject.parseObject(it.body?.string())
+                    if (!jsonResult.getBoolean("status")) {
+                        throw ChaoxingLoginException(if (jsonResult.containsKey("msg2")) {
+                            jsonResult.getString("msg2").ifEmpty {
+                                "登录错误"
+                            }
+                        } else {
+                            "登录错误"
+                        })
+                    }
+                }
+
+                context.chaoxingDataStore.updateData {
+                    it.toBuilder().setLoginSession(
+                        ChaoxingLoginSession.newBuilder().addAllCookies(
+                            client.cookieJar.loadForRequest(
+                                HttpUrl.Builder()
+                                    .host("chaoxing.com").build()
+                            ).map { cookie ->
+                                HttpCookie.newBuilder()
+                                    .setValue(cookie.value)
+                                    .setName(cookie.name)
+                                    .setHost(cookie.domain).build()
+                            }
+                        ).build()
+                    ).build()
                 }
             }
 

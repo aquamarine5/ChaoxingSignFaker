@@ -13,7 +13,10 @@ object ChaoxingActivityHelper {
     private const val URL_ACTIVITY_LOAD =
         "https://mobilelearn.chaoxing.com/v2/apis/active/student/activelist?fid=0&courseId=%d&classId=%d&showNotStartedActive=0"
 
-    suspend fun getActivities(client: ChaoxingHttpClient, course: ChaoxingCourseEntity) =
+    suspend fun getActivities(
+        client: ChaoxingHttpClient,
+        course: ChaoxingCourseEntity
+    ): ChaoxingCourseActivitiesEntity =
         withContext(Dispatchers.IO) {
             val url = URL_ACTIVITY_LOAD.format(course.courseId, course.classId)
             client.newCall(Request.Builder().get().url(url).build()).execute().use {
