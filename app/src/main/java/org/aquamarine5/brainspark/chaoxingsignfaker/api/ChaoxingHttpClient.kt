@@ -195,6 +195,7 @@ class ChaoxingHttpClient private constructor(
                         ChaoxingLoginSession.newBuilder().addAllCookies(
                             client.cookieJar.loadForRequest(
                                 HttpUrl.Builder()
+                                    .scheme("https")
                                     .host("chaoxing.com").build()
                             ).map { cookie ->
                                 HttpCookie.newBuilder()

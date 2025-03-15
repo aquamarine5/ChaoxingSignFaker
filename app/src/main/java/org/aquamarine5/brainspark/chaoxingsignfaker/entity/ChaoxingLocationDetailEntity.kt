@@ -1,5 +1,6 @@
 package org.aquamarine5.brainspark.chaoxingsignfaker.entity
 
+import androidx.navigation.NavType
 import com.baidu.mapapi.model.LatLng
 import kotlinx.serialization.Serializable
 
@@ -10,4 +11,6 @@ data class ChaoxingLocationDetailEntity(
     val locationRange: String
 ) {
     fun toLatLng() = LatLng(latitude, longitude)
+
+
 }

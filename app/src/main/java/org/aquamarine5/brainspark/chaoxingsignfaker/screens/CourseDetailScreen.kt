@@ -10,6 +10,7 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import kotlinx.serialization.Serializable
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingActivityHelper
@@ -18,11 +19,11 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.components.CourseColumnCard
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCourseActivitiesEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCourseEntity
 
-@Serializable
-data class CourseDetailDestination(val courseEntity: ChaoxingCourseEntity)
+typealias CourseDetailDestination=ChaoxingCourseEntity
 
 @Composable
-fun CourseDetailScreen(courseEntity: ChaoxingCourseEntity) {
+fun CourseDetailScreen(
+    navController: NavController, courseEntity: ChaoxingCourseEntity) {
     var activitiesData by remember { mutableStateOf<ChaoxingCourseActivitiesEntity?>(null) }
     ChaoxingHttpClient.CheckInstance()
     LaunchedEffect(Unit){

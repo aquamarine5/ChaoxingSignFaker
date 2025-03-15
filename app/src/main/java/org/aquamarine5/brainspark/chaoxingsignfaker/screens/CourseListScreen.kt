@@ -12,6 +12,7 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import kotlinx.serialization.Serializable
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingActivityHelper
@@ -24,7 +25,8 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCourseEntity
 object CourseListDestination
 
 @Composable
-fun CourseListScreen() {
+fun CourseListScreen(
+    navController: NavController) {
     var activitiesData by remember { mutableStateOf<List<ChaoxingCourseEntity>?>(null) }
     ChaoxingHttpClient.CheckInstance()
     LaunchedEffect(Unit) {
@@ -32,7 +34,6 @@ fun CourseListScreen() {
             activitiesData = ChaoxingCourseHelper.getAllCourse(it)
         }
     }
-    val navController = rememberNavController()
     if (activitiesData == null) {
         CircularProgressIndicator()
     } else {
@@ -40,7 +41,7 @@ fun CourseListScreen() {
             items(activitiesData!!) {
                 key(it.courseId) {
                     Button(onClick = {
-                        navController.navigate(CourseDetailDestination(it))
+                        navController.navigate(it)
                     }){
                         Text("课程名称：${it.courseName},课程ID：${it.courseId},老师：${it.teacherName}")
                     }

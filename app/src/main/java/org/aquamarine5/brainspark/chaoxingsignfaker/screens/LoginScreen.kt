@@ -18,7 +18,9 @@ import kotlinx.serialization.Serializable
 import androidx.compose.material3.Button
 import androidx.compose.material3.Scaffold
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import kotlinx.coroutines.launch
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
@@ -27,14 +29,15 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 object LoginDestination
 
 @Composable
-fun LoginPage() {
+fun LoginPage(
+    navController: NavController
+) {
     var phoneNumber by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    TextFieldValue
+    var tipsText by remember { mutableStateOf("") }
     val coroutineContext = rememberCoroutineScope()
-    val navController= rememberNavController()
-    val context= LocalContext.current
-    Scaffold { innerPadding->
+    val context = LocalContext.current
+    Scaffold { innerPadding ->
         Column(modifier = Modifier.padding(innerPadding)) {
             Text("Login Page")
             Text("输入手机号：")
@@ -52,7 +55,11 @@ fun LoginPage() {
             )
             Button(onClick = {
                 coroutineContext.launch {
-                    ChaoxingHttpClient.create(phoneNumber, password,context)
+                    try {
+                        ChaoxingHttpClient.create(phoneNumber, password, context)
+                    } catch (e: ChaoxingHttpClient.ChaoxingLoginException) {
+                        tipsText = e.message ?: "登录失败"
+                    }
                 }.invokeOnCompletion {
                     if (ChaoxingHttpClient.instance != null) {
                         navController.navigate(CourseListDestination)
@@ -61,6 +68,7 @@ fun LoginPage() {
             }) {
                 Text("登录")
             }
+            Text(tipsText, color = Color.Red)
         }
     }
 }

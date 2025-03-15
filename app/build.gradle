@@ -5,7 +5,7 @@ plugins {
     id("org.aquamarine5.brainspark.stackbricks-gradle-plugin") version "1.12"
     id("com.google.protobuf") version "0.9.4"
     id "io.sentry.android.gradle" version "5.3.0"
-    id 'org.jetbrains.kotlin.plugin.serialization' version '2.1.0'
+    id("org.jetbrains.kotlin.plugin.serialization") version "2.1.0"
 }
 
 
@@ -25,13 +25,13 @@ android {
 
     defaultConfig {
         ndk {
-            abiFilters "arm64-v8a", "armeabi-v7a", "x86", "x86_64"
+            abiFilters "arm64-v8a", "x86_64"
         }
         applicationId = "org.aquamarine5.brainspark.chaoxingsignfaker"
         minSdk = 26
         targetSdk = 35
-        versionCode = 10000250311
-        versionName = "1.0.0-alpha1"
+        versionCode = 1000250315
+        versionName = "1.0.0-alpha2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -84,9 +84,10 @@ protobuf {
 }
 
 dependencies {
+    implementation libs.stackbricks
     implementation libs.common
     implementation libs.asms
-    implementation(libs.kotlinx.serialization.json)
+    implementation libs.kotlinx.serialization.json
     implementation libs.androidx.navigation.compose
     implementation libs.androidx.datastore
     implementation libs.baidumapsdk.map
@@ -94,7 +95,6 @@ dependencies {
     implementation libs.protobuf.javalite
     implementation(libs.fastjson2)
     implementation(libs.okhttp)
-    implementation(libs.stackbricks)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)

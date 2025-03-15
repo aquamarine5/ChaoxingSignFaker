@@ -16,6 +16,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.baidu.mapapi.SDKInitializer
 import com.baidu.mapapi.map.BaiduMap
@@ -40,11 +41,11 @@ import kotlinx.serialization.json.jsonObject
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationDetailEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingPostLocationEntity
 
-@Serializable
-data class GetLocationDestination(val position: ChaoxingLocationDetailEntity)
+typealias GetLocationDestination = ChaoxingLocationDetailEntity
 
 @Composable
 fun GetLocationPage(
+    navController: NavController,
     position: ChaoxingLocationDetailEntity
 ) {
     LocalContext.current.apply {
@@ -52,7 +53,6 @@ fun GetLocationPage(
         var clickedPosition by remember { mutableStateOf(position.toLatLng()) }
         var clickedName by remember { mutableStateOf("") }
         var isOutRange by remember { mutableStateOf(false) }
-        val navController= rememberNavController()
         val geoCoder = GeoCoder.newInstance().apply {
             setOnGetGeoCodeResultListener(object : OnGetGeoCoderResultListener {
                 override fun onGetGeoCodeResult(p0: GeoCodeResult?) {
@@ -116,7 +116,7 @@ fun GetLocationPage(
             }
         }
 
-        Scaffold { innerPadding->
+        Scaffold { innerPadding ->
             Column(modifier = Modifier.padding(innerPadding)) {
                 Row {
                     Column {
@@ -138,11 +138,9 @@ fun GetLocationPage(
                         }
                         navController.navigate(
                             LocationSignDestination(
-                                ChaoxingPostLocationEntity(
-                                    clickedPosition.latitude,
-                                    clickedPosition.longitude,
-                                    clickedName
-                                )
+                                clickedPosition.latitude,
+                                clickedPosition.longitude,
+                                clickedName
                             )
                         )
                     }) {

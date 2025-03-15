@@ -51,39 +51,42 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             ChaoxingSignFakerTheme {
-                NavHost(rememberNavController(),
+                val navController= rememberNavController()
+                NavHost(navController,
                     runBlocking {
-                        applicationContext.chaoxingDataStore.data.first().apply {
-                            if (!agreeTerms) WelcomeDestination
-                            else if (!hasLoginSession()) LoginDestination
-                            else {
-                                ChaoxingHttpClient.loadFromDataStore(this)
-                                CourseListDestination
+                        applicationContext.chaoxingDataStore.data.first().let {
+                            when {
+                                !it.agreeTerms -> WelcomeDestination
+                                !it.hasLoginSession() -> LoginDestination
+                                else -> {
+                                    ChaoxingHttpClient.loadFromDataStore(it)
+                                    CourseListDestination
+                                }
                             }
                         }
                     }
                 ) {
+                    composable<WelcomeDestination> {
+                        WelcomeScreen(navController)
+                    }
+                    composable<LoginDestination> {
+                        LoginPage(navController)
+                    }
                     composable<GetLocationDestination> {
-                        GetLocationPage(it.toRoute())
+                        GetLocationPage(navController,it.toRoute())
                     }
                     composable<CourseListDestination> {
-                        CourseListScreen()
+                        CourseListScreen(navController)
                     }
 
                     composable<LocationSignDestination> {
-                        LocationSignScreen(it.toRoute())
+                        LocationSignScreen(navController,it.toRoute())
                     }
 
-                    composable<WelcomeDestination> {
-                        WelcomeScreen()
-                    }
 
-                    composable<LoginDestination> {
-                        LoginPage()
-                    }
 
                     composable<CourseDetailDestination> {
-                        CourseDetailScreen(it.toRoute())
+                        CourseDetailScreen(navController,it.toRoute())
                     }
                 }
             }
