@@ -8,7 +8,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCourseEntity
 
 object ChaoxingCourseHelper {
     private const val URL_COURSE_LIST =
-        "http://mooc1-api.chaoxing.com/mycourse/backclazzdata?view=json&rss=1"
+        "https://mooc1-api.chaoxing.com/mycourse/backclazzdata?view=json&rss=1"
 
     suspend fun getAllCourse(client: ChaoxingHttpClient): List<ChaoxingCourseEntity> =
         withContext(Dispatchers.IO) {
@@ -19,17 +19,17 @@ object ChaoxingCourseHelper {
                 for (i in 0 until channelList.size) {
                     val course = channelList.getJSONObject(i)
                     val content = course.getJSONObject("content")
-                    val classContent = content.getJSONArray("clazz").getJSONObject(0)
+                    val courseContent = content.getJSONObject("course").getJSONArray("data").getJSONObject(0)
                     courseList.add(
                         ChaoxingCourseEntity(
-                            course.getString("name"),
-                            course.getString("teacherfactor"),
-                            content.getInteger("id"),
-                            course.getInteger("cpi"),
+                            courseContent.getString("name"),
+                            courseContent.getString("teacherfactor"),
+                            courseContent.getInteger("id"),
+                            content.getInteger("cpi"),
                             content.getString("bbsid"),
-                            classContent.getInteger("chatid"),
-                            classContent.getInteger("clazzId"),
-                            classContent.getString("clazzName"),
+                            content.getString("chatid"),
+                            content.getInteger("id"),
+                            courseContent.getString("name"),
 
                         )
                     )

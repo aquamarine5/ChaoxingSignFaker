@@ -1,30 +1,28 @@
 package org.aquamarine5.brainspark.chaoxingsignfaker.api
 
 import android.content.Context
-import android.net.http.HttpException
-import android.os.Build
-import androidx.annotation.RequiresExtension
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.compose.rememberNavController
 import com.alibaba.fastjson2.JSONObject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
-import okhttp3.*
+import okhttp3.Call
+import okhttp3.Cookie
+import okhttp3.CookieJar
+import okhttp3.FormBody
+import okhttp3.HttpUrl
+import okhttp3.OkHttpClient
+import okhttp3.Request
 import org.aquamarine5.brainspark.chaoxingsignfaker.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingLoginSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingSignFakerDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.HttpCookie
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingUserEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.screens.LoginDestination
-import java.lang.Exception
-import java.util.*
+import java.util.Base64
 import javax.crypto.Cipher
 import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.SecretKeySpec
@@ -54,13 +52,20 @@ class ChaoxingHttpClient private constructor(
         ): ChaoxingHttpClient {
             val cookieJar: CookieJar = object : CookieJar {
                 private val cookieStore: MutableMap<String, List<Cookie>> = mutableMapOf()
-
+                private var chaoxingCookieSession: List<Cookie> = listOf()
                 override fun saveFromResponse(url: HttpUrl, cookies: List<Cookie>) {
-                    cookieStore[url.host] = cookies
+                    if (url.host.endsWith("chaoxing.com") && url.encodedPath == "/fanyalogin") {
+                        chaoxingCookieSession = cookies
+                    } else
+                        cookieStore[url.host] = cookies
                 }
 
                 override fun loadForRequest(url: HttpUrl): List<Cookie> {
-                    return cookieStore[url.host] ?: listOf()
+                    return if (url.host.endsWith("chaoxing.com")) {
+                        chaoxingCookieSession
+                    } else {
+                        cookieStore[url.host] ?: listOf()
+                    }
                 }
             }
             val client = OkHttpClient.Builder()
@@ -83,17 +88,24 @@ class ChaoxingHttpClient private constructor(
         suspend fun loadFromDataStore(dataStore: ChaoxingSignFakerDataStore): ChaoxingHttpClient {
             val okHttpClient = OkHttpClient.Builder().cookieJar(object : CookieJar {
                 private val cookieStore: MutableMap<String, List<Cookie>> = mutableMapOf()
-
+                private var chaoxingCookieSession: List<Cookie> = listOf()
                 override fun saveFromResponse(url: HttpUrl, cookies: List<Cookie>) {
-                    cookieStore[url.host] = cookies
+                    if (url.host.endsWith("chaoxing.com") && url.encodedPath == "/fanyalogin") {
+                        chaoxingCookieSession = cookies
+                    } else
+                        cookieStore[url.host] = cookies
                 }
 
                 override fun loadForRequest(url: HttpUrl): List<Cookie> {
-                    return cookieStore[url.host] ?: listOf()
+                    return if (url.host.endsWith("chaoxing.com")) {
+                        chaoxingCookieSession
+                    } else {
+                        cookieStore[url.host] ?: listOf()
+                    }
                 }
             }).build().apply {
                 cookieJar.saveFromResponse(
-                    HttpUrl.Builder().host("chaoxing.com").build(),
+                    HttpUrl.Builder().scheme("https").host("chaoxing.com").encodedPath("/fanyalogin").build(),
                     dataStore.loginSession.cookiesList
                         .map { cookie ->
                             Cookie.Builder()
@@ -188,8 +200,13 @@ class ChaoxingHttpClient private constructor(
                             "登录错误"
                         })
                     }
-                }
 
+                    client.cookieJar.saveFromResponse(
+                        request.url,
+                        Cookie.parseAll(request.url, it.headers)
+                    )
+
+                }
                 context.chaoxingDataStore.updateData {
                     it.toBuilder().setLoginSession(
                         ChaoxingLoginSession.newBuilder().addAllCookies(

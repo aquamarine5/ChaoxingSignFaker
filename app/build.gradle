@@ -2,7 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
-    id("org.aquamarine5.brainspark.stackbricks-gradle-plugin") version "1.12"
+    id("org.aquamarine5.brainspark.stackbricks-gradle-plugin") version "1.13"
     id("com.google.protobuf") version "0.9.4"
     id "io.sentry.android.gradle" version "5.3.0"
     id("org.jetbrains.kotlin.plugin.serialization") version "2.1.0"
@@ -10,6 +10,7 @@ plugins {
 
 
 stackbricksConfig {
+    configJsonFilePath = "chaoxingsignfaker_stackbricks_v1_config.json"
     host = "cdn.aquamarine5.fun"
     qiniuConfig {
         accessKey = project.findProperty("qiniu.accessKey") ?: ""
@@ -31,7 +32,7 @@ android {
         minSdk = 26
         targetSdk = 35
         versionCode = 1000250315
-        versionName = "1.0.0-alpha2"
+        versionName = "1.0.0-beta1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

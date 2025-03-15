@@ -5,13 +5,8 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.compose.NavHost
@@ -20,11 +15,10 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.baidu.mapapi.SDKInitializer
 import com.umeng.analytics.MobclickAgent
-import com.umeng.commonsdk.UMConfigure
-import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.screens.CourseDetailDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.screens.CourseDetailScreen
@@ -55,6 +49,12 @@ class MainActivity : ComponentActivity() {
                 NavHost(navController,
                     runBlocking {
                         applicationContext.chaoxingDataStore.data.first().let {
+                            if(it.agreeTerms){
+                                withContext(Dispatchers.IO){
+                                    UMengHelper.init(applicationContext)
+                                    SDKInitializer.setAgreePrivacy(applicationContext, true)
+                                }
+                            }
                             when {
                                 !it.agreeTerms -> WelcomeDestination
                                 !it.hasLoginSession() -> LoginDestination
