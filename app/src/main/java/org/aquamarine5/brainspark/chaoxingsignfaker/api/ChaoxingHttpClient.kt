@@ -177,8 +177,8 @@ class ChaoxingHttpClient private constructor(
                     .url(URL_LOGIN)
                     .post(FormBody.Builder().apply {
                         addEncoded("fid", "-1")
-                        addEncoded("uname", uname)
-                        addEncoded("password", encryptedPassword)
+                        addEncoded("uname", uname.replace("+", "%2B"))
+                        addEncoded("password", encryptedPassword.replace("+", "%2B"))
                         addEncoded("refer", "https%3A%2F%2Fi.chaoxing.com")
                         addEncoded("t", "true")
                         addEncoded("forbidotherlogin", "0")
