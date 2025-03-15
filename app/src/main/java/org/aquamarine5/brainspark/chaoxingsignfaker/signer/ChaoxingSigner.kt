@@ -2,11 +2,8 @@ package org.aquamarine5.brainspark.chaoxingsignfaker.signer
 
 import com.alibaba.fastjson2.JSONObject
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import okhttp3.FormBody
-import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Request
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
@@ -25,6 +22,9 @@ abstract class ChaoxingSigner(
             "https://mobilelearn.chaoxing.com/pptSign/analysis?vs=1&DB_STRATEGY=RANDOM"
         const val URL_AFTER_ANALYSIS2 =
             "https://mobilelearn.chaoxing.com/pptSign/analysis2?DB_STRATEGY=RANDOM"
+
+
+
     }
 
     abstract suspend fun sign()

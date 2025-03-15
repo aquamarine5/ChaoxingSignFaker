@@ -11,6 +11,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCourseActivitiesEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCourseEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
+import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingLocationSigner
 import java.time.Instant
 
 object ChaoxingActivityHelper {
@@ -18,18 +19,23 @@ object ChaoxingActivityHelper {
         "https://mobilelearn.chaoxing.com/v2/apis/active/student/activelist?fid=0&courseId=%d&classId=%d&showNotStartedActive=0"
 
     @Composable
-    fun getSignIcon(activity: ChaoxingSignActivityEntity) :Painter{
-        val iconMatchList=
-            mapOf(
-                "0" to painterResource(R.drawable.ic_square_mouse_pointer),
-                "3" to painterResource(R.drawable.ic_git_branch),
-                "4" to painterResource(R.drawable.ic_map_pin),
-                "2" to painterResource(R.drawable.ic_scan_qr_code),
-                "5" to painterResource(R.drawable.ic_binary)
-            )
-
-        return iconMatchList[activity.otherId]?:painterResource(R.drawable.ic_clipboard_pen_line)
+    fun getSignIcon(activity: ChaoxingSignActivityEntity): Painter =when(activity.otherId) {
+        "0" -> painterResource(R.drawable.ic_square_mouse_pointer)
+        "3" -> painterResource(R.drawable.ic_git_branch)
+        "4" -> painterResource(R.drawable.ic_map_pin)
+        "2" -> painterResource(R.drawable.ic_scan_qr_code)
+        "5" -> painterResource(R.drawable.ic_binary)
+        else ->  painterResource(R.drawable.ic_clipboard_pen_line)
     }
+
+
+
+    suspend fun getSignDestination(activityEntity: ChaoxingSignActivityEntity) =
+        when (activityEntity.otherId) {
+            "4" -> ChaoxingLocationSigner.getLocationSignInfo(activityEntity)
+            else -> null
+        }
+
 
     suspend fun getActivities(
         client: ChaoxingHttpClient,

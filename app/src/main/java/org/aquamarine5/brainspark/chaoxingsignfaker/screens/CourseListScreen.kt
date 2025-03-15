@@ -15,13 +15,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavController
 import kotlinx.serialization.Serializable
 import okhttp3.OkHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCourseHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
-import org.aquamarine5.brainspark.chaoxingsignfaker.components.CourseDetailColumnCard
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.CourseInfoColumnCard
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCourseEntity
 import org.aquamarine5.brainspark.stackbricks.StackbricksComponent
 import org.aquamarine5.brainspark.stackbricks.StackbricksStateService
@@ -36,7 +35,7 @@ object CourseListDestination
 
 @Composable
 fun CourseListScreen(
-    navController: NavController
+    navToDetailDestination:(ChaoxingCourseEntity)->Unit,
 ) {
     var activitiesData by remember { mutableStateOf<List<ChaoxingCourseEntity>?>(null) }
     ChaoxingHttpClient.CheckInstance()
@@ -54,7 +53,6 @@ fun CourseListScreen(
             if (activitiesData == null) {
                 CenterCircularProgressIndicator()
             } else {
-
                 val stackbricksState = rememberStackbricksStatus()
                 QiniuConfiguration(
                     "cdn.aquamarine5.fun",
@@ -80,8 +78,8 @@ fun CourseListScreen(
                 LazyColumn {
                     items(activitiesData!!) {
                         key(it.courseId) {
-                            CourseDetailColumnCard(it) {
-                                navController.navigate(it)
+                            CourseInfoColumnCard(it) {
+                                navToDetailDestination(it)
                             }
                         }
                     }

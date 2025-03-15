@@ -19,8 +19,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavController
-import androidx.navigation.compose.rememberNavController
 import com.baidu.mapapi.SDKInitializer
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
@@ -33,7 +31,7 @@ object WelcomeDestination
 
 @Composable
 fun WelcomeScreen(
-    navController: NavController) {
+    navToLoginDestination:()->Unit) {
     val context = LocalContext.current.applicationContext
     val coroutineContext = rememberCoroutineScope()
     Scaffold { innerPadding ->
@@ -91,7 +89,7 @@ ChaoxingSignFaker 根据 GPL-3.0 协议进行开源。https://github.com/aquamar
                     }
                     UMengHelper.init(context)
                     SDKInitializer.setAgreePrivacy(context, true)
-                    navController.navigate(LoginDestination)
+                    navToLoginDestination()
                 }) { Text("允许协议并进入应用") }
                 OutlinedButton(onClick = {
                     context.startActivity(Intent().apply {
@@ -107,5 +105,5 @@ ChaoxingSignFaker 根据 GPL-3.0 协议进行开源。https://github.com/aquamar
 @Preview
 @Composable
 fun WelcomeScreenPreview() {
-    WelcomeScreen(rememberNavController())
+    WelcomeScreen{}
 }

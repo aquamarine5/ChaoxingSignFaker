@@ -1,15 +1,15 @@
 package org.aquamarine5.brainspark.chaoxingsignfaker.signer
 
 import android.util.Log
-import com.alibaba.fastjson2.JSONObject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Request
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationDetailEntity
-import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingPostLocationEntity
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
+import org.aquamarine5.brainspark.chaoxingsignfaker.screens.GetLocationDestination
 
 class ChaoxingLocationSigner(
     client: ChaoxingHttpClient,
@@ -22,6 +22,16 @@ class ChaoxingLocationSigner(
             "https://mobilelearn.chaoxing.com/pptSign/stuSignajax?&clientip=&appType=15&ifTiJiao=1&validate=&vpProbability=-1&vpStrategy="
 
         const val CLASSTAG="ChaoxingLocationSigner"
+
+        suspend fun getLocationSignInfo(activityEntity: ChaoxingSignActivityEntity):GetLocationDestination{
+            ChaoxingSignHelper.getSignInfo(activityEntity).let { jsonResult ->
+                return ChaoxingLocationDetailEntity(
+                    jsonResult.getDouble("latitude"),
+                    jsonResult.getDouble("longitude"),
+                    jsonResult.getString("locationRange")
+                )
+            }
+        }
     }
 
     override suspend fun sign() = withContext(Dispatchers.IO) {

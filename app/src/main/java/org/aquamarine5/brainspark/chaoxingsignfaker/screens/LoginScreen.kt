@@ -22,8 +22,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavController
-import androidx.navigation.compose.rememberNavController
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
@@ -33,7 +31,7 @@ object LoginDestination
 
 @Composable
 fun LoginPage(
-    navController: NavController
+    navToCourseListDestination: () -> Unit
 ) {
     var phoneNumber by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -69,7 +67,7 @@ fun LoginPage(
                     }
                 }.invokeOnCompletion {
                     if (ChaoxingHttpClient.instance != null) {
-                        navController.navigate(CourseListDestination)
+                        navToCourseListDestination()
                     }
                 }
             }) {
@@ -83,5 +81,5 @@ fun LoginPage(
 @Preview
 @Composable
 fun LoginPagePreview() {
-    LoginPage(rememberNavController())
+    LoginPage{}
 }

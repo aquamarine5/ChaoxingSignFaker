@@ -25,7 +25,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavController
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingActivityHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
@@ -38,7 +37,9 @@ typealias CourseDetailDestination = ChaoxingCourseEntity
 
 @Composable
 fun CourseDetailScreen(
-    navController: NavController, courseEntity: ChaoxingCourseEntity
+    courseEntity: ChaoxingCourseEntity,
+    navToSignerDestination:(Any)->Unit,
+    navToListDestination: () -> Unit,
 ) {
     var activitiesData by remember { mutableStateOf<ChaoxingCourseActivitiesEntity?>(null) }
     ChaoxingHttpClient.CheckInstance()
@@ -56,23 +57,31 @@ fun CourseDetailScreen(
             if (activitiesData == null) {
                 CenterCircularProgressIndicator()
             } else {
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            navToListDestination()
+                        }
+                ) {
                     Icon(painterResource(R.drawable.ic_arrow_left), contentDescription = null)
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         "课程名称：${courseEntity.courseName}",
                         color = Color.DarkGray,
                         textAlign = TextAlign.Left,
-                        modifier = Modifier.clickable {
-                            navController.navigate(CourseListDestination)
-                        }.fillMaxWidth())
-
+                        modifier = Modifier
+                            .fillMaxWidth()
+                    )
                 }
                 Spacer(modifier = Modifier.height(12.dp))
-                LazyColumn {
+                LazyColumn(modifier = Modifier.fillMaxWidth()) {
                     items(activitiesData!!.signActivities) {
                         key(it.id) {
-                            CourseSignActivityColumnCard(it)
+                            CourseSignActivityColumnCard(it){ destination->
+                                navToSignerDestination(destination)
+                            }
                         }
                     }
                 }

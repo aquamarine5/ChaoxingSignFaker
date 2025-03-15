@@ -12,6 +12,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navOptions
 import androidx.navigation.toRoute
 import com.baidu.mapapi.SDKInitializer
 import com.umeng.analytics.MobclickAgent
@@ -45,12 +46,12 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             ChaoxingSignFakerTheme {
-                val navController= rememberNavController()
+                val navController = rememberNavController()
                 NavHost(navController,
                     runBlocking {
                         applicationContext.chaoxingDataStore.data.first().let {
-                            if(it.agreeTerms){
-                                withContext(Dispatchers.IO){
+                            if (it.agreeTerms) {
+                                withContext(Dispatchers.IO) {
                                     UMengHelper.init(applicationContext)
                                     SDKInitializer.setAgreePrivacy(applicationContext, true)
                                 }
@@ -67,26 +68,43 @@ class MainActivity : ComponentActivity() {
                     }
                 ) {
                     composable<WelcomeDestination> {
-                        WelcomeScreen(navController)
+                        WelcomeScreen {
+                            navController.navigate(LoginDestination) {
+                                popUpTo<WelcomeDestination>()
+                            }
+                        }
                     }
                     composable<LoginDestination> {
-                        LoginPage(navController)
+                        LoginPage {
+                            navController.navigate(CourseListDestination) {
+                                popUpTo<LoginDestination> { inclusive = true }
+                            }
+                        }
                     }
                     composable<GetLocationDestination> {
-                        GetLocationPage(navController,it.toRoute())
+                        GetLocationPage(it.toRoute()) { destination ->
+                            navController.navigate(destination)
+                        }
                     }
                     composable<CourseListDestination> {
-                        CourseListScreen(navController)
+                        CourseListScreen {
+                            navController.navigate(it, navOptions {
+                                popUpTo<CourseListDestination> { saveState = true }
+                                restoreState = true
+                            })
+                        }
                     }
 
                     composable<LocationSignDestination> {
-                        LocationSignScreen(navController,it.toRoute())
+                        LocationSignScreen(it.toRoute())
                     }
 
-
-
                     composable<CourseDetailDestination> {
-                        CourseDetailScreen(navController,it.toRoute())
+                        CourseDetailScreen(it.toRoute(), navToSignerDestination = { destination->
+                            navController.navigate(destination)
+                        }) {
+                            navController.navigate(CourseListDestination)
+                        }
                     }
                 }
             }
