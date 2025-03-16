@@ -83,3 +83,6 @@
     private ** descriptor;
 }
 
+-keep public class org.aquamarine5.brainspark.chaoxingsignfaker.R$*{
+public static final int *;
+}

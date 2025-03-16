@@ -79,6 +79,7 @@ fun GetLocationPage(
 ) {
     LocalContext.current.let { context ->
         SDKInitializer.initialize(context.applicationContext)
+        var isSignSuccess by remember { mutableStateOf(false) }
         var clickedPosition by remember { mutableStateOf(LatLng(0.0, 0.0)) }
         var clickedName by remember { mutableStateOf("未指定") }
         val coroutineScope = rememberCoroutineScope()
@@ -206,6 +207,7 @@ fun GetLocationPage(
                                             clickedName
                                         )
                                     ).sign()
+                                    isSignSuccess=true
                                 }
                                 catch (e:ChaoxingLocationSigner.ChaoxingLocationSignException){
                                     Toast.makeText(context, e.message, Toast.LENGTH_SHORT).show()
@@ -213,9 +215,9 @@ fun GetLocationPage(
                                 }
                             }.invokeOnCompletion {
                                 Toast.makeText(context, "签到成功", Toast.LENGTH_SHORT).show()
-                                navToCourseDetailDestination()
+                                //navToCourseDetailDestination()
                             }
-                        }) {
+                        }, enabled = !isSignSuccess) {
                             Text("签到")
                         }
                     }
@@ -257,7 +259,6 @@ fun GetLocationPage(
                         }
                     }
                 }
-
             }
             DisposableEffect(Unit) {
                 onDispose {
@@ -269,5 +270,4 @@ fun GetLocationPage(
             }
         }
     }
-
 }

@@ -1,6 +1,8 @@
 package org.aquamarine5.brainspark.chaoxingsignfaker.screens
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
@@ -39,9 +41,15 @@ fun LoginPage(
     val coroutineContext = rememberCoroutineScope()
     val context = LocalContext.current
     Scaffold { innerPadding ->
-        Column(modifier = Modifier.padding(innerPadding).padding(16.dp)) {
+        Column(
+            modifier = Modifier
+                .padding(innerPadding)
+                .padding(16.dp)
+                .fillMaxWidth(),
+            verticalArrangement = Arrangement.Center
+        ) {
             Text(
-                "Login Page",
+                "登录你的学习通账号",
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.align(Alignment.CenterHorizontally)
             )
@@ -81,5 +89,5 @@ fun LoginPage(
 @Preview
 @Composable
 fun LoginPagePreview() {
-    LoginPage{}
+    LoginPage {}
 }

@@ -26,6 +26,7 @@ fun CourseSignActivityColumnCard(
     Row(modifier = Modifier
         .fillMaxWidth()
         .clickable {
+
             coroutineScope.launch {
                 val destination = ChaoxingActivityHelper.getSignDestination(activity)
                 if (destination != null) {

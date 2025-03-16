@@ -2,12 +2,12 @@ package org.aquamarine5.brainspark.chaoxingsignfaker
 
 import android.content.Intent
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.compose.NavHost
@@ -41,7 +41,7 @@ class MainActivity : ComponentActivity() {
     companion object {
         const val INTENT_EXTRA_EXIT_FLAG = "intent_extra_exit_flag"
 
-        const val CLASS_TAG="MainActivity"
+        const val CLASS_TAG = "MainActivity"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -51,14 +51,15 @@ class MainActivity : ComponentActivity() {
         setContent {
             ChaoxingSignFakerTheme {
                 val navController = rememberNavController()
+                val coroutineScope = rememberCoroutineScope()
                 NavHost(navController,
                     runBlocking {
                         applicationContext.chaoxingDataStore.data.first().let {
                             if (it.agreeTerms) {
-                                Log.d(CLASS_TAG, "UMengHelper.init")
                                 UMengHelper.init(applicationContext)
                                 LocationClient.setAgreePrivacy(true)
                                 SDKInitializer.setAgreePrivacy(applicationContext, true)
+
                             }
                             when {
                                 !it.agreeTerms -> WelcomeDestination
@@ -124,6 +125,16 @@ class MainActivity : ComponentActivity() {
             finish()
         }
         super.onNewIntent(intent)
+    }
+
+    override fun onResume() {
+        MobclickAgent.onResume(this)
+        super.onResume()
+    }
+
+    override fun onPause() {
+        MobclickAgent.onPause(this)
+        super.onPause()
     }
 
     override fun onStop() {
