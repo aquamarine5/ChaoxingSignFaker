@@ -5,6 +5,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Request
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationDetailEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingPostLocationEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.screens.GetLocationDestination
 
@@ -23,6 +24,16 @@ class ChaoxingLocationSigner(
             "https://mobilelearn.chaoxing.com/pptSign/stuSignajax?&clientip=&appType=15&ifTiJiao=1&validate=&vpProbability=-1&vpStrategy="
 
         const val CLASSTAG = "ChaoxingLocationSigner"
+
+        suspend fun getLocationSignInfo(activeId: Long): ChaoxingLocationDetailEntity {
+            ChaoxingSignHelper.getSignInfo(activeId).let { jsonResult ->
+                return ChaoxingLocationDetailEntity(
+                    jsonResult.getDouble("locationLatitude"),
+                    jsonResult.getDouble("locationLongitude"),
+                    jsonResult.getInteger("locationRange")
+                )
+            }
+        }
     }
 
     class ChaoxingLocationSignException(message: String) : Exception(message)

@@ -92,7 +92,7 @@ class MainActivity : ComponentActivity() {
                         )
                     ) {
                         GetLocationPage(it.toRoute()) {
-                            navController.navigate(CourseDetailDestination)
+                            navController.navigateUp()
                         }
                     }
                     composable<CourseListDestination> {
@@ -112,7 +112,7 @@ class MainActivity : ComponentActivity() {
                         CourseDetailScreen(it.toRoute(), navToSignerDestination = { destination ->
                             navController.navigate(destination)
                         }) {
-                            navController.navigateUp()
+                            navController.navigate(CourseListDestination)
                         }
                     }
                 }
