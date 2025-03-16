@@ -318,7 +318,13 @@ fun GetLocationPage(
                                             clickedPosition.longitude,
                                             clickedName
                                         )
-                                    ).sign()
+                                    ).apply {
+                                        if(preSign()){
+                                            Toast.makeText(context, "已签到", Toast.LENGTH_SHORT).show()
+                                        }else{
+                                            sign()
+                                        }
+                                    }
                                     isSignSuccess = true
                                 } catch (e: ChaoxingLocationSigner.ChaoxingLocationSignException) {
                                     Toast.makeText(context, e.message, Toast.LENGTH_SHORT).show()

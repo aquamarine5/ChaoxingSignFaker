@@ -6,6 +6,7 @@ import kotlinx.coroutines.withContext
 import okhttp3.FormBody
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Request
+import okhttp3.Response
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 
 abstract class ChaoxingSigner(
@@ -29,7 +30,8 @@ abstract class ChaoxingSigner(
     val client = ChaoxingHttpClient.instance!!
 
     abstract suspend fun sign()
-    abstract suspend fun beforeSign()
+    abstract suspend fun beforeSign():Boolean
+    abstract suspend fun checkAlreadySign(response: Response):Boolean
     open suspend fun getSignInfo(): JSONObject = withContext(Dispatchers.IO) {
         client.newCall(
             Request.Builder().get().url(
@@ -42,7 +44,7 @@ abstract class ChaoxingSigner(
         }
     }
 
-    open suspend fun preSign() = withContext(Dispatchers.IO) {
+    open suspend fun preSign():Boolean = withContext(Dispatchers.IO) {
         client.newCall(
             Request.Builder().post(
                 FormBody.Builder().addEncoded("ext",extContent).build()
@@ -55,9 +57,9 @@ abstract class ChaoxingSigner(
                     .build()
             ).build()
         ).execute().use {
-
+            postAnalysis()
+            return@withContext checkAlreadySign(it)
         }
-        postAnalysis()
     }
 
     open suspend fun postAnalysis() = withContext(Dispatchers.IO) {
