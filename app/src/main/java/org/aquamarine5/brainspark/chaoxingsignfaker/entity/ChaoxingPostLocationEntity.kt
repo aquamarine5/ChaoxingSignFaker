@@ -4,7 +4,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class ChaoxingPostLocationEntity(
-    val latitude:Double,
-    val longitude:Double,
-    val address:String
+    val latitude: Double,
+    val longitude: Double,
+    val address: String
 )

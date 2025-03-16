@@ -11,28 +11,28 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCourseActivitiesEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCourseEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
-import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingLocationSigner
-import java.time.Instant
+import org.aquamarine5.brainspark.chaoxingsignfaker.screens.GetLocationDestination
 
 object ChaoxingActivityHelper {
     private const val URL_ACTIVITY_LOAD =
         "https://mobilelearn.chaoxing.com/v2/apis/active/student/activelist?fid=0&courseId=%d&classId=%d&showNotStartedActive=0"
 
+    const val NO_LIMIT_END_TIME = -1000L
+
     @Composable
-    fun getSignIcon(activity: ChaoxingSignActivityEntity): Painter =when(activity.otherId) {
+    fun getSignIcon(activity: ChaoxingSignActivityEntity): Painter = when (activity.otherId) {
         "0" -> painterResource(R.drawable.ic_square_mouse_pointer)
         "3" -> painterResource(R.drawable.ic_git_branch)
         "4" -> painterResource(R.drawable.ic_map_pin)
         "2" -> painterResource(R.drawable.ic_scan_qr_code)
         "5" -> painterResource(R.drawable.ic_binary)
-        else ->  painterResource(R.drawable.ic_clipboard_pen_line)
+        else -> painterResource(R.drawable.ic_clipboard_pen_line)
     }
 
 
-
-    suspend fun getSignDestination(activityEntity: ChaoxingSignActivityEntity) =
+    suspend fun getSignDestination(activityEntity: ChaoxingSignActivityEntity) :Any?=
         when (activityEntity.otherId) {
-            "4" -> ChaoxingLocationSigner.getLocationSignInfo(activityEntity)
+            "4" -> GetLocationDestination.parseFromSignActivityEntity(activityEntity)
             else -> null
         }
 
@@ -56,8 +56,8 @@ object ChaoxingActivityHelper {
                     List(activeList.size) { i ->
                         val activity = activeList[i]
                         ChaoxingSignActivityEntity(
-                            Instant.ofEpochMilli(activity.getLong("startTime")),
-                            Instant.ofEpochMilli(activity.getLong("endTime")),
+                            activity.getLong("startTime"),
+                            activity.getLong("endTime") ?: NO_LIMIT_END_TIME,
                             activity.getInteger("userStatus"),
                             activity.getString("nameTwo"),
                             activity.getString("otherId"),
@@ -72,7 +72,7 @@ object ChaoxingActivityHelper {
                             activity.getInteger("status"),
                             activity.getString("nameFour"),
                             course,
-                            jsonResult.getJSONObject("ext")
+                            jsonResult.getJSONObject("ext").toString()
                         )
                     }
                 )

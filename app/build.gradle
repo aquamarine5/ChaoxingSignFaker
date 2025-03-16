@@ -26,13 +26,13 @@ android {
 
     defaultConfig {
         ndk {
-            abiFilters "arm64-v8a", "x86_64"
+            abiFilters "arm64-v8a"
         }
         applicationId = "org.aquamarine5.brainspark.chaoxingsignfaker"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1002250315
-        versionName = "1.0.0-beta2"
+        versionCode = 1003250316
+        versionName = "1.0.0-beta3"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

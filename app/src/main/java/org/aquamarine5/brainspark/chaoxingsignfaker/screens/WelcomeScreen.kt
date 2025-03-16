@@ -94,6 +94,7 @@ ChaoxingSignFaker 根据 GPL-3.0 协议进行开源。https://github.com/aquamar
                 OutlinedButton(onClick = {
                     context.startActivity(Intent().apply {
                         setClass(context, MainActivity::class.java)
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                         putExtra(MainActivity.INTENT_EXTRA_EXIT_FLAG, true)
                     })
                 }) { Text("退出应用") }

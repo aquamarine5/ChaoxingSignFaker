@@ -1,6 +1,5 @@
 package org.aquamarine5.brainspark.chaoxingsignfaker.components
 
-import android.util.Log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -23,14 +22,13 @@ fun CourseSignActivityColumnCard(
     activity: ChaoxingSignActivityEntity,
     onSignAction: (Any) -> Unit
 ) {
-    val coroutineScope= rememberCoroutineScope()
+    val coroutineScope = rememberCoroutineScope()
     Row(modifier = Modifier
         .fillMaxWidth()
         .clickable {
             coroutineScope.launch {
-                val destination=ChaoxingActivityHelper.getSignDestination(activity)
-                Log.d("CourseSignActivityColumnCard", "CourseSignActivityColumnCard: $destination")
-                if(destination!=null){
+                val destination = ChaoxingActivityHelper.getSignDestination(activity)
+                if (destination != null) {
                     onSignAction(destination)
                 }
             }

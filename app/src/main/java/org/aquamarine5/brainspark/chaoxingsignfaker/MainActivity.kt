@@ -2,6 +2,7 @@ package org.aquamarine5.brainspark.chaoxingsignfaker
 
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -14,13 +15,13 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navOptions
 import androidx.navigation.toRoute
+import com.baidu.location.LocationClient
 import com.baidu.mapapi.SDKInitializer
 import com.umeng.analytics.MobclickAgent
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withContext
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.screens.CourseDetailDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.screens.CourseDetailScreen
 import org.aquamarine5.brainspark.chaoxingsignfaker.screens.CourseListDestination
@@ -34,10 +35,13 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.screens.LoginPage
 import org.aquamarine5.brainspark.chaoxingsignfaker.screens.WelcomeDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.screens.WelcomeScreen
 import org.aquamarine5.brainspark.chaoxingsignfaker.ui.theme.ChaoxingSignFakerTheme
+import kotlin.reflect.typeOf
 
 class MainActivity : ComponentActivity() {
     companion object {
         const val INTENT_EXTRA_EXIT_FLAG = "intent_extra_exit_flag"
+
+        const val CLASS_TAG="MainActivity"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -51,10 +55,10 @@ class MainActivity : ComponentActivity() {
                     runBlocking {
                         applicationContext.chaoxingDataStore.data.first().let {
                             if (it.agreeTerms) {
-                                withContext(Dispatchers.IO) {
-                                    UMengHelper.init(applicationContext)
-                                    SDKInitializer.setAgreePrivacy(applicationContext, true)
-                                }
+                                Log.d(CLASS_TAG, "UMengHelper.init")
+                                UMengHelper.init(applicationContext)
+                                LocationClient.setAgreePrivacy(true)
+                                SDKInitializer.setAgreePrivacy(applicationContext, true)
                             }
                             when {
                                 !it.agreeTerms -> WelcomeDestination
@@ -81,9 +85,13 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                     }
-                    composable<GetLocationDestination> {
-                        GetLocationPage(it.toRoute()) { destination ->
-                            navController.navigate(destination)
+                    composable<GetLocationDestination>(
+                        typeMap = mapOf(
+                            typeOf<ChaoxingSignActivityEntity>() to ChaoxingSignActivityEntity.SignActivityNavType
+                        )
+                    ) {
+                        GetLocationPage(it.toRoute()) {
+                            navController.navigate(CourseDetailDestination)
                         }
                     }
                     composable<CourseListDestination> {
@@ -100,10 +108,10 @@ class MainActivity : ComponentActivity() {
                     }
 
                     composable<CourseDetailDestination> {
-                        CourseDetailScreen(it.toRoute(), navToSignerDestination = { destination->
+                        CourseDetailScreen(it.toRoute(), navToSignerDestination = { destination ->
                             navController.navigate(destination)
                         }) {
-                            navController.navigate(CourseListDestination)
+                            navController.navigateUp()
                         }
                     }
                 }

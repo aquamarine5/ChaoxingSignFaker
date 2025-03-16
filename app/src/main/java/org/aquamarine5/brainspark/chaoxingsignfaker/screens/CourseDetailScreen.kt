@@ -38,7 +38,7 @@ typealias CourseDetailDestination = ChaoxingCourseEntity
 @Composable
 fun CourseDetailScreen(
     courseEntity: ChaoxingCourseEntity,
-    navToSignerDestination:(Any)->Unit,
+    navToSignerDestination: (Any) -> Unit,
     navToListDestination: () -> Unit,
 ) {
     var activitiesData by remember { mutableStateOf<ChaoxingCourseActivitiesEntity?>(null) }
@@ -79,7 +79,7 @@ fun CourseDetailScreen(
                 LazyColumn(modifier = Modifier.fillMaxWidth()) {
                     items(activitiesData!!.signActivities) {
                         key(it.id) {
-                            CourseSignActivityColumnCard(it){ destination->
+                            CourseSignActivityColumnCard(it) { destination ->
                                 navToSignerDestination(destination)
                             }
                         }

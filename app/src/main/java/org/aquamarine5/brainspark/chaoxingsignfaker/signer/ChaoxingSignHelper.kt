@@ -10,8 +10,6 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityE
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSigner.Companion.URL_SIGN_INFO
 
 object ChaoxingSignHelper {
-    interface SignerDestination
-
     suspend fun getSignInfo(activityEntity:ChaoxingSignActivityEntity): JSONObject = withContext(Dispatchers.IO) {
         ChaoxingHttpClient.instance!!.newCall(
             Request.Builder().get().url(

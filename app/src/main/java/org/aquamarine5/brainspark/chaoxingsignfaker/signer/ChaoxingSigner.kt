@@ -7,12 +7,14 @@ import okhttp3.FormBody
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Request
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
-import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
 
 abstract class ChaoxingSigner(
-    val client: ChaoxingHttpClient,
-    val activityEntity: ChaoxingSignActivityEntity
+    val activeId:Long,
+    val classId:Int,
+    val courseId:Int,
+    val extContent:String
 ) {
+
     companion object {
         const val URL_PERSIGN =
             "https://mobilelearn.chaoxing.com/newsign/preSign?&general=1&sys=1&ls=1&appType=15&isTeacherViewOpen=0"
@@ -22,10 +24,9 @@ abstract class ChaoxingSigner(
             "https://mobilelearn.chaoxing.com/pptSign/analysis?vs=1&DB_STRATEGY=RANDOM"
         const val URL_AFTER_ANALYSIS2 =
             "https://mobilelearn.chaoxing.com/pptSign/analysis2?DB_STRATEGY=RANDOM"
-
-
-
     }
+
+    val client = ChaoxingHttpClient.instance!!
 
     abstract suspend fun sign()
     abstract suspend fun beforeSign()
@@ -33,7 +34,7 @@ abstract class ChaoxingSigner(
         client.newCall(
             Request.Builder().get().url(
                 URL_SIGN_INFO.toHttpUrl().newBuilder()
-                    .addQueryParameter("activeId", activityEntity.id.toString())
+                    .addQueryParameter("activeId", activeId.toString())
                     .build()
             ).build()
         ).execute().use {
@@ -44,12 +45,12 @@ abstract class ChaoxingSigner(
     open suspend fun preSign() = withContext(Dispatchers.IO) {
         client.newCall(
             Request.Builder().post(
-                FormBody.Builder().addEncoded("ext",activityEntity.ext.toString()).build()
+                FormBody.Builder().addEncoded("ext",extContent).build()
             ).url(
                 URL_PERSIGN.toHttpUrl().newBuilder()
-                    .addQueryParameter("courseId", activityEntity.course.courseId.toString())
-                    .addQueryParameter("classId", activityEntity.course.classId.toString())
-                    .addQueryParameter("activePrimaryId", activityEntity.id.toString())
+                    .addQueryParameter("courseId", courseId.toString())
+                    .addQueryParameter("classId", classId.toString())
+                    .addQueryParameter("activePrimaryId", activeId.toString())
                     .addQueryParameter("uid", client.userEntity.uid.toString())
                     .build()
             ).build()
@@ -63,7 +64,7 @@ abstract class ChaoxingSigner(
         client.newCall(
             Request.Builder().get().url(
                 URL_ANALYSIS.toHttpUrl().newBuilder()
-                    .addQueryParameter("aid", activityEntity.id.toString()).build()
+                    .addQueryParameter("aid",activeId.toString()).build()
             ).build()
         ).execute().use {
             postAfterAnalysis(
