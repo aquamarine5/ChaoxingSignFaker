@@ -30,7 +30,6 @@ abstract class ChaoxingSigner(
     val client = ChaoxingHttpClient.instance!!
 
     abstract suspend fun sign()
-    abstract suspend fun beforeSign():Boolean
     abstract suspend fun checkAlreadySign(response: Response):Boolean
     open suspend fun getSignInfo(): JSONObject = withContext(Dispatchers.IO) {
         client.newCall(
@@ -84,8 +83,6 @@ abstract class ChaoxingSigner(
                     .addQueryParameter("code", code)
                     .build()
             ).build()
-        ).execute().use {
-
-        }
+        ).execute().close()
     }
 }

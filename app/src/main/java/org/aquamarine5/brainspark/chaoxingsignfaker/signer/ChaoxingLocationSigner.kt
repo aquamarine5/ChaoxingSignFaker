@@ -62,11 +62,7 @@ class ChaoxingLocationSigner(
         }
     }
 
-    override suspend fun beforeSign(): Boolean =
-        preSign()
-
-
     override suspend fun checkAlreadySign(response: Response): Boolean {
-        return response.body?.string()?.contains("签到成功") ?: false
+        return response.body?.string()?.contains("恭喜你已完成签到")?.not() ?: false
     }
 }

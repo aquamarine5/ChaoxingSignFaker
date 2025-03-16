@@ -28,8 +28,6 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.screens.CourseListDestinatio
 import org.aquamarine5.brainspark.chaoxingsignfaker.screens.CourseListScreen
 import org.aquamarine5.brainspark.chaoxingsignfaker.screens.GetLocationDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.screens.GetLocationPage
-import org.aquamarine5.brainspark.chaoxingsignfaker.screens.LocationSignDestination
-import org.aquamarine5.brainspark.chaoxingsignfaker.screens.LocationSignScreen
 import org.aquamarine5.brainspark.chaoxingsignfaker.screens.LoginDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.screens.LoginPage
 import org.aquamarine5.brainspark.chaoxingsignfaker.screens.WelcomeDestination
@@ -102,10 +100,6 @@ class MainActivity : ComponentActivity() {
                                 restoreState = true
                             })
                         }
-                    }
-
-                    composable<LocationSignDestination> {
-                        LocationSignScreen(it.toRoute())
                     }
 
                     composable<CourseDetailDestination> {

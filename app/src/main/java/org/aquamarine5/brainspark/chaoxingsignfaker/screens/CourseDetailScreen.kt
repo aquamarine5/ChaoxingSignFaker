@@ -44,8 +44,10 @@ fun CourseDetailScreen(
     var activitiesData by remember { mutableStateOf<ChaoxingCourseActivitiesEntity?>(null) }
     ChaoxingHttpClient.CheckInstance()
     LaunchedEffect(Unit) {
-        ChaoxingHttpClient.instance?.let {
-            activitiesData = ChaoxingActivityHelper.getActivities(it, courseEntity)
+        if(activitiesData == null){
+            ChaoxingHttpClient.instance?.let {
+                activitiesData = ChaoxingActivityHelper.getActivities(it, courseEntity)
+            }
         }
     }
     Scaffold { innerPadding ->

@@ -35,13 +35,15 @@ object CourseListDestination
 
 @Composable
 fun CourseListScreen(
-    navToDetailDestination:(ChaoxingCourseEntity)->Unit,
+    navToDetailDestination: (ChaoxingCourseEntity) -> Unit,
 ) {
     var activitiesData by remember { mutableStateOf<List<ChaoxingCourseEntity>?>(null) }
     ChaoxingHttpClient.CheckInstance()
     LaunchedEffect(Unit) {
-        ChaoxingHttpClient.instance?.let {
-            activitiesData = ChaoxingCourseHelper.getAllCourse(it)
+        if (activitiesData == null) {
+            ChaoxingHttpClient.instance?.let {
+                activitiesData = ChaoxingCourseHelper.getAllCourse(it)
+            }
         }
     }
     Scaffold { innerPadding ->

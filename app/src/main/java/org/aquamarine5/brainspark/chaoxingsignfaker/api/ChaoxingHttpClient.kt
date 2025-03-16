@@ -16,6 +16,7 @@ import okhttp3.FormBody
 import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import org.aquamarine5.brainspark.chaoxingsignfaker.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingLoginSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingSignFakerDataStore
@@ -79,7 +80,9 @@ class ChaoxingHttpClient private constructor(
                 .build()
             login(client, phoneNumber, password, context)
             return ChaoxingHttpClient(
-                client, getInfo(client)
+                client, getInfo(client).apply {
+                    UMengHelper.profileSignIn(this, phoneNumber)
+                }
             ).apply {
                 instance = this
             }
@@ -105,7 +108,8 @@ class ChaoxingHttpClient private constructor(
                 }
             }).build().apply {
                 cookieJar.saveFromResponse(
-                    HttpUrl.Builder().scheme("https").host("chaoxing.com").encodedPath("/fanyalogin").build(),
+                    HttpUrl.Builder().scheme("https").host("chaoxing.com")
+                        .encodedPath("/fanyalogin").build(),
                     dataStore.loginSession.cookiesList
                         .map { cookie ->
                             Cookie.Builder()
@@ -169,7 +173,7 @@ class ChaoxingHttpClient private constructor(
             phoneNumber: String,
             password: String,
             context: Context
-        ) =
+        ): Unit =
             withContext(Dispatchers.IO) {
                 val uname = encryptByAES(phoneNumber)
                 val encryptedPassword = encryptByAES(password)

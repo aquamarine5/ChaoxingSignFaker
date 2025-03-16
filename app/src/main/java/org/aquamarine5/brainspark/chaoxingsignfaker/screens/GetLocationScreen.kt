@@ -44,7 +44,6 @@ import com.baidu.mapapi.map.MapView
 import com.baidu.mapapi.map.Marker
 import com.baidu.mapapi.map.MarkerOptions
 import com.baidu.mapapi.map.MyLocationData
-import com.baidu.mapapi.map.Overlay
 import com.baidu.mapapi.model.CoordUtil
 import com.baidu.mapapi.model.LatLng
 import com.baidu.mapapi.search.core.SearchResult
@@ -58,6 +57,7 @@ import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
+import org.aquamarine5.brainspark.chaoxingsignfaker.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingPostLocationEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
@@ -93,7 +93,7 @@ fun GetLocationPage(
     LocalContext.current.let { context ->
         SDKInitializer.initialize(context.applicationContext)
         var isSignSuccess by remember { mutableStateOf(false) }
-        var marker: Overlay? = null
+        var marker: Marker? = null
         var isNeedLocationDescribe by remember { mutableStateOf(false) }
         var clickedPosition by remember { mutableStateOf(LatLng(0.0, 0.0)) }
         var locationRange by remember { mutableStateOf<Int?>(null) }
@@ -113,7 +113,7 @@ fun GetLocationPage(
                         clickedName = p0.address + clickedName
                         isNeedLocationDescribe = false
                     } else {
-                        clickedName = p0.poiList[0]?.address ?: p0.address
+                        clickedName = p0.poiList?.get(0)?.address ?: p0.address
                     }
                 }
             })
@@ -153,7 +153,7 @@ fun GetLocationPage(
                                 .build()
                         )
                         if (clickedName == "未指定") {
-                            map.animateMapStatus(
+                            map.setMapStatus(
                                 MapStatusUpdateFactory.newLatLng(
                                     LatLng(
                                         it.latitude,
@@ -177,15 +177,20 @@ fun GetLocationPage(
                             ReverseGeoCodeOption()
                                 .location(it)
                                 .newVersion(1)
+                                .pageSize(2)
                                 .radius(500)
                         )
                         if (marker == null) {
+                            val icon =
+                                BitmapDescriptorFactory.fromResource(R.drawable.ic_geo_alt_fill)
                             marker = map.addOverlay(
                                 MarkerOptions()
-                                    .draggable(true)
                                     .position(it)
-                                    .icon(BitmapDescriptorFactory.fromResource(R.drawable.ic_geo_alt_fill))
-                            )
+                                    .icon(icon)
+                                    .draggable(true)
+                            ) as Marker
+                        } else {
+                            marker!!.position = it
                         }
                     }
                 }
@@ -199,6 +204,7 @@ fun GetLocationPage(
                             ReverseGeoCodeOption()
                                 .location(it.position)
                                 .newVersion(1)
+                                .pageSize(2)
                                 .radius(500)
                         )
                         if (marker == null) {
@@ -207,7 +213,9 @@ fun GetLocationPage(
                                     .position(it.position)
                                     .draggable(true)
                                     .icon(BitmapDescriptorFactory.fromResource(R.drawable.ic_geo_alt_fill))
-                            )
+                            ) as Marker
+                        } else {
+                            marker!!.position = it.position
                         }
                     }
                 }
@@ -236,22 +244,16 @@ fun GetLocationPage(
             val signInfo = ChaoxingLocationSigner.getLocationSignInfo(destination.activeId)
             if (signInfo.isAvailable()) {
                 locationRange = signInfo.locationRange
-                mapView.map.animateMapStatus(
+
+                locationPosition = LatLng(signInfo.latitude!!, signInfo.longitude!!)
+                mapView.map.setMapStatus(
                     MapStatusUpdateFactory.newLatLng(
-                        LatLng(
-                            signInfo.latitude!!,
-                            signInfo.longitude!!
-                        )
+                        locationPosition
                     )
                 )
                 mapView.map.addOverlay(
                     CircleOptions()
-                        .center(
-                            LatLng(
-                                signInfo.latitude,
-                                signInfo.longitude
-                            )
-                        )
+                        .center(locationPosition)
                         .radius(signInfo.locationRange)
                         .fillColor(Color.argb(128, 255, 0, 0))
                 )
@@ -309,19 +311,22 @@ fun GetLocationPage(
                                     return@Button
                                 }
                             }
+                            val postLocationEntity = ChaoxingPostLocationEntity(
+                                clickedPosition.latitude,
+                                clickedPosition.longitude,
+                                clickedName
+                            )
                             coroutineScope.launch {
                                 try {
                                     ChaoxingLocationSigner(
                                         destination,
-                                        ChaoxingPostLocationEntity(
-                                            clickedPosition.latitude,
-                                            clickedPosition.longitude,
-                                            clickedName
-                                        )
+                                        postLocationEntity
                                     ).apply {
-                                        if(preSign()){
-                                            Toast.makeText(context, "已签到", Toast.LENGTH_SHORT).show()
-                                        }else{
+                                        if (preSign()) {
+                                            Toast.makeText(context, "已签到", Toast.LENGTH_SHORT)
+                                                .show()
+                                            return@apply
+                                        } else {
                                             sign()
                                         }
                                     }
@@ -331,8 +336,11 @@ fun GetLocationPage(
                                     return@launch
                                 }
                             }.invokeOnCompletion {
-                                Toast.makeText(context, "签到成功", Toast.LENGTH_SHORT).show()
-                                navToCourseDetailDestination()
+                                if (isSignSuccess) {
+                                    Toast.makeText(context, "签到成功", Toast.LENGTH_SHORT).show()
+                                    UMengHelper.onSignLocationEvent(context, postLocationEntity)
+                                    navToCourseDetailDestination()
+                                }
                             }
                         }, enabled = !isSignSuccess, modifier = Modifier.width(80.dp)) {
                             Text("签到")

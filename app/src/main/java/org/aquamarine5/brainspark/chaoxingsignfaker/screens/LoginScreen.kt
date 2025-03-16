@@ -26,6 +26,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
+import org.aquamarine5.brainspark.chaoxingsignfaker.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 
 @Serializable
@@ -70,6 +71,7 @@ fun LoginPage(
                 coroutineContext.launch {
                     try {
                         ChaoxingHttpClient.create(phoneNumber, password, context)
+                        UMengHelper.onLoginEvent(context, phoneNumber)
                     } catch (e: ChaoxingHttpClient.ChaoxingLoginException) {
                         tipsText = e.message ?: "登录失败"
                     }

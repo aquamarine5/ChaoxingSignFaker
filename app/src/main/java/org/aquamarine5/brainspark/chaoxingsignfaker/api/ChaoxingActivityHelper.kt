@@ -6,6 +6,7 @@ import androidx.compose.ui.res.painterResource
 import com.alibaba.fastjson2.JSONObject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Request
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCourseActivitiesEntity
@@ -30,7 +31,7 @@ object ChaoxingActivityHelper {
     }
 
 
-    suspend fun getSignDestination(activityEntity: ChaoxingSignActivityEntity) :Any?=
+    suspend fun getSignDestination(activityEntity: ChaoxingSignActivityEntity): Any? =
         when (activityEntity.otherId) {
             "4" -> GetLocationDestination.parseFromSignActivityEntity(activityEntity)
             else -> null
@@ -42,8 +43,14 @@ object ChaoxingActivityHelper {
         course: ChaoxingCourseEntity
     ): ChaoxingCourseActivitiesEntity =
         withContext(Dispatchers.IO) {
-            val url = URL_ACTIVITY_LOAD.format(course.courseId, course.classId)
-            client.newCall(Request.Builder().get().url(url).build()).execute().use {
+            client.newCall(
+                Request.Builder().get().url(
+                    URL_ACTIVITY_LOAD.toHttpUrl().newBuilder()
+                        .addQueryParameter("courseId", course.courseId.toString())
+                        .addQueryParameter("classId", course.classId.toString())
+                        .build()
+                ).build()
+            ).execute().use {
                 val jsonResult = JSONObject.parseObject(it.body?.string()).getJSONObject("data")
                 val activeList = jsonResult.getJSONArray("activeList").map { activity ->
                     activity as JSONObject
