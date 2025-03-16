@@ -1,6 +1,8 @@
 package org.aquamarine5.brainspark.chaoxingsignfaker.screens
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -10,7 +12,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -37,10 +39,12 @@ object CourseListDestination
 fun CourseListScreen(
     navToDetailDestination: (ChaoxingCourseEntity) -> Unit,
 ) {
-    var activitiesData by remember { mutableStateOf<List<ChaoxingCourseEntity>?>(null) }
+    var activitiesData: List<ChaoxingCourseEntity> by rememberSaveable(
+        saver = ChaoxingCourseEntity.Saver
+    ) { mutableStateOf(emptyList()) }
     ChaoxingHttpClient.CheckInstance()
     LaunchedEffect(Unit) {
-        if (activitiesData == null) {
+        if (activitiesData.isEmpty()) {
             ChaoxingHttpClient.instance?.let {
                 activitiesData = ChaoxingCourseHelper.getAllCourse(it)
             }
@@ -52,33 +56,34 @@ fun CourseListScreen(
                 .padding(innerPadding)
                 .padding(16.dp)
         ) {
-            if (activitiesData == null) {
+            if (activitiesData.isEmpty()) {
                 CenterCircularProgressIndicator()
             } else {
-                val stackbricksState = rememberStackbricksStatus()
-                QiniuConfiguration(
-                    "cdn.aquamarine5.fun",
-                    referer = "http://cdn.aquamarine5.fun/",
-                    configFilePath = "chaoxingsignfaker_stackbricks_v1_config.json",
-                    okHttpClient = OkHttpClient.Builder()
-                        .callTimeout(20, TimeUnit.MINUTES)
-                        .readTimeout(20, TimeUnit.MINUTES)
-                        .writeTimeout(20, TimeUnit.MINUTES)
-                        .build()
-                ).let {
-                    StackbricksComponent(
-                        StackbricksStateService(
-                            LocalContext.current,
-                            QiniuMessageProvider(it),
-                            QiniuPackageProvider(it),
-                            stackbricksState
-                        )
-                    )
-                }
-
-
                 LazyColumn {
-                    items(activitiesData!!) {
+                    item {
+                        val stackbricksState by rememberStackbricksStatus()
+                        QiniuConfiguration(
+                            "cdn.aquamarine5.fun",
+                            referer = "http://cdn.aquamarine5.fun/",
+                            configFilePath = "chaoxingsignfaker_stackbricks_v1_config.json",
+                            okHttpClient = OkHttpClient.Builder()
+                                .callTimeout(20, TimeUnit.MINUTES)
+                                .readTimeout(20, TimeUnit.MINUTES)
+                                .writeTimeout(20, TimeUnit.MINUTES)
+                                .build()
+                        ).let {
+                            StackbricksComponent(
+                                StackbricksStateService(
+                                    LocalContext.current,
+                                    QiniuMessageProvider(it),
+                                    QiniuPackageProvider(it),
+                                    stackbricksState
+                                ), checkUpdateOnLaunch = true
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
+                    items(activitiesData) {
                         key(it.courseId) {
                             CourseInfoColumnCard(it) {
                                 navToDetailDestination(it)

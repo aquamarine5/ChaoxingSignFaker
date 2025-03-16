@@ -16,7 +16,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.screens.GetLocationDestinati
 
 object ChaoxingActivityHelper {
     private const val URL_ACTIVITY_LOAD =
-        "https://mobilelearn.chaoxing.com/v2/apis/active/student/activelist?fid=0&courseId=%d&classId=%d&showNotStartedActive=0"
+        "https://mobilelearn.chaoxing.com/v2/apis/active/student/activelist?fid=0&showNotStartedActive=0"
 
     const val NO_LIMIT_END_TIME = -1000L
 
@@ -58,7 +58,7 @@ object ChaoxingActivityHelper {
                     activity.getInteger("type") == 2
                 }
                 return@withContext ChaoxingCourseActivitiesEntity(
-                    jsonResult.getJSONObject("ext"),
+                    jsonResult.getJSONObject("ext").toString(),
                     course,
                     List(activeList.size) { i ->
                         val activity = activeList[i]

@@ -37,6 +37,5 @@ data class ChaoxingSignActivityEntity(
         override fun put(bundle: Bundle, key: String, value: ChaoxingSignActivityEntity) {
             bundle.putString(key,Json.encodeToString(value))
         }
-
     }
 }

@@ -27,9 +27,6 @@ object ChaoxingCourseHelper {
                             courseContent.getString("name"),
                             courseContent.getString("teacherfactor"),
                             courseContent.getInteger("id"),
-                            content.getInteger("cpi"),
-                            content.getString("bbsid"),
-                            content.getString("chatid"),
                             content.getInteger("id"),
                             courseContent.getString("name"),
                         )
