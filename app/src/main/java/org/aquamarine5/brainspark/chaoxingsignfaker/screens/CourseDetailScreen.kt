@@ -29,6 +29,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingActivityHelper
@@ -75,9 +76,11 @@ fun CourseDetailScreen(
                         }
                 ) {
                     Icon(painterResource(R.drawable.ic_arrow_left), contentDescription = null)
-                    Spacer(modifier = Modifier
-                        .height(8.dp)
-                        .width(5.dp))
+                    Spacer(
+                        modifier = Modifier
+                            .height(8.dp)
+                            .width(5.dp)
+                    )
                     Text(
                         "课程名称：${courseEntity.courseName}",
                         color = Color.DarkGray,
@@ -92,12 +95,12 @@ fun CourseDetailScreen(
                     isRefreshing = pullToRefreshState,
                     onRefresh = {
                         pullToRefreshState = true
-                        activitiesData=null
                         coroutineScope.launch {
                             ChaoxingHttpClient.instance?.let {
                                 activitiesData =
                                     ChaoxingActivityHelper.getActivities(it, courseEntity)
                             }
+                            delay(500)
                             pullToRefreshState = false
                         }
                     }

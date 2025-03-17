@@ -21,6 +21,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import okhttp3.OkHttpClient
@@ -73,12 +74,13 @@ fun CourseListScreen(
                     isRefreshing = isRefreshing,
                     onRefresh = {
                         isRefreshing = true
-                        activitiesData = emptyList()
                         coroutineScope.launch {
                             ChaoxingHttpClient.instance?.let {
                                 activitiesData = ChaoxingCourseHelper.getAllCourse(it)
+                                delay(500)
                                 isRefreshing = false
                             }
+
                         }
                     }
                 ) {
