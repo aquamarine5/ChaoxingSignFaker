@@ -92,12 +92,11 @@ fun GetLocationPage(
 
     LocalContext.current.let { context ->
         ChaoxingHttpClient.CheckInstance()
-
+        Log.d("GetLocationPage", "GetLocationPage: $destination")
         Scaffold { innerPadding ->
             Column(
                 modifier = Modifier
                     .padding(innerPadding)
-                    .padding(6.dp)
                     .fillMaxSize()
             ) {
                 val locationPermissionsState = rememberMultiplePermissionsState(
@@ -109,18 +108,33 @@ fun GetLocationPage(
                 if (locationPermissionsState.allPermissionsGranted) {
                     SDKInitializer.initialize(context.applicationContext)
                     var isSignSuccess by remember { mutableStateOf(false) }
-                    var marker: Marker? = null
+                    var marker by remember { mutableStateOf<Marker?>(null) }
                     var isNeedLocationDescribe by remember { mutableStateOf(false) }
                     var clickedPosition by remember { mutableStateOf(LatLng(0.0, 0.0)) }
                     var locationRange by remember { mutableStateOf<Int?>(null) }
                     var locationPosition by remember { mutableStateOf<LatLng?>(null) }
                     var clickedName by remember { mutableStateOf("未指定") }
+                    val locationClient by remember {
+                        mutableStateOf(LocationClient(context.applicationContext).apply {
+                            locOption = LocationClientOption().apply {
+                                setCoorType("bd09ll")
+                                setFirstLocType(LocationClientOption.FirstLocType.SPEED_IN_FIRST_LOC)
+                                locationMode = LocationClientOption.LocationMode.Battery_Saving
+                                setScanSpan(20000)
+                                setIsNeedAddress(true)
+                                setNeedNewVersionRgc(true)
+                            }
+                        }.apply {
+                            start()
+                        })
+                    }
                     val coroutineScope = rememberCoroutineScope()
                     val geoCoder = GeoCoder.newInstance().apply {
                         setOnGetGeoCodeResultListener(object : OnGetGeoCoderResultListener {
                             override fun onGetGeoCodeResult(p0: GeoCodeResult?) {}
 
                             override fun onGetReverseGeoCodeResult(p0: ReverseGeoCodeResult?) {
+                                Log.d("GetLocationPage", "ReverseGeoCodeResult: $p0")
                                 if (p0 == null || p0.error != SearchResult.ERRORNO.NO_ERROR) {
                                     Log.w(
                                         "GetLocationPage",
@@ -136,14 +150,6 @@ fun GetLocationPage(
                                 }
                             }
                         })
-                    }
-                    val locationClient = LocationClient(context.applicationContext).apply {
-                        locOption = LocationClientOption().apply {
-                            setCoorType("bd09ll")
-                            setOpenAutoNotifyMode()
-                            setIsNeedAddress(true);
-                            setNeedNewVersionRgc(true)
-                        }
                     }
                     val mapView = MapView(LocalContext.current, BaiduMapOptions().apply {
                         rotateGesturesEnabled(false)
@@ -163,7 +169,9 @@ fun GetLocationPage(
                         locationClient.registerLocationListener(object :
                             BDAbstractLocationListener() {
                             override fun onReceiveLocation(location: BDLocation?) {
+                                Log.d("GetLocationPage", "onReceiveLocation: $location")
                                 location?.let {
+                                    locationClient.stop()
                                     map.setMyLocationData(
                                         MyLocationData.Builder()
                                             .accuracy(it.radius)
@@ -184,20 +192,19 @@ fun GetLocationPage(
                                     }
                                     clickedPosition = LatLng(it.latitude, it.longitude)
                                     clickedName = it.addrStr?.removePrefix("中国") ?: ""
+
                                 }
                             }
                         })
-
-                        locationClient.start()
                         map.setOnMapClickListener(object : BaiduMap.OnMapClickListener {
                             override fun onMapClick(p0: LatLng?) {
+                                Log.d("GetLocationPage", "onMapClick: $p0")
                                 p0?.let {
                                     clickedPosition = it
                                     geoCoder.reverseGeoCode(
                                         ReverseGeoCodeOption()
                                             .location(it)
                                             .newVersion(1)
-                                            .pageSize(2)
                                             .radius(500)
                                     )
                                     if (marker == null) {
@@ -216,6 +223,7 @@ fun GetLocationPage(
                             }
 
                             override fun onMapPoiClick(p0: MapPoi?) {
+                                Log.d("GetLocationPage", "onMapPoiClick: $p0")
                                 p0?.let {
                                     clickedPosition = it.position
                                     clickedName = it.name
@@ -245,6 +253,7 @@ fun GetLocationPage(
                             override fun onMarkerDrag(p0: Marker?) {}
 
                             override fun onMarkerDragEnd(p0: Marker?) {
+                                Log.d("GetLocationPage", "onMarkerDragEnd: $p0")
                                 p0?.let {
                                     clickedPosition = it.position
                                     geoCoder.reverseGeoCode(
@@ -283,14 +292,15 @@ fun GetLocationPage(
                             mapView.map.addOverlay(
                                 CircleOptions()
                                     .center(locationPosition)
-                                    .radius(signInfo.locationRange)
+                                    .radius(signInfo.locationRange!!)
                                     .fillColor(Color.argb(128, 255, 0, 0))
                             )
                         }
                     }
                     Row(
                         horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(6.dp)
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text(

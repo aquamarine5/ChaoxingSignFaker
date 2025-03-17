@@ -19,6 +19,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.baidu.location.LocationClient
 import com.baidu.mapapi.SDKInitializer
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
@@ -89,6 +90,7 @@ ChaoxingSignFaker 根据 GPL-3.0 协议进行开源。https://github.com/aquamar
                     }
                     UMengHelper.init(context)
                     SDKInitializer.setAgreePrivacy(context, true)
+                    LocationClient.setAgreePrivacy(true)
                     navToLoginDestination()
                 }) { Text("允许协议并进入应用") }
                 OutlinedButton(onClick = {
