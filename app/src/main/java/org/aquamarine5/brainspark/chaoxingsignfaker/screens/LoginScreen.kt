@@ -93,7 +93,7 @@ fun LoginPage(
             OutlinedTextField(
                 value = phoneNumber,
                 onValueChange = {
-                    phoneNumber=it
+                    phoneNumber = it
                 },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth()
@@ -137,9 +137,11 @@ fun LoginPage(
                             BorderStroke(1.dp, Color.LightGray),
                             shape = RoundedCornerShape(8.dp)
                         )
-                        .padding(8.dp)
+                        .fillMaxWidth()
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
                         Icon(
                             painter = painterResource(id = R.drawable.ic_user_round_x),
                             contentDescription = null,

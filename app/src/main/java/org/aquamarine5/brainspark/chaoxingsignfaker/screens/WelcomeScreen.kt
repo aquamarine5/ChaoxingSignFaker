@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -15,10 +17,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.baidu.location.LocationClient
 import com.baidu.mapapi.SDKInitializer
 import kotlinx.coroutines.launch
@@ -32,7 +36,8 @@ object WelcomeDestination
 
 @Composable
 fun WelcomeScreen(
-    navToLoginDestination:()->Unit) {
+    navToLoginDestination: () -> Unit
+) {
     val context = LocalContext.current.applicationContext
     val coroutineContext = rememberCoroutineScope()
     Scaffold { innerPadding ->
@@ -81,7 +86,10 @@ ChaoxingSignFaker 根据 GPL-3.0 协议进行开源。https://github.com/aquamar
                 )
             }
             Spacer(modifier = Modifier.height(16.dp))
-            Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
                 OutlinedButton(onClick = {
                     coroutineContext.launch {
                         context.chaoxingDataStore.updateData {
@@ -92,14 +100,26 @@ ChaoxingSignFaker 根据 GPL-3.0 协议进行开源。https://github.com/aquamar
                     SDKInitializer.setAgreePrivacy(context, true)
                     LocationClient.setAgreePrivacy(true)
                     navToLoginDestination()
-                }) { Text("允许协议并进入应用") }
-                OutlinedButton(onClick = {
-                    context.startActivity(Intent().apply {
-                        setClass(context, MainActivity::class.java)
-                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        putExtra(MainActivity.INTENT_EXTRA_EXIT_FLAG, true)
-                    })
-                }) { Text("退出应用") }
+                }, modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        "允许协议并进入应用",
+                        fontSize = 16.sp
+                    )
+                }
+                Button(
+                    onClick = {
+                        context.startActivity(Intent().apply {
+                            setClass(context, MainActivity::class.java)
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            putExtra(MainActivity.INTENT_EXTRA_EXIT_FLAG, true)
+                        })
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFD32F2F),
+                        contentColor = Color.White
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text("退出应用", fontSize = 16.sp) }
             }
         }
     }
@@ -108,5 +128,5 @@ ChaoxingSignFaker 根据 GPL-3.0 协议进行开源。https://github.com/aquamar
 @Preview
 @Composable
 fun WelcomeScreenPreview() {
-    WelcomeScreen{}
+    WelcomeScreen {}
 }

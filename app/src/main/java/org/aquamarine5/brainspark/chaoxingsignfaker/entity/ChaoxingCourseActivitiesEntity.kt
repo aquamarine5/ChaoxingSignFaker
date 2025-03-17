@@ -11,6 +11,7 @@ data class ChaoxingCourseActivitiesEntity(
     val signActivities: List<ChaoxingSignActivityEntity>
 ) {
     companion object {
+        @Deprecated("Do not use this")
         val Saver: Saver<ChaoxingCourseActivitiesEntity?, *> = listSaver(
             save = {
                 listOf(

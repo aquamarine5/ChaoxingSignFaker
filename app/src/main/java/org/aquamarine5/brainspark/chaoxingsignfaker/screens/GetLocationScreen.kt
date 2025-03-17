@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -25,6 +27,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -93,7 +96,29 @@ fun GetLocationPage(
     LocalContext.current.let { context ->
         ChaoxingHttpClient.CheckInstance()
         Log.d("GetLocationPage", "GetLocationPage: $destination")
-        Scaffold { innerPadding ->
+        val locationClient by remember {
+            mutableStateOf(LocationClient(context.applicationContext).apply {
+                locOption = LocationClientOption().apply {
+                    setCoorType("bd09ll")
+                    setFirstLocType(LocationClientOption.FirstLocType.SPEED_IN_FIRST_LOC)
+                    locationMode = LocationClientOption.LocationMode.Battery_Saving
+                    setScanSpan(20000)
+                    setIsNeedAddress(true)
+                    setNeedNewVersionRgc(true)
+                }
+            }.apply {
+                start()
+            })
+        }
+        Scaffold(
+            floatingActionButton = {
+                FloatingActionButton(onClick = {
+                    locationClient.start()
+                }) {
+                    Icon(painterResource(R.drawable.ic_locate_fixed), contentDescription = "定位")
+                }
+            }
+        ) { innerPadding ->
             Column(
                 modifier = Modifier
                     .padding(innerPadding)
@@ -114,20 +139,7 @@ fun GetLocationPage(
                     var locationRange by remember { mutableStateOf<Int?>(null) }
                     var locationPosition by remember { mutableStateOf<LatLng?>(null) }
                     var clickedName by remember { mutableStateOf("未指定") }
-                    val locationClient by remember {
-                        mutableStateOf(LocationClient(context.applicationContext).apply {
-                            locOption = LocationClientOption().apply {
-                                setCoorType("bd09ll")
-                                setFirstLocType(LocationClientOption.FirstLocType.SPEED_IN_FIRST_LOC)
-                                locationMode = LocationClientOption.LocationMode.Battery_Saving
-                                setScanSpan(20000)
-                                setIsNeedAddress(true)
-                                setNeedNewVersionRgc(true)
-                            }
-                        }.apply {
-                            start()
-                        })
-                    }
+
                     val coroutineScope = rememberCoroutineScope()
                     val geoCoder = GeoCoder.newInstance().apply {
                         setOnGetGeoCodeResultListener(object : OnGetGeoCoderResultListener {
@@ -357,9 +369,9 @@ fun GetLocationPage(
                                             return@apply
                                         } else {
                                             sign()
+                                            isSignSuccess = true
                                         }
                                     }
-                                    isSignSuccess = true
                                 } catch (e: ChaoxingLocationSigner.ChaoxingLocationSignException) {
                                     Toast.makeText(context, e.message, Toast.LENGTH_SHORT).show()
                                     return@launch

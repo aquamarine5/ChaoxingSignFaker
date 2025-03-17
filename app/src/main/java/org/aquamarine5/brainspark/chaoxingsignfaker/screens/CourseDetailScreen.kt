@@ -10,15 +10,18 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -26,6 +29,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingActivityHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
@@ -36,6 +40,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCourseEntity
 
 typealias CourseDetailDestination = ChaoxingCourseEntity
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CourseDetailScreen(
     courseEntity: ChaoxingCourseEntity,
@@ -45,12 +50,13 @@ fun CourseDetailScreen(
     var activitiesData by remember { mutableStateOf<ChaoxingCourseActivitiesEntity?>(null) }
     ChaoxingHttpClient.CheckInstance()
     LaunchedEffect(Unit) {
-        if(activitiesData == null){
+        if (activitiesData == null) {
             ChaoxingHttpClient.instance?.let {
                 activitiesData = ChaoxingActivityHelper.getActivities(it, courseEntity)
             }
         }
     }
+    val coroutineScope = rememberCoroutineScope()
     Scaffold { innerPadding ->
         Column(
             modifier = Modifier
@@ -69,7 +75,9 @@ fun CourseDetailScreen(
                         }
                 ) {
                     Icon(painterResource(R.drawable.ic_arrow_left), contentDescription = null)
-                    Spacer(modifier = Modifier.height(8.dp).width(5.dp))
+                    Spacer(modifier = Modifier
+                        .height(8.dp)
+                        .width(5.dp))
                     Text(
                         "课程名称：${courseEntity.courseName}",
                         color = Color.DarkGray,
@@ -79,16 +87,31 @@ fun CourseDetailScreen(
                     )
                 }
                 Spacer(modifier = Modifier.height(12.dp))
-                LazyColumn(modifier = Modifier.fillMaxWidth()) {
-                    items(activitiesData!!.signActivities) {
-                        key(it.id) {
-                            CourseSignActivityColumnCard(it) { destination ->
-                                navToSignerDestination(destination)
+                var pullToRefreshState by remember { mutableStateOf(false) }
+                PullToRefreshBox(
+                    isRefreshing = pullToRefreshState,
+                    onRefresh = {
+                        pullToRefreshState = true
+                        activitiesData=null
+                        coroutineScope.launch {
+                            ChaoxingHttpClient.instance?.let {
+                                activitiesData =
+                                    ChaoxingActivityHelper.getActivities(it, courseEntity)
+                            }
+                            pullToRefreshState = false
+                        }
+                    }
+                ) {
+                    LazyColumn(modifier = Modifier.fillMaxWidth()) {
+                        items(activitiesData!!.signActivities) {
+                            key(it.id) {
+                                CourseSignActivityColumnCard(it) { destination ->
+                                    navToSignerDestination(destination)
+                                }
                             }
                         }
                     }
                 }
-
             }
         }
     }

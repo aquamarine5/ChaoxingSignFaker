@@ -13,14 +13,18 @@ import androidx.compose.ui.unit.dp
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCourseEntity
 
 @Composable
-fun CourseInfoColumnCard(course: ChaoxingCourseEntity, onClick:()->Unit){
-    Button(onClick = onClick,shape = RoundedCornerShape(18.dp), modifier = Modifier.fillMaxWidth()) {
+fun CourseInfoColumnCard(course: ChaoxingCourseEntity, onClick: () -> Unit) {
+    Button(
+        onClick = onClick,
+        shape = RoundedCornerShape(18.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
         Column {
             Text("课程名称：${course.courseName}")
             Text("教师名称：${course.teacherName}")
             Text("courseId：${course.courseId}")
-            Text("classId:${course.classId}")
+            Text("classId：${course.classId}")
         }
     }
-    Spacer(modifier= Modifier.height(8.dp))
+    Spacer(modifier = Modifier.height(8.dp))
 }
