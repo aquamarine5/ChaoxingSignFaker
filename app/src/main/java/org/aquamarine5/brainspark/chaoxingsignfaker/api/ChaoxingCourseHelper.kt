@@ -29,6 +29,8 @@ object ChaoxingCourseHelper {
                             courseContent.getInteger("id"),
                             content.getInteger("id"),
                             courseContent.getString("name"),
+                            courseContent.getString("imageurl"),
+                            courseContent.getString("schools")
                         )
                     )
                 }

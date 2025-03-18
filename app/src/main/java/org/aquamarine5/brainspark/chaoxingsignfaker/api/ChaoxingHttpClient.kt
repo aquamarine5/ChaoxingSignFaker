@@ -106,7 +106,12 @@ class ChaoxingHttpClient private constructor(
                         cookieStore[url.host] ?: listOf()
                     }
                 }
-            }).build().apply {
+            }).addInterceptor { chain ->
+                chain.proceed(
+                    chain.request().newBuilder()
+                        .header("User-Agent", CHAOXING_USER_AGENT).build()
+                )
+            }.build().apply {
                 cookieJar.saveFromResponse(
                     HttpUrl.Builder().scheme("https").host("chaoxing.com")
                         .encodedPath("/fanyalogin").build(),

@@ -21,6 +21,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import coil3.ImageLoader
+import coil3.disk.DiskCache
+import coil3.disk.directory
+import coil3.network.okhttp.OkHttpNetworkFetcherFactory
+import coil3.request.crossfade
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
@@ -59,6 +64,18 @@ fun CourseListScreen(
         }
     }
     val coroutineScope = rememberCoroutineScope()
+    val context=LocalContext.current
+        val imageLoader = ImageLoader.Builder(context).components {
+            add(
+                OkHttpNetworkFetcherFactory(
+                    callFactory = { ChaoxingHttpClient.instance!!.okHttpClient })
+            )
+        }.diskCache {
+            DiskCache.Builder()
+                .directory(context.cacheDir.resolve("image_cache"))
+            .maxSizePercent(0.02)
+            .build()
+        }.crossfade(true).build()
 
     val stackbricksState by rememberStackbricksStatus()
     Scaffold { innerPadding ->
@@ -108,12 +125,12 @@ fun CourseListScreen(
                             }
                             Spacer(modifier = Modifier.height(8.dp))
                         }
-                        item{
+                        item {
                             SponsorCard()
                         }
                         items(activitiesData) {
                             key(it.courseId) {
-                                CourseInfoColumnCard(it) {
+                                CourseInfoColumnCard(it, imageLoader) {
                                     navToDetailDestination(it)
                                 }
                             }

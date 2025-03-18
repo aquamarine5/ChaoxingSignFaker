@@ -1,0 +1,41 @@
+name: Android Upload Release CI
+
+on:
+  release:
+    types: [released]
+
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: true
+      - name: set up JDK 21
+        uses: actions/setup-java@v3
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+      - name: Build apk file with Gradle
+        run: ./gradlew assembleRelease
+        env:
+          keystorePassword: ${{ secrets.KEYSTORE_PASSWORD }}
+      - name: Get version code
+        id: version
+        run: echo "VERSION=${GITHUB_REF:10}" >> $GITHUB_OUTPUT
+      - name: Show file tree
+        run: |
+          sudo apt-get install tree
+          tree app/build/outputs
+      - name: Upload apk file
+        run: gh release upload ${{steps.version.outputs.VERSION}} app/build/outputs/apk/release/app-release.apk
+        env:
+          GHP_TOKEN: ${{ secrets.GHP_TOKEN }}
+          keystorePassword: ${{ secrets.KEYSTORE_PASSWORD }}

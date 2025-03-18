@@ -39,7 +39,7 @@ android {
 
     signingConfigs {
         create("release") {
-            storeFile file("..\\..\\chaoxingsignfaker.jks")
+            storeFile file("..\\chaoxingsignfaker.jks")
             storePassword System.getenv("keystorePassword")
             keyAlias "chaoxingsignfaker"
             keyPassword System.getenv("keystorePassword")
@@ -85,6 +85,9 @@ protobuf {
 }
 
 dependencies {
+    //implementation(libs.coil.network.cache.control)
+    implementation(libs.coil.compose)
+    implementation(libs.coil.network.okhttp)
     implementation libs.accompanist.permissions
     implementation libs.baidumapsdk.location
     implementation libs.stackbricks
