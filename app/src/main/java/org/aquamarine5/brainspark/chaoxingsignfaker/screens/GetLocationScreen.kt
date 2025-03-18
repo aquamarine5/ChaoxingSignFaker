@@ -92,7 +92,6 @@ fun GetLocationPage(
     destination: GetLocationDestination,
     navToCourseDetailDestination: () -> Unit
 ) {
-
     LocalContext.current.let { context ->
         ChaoxingHttpClient.CheckInstance()
         Log.d("GetLocationPage", "GetLocationPage: $destination")
@@ -167,6 +166,7 @@ fun GetLocationPage(
                         rotateGesturesEnabled(false)
                         overlookingGesturesEnabled(false)
                         compassEnabled(false)
+                        zoomControlsEnabled(false)
                     }).apply {
                         isClickable = true
                         map.setMapStatus(

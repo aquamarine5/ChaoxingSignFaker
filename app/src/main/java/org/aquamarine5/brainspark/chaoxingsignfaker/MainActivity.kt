@@ -81,8 +81,7 @@ class MainActivity : ComponentActivity() {
                     composable<GetLocationDestination>(
                         typeMap = mapOf(
                             typeOf<ChaoxingSignActivityEntity>() to ChaoxingSignActivityEntity.SignActivityNavType
-                        )
-                    ) {
+                        )) {
                         GetLocationPage(it.toRoute()) {
                             navController.navigateUp()
                         }
@@ -96,7 +95,7 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
-                    composable<CourseDetailDestination> {
+                    composable<CourseDetailDestination>{
                         CourseDetailScreen(it.toRoute(), navToSignerDestination = { destination ->
                             navController.navigate(destination)
                         }) {

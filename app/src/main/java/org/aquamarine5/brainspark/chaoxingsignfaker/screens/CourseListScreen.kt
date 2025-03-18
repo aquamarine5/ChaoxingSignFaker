@@ -29,6 +29,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCourseHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CourseInfoColumnCard
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.SponsorCard
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCourseEntity
 import org.aquamarine5.brainspark.stackbricks.StackbricksComponent
 import org.aquamarine5.brainspark.stackbricks.StackbricksStateService
@@ -106,6 +107,9 @@ fun CourseListScreen(
                                 )
                             }
                             Spacer(modifier = Modifier.height(8.dp))
+                        }
+                        item{
+                            SponsorCard()
                         }
                         items(activitiesData) {
                             key(it.courseId) {
