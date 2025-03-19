@@ -50,7 +50,7 @@ fun CourseInfoColumnCard(course: ChaoxingCourseEntity,imageLoader: ImageLoader, 
                     Log.w("CourseInfoColumnCard", "Error loading image: ${it.result}")
                 }
             )
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(14.dp))
             Column {
                 Text(course.courseName.replace("\n",""), fontSize = 14.sp, fontWeight = FontWeight.Bold)
                 Text(course.teacherName.replace("\n",""))
