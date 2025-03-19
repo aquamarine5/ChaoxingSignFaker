@@ -11,11 +11,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -43,10 +45,10 @@ import com.baidu.mapapi.map.CircleOptions
 import com.baidu.mapapi.map.MapPoi
 import com.baidu.mapapi.map.MapStatus
 import com.baidu.mapapi.map.MapStatusUpdateFactory
-import com.baidu.mapapi.map.MapView
 import com.baidu.mapapi.map.Marker
 import com.baidu.mapapi.map.MarkerOptions
 import com.baidu.mapapi.map.MyLocationData
+import com.baidu.mapapi.map.TextureMapView
 import com.baidu.mapapi.model.CoordUtil
 import com.baidu.mapapi.model.LatLng
 import com.baidu.mapapi.search.core.SearchResult
@@ -109,15 +111,28 @@ fun GetLocationPage(
                 start()
             })
         }
+        var isShowDialog by remember { mutableStateOf(false) }
         Scaffold(
             floatingActionButton = {
-                FloatingActionButton(onClick = {
-                    locationClient.start()
-                }) {
-                    Icon(painterResource(R.drawable.ic_locate_fixed), contentDescription = "定位")
+                Column {
+                    FloatingActionButton(onClick = {
+                        isShowDialog = true
+                    }) {
+                        Icon(painterResource(R.drawable.ic_edit), contentDescription = "定位")
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    FloatingActionButton(onClick = {
+                        locationClient.start()
+                    }) {
+                        Icon(
+                            painterResource(R.drawable.ic_locate_fixed),
+                            contentDescription = "定位"
+                        )
+                    }
                 }
             }
         ) { innerPadding ->
+
             Column(
                 modifier = Modifier
                     .padding(innerPadding)
@@ -140,6 +155,23 @@ fun GetLocationPage(
                     var clickedName by remember { mutableStateOf("未指定") }
 
                     val coroutineScope = rememberCoroutineScope()
+                    if (isShowDialog) {
+                        AlertDialog(onDismissRequest = {
+                            isShowDialog = false
+                        }, confirmButton = {
+                            Button(onClick = {
+                                isShowDialog = false
+                            }) {
+                                Text("OK")
+                            }
+                        }, text = {
+                            TextField(value = clickedName, onValueChange = {
+                                clickedName = it
+                            }, label = {
+                                Text("位置描述")
+                            })
+                        })
+                    }
                     val geoCoder = GeoCoder.newInstance().apply {
                         setOnGetGeoCodeResultListener(object : OnGetGeoCoderResultListener {
                             override fun onGetGeoCodeResult(p0: GeoCodeResult?) {}
@@ -162,7 +194,7 @@ fun GetLocationPage(
                             }
                         })
                     }
-                    val mapView = MapView(LocalContext.current, BaiduMapOptions().apply {
+                    val mapView = TextureMapView(context, BaiduMapOptions().apply {
                         rotateGesturesEnabled(false)
                         overlookingGesturesEnabled(false)
                         compassEnabled(false)
@@ -191,6 +223,14 @@ fun GetLocationPage(
                                             .latitude(it.latitude)
                                             .longitude(it.longitude)
                                             .build()
+                                    )
+                                    map.animateMapStatus(
+                                        MapStatusUpdateFactory.newLatLngZoom(
+                                            LatLng(
+                                                it.latitude,
+                                                it.longitude
+                                            ), 18f
+                                        ), 1000
                                     )
                                     if (clickedName == "未指定") {
                                         map.setMapStatus(

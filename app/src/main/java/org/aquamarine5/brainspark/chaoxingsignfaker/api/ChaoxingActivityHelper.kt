@@ -1,5 +1,7 @@
 package org.aquamarine5.brainspark.chaoxingsignfaker.api
 
+import android.content.Context
+import android.widget.Toast
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.res.painterResource
@@ -31,10 +33,13 @@ object ChaoxingActivityHelper {
     }
 
 
-    suspend fun getSignDestination(activityEntity: ChaoxingSignActivityEntity): Any? =
+    fun getSignDestination(context: Context,activityEntity: ChaoxingSignActivityEntity): Any? =
         when (activityEntity.otherId) {
             "4" -> GetLocationDestination.parseFromSignActivityEntity(activityEntity)
-            else -> null
+            else -> {
+                Toast.makeText(context, "暂不支持该活动类型", Toast.LENGTH_SHORT).show()
+                null
+            }
         }
 
 

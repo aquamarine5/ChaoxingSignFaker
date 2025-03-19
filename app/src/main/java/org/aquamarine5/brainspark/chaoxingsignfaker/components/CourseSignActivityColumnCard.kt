@@ -11,12 +11,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.launch
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingActivityHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
 
@@ -26,18 +24,14 @@ fun CourseSignActivityColumnCard(
     activity: ChaoxingSignActivityEntity,
     onSignAction: (Any) -> Unit
 ) {
-    val coroutineScope = rememberCoroutineScope()
     val isAvailable = activity.status == 1
     val context = LocalContext.current
     Row(modifier = Modifier
         .fillMaxWidth()
         .clickable {
             if (isAvailable) {
-                coroutineScope.launch {
-                    val destination = ChaoxingActivityHelper.getSignDestination(activity)
-                    if (destination != null) {
-                        onSignAction(destination)
-                    }
+                ChaoxingActivityHelper.getSignDestination(context,activity)?.let {
+                    onSignAction(it)
                 }
             } else {
                 Toast.makeText(context, "活动未开始或已结束", Toast.LENGTH_SHORT).show()

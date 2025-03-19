@@ -54,7 +54,7 @@ fun SponsorCard() {
                         fontSize = 14.sp
                     )
                 ) {
-                    append("ChaoxingSignFaker")
+                    append("ChaoxingSignFaker ")
                 }
                 withStyle(
                     SpanStyle(fontSize = 14.sp)
