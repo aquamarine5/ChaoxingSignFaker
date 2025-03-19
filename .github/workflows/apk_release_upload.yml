@@ -3,6 +3,7 @@ name: Android Upload Release CI
 on:
   release:
     types: [released]
+  workflow_dispatch:
 
 
 jobs:
@@ -23,11 +24,14 @@ jobs:
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
+        env:
+          GHP_TOKEN: ${{ secrets.GHP_TOKEN }}
+          keystorePassword: ${{ secrets.KEYSTORE_PASSWORD }}
       - name: Build apk file with Gradle
         run: ./gradlew assembleRelease
         env:
-          keystorePassword: ${{ secrets.KEYSTORE_PASSWORD }}
           GHP_TOKEN: ${{ secrets.GHP_TOKEN }}
+          keystorePassword: ${{ secrets.KEYSTORE_PASSWORD }}
       - name: Get version code
         id: version
         run: echo "VERSION=${GITHUB_REF:10}" >> $GITHUB_OUTPUT
