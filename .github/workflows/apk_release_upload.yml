@@ -27,6 +27,7 @@ jobs:
         run: ./gradlew assembleRelease
         env:
           keystorePassword: ${{ secrets.KEYSTORE_PASSWORD }}
+          GHP_TOKEN: ${{ secrets.GHP_TOKEN }}
       - name: Get version code
         id: version
         run: echo "VERSION=${GITHUB_REF:10}" >> $GITHUB_OUTPUT
