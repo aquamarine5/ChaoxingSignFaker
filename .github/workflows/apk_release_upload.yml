@@ -42,5 +42,5 @@ jobs:
       - name: Upload apk file
         run: gh release upload ${{steps.version.outputs.VERSION}} app/build/outputs/apk/release/app-release.apk
         env:
-          GHP_TOKEN: ${{ secrets.GHP_TOKEN }}
+          GH_TOKEN: ${{ secrets.GHP_TOKEN }}
           keystorePassword: ${{ secrets.KEYSTORE_PASSWORD }}
