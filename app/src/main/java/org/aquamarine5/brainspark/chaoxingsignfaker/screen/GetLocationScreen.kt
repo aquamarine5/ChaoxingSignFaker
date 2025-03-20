@@ -1,4 +1,10 @@
-package org.aquamarine5.brainspark.chaoxingsignfaker.screens
+/*
+ * Copyright (c) 2025, @aquamarine5 (@海蓝色的咕咕鸽). All Rights Reserved.
+ * Author: aquamarine5@163.com (Github: https://github.com/aquamarine5) and Brainspark (previously RenegadeCreation)
+ * Repository: https://github.com/aquamarine5/ChaoxingSignFaker
+ */
+
+package org.aquamarine5.brainspark.chaoxingsignfaker.screen
 
 import android.graphics.Color
 import android.util.Log
@@ -64,7 +70,7 @@ import kotlinx.serialization.Serializable
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
-import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingPostLocationEntity
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationSignEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingLocationSigner
 
@@ -388,7 +394,7 @@ fun GetLocationPage(
                                     return@Button
                                 }
                             }
-                            val postLocationEntity = ChaoxingPostLocationEntity(
+                            val postLocationEntity = ChaoxingLocationSignEntity(
                                 clickedPosition.latitude,
                                 clickedPosition.longitude,
                                 clickedName
@@ -396,6 +402,7 @@ fun GetLocationPage(
                             coroutineScope.launch {
                                 try {
                                     ChaoxingLocationSigner(
+                                        ChaoxingHttpClient.instance!!,
                                         destination,
                                         postLocationEntity
                                     ).apply {

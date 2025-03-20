@@ -1,3 +1,9 @@
+/*
+ * Copyright (c) 2025, @aquamarine5 (@海蓝色的咕咕鸽). All Rights Reserved.
+ * Author: aquamarine5@163.com (Github: https://github.com/aquamarine5) and Brainspark (previously RenegadeCreation)
+ * Repository: https://github.com/aquamarine5/ChaoxingSignFaker
+ */
+
 package org.aquamarine5.brainspark.chaoxingsignfaker.api
 
 import android.content.Context
@@ -14,7 +20,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCourseActivitiesEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCourseEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
-import org.aquamarine5.brainspark.chaoxingsignfaker.screens.GetLocationDestination
+import org.aquamarine5.brainspark.chaoxingsignfaker.screen.GetLocationDestination
 
 object ChaoxingActivityHelper {
     private const val URL_ACTIVITY_LOAD =

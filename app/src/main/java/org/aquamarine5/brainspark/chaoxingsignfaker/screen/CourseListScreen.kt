@@ -1,4 +1,10 @@
-package org.aquamarine5.brainspark.chaoxingsignfaker.screens
+/*
+ * Copyright (c) 2025, @aquamarine5 (@海蓝色的咕咕鸽). All Rights Reserved.
+ * Author: aquamarine5@163.com (Github: https://github.com/aquamarine5) and Brainspark (previously RenegadeCreation)
+ * Repository: https://github.com/aquamarine5/ChaoxingSignFaker
+ */
+
+package org.aquamarine5.brainspark.chaoxingsignfaker.screen
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -29,7 +35,6 @@ import coil3.request.crossfade
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
-import okhttp3.OkHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCourseHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
@@ -108,7 +113,7 @@ fun CourseListScreen(
                                 "cdn.aquamarine5.fun",
                                 referer = "http://cdn.aquamarine5.fun/",
                                 configFilePath = "chaoxingsignfaker_stackbricks_v1_config.json",
-                                okHttpClient = OkHttpClient.Builder()
+                                okHttpClient = ChaoxingHttpClient.instance!!.okHttpClient.newBuilder()
                                     .callTimeout(20, TimeUnit.MINUTES)
                                     .readTimeout(20, TimeUnit.MINUTES)
                                     .writeTimeout(20, TimeUnit.MINUTES)

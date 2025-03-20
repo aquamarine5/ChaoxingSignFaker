@@ -1,3 +1,9 @@
+/*
+ * Copyright (c) 2025, @aquamarine5 (@海蓝色的咕咕鸽). All Rights Reserved.
+ * Author: aquamarine5@163.com (Github: https://github.com/aquamarine5) and Brainspark (previously RenegadeCreation)
+ * Repository: https://github.com/aquamarine5/ChaoxingSignFaker
+ */
+
 package org.aquamarine5.brainspark.chaoxingsignfaker.signer
 
 import com.alibaba.fastjson2.JSONObject
@@ -10,6 +16,7 @@ import okhttp3.Response
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 
 abstract class ChaoxingSigner(
+    val client: ChaoxingHttpClient,
     val activeId:Long,
     val classId:Int,
     val courseId:Int,
@@ -27,7 +34,6 @@ abstract class ChaoxingSigner(
             "https://mobilelearn.chaoxing.com/pptSign/analysis2?DB_STRATEGY=RANDOM"
     }
 
-    val client = ChaoxingHttpClient.instance!!
 
     abstract suspend fun sign()
     abstract suspend fun checkAlreadySign(response: Response):Boolean

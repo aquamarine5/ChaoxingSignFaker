@@ -1,3 +1,9 @@
+/*
+ * Copyright (c) 2025, @aquamarine5 (@海蓝色的咕咕鸽). All Rights Reserved.
+ * Author: aquamarine5@163.com (Github: https://github.com/aquamarine5) and Brainspark (previously RenegadeCreation)
+ * Repository: https://github.com/aquamarine5/ChaoxingSignFaker
+ */
+
 package org.aquamarine5.brainspark.chaoxingsignfaker.signer
 
 import android.util.Log
@@ -6,14 +12,17 @@ import kotlinx.coroutines.withContext
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Request
 import okhttp3.Response
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationDetailEntity
-import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingPostLocationEntity
-import org.aquamarine5.brainspark.chaoxingsignfaker.screens.GetLocationDestination
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationSignEntity
+import org.aquamarine5.brainspark.chaoxingsignfaker.screen.GetLocationDestination
 
 class ChaoxingLocationSigner(
+    client: ChaoxingHttpClient,
     private val destination: GetLocationDestination,
-    private val signLocation: ChaoxingPostLocationEntity
+    private val signLocation: ChaoxingLocationSignEntity
 ) : ChaoxingSigner(
+    client,
     destination.activeId,
     destination.classId,
     destination.courseId,
