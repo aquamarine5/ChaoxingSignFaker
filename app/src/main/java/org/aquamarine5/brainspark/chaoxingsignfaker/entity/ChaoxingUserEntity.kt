@@ -11,5 +11,6 @@ data class ChaoxingUserEntity(
     val fid:Int,
     val name:String,
     val schoolName:String,
-    val uname:String?
+    val uname:String?,
+    val pic:String
 )

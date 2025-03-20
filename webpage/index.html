@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChaoxingSignFaker</title>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        #button {
+            width: 100px;
+            height: 40px;
+            line-height: 40px;
+            text-align: center;
+            background-color: #007bff;
+            color: #fff;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="info"></div>
+    <div onclick="download()" id="button">下载</div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            if (window.location.href.indexOf("phone") > 0) {
+                document.getElementById('info').innerText = '请使用 随地大小签APP（ChaoxingSignFaker） 扫码。';
+
+            }
+            download();
+        });
+
+        // 首先获取配置文件
+        function download() {
+            const configUrl = 'http://cdn.aquamarine5.fun/chaoxingsignfaker_stackbricks_v1_config.json';
+            fetch(configUrl)
+                .then(response => {
+                    if (!response.ok) {
+                        console.error('获取配置文件失败');
+                        return;
+                    }
+                    return response.json();
+                })
+                .then(config => {
+                    if (!config.latest || !config.latest.downloadUrl) {
+                        console.error('配置文件格式无效');
+                        return;
+                    }
+
+                    const downloadPath = config.latest.downloadUrl;
+                    window.location.href = `http://cdn.aquamarine5.fun/${downloadPath}`
+                    fetchData(downloadPath);
+                })
+        }
+    </script>
+</body>
+
+</html>

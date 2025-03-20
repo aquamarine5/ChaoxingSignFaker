@@ -58,7 +58,8 @@ fun QRCodeScanScreen() {
                         val barcodeResult = result.getValue(barcodeScanner) ?: return@MlKitAnalyzer
                         if (barcodeResult.size > 0) {
                             val barcode = barcodeResult[0]
-
+                            previewView.overlay.clear()
+                            previewView.overlay.add(QRCodeDrawable(barcode))
                         }
                     }
                 })

@@ -27,6 +27,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingLoginSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingSignFakerDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.HttpCookie
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingOtherUserSharedEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingUserEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.LoginDestination
 import java.util.Base64
@@ -36,9 +37,9 @@ import javax.crypto.spec.SecretKeySpec
 
 class ChaoxingHttpClient private constructor(
     val okHttpClient: OkHttpClient,
-    val userEntity: ChaoxingUserEntity
+    val userEntity: ChaoxingUserEntity,
+    val sharedUserEntity: ChaoxingOtherUserSharedEntity?
 ) {
-
     class ChaoxingLoginException(message: String) : Exception(message)
 
     fun newCall(request: Request): Call = okHttpClient.newCall(request)
@@ -85,10 +86,13 @@ class ChaoxingHttpClient private constructor(
                 }
                 .build()
             login(client, phoneNumber, password, context)
+            val userInfo = getInfo(client).apply {
+                UMengHelper.profileSignIn(this, phoneNumber)
+            }
             return ChaoxingHttpClient(
-                client, getInfo(client).apply {
-                    UMengHelper.profileSignIn(this, phoneNumber)
-                }
+                client,
+                userInfo,
+                ChaoxingOtherUserSharedEntity(phoneNumber, encryptByAES(password), userInfo.name)
             ).apply {
                 instance = this
             }
@@ -131,9 +135,20 @@ class ChaoxingHttpClient private constructor(
                         }
                 )
             }
+            val userInfo = getInfo(okHttpClient)
             return ChaoxingHttpClient(
                 okHttpClient,
-                getInfo(okHttpClient)
+                userInfo,
+                if (ChaoxingOtherUserQRCodeHelper.checkSharedEntity(dataStore)) {
+                    dataStore.loginSession.let {
+                        ChaoxingOtherUserSharedEntity(
+                            it.phoneNumber.toString(),
+                            it.password,
+                            userInfo.name
+                        )
+                    }
+                } else null
+
             ).apply {
                 instance = this
             }
@@ -174,9 +189,86 @@ class ChaoxingHttpClient private constructor(
                             jsonResult.getInteger("fid"),
                             jsonResult.getString("name"),
                             jsonResult.getString("schoolname"),
-                            jsonResult.getString("uname")
+                            jsonResult.getString("uname"),
+                            jsonResult.getString("pic").replace("http://", "https://")
                         )
                     }
+            }
+
+        suspend fun checkSharedEntity(
+            phoneNumber: String,
+            password: String,
+            context: Context
+        ): ChaoxingOtherUserSharedEntity =
+            withContext(Dispatchers.IO) {
+                val uname = encryptByAES(phoneNumber)
+                val encryptedPassword = encryptByAES(password)
+                val request = Request.Builder()
+                    .url(URL_LOGIN)
+                    .post(FormBody.Builder().apply {
+                        addEncoded("fid", "-1")
+                        addEncoded("uname", uname.replace("+", "%2B"))
+                        addEncoded("password", encryptedPassword.replace("+", "%2B"))
+                        addEncoded("refer", "https%3A%2F%2Fi.chaoxing.com")
+                        addEncoded("t", "true")
+                        addEncoded("forbidotherlogin", "0")
+                        addEncoded("validate", "")
+                        addEncoded("doubleFactorLogin", "0")
+                        addEncoded("independentId", "0")
+                        addEncoded("independentNameId", "0")
+                    }.build())
+                    .build()
+
+                val tempOkHttpClient =
+                    instance!!.okHttpClient.newBuilder()
+                        .cookieJar(object : CookieJar {
+                            private val cookieStore: MutableMap<String, List<Cookie>> =
+                                mutableMapOf()
+                            private var chaoxingCookieSession: List<Cookie> = listOf()
+                            override fun saveFromResponse(url: HttpUrl, cookies: List<Cookie>) {
+                                if (url.host.endsWith("chaoxing.com") && url.encodedPath == "/fanyalogin") {
+                                    chaoxingCookieSession = cookies
+                                } else
+                                    cookieStore[url.host] = cookies
+                            }
+
+                            override fun loadForRequest(url: HttpUrl): List<Cookie> {
+                                return if (url.host.endsWith("chaoxing.com")) {
+                                    chaoxingCookieSession
+                                } else {
+                                    cookieStore[url.host] ?: listOf()
+                                }
+                            }
+                        }).build()
+                tempOkHttpClient.newCall(request).execute().use {
+                    val jsonResult = JSONObject.parseObject(it.body?.string())
+                    if (!jsonResult.getBoolean("status")) {
+                        throw ChaoxingLoginException(if (jsonResult.containsKey("msg2")) {
+                            jsonResult.getString("msg2").ifEmpty {
+                                "登录错误"
+                            }
+                        } else {
+                            "登录错误"
+                        })
+                    }
+                    tempOkHttpClient.cookieJar.saveFromResponse(
+                        request.url,
+                        Cookie.parseAll(request.url, it.headers)
+                    )
+                    return@withContext ChaoxingOtherUserSharedEntity(
+                        phoneNumber,
+                        encryptedPassword,
+                        getInfo(tempOkHttpClient).name
+                    ).apply {
+                        context.chaoxingDataStore.updateData { datastore ->
+                            datastore.toBuilder().setLoginSession(
+                                datastore.loginSession.toBuilder()
+                                    .setPassword(encryptedPassword)
+                                    .setPhoneNumber(phoneNumber).build()
+                            ).build()
+                        }
+                    }
+                }
             }
 
         private suspend fun login(
@@ -235,7 +327,10 @@ class ChaoxingHttpClient private constructor(
                                     .setName(cookie.name)
                                     .setHost(cookie.domain).build()
                             }
-                        ).build()
+                        )
+                            .setPassword(encryptedPassword)
+                            .setPhoneNumber(phoneNumber)
+                            .build()
                     ).build()
                 }
             }

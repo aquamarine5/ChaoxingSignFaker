@@ -91,6 +91,7 @@ protobuf {
 }
 
 dependencies {
+    implementation "com.google.zxing:core:3.5.3"
     implementation libs.camera.mlkit.vision
     implementation libs.barcode.scanning
     implementation libs.androidx.camera.core

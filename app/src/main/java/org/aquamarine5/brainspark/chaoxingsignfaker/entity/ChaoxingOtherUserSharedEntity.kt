@@ -6,9 +6,8 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.entity
 
-import okhttp3.Cookie
-
-data class ChaoxingOtherUserSessionEntity(
-    val cookies:List<Cookie>,
-    val sharedEntity: ChaoxingOtherUserSharedEntity
+data class ChaoxingOtherUserSharedEntity(
+    val phoneNumber:String,
+    val encryptedPassword:String,
+    val userName:String
 )
