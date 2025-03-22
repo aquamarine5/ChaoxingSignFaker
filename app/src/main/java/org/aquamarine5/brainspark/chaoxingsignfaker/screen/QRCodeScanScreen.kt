@@ -43,7 +43,20 @@ import com.google.mlkit.vision.barcode.common.Barcode
 import kotlinx.serialization.Serializable
 
 @Serializable
-object QRCodeScanDestination
+data class QRCodeScanDestination(
+    val targetDestination:Int
+)
+
+enum class QRCodeScanTargetDestination(i: Int) {
+    OTHER_USER_SCREEN(0),
+    QRCODE_SIGN_SCREEN(1);
+    fun navigate(result:String,naviToScanTarget:(Any)->Unit){
+        when(this){
+            OTHER_USER_SCREEN->naviToScanTarget(OtherUserDestination(result))
+            QRCODE_SIGN_SCREEN->naviToScanTarget(QRCodeSignDestination(result))
+        }
+    }
+}
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
