@@ -1,3 +1,9 @@
+/*
+ * Copyright (c) 2025, @aquamarine5 (@海蓝色的咕咕鸽). All Rights Reserved.
+ * Author: aquamarine5@163.com (Github: https://github.com/aquamarine5) and Brainspark (previously RenegadeCreation)
+ * Repository: https://github.com/aquamarine5/ChaoxingSignFaker
+ */
+
 package org.aquamarine5.brainspark.chaoxingsignfaker
 
 import android.content.Intent
@@ -17,16 +23,20 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
-import org.aquamarine5.brainspark.chaoxingsignfaker.screens.CourseDetailDestination
-import org.aquamarine5.brainspark.chaoxingsignfaker.screens.CourseDetailScreen
-import org.aquamarine5.brainspark.chaoxingsignfaker.screens.CourseListDestination
-import org.aquamarine5.brainspark.chaoxingsignfaker.screens.CourseListScreen
-import org.aquamarine5.brainspark.chaoxingsignfaker.screens.GetLocationDestination
-import org.aquamarine5.brainspark.chaoxingsignfaker.screens.GetLocationPage
-import org.aquamarine5.brainspark.chaoxingsignfaker.screens.LoginDestination
-import org.aquamarine5.brainspark.chaoxingsignfaker.screens.LoginPage
-import org.aquamarine5.brainspark.chaoxingsignfaker.screens.WelcomeDestination
-import org.aquamarine5.brainspark.chaoxingsignfaker.screens.WelcomeScreen
+import org.aquamarine5.brainspark.chaoxingsignfaker.screen.CourseDetailDestination
+import org.aquamarine5.brainspark.chaoxingsignfaker.screen.CourseDetailScreen
+import org.aquamarine5.brainspark.chaoxingsignfaker.screen.CourseListDestination
+import org.aquamarine5.brainspark.chaoxingsignfaker.screen.CourseListScreen
+import org.aquamarine5.brainspark.chaoxingsignfaker.screen.GetLocationDestination
+import org.aquamarine5.brainspark.chaoxingsignfaker.screen.GetLocationPage
+import org.aquamarine5.brainspark.chaoxingsignfaker.screen.LoginDestination
+import org.aquamarine5.brainspark.chaoxingsignfaker.screen.LoginPage
+import org.aquamarine5.brainspark.chaoxingsignfaker.screen.OtherUserDestination
+import org.aquamarine5.brainspark.chaoxingsignfaker.screen.OtherUserScreen
+import org.aquamarine5.brainspark.chaoxingsignfaker.screen.QRCodeScanDestination
+import org.aquamarine5.brainspark.chaoxingsignfaker.screen.QRCodeScanScreen
+import org.aquamarine5.brainspark.chaoxingsignfaker.screen.WelcomeDestination
+import org.aquamarine5.brainspark.chaoxingsignfaker.screen.WelcomeScreen
 import org.aquamarine5.brainspark.chaoxingsignfaker.ui.theme.ChaoxingSignFakerTheme
 import kotlin.reflect.typeOf
 
@@ -64,6 +74,12 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 ) {
+                    composable<QRCodeScanDestination> {
+                        QRCodeScanScreen()
+                    }
+                    composable<OtherUserDestination> {
+                        OtherUserScreen()
+                    }
                     composable<WelcomeDestination> {
                         WelcomeScreen {
                             navController.navigate(LoginDestination) {
@@ -87,7 +103,9 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                     composable<CourseListDestination> {
-                        CourseListScreen {
+                        CourseListScreen(navToOtherUserDestination = {
+                            navController.navigate(OtherUserDestination)
+                        }) {
                             navController.navigate(it, navOptions {
                                 popUpTo<CourseListDestination> { saveState = true }
                                 restoreState = true

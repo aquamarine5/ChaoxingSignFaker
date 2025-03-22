@@ -1,9 +1,15 @@
+/*
+ * Copyright (c) 2025, @aquamarine5 (@海蓝色的咕咕鸽). All Rights Reserved.
+ * Author: aquamarine5@163.com (Github: https://github.com/aquamarine5) and Brainspark (previously RenegadeCreation)
+ * Repository: https://github.com/aquamarine5/ChaoxingSignFaker
+ */
+
 package org.aquamarine5.brainspark.chaoxingsignfaker
 
 import android.content.Context
 import com.umeng.analytics.MobclickAgent
 import com.umeng.commonsdk.UMConfigure
-import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingPostLocationEntity
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationSignEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingUserEntity
 
 object UMengHelper {
@@ -38,7 +44,7 @@ object UMengHelper {
         onEvent(context, EVENT_TAG_ACCOUNT_LOGIN, mapOf("phone" to phoneNumber))
     }
 
-    fun onSignLocationEvent(context: Context, postLocationEntity: ChaoxingPostLocationEntity) {
+    fun onSignLocationEvent(context: Context, postLocationEntity: ChaoxingLocationSignEntity) {
         onEvent(context, EVENT_TAG_SIGN_LOCATION, mapOf(
             "latitude" to postLocationEntity.latitude,
             "longitude" to postLocationEntity.longitude,
