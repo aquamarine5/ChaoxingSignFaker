@@ -37,8 +37,8 @@ android {
         applicationId = "org.aquamarine5.brainspark.chaoxingsignfaker"
         minSdk = 26
         targetSdk = 35
-        versionCode = 101038805
-        versionName = "1.1.3-stable-250319"
+        versionCode = 102002201
+        versionName = "1.2.0-alpha1-250322"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -91,7 +91,7 @@ protobuf {
 }
 
 dependencies {
-    implementation "com.google.zxing:core:3.5.3"
+    implementation libs.core
     implementation libs.camera.mlkit.vision
     implementation libs.barcode.scanning
     implementation libs.androidx.camera.core

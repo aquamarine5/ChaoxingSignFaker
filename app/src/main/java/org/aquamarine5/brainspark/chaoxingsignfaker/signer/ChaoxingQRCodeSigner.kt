@@ -20,7 +20,7 @@ class ChaoxingQRCodeSigner(
     qrCodeActivityEntity.courseId,
     qrCodeActivityEntity.extContent
 ) {
-    override suspend fun sign() {
+    suspend fun sign() {
         TODO("Not yet implemented")
     }
 

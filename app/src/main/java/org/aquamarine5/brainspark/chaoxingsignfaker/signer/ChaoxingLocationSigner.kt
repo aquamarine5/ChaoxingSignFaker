@@ -19,8 +19,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.screen.GetLocationDestinatio
 
 class ChaoxingLocationSigner(
     client: ChaoxingHttpClient,
-    private val destination: GetLocationDestination,
-    private val signLocation: ChaoxingLocationSignEntity
+    private val destination: GetLocationDestination
 ) : ChaoxingSigner(
     client,
     destination.activeId,
@@ -48,7 +47,7 @@ class ChaoxingLocationSigner(
 
     class ChaoxingLocationSignException(message: String) : Exception(message)
 
-    override suspend fun sign() = withContext(Dispatchers.IO) {
+    suspend fun sign(signLocation: ChaoxingLocationSignEntity) = withContext(Dispatchers.IO) {
         client.newCall(
             Request.Builder().url(
                 URL_SIGN.toHttpUrl().newBuilder()

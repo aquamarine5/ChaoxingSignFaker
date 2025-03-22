@@ -15,8 +15,9 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
 
-    <uses-feature android:name="android.hardware.camera.any" />
+    <uses-feature android:name="android.hardware.camera" />
 
     <application
         android:enableOnBackInvokedCallback="true"
@@ -71,6 +72,10 @@
         <meta-data
             android:name="io.sentry.attach-view-hierarchy"
             android:value="true" />
+
+        <meta-data
+            android:name="io.sentry.environment"
+            android:value="development" />
     </application>
 
 </manifest>

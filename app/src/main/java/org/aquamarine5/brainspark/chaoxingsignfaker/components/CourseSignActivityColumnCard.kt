@@ -21,8 +21,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingActivityHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
+import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSignHelper
 
 
 @Composable
@@ -36,7 +36,7 @@ fun CourseSignActivityColumnCard(
         .fillMaxWidth()
         .clickable {
             if (isAvailable) {
-                ChaoxingActivityHelper.getSignDestination(context,activity)?.let {
+                ChaoxingSignHelper.getSignDestination(context,activity)?.let {
                     onSignAction(it)
                 }
             } else {
@@ -44,7 +44,7 @@ fun CourseSignActivityColumnCard(
             }
         }) {
         Icon(
-            painter = ChaoxingActivityHelper.getSignIcon(activity),
+            painter = ChaoxingSignHelper.getSignIcon(activity),
             contentDescription = null,
             tint = if (isAvailable) LocalContentColor.current else Color.Gray
         )

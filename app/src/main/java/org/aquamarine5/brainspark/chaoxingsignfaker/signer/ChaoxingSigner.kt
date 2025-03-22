@@ -35,7 +35,7 @@ abstract class ChaoxingSigner(
     }
 
 
-    abstract suspend fun sign()
+    //abstract suspend fun sign()
     abstract suspend fun checkAlreadySign(response: Response):Boolean
     open suspend fun getSignInfo(): JSONObject = withContext(Dispatchers.IO) {
         client.newCall(

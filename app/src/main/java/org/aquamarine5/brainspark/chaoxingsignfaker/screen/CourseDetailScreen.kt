@@ -106,7 +106,7 @@ fun CourseDetailScreen(
                                 activitiesData =
                                     ChaoxingActivityHelper.getActivities(it, courseEntity)
                             }
-                            delay(500)
+                            delay(1000)
                             pullToRefreshState = false
                         }
                     }

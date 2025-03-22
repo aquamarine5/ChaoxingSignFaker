@@ -37,8 +37,7 @@ import javax.crypto.spec.SecretKeySpec
 
 class ChaoxingHttpClient private constructor(
     val okHttpClient: OkHttpClient,
-    val userEntity: ChaoxingUserEntity,
-    val sharedUserEntity: ChaoxingOtherUserSharedEntity?
+    val userEntity: ChaoxingUserEntity
 ) {
     class ChaoxingLoginException(message: String) : Exception(message)
 
@@ -91,8 +90,7 @@ class ChaoxingHttpClient private constructor(
             }
             return ChaoxingHttpClient(
                 client,
-                userInfo,
-                ChaoxingOtherUserSharedEntity(phoneNumber, encryptByAES(password), userInfo.name)
+                userInfo
             ).apply {
                 instance = this
             }
@@ -138,17 +136,7 @@ class ChaoxingHttpClient private constructor(
             val userInfo = getInfo(okHttpClient)
             return ChaoxingHttpClient(
                 okHttpClient,
-                userInfo,
-                if (ChaoxingOtherUserQRCodeHelper.checkSharedEntity(dataStore)) {
-                    dataStore.loginSession.let {
-                        ChaoxingOtherUserSharedEntity(
-                            it.phoneNumber.toString(),
-                            it.password,
-                            userInfo.name
-                        )
-                    }
-                } else null
-
+                userInfo
             ).apply {
                 instance = this
             }
