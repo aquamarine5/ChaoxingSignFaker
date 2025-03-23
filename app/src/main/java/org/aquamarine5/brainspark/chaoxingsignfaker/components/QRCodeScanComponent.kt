@@ -22,8 +22,10 @@ import androidx.camera.view.LifecycleCameraController
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
@@ -31,6 +33,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -46,20 +49,23 @@ import com.google.accompanist.permissions.shouldShowRationale
 import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.barcode.common.Barcode
+import kotlinx.coroutines.launch
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun QRCodeScanComponent(
     isPause: Boolean,
+    isLoading:Boolean,
     onClose: () -> Unit,
-    onScanResult: (Barcode) -> Unit,
-    content: @Composable () -> Unit
+    onScanResult: suspend (Barcode) -> Unit,
+    content: @Composable BoxScope.() -> Unit
 ) {
     val cameraPermission = rememberPermissionState(android.Manifest.permission.CAMERA)
     if (cameraPermission.status == PermissionStatus.Granted) {
         val application = LocalActivity.current!!
         val lifecycleOwner = LocalLifecycleOwner.current
+        val coroutineScope= rememberCoroutineScope()
         val cameraExecutor = ContextCompat.getMainExecutor(application)
         LocalContext.current.let { context ->
             val barcodeScanner = BarcodeScanning.getClient(
@@ -89,13 +95,19 @@ fun QRCodeScanComponent(
                                 val barcode = barcodeResult[0]
                                 previewView.overlay.clear()
                                 previewView.overlay.add(QRCodeDrawable(barcode))
-                                if (!isPause)
-                                    onScanResult(barcode)
+                                if (!isPause){
+                                    coroutineScope.launch {
+                                        onScanResult(barcode)
+                                    }
+                                }
                             }
                         }
                     })
             }
             Box(modifier = Modifier.fillMaxSize()) {
+                if(isLoading){
+                    CenterCircularProgressIndicator()
+                }
                 AndroidView(
                     factory = { previewView },
                     modifier = Modifier.fillMaxSize()
@@ -104,10 +116,12 @@ fun QRCodeScanComponent(
                     onClick = onClose,
                     modifier = Modifier
                         .align(Alignment.TopStart)
-                        .padding(16.dp)
+                        .padding(8.dp)
+                        .offset(y=38.dp)
                 ) {
                     Icon(painterResource(R.drawable.ic_arrow_left), "返回")
                 }
+
                 content()
             }
             DisposableEffect(Unit) {

@@ -259,15 +259,18 @@ class ChaoxingHttpClient private constructor(
                 }
             }
 
-        private suspend fun login(
+        suspend fun login(
             client: OkHttpClient,
             phoneNumber: String,
             password: String,
-            context: Context
+            context: Context,
+            isSaveToDataStore: Boolean = true,
+            isEncryptedPassword: Boolean = false
         ): Unit =
             withContext(Dispatchers.IO) {
                 val uname = encryptByAES(phoneNumber)
-                val encryptedPassword = encryptByAES(password)
+                val encryptedPassword =
+                    if (isEncryptedPassword) password else encryptByAES(password)
                 val request = Request.Builder()
                     .url(URL_LOGIN)
                     .post(FormBody.Builder().apply {
@@ -302,24 +305,26 @@ class ChaoxingHttpClient private constructor(
                     )
 
                 }
-                context.chaoxingDataStore.updateData {
-                    it.toBuilder().setLoginSession(
-                        ChaoxingLoginSession.newBuilder().addAllCookies(
-                            client.cookieJar.loadForRequest(
-                                HttpUrl.Builder()
-                                    .scheme("https")
-                                    .host("chaoxing.com").build()
-                            ).map { cookie ->
-                                HttpCookie.newBuilder()
-                                    .setValue(cookie.value)
-                                    .setName(cookie.name)
-                                    .setHost(cookie.domain).build()
-                            }
-                        )
-                            .setPassword(encryptedPassword)
-                            .setPhoneNumber(phoneNumber)
-                            .build()
-                    ).build()
+                if (isSaveToDataStore) {
+                    context.chaoxingDataStore.updateData {
+                        it.toBuilder().setLoginSession(
+                            ChaoxingLoginSession.newBuilder().addAllCookies(
+                                client.cookieJar.loadForRequest(
+                                    HttpUrl.Builder()
+                                        .scheme("https")
+                                        .host("chaoxing.com").build()
+                                ).map { cookie ->
+                                    HttpCookie.newBuilder()
+                                        .setValue(cookie.value)
+                                        .setName(cookie.name)
+                                        .setHost(cookie.domain).build()
+                                }
+                            )
+                                .setPassword(encryptedPassword)
+                                .setPhoneNumber(phoneNumber)
+                                .build()
+                        ).build()
+                    }
                 }
             }
 

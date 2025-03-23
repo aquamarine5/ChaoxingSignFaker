@@ -17,34 +17,35 @@ import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
+import okhttp3.Cookie
+import okhttp3.CookieJar
+import okhttp3.HttpUrl
 import org.aquamarine5.brainspark.chaoxingsignfaker.chaoxingDataStore
+import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingLoginSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingSignFakerDataStore
+import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.HttpCookie
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingOtherUserSharedEntity
 
 object ChaoxingOtherUserHelper {
 
-    private const val ALREADY_EXCEPTION_IS_SELF="@self"
-
     class NotAvailableQRCodeException(message: String) : Exception(message)
 
-    class AlreadyExistedOtherUserException(message: String) : Exception(message){
-        fun isSelf() = message == ALREADY_EXCEPTION_IS_SELF
-    }
+    class AlreadyExistedOtherUserException(message: String) : Exception(message)
 
     private fun getQRCodeSize(context: Context): Int {
         val displayMetrics = context.resources.displayMetrics
         val width = displayMetrics.widthPixels
         val height = displayMetrics.heightPixels
         val shorterSide = minOf(width, height)
-        return (shorterSide * 0.6).toInt()
+        return (shorterSide * 0.73).toInt()
     }
 
     fun getQRCodeDpSize(context: Context): Dp {
-        return (getQRCodeSize(context) / context.resources.displayMetrics.density + 0.5f).toInt().dp
+        return (getQRCodeSize(context) / context.resources.displayMetrics.density).toInt().dp
     }
 
     fun checkSharedEntity(dataStore: ChaoxingSignFakerDataStore) =
-        dataStore.loginSession.password != null && dataStore.loginSession.phoneNumber != null
+        !dataStore.loginSession.password.isNullOrEmpty() && !dataStore.loginSession.phoneNumber.isNullOrEmpty()
 
     private fun getSharedUserEntity(dataStore: ChaoxingSignFakerDataStore): ChaoxingOtherUserSharedEntity {
         return ChaoxingOtherUserSharedEntity(
@@ -54,9 +55,9 @@ object ChaoxingOtherUserHelper {
         )
     }
 
-    suspend fun generateQRCode(context: Context): Bitmap = withContext(Dispatchers.IO) {
+    suspend fun generateQRCode(context: Context,insertSharedEntity: ChaoxingOtherUserSharedEntity?=null): Bitmap = withContext(Dispatchers.IO) {
         val qrcodeSize = getQRCodeSize(context)
-        val sharedEntity = getSharedUserEntity(context.chaoxingDataStore.data.first())
+        val sharedEntity = insertSharedEntity ?: getSharedUserEntity(context.chaoxingDataStore.data.first())
         val content =
             "http://cdn.aquamarine5.fun/?phone=${sharedEntity.phoneNumber}&pwd=${sharedEntity.encryptedPassword}&name=${sharedEntity.userName}"
         val qrCode = QRCodeWriter().encode(
@@ -76,18 +77,64 @@ object ChaoxingOtherUserHelper {
             }
     }
 
-    suspend fun saveOtherUser(context: Context, sharedEntity: ChaoxingOtherUserSharedEntity) {
-        context.chaoxingDataStore.data.first().apply {
-            if(loginSession.phoneNumber == sharedEntity.phoneNumber)
-                throw AlreadyExistedOtherUserException(ALREADY_EXCEPTION_IS_SELF)
-            if(otherUsersList.any { it.phoneNumber == sharedEntity.phoneNumber })
-                throw AlreadyExistedOtherUserException(sharedEntity.phoneNumber)
+    suspend fun saveOtherUser(context: Context, sharedEntity: ChaoxingOtherUserSharedEntity) = withContext(Dispatchers.IO) {
+            context.chaoxingDataStore.data.first().apply {
+                if (loginSession.phoneNumber == sharedEntity.phoneNumber)
+                    throw AlreadyExistedOtherUserException("自己不能添加自己！")
+                if (otherUsersList.any { it.phoneNumber == sharedEntity.phoneNumber })
+                    throw AlreadyExistedOtherUserException("${sharedEntity.userName}(${sharedEntity.phoneNumber}) 用户已经存在！")
+            }
+
+            val tempOkHttpClient =
+                ChaoxingHttpClient.instance!!.okHttpClient.newBuilder()
+                    .cookieJar(object : CookieJar {
+                        private val cookieStore: MutableMap<String, List<Cookie>> = mutableMapOf()
+                        private var chaoxingCookieSession: List<Cookie> = listOf()
+
+                        override fun saveFromResponse(url: HttpUrl, cookies: List<Cookie>) {
+                            if (url.host.endsWith("chaoxing.com") && url.encodedPath == "/fanyalogin") {
+                                chaoxingCookieSession = cookies
+                            } else
+                                cookieStore[url.host] = cookies
+                        }
+
+                        override fun loadForRequest(url: HttpUrl): List<Cookie> {
+                            return if (url.host.endsWith("chaoxing.com")) {
+                                chaoxingCookieSession
+                            } else {
+                                cookieStore[url.host] ?: listOf()
+                            }
+                        }
+                    }).build()
+
+            ChaoxingHttpClient.login(
+                tempOkHttpClient,
+                sharedEntity.phoneNumber,
+                sharedEntity.encryptedPassword,
+                context,
+                isSaveToDataStore = false,
+                isEncryptedPassword = true
+            )
+
+            context.chaoxingDataStore.updateData { datastore ->
+                return@updateData datastore.apply {
+                    otherUsersList.add(
+                        ChaoxingLoginSession.newBuilder()
+                            .setPassword(sharedEntity.encryptedPassword)
+                            .setPhoneNumber(sharedEntity.phoneNumber)
+                            .addAllCookies(tempOkHttpClient.cookieJar.loadForRequest(
+                                HttpUrl.Builder()
+                                    .scheme("https")
+                                    .host("chaoxing.com").build()
+                            ).map { cookie ->
+                                HttpCookie.newBuilder()
+                                    .setValue(cookie.value)
+                                    .setName(cookie.name)
+                                    .setHost(cookie.domain).build()
+                            })
+                            .build()
+                    )
+                }
+            }
         }
-
-        context.chaoxingDataStore.updateData { datastore->
-            TODO()
-        }
-
-
-    }
 }

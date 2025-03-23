@@ -14,8 +14,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 
 @Composable
-fun CenterCircularProgressIndicator(){
+fun CenterCircularProgressIndicator(modifier: Modifier = Modifier) {
     Box(modifier = Modifier.fillMaxSize()) {
-        CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+        CircularProgressIndicator(modifier = Modifier.align(Alignment.Center).then(modifier))
     }
 }

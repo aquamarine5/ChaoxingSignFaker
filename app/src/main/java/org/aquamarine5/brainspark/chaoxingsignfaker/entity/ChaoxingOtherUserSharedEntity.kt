@@ -18,7 +18,7 @@ data class ChaoxingOtherUserSharedEntity(
     companion object {
         fun parseFromQRCode(qrcode: Barcode): ChaoxingOtherUserSharedEntity {
             if (qrcode.url == null)
-                throw ChaoxingOtherUserHelper.NotAvailableQRCodeException("QRCode is not a URL")
+                throw ChaoxingOtherUserHelper.NotAvailableQRCodeException("二维码不是一个有效的链接")
             return runCatching {
                 val url = qrcode.url!!.url!!.toHttpUrl()
                 val phoneNumber = url.queryParameter("phone")!!
@@ -30,7 +30,7 @@ data class ChaoxingOtherUserSharedEntity(
                     userName
                 )
             }.getOrElse {
-                throw ChaoxingOtherUserHelper.NotAvailableQRCodeException("QRCode is not a valid Chaoxing QRCode")
+                throw ChaoxingOtherUserHelper.NotAvailableQRCodeException("此二维码不能作用于添加用户")
             }
         }
     }

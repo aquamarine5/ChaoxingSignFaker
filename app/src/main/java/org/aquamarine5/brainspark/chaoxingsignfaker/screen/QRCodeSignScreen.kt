@@ -6,6 +6,7 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.screen
 
-data class QRCodeSignDestination(
-    val scanResult:String
-)
+import kotlinx.serialization.Serializable
+
+@Serializable
+object QRCodeSignDestination

@@ -6,14 +6,16 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -25,6 +27,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingOtherUserSharedEntity
@@ -86,13 +89,15 @@ fun RequireLoginAlertDialog(
                 }
             },
             dismissButton = {
-                TextButton(
+                OutlinedButton(
                     onClick = {
                         isShowDialog = false
                         naviBack()
-                    }
+                    },
+                    border = BorderStroke(2.dp, Color(0xFFF1441D)),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFF1441D))
                 ) {
-                    Text("退出", color = Color.Red)
+                    Text("退出")
                 }
             }
         )

@@ -20,7 +20,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.GetLocationDestination
-import org.aquamarine5.brainspark.chaoxingsignfaker.components.QRCodeScanDestination
+import org.aquamarine5.brainspark.chaoxingsignfaker.screen.QRCodeSignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSigner.Companion.URL_SIGN_INFO
 
 object ChaoxingSignHelper {
@@ -50,7 +50,7 @@ object ChaoxingSignHelper {
     fun getSignDestination(context: Context, activityEntity: ChaoxingSignActivityEntity): Any? =
         when (activityEntity.otherId) {
             "4" -> GetLocationDestination.parseFromSignActivityEntity(activityEntity)
-            "2" -> QRCodeScanDestination
+            "2" -> QRCodeSignDestination
             else -> {
                 Toast.makeText(context, "暂不支持该活动类型", Toast.LENGTH_SHORT).show()
                 null

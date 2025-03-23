@@ -33,8 +33,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.screen.LoginDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.LoginPage
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.OtherUserDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.OtherUserScreen
-import org.aquamarine5.brainspark.chaoxingsignfaker.components.QRCodeScanDestination
-import org.aquamarine5.brainspark.chaoxingsignfaker.components.QRCodeScanScreen
+import org.aquamarine5.brainspark.chaoxingsignfaker.screen.QRCodeSignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.WelcomeDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.WelcomeScreen
 import org.aquamarine5.brainspark.chaoxingsignfaker.ui.theme.ChaoxingSignFakerTheme
@@ -74,12 +73,16 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 ) {
-                    composable<QRCodeScanDestination> {
-                        QRCodeScanScreen()
+                    composable<QRCodeSignDestination> {
+
                     }
+
                     composable<OtherUserDestination> {
-                        OtherUserScreen()
+                        OtherUserScreen{
+                            navController.navigateUp()
+                        }
                     }
+
                     composable<WelcomeDestination> {
                         WelcomeScreen {
                             navController.navigate(LoginDestination) {
@@ -87,6 +90,7 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                     }
+
                     composable<LoginDestination> {
                         LoginPage {
                             navController.navigate(CourseListDestination) {
@@ -94,6 +98,7 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                     }
+
                     composable<GetLocationDestination>(
                         typeMap = mapOf(
                             typeOf<ChaoxingSignActivityEntity>() to ChaoxingSignActivityEntity.SignActivityNavType
@@ -102,6 +107,7 @@ class MainActivity : ComponentActivity() {
                             navController.navigateUp()
                         }
                     }
+
                     composable<CourseListDestination> {
                         CourseListScreen(navToOtherUserDestination = {
                             navController.navigate(OtherUserDestination())
