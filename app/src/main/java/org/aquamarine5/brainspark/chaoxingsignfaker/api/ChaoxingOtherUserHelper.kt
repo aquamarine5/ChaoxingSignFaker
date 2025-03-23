@@ -21,7 +21,7 @@ import okhttp3.Cookie
 import okhttp3.CookieJar
 import okhttp3.HttpUrl
 import org.aquamarine5.brainspark.chaoxingsignfaker.chaoxingDataStore
-import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingLoginSession
+import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingSignFakerDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.HttpCookie
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingOtherUserSharedEntity
@@ -55,9 +55,13 @@ object ChaoxingOtherUserHelper {
         )
     }
 
-    suspend fun generateQRCode(context: Context,insertSharedEntity: ChaoxingOtherUserSharedEntity?=null): Bitmap = withContext(Dispatchers.IO) {
+    suspend fun generateQRCode(
+        context: Context,
+        insertSharedEntity: ChaoxingOtherUserSharedEntity? = null
+    ): Bitmap = withContext(Dispatchers.IO) {
         val qrcodeSize = getQRCodeSize(context)
-        val sharedEntity = insertSharedEntity ?: getSharedUserEntity(context.chaoxingDataStore.data.first())
+        val sharedEntity =
+            insertSharedEntity ?: getSharedUserEntity(context.chaoxingDataStore.data.first())
         val content =
             "http://cdn.aquamarine5.fun/?phone=${sharedEntity.phoneNumber}&pwd=${sharedEntity.encryptedPassword}&name=${sharedEntity.userName}"
         val qrCode = QRCodeWriter().encode(
@@ -77,7 +81,11 @@ object ChaoxingOtherUserHelper {
             }
     }
 
-    suspend fun saveOtherUser(context: Context, sharedEntity: ChaoxingOtherUserSharedEntity) = withContext(Dispatchers.IO) {
+    suspend fun saveOtherUser(
+        context: Context,
+        sharedEntity: ChaoxingOtherUserSharedEntity
+    ): ChaoxingOtherUserSession =
+        withContext(Dispatchers.IO) {
             context.chaoxingDataStore.data.first().apply {
                 if (loginSession.phoneNumber == sharedEntity.phoneNumber)
                     throw AlreadyExistedOtherUserException("自己不能添加自己！")
@@ -116,25 +124,24 @@ object ChaoxingOtherUserHelper {
                 isEncryptedPassword = true
             )
 
+            val session = ChaoxingOtherUserSession.newBuilder()
+                .setPassword(sharedEntity.encryptedPassword)
+                .setName(sharedEntity.userName)
+                .setPhoneNumber(sharedEntity.phoneNumber)
+                .addAllCookies(tempOkHttpClient.cookieJar.loadForRequest(
+                    HttpUrl.Builder()
+                        .scheme("https")
+                        .host("chaoxing.com").build()
+                ).map { cookie ->
+                    HttpCookie.newBuilder()
+                        .setValue(cookie.value)
+                        .setName(cookie.name)
+                        .setHost(cookie.domain).build()
+                })
+                .build()
             context.chaoxingDataStore.updateData { datastore ->
-                return@updateData datastore.apply {
-                    otherUsersList.add(
-                        ChaoxingLoginSession.newBuilder()
-                            .setPassword(sharedEntity.encryptedPassword)
-                            .setPhoneNumber(sharedEntity.phoneNumber)
-                            .addAllCookies(tempOkHttpClient.cookieJar.loadForRequest(
-                                HttpUrl.Builder()
-                                    .scheme("https")
-                                    .host("chaoxing.com").build()
-                            ).map { cookie ->
-                                HttpCookie.newBuilder()
-                                    .setValue(cookie.value)
-                                    .setName(cookie.name)
-                                    .setHost(cookie.domain).build()
-                            })
-                            .build()
-                    )
-                }
+                datastore.toBuilder().addOtherUsers(session).build()
             }
+            return@withContext session
         }
 }

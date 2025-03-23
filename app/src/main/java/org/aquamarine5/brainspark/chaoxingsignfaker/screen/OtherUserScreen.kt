@@ -26,6 +26,8 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -38,10 +40,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -66,7 +70,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingOtherUserHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.QRCodeScanComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.RequireLoginAlertDialog
-import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingLoginSession
+import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingOtherUserSharedEntity
 
 @Serializable
@@ -88,7 +92,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
         var currentImportData by remember { mutableStateOf("") }
         var qrcodeIllegalText by remember { mutableStateOf("") }
         var importSharedEntity by remember { mutableStateOf<ChaoxingOtherUserSharedEntity?>(null) }
-        var otherUserSessions by remember { mutableStateOf(emptyList<ChaoxingLoginSession>()) }
+        var otherUserSessions = remember { mutableStateListOf<ChaoxingOtherUserSession>() }
         var qrCode by remember { mutableStateOf<Bitmap?>(null) }
         val coroutineScope = rememberCoroutineScope()
         LaunchedEffect(Unit) {
@@ -127,7 +131,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                     modifier = Modifier
                         .border(
                             BorderStroke(2.dp, MaterialTheme.colorScheme.primary),
-                            shape = RoundedCornerShape(6.dp)
+                            shape = RoundedCornerShape(9.dp)
                         )
                         .size(qrcodeSize + 18.dp, qrcodeSize + 18.dp),
                     contentAlignment = Alignment.Center
@@ -194,6 +198,95 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                         Text("添加其他用户", fontSize = 16.sp)
                     }
                 }
+                LaunchedEffect(Unit) {
+                    context.chaoxingDataStore.data.first().let {
+                        otherUserSessions = it.otherUsersList.toMutableStateList()
+                    }
+                }
+                Spacer(modifier = Modifier.height(20.dp))
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp)
+                        .border(
+                            BorderStroke(2.dp, MaterialTheme.colorScheme.primary),
+                            shape = RoundedCornerShape(8.dp)
+                        ),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer
+                        )
+                    ) {
+                        Text(
+                            "已添加的用户",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier
+                                .padding(8.dp)
+                                .fillMaxWidth(),
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                    if (otherUserSessions.isEmpty()) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            "暂无其他用户",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+                    } else
+                        LazyColumn(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(8.dp)
+                        ) {
+                            items(otherUserSessions, key = { it.phoneNumber }) { user ->
+                                Card(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(8.dp),
+                                    shape = RoundedCornerShape(8.dp),
+                                    elevation = CardDefaults.cardElevation(4.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(16.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Text(
+                                            text = "${user.name} (${user.phoneNumber})",
+                                            fontSize = 14.sp,
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                        Button(
+                                            onClick = {
+                                                coroutineScope.launch {
+                                                    context.chaoxingDataStore.updateData { datastore ->
+                                                        datastore.toBuilder()
+                                                            .apply { otherUsersList.removeIf { it.phoneNumber == user.phoneNumber } }
+                                                            .build()
+                                                    }
+                                                }
+                                                otherUserSessions.removeIf { it.phoneNumber == user.phoneNumber }
+                                            },
+                                            shape = RoundedCornerShape(50)
+                                        ) {
+                                            Icon(
+                                                painter = painterResource(R.drawable.ic_delete),
+                                                contentDescription = "Delete"
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                }
             }
         }
         if (isQRCodeImportSuccess) {
@@ -243,11 +336,12 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                     currentImportData =
                                         "${sharedEntity.userName}(手机号：${sharedEntity.phoneNumber})"
                                     isQRCodeImportSuccess = true
+                                    otherUserSessions.add(it)
                                 }.onFailure {
                                     isQRCodeIllegal = true
                                     isQRCodeScanPause = true
                                     isQRCodeParsing = false
-                                    qrcodeIllegalText = it.message ?: "二维码解析失败"
+                                    qrcodeIllegalText = it.message ?: "二维码解析失败，登录失败。"
                                     job?.cancel()
                                     job = coroutineScope.launch {
                                         delay(1000)
@@ -260,7 +354,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                         }.onFailure {
                             isQRCodeIllegal = true
                             isQRCodeScanPause = true
-                            qrcodeIllegalText = it.message ?: "二维码解析失败"
+                            qrcodeIllegalText = it.message ?: "二维码解析失败，不是正确码。"
                             job?.cancel()
                             job = coroutineScope.launch {
                                 delay(1000)
@@ -335,16 +429,6 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                         }
                     }
                 }
-            }
-        }
-        LaunchedEffect(Unit) {
-            context.chaoxingDataStore.data.first().let {
-                otherUserSessions = it.otherUsersList
-            }
-        }
-        if (otherUserSessions.isNotEmpty()) {
-            Column {
-
             }
         }
     }

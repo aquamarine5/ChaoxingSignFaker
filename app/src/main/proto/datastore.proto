@@ -6,7 +6,7 @@ option java_multiple_files = true;
 message ChaoxingSignFakerDataStore{
   repeated ChaoxingLocation locations = 1;
   ChaoxingLoginSession loginSession = 2;
-  repeated ChaoxingLoginSession otherUsers=4;
+  repeated ChaoxingOtherUserSession otherUsers=4;
   bool agreeTerms = 3;
 }
 
@@ -20,6 +20,13 @@ message ChaoxingLoginSession{
   repeated HttpCookie cookies = 1;
   string phoneNumber=2;
   string password=3;
+}
+
+message ChaoxingOtherUserSession{
+  repeated HttpCookie cookies = 1;
+  string phoneNumber=2;
+  string password=3;
+  string name=4;
 }
 
 message HttpCookie{

@@ -149,7 +149,7 @@ fun LoginPage(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Icon(
-                            painter = painterResource(id = R.drawable.ic_user_round_x),
+                            painter = painterResource(id = R.drawable.ic_octagon_alert),
                             contentDescription = null,
                             tint = Color.Red
                         )

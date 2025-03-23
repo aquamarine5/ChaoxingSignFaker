@@ -196,7 +196,7 @@ class ChaoxingHttpClient private constructor(
                     .post(FormBody.Builder().apply {
                         addEncoded("fid", "-1")
                         addEncoded("uname", uname.replace("+", "%2B"))
-                        addEncoded("password", encryptedPassword.replace("+", "%2B"))
+                        addEncoded("password", encryptedPassword.replace("+", "%2B").replace(" ","%2B"))
                         addEncoded("refer", "https%3A%2F%2Fi.chaoxing.com")
                         addEncoded("t", "true")
                         addEncoded("forbidotherlogin", "0")
@@ -276,7 +276,7 @@ class ChaoxingHttpClient private constructor(
                     .post(FormBody.Builder().apply {
                         addEncoded("fid", "-1")
                         addEncoded("uname", uname.replace("+", "%2B"))
-                        addEncoded("password", encryptedPassword.replace("+", "%2B"))
+                        addEncoded("password", encryptedPassword.replace("+", "%2B").replace("%20","%2B").replace(" ","%2B"))
                         addEncoded("refer", "https%3A%2F%2Fi.chaoxing.com")
                         addEncoded("t", "true")
                         addEncoded("forbidotherlogin", "0")
