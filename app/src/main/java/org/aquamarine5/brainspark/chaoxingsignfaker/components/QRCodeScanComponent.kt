@@ -4,7 +4,7 @@
  * Repository: https://github.com/aquamarine5/ChaoxingSignFaker
  */
 
-package org.aquamarine5.brainspark.chaoxingsignfaker.screen
+package org.aquamarine5.brainspark.chaoxingsignfaker.components
 
 import android.graphics.Canvas
 import android.graphics.Color
@@ -21,15 +21,21 @@ import androidx.camera.mlkit.vision.MlKitAnalyzer
 import androidx.camera.view.LifecycleCameraController
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -40,27 +46,16 @@ import com.google.accompanist.permissions.shouldShowRationale
 import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.barcode.common.Barcode
-import kotlinx.serialization.Serializable
-
-@Serializable
-data class QRCodeScanDestination(
-    val targetDestination:Int
-)
-
-enum class QRCodeScanTargetDestination(i: Int) {
-    OTHER_USER_SCREEN(0),
-    QRCODE_SIGN_SCREEN(1);
-    fun navigate(result:String,naviToScanTarget:(Any)->Unit){
-        when(this){
-            OTHER_USER_SCREEN->naviToScanTarget(OtherUserDestination(result))
-            QRCODE_SIGN_SCREEN->naviToScanTarget(QRCodeSignDestination(result))
-        }
-    }
-}
+import org.aquamarine5.brainspark.chaoxingsignfaker.R
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
-fun QRCodeScanScreen() {
+fun QRCodeScanComponent(
+    isPause: Boolean,
+    onClose: () -> Unit,
+    onScanResult: (Barcode) -> Unit,
+    content: @Composable () -> Unit
+) {
     val cameraPermission = rememberPermissionState(android.Manifest.permission.CAMERA)
     if (cameraPermission.status == PermissionStatus.Granted) {
         val application = LocalActivity.current!!
@@ -75,7 +70,7 @@ fun QRCodeScanScreen() {
 
             val previewView = remember { PreviewView(context) }
             val preview = Preview.Builder().build()
-            LifecycleCameraController(context).apply {
+            val controller = LifecycleCameraController(context).apply {
                 this.bindToLifecycle(lifecycleOwner)
                 previewView.controller = this
                 setEnabledUseCases(LifecycleCameraController.IMAGE_ANALYSIS)
@@ -94,15 +89,33 @@ fun QRCodeScanScreen() {
                                 val barcode = barcodeResult[0]
                                 previewView.overlay.clear()
                                 previewView.overlay.add(QRCodeDrawable(barcode))
+                                if (!isPause)
+                                    onScanResult(barcode)
                             }
                         }
                     })
             }
-            AndroidView(
-                factory = { previewView },
-                modifier = Modifier.fillMaxSize()
-            )
-
+            Box(modifier = Modifier.fillMaxSize()) {
+                AndroidView(
+                    factory = { previewView },
+                    modifier = Modifier.fillMaxSize()
+                )
+                Button(
+                    onClick = onClose,
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(16.dp)
+                ) {
+                    Icon(painterResource(R.drawable.ic_arrow_left), "返回")
+                }
+                content()
+            }
+            DisposableEffect(Unit) {
+                onDispose {
+                    barcodeScanner.close()
+                    controller.unbind()
+                }
+            }
         }
     } else {
         Column(

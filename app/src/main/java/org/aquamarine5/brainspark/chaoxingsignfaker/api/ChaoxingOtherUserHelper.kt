@@ -21,9 +21,17 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingSignFakerDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingOtherUserSharedEntity
 
-object ChaoxingOtherUserQRCodeHelper {
+object ChaoxingOtherUserHelper {
 
-    fun getQRCodeSize(context: Context): Int {
+    private const val ALREADY_EXCEPTION_IS_SELF="@self"
+
+    class NotAvailableQRCodeException(message: String) : Exception(message)
+
+    class AlreadyExistedOtherUserException(message: String) : Exception(message){
+        fun isSelf() = message == ALREADY_EXCEPTION_IS_SELF
+    }
+
+    private fun getQRCodeSize(context: Context): Int {
         val displayMetrics = context.resources.displayMetrics
         val width = displayMetrics.widthPixels
         val height = displayMetrics.heightPixels
@@ -66,5 +74,20 @@ object ChaoxingOtherUserQRCodeHelper {
                     }
                 }
             }
+    }
+
+    suspend fun saveOtherUser(context: Context, sharedEntity: ChaoxingOtherUserSharedEntity) {
+        context.chaoxingDataStore.data.first().apply {
+            if(loginSession.phoneNumber == sharedEntity.phoneNumber)
+                throw AlreadyExistedOtherUserException(ALREADY_EXCEPTION_IS_SELF)
+            if(otherUsersList.any { it.phoneNumber == sharedEntity.phoneNumber })
+                throw AlreadyExistedOtherUserException(sharedEntity.phoneNumber)
+        }
+
+        context.chaoxingDataStore.updateData { datastore->
+            TODO()
+        }
+
+
     }
 }

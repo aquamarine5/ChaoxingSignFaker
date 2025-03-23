@@ -20,7 +20,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.GetLocationDestination
-import org.aquamarine5.brainspark.chaoxingsignfaker.screen.QRCodeScanDestination
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.QRCodeScanDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSigner.Companion.URL_SIGN_INFO
 
 object ChaoxingSignHelper {

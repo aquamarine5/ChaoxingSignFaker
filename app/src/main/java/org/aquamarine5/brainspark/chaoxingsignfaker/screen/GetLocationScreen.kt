@@ -10,7 +10,6 @@ import android.graphics.Color
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -127,20 +126,22 @@ fun GetLocationPage(
         var isShowDialog by remember { mutableStateOf(false) }
         Scaffold(
             floatingActionButton = {
-                Column {
-                    FloatingActionButton(onClick = {
-                        isShowDialog = true
-                    }) {
-                        Icon(painterResource(R.drawable.ic_edit), contentDescription = "定位")
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    FloatingActionButton(onClick = {
-                        locationClient.start()
-                    }) {
-                        Icon(
-                            painterResource(R.drawable.ic_locate_fixed),
-                            contentDescription = "定位"
-                        )
+                if (isAlreadySigned == false) {
+                    Column {
+                        FloatingActionButton(onClick = {
+                            isShowDialog = true
+                        }) {
+                            Icon(painterResource(R.drawable.ic_edit), contentDescription = "定位")
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        FloatingActionButton(onClick = {
+                            locationClient.start()
+                        }) {
+                            Icon(
+                                painterResource(R.drawable.ic_locate_fixed),
+                                contentDescription = "定位"
+                            )
+                        }
                     }
                 }
             }
@@ -157,21 +158,26 @@ fun GetLocationPage(
                     )
                 )
                 if (locationPermissionsState.allPermissionsGranted) {
-                    when(isAlreadySigned){
-                        true->{
-                            Box(modifier = Modifier.fillMaxSize()){
-                                Column(modifier = Modifier.align(Alignment.Center)){
-                                    Icon(painterResource(R.drawable.ic_clipboard_check), contentDescription = "已签到")
-                                    Text("当前签到活动已经签到，不能重复签到")
-                                    Button(onClick = {
-                                        navToCourseDetailDestination()
-                                    }) {
-                                        Text("返回")
-                                    }
+                    when (isAlreadySigned) {
+                        true -> {
+                            Column(
+                                modifier = Modifier.fillMaxSize(),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Icon(
+                                    painterResource(R.drawable.ic_clipboard_check),
+                                    contentDescription = "已签到"
+                                )
+                                Text("当前签到活动已经签到，不能重复签到。")
+                                Button(onClick = {
+                                    navToCourseDetailDestination()
+                                }) {
+                                    Text("返回")
                                 }
                             }
                         }
-                        false->{
+
+                        false -> {
                             SDKInitializer.initialize(context.applicationContext)
                             var isSignSuccess by remember { mutableStateOf(false) }
                             var marker by remember { mutableStateOf<Marker?>(null) }
@@ -362,7 +368,8 @@ fun GetLocationPage(
                                 if (signInfo.isAvailable()) {
                                     locationRange = signInfo.locationRange
 
-                                    locationPosition = LatLng(signInfo.latitude!!, signInfo.longitude!!)
+                                    locationPosition =
+                                        LatLng(signInfo.latitude!!, signInfo.longitude!!)
                                     mapView.map.setMapStatus(
                                         MapStatusUpdateFactory.newLatLng(
                                             locationPosition
@@ -400,7 +407,11 @@ fun GetLocationPage(
                                 }
                                 Button(onClick = {
                                     if (marker == null) {
-                                        Toast.makeText(context, "请先点击地图选择位置", Toast.LENGTH_SHORT)
+                                        Toast.makeText(
+                                            context,
+                                            "请先点击地图选择位置",
+                                            Toast.LENGTH_SHORT
+                                        )
                                             .show()
                                         return@Button
                                     }
@@ -410,7 +421,11 @@ fun GetLocationPage(
                                                 CoordUtil.ll2point(locationPosition)
                                             ) > locationRange!!
                                         ) {
-                                            Toast.makeText(context, "位置超出范围", Toast.LENGTH_SHORT)
+                                            Toast.makeText(
+                                                context,
+                                                "位置超出范围",
+                                                Toast.LENGTH_SHORT
+                                            )
                                                 .show()
                                             return@Button
                                         }
@@ -435,13 +450,18 @@ fun GetLocationPage(
                                                 isSignSuccess = true
                                             }
                                         } catch (e: ChaoxingLocationSigner.ChaoxingLocationSignException) {
-                                            Toast.makeText(context, e.message, Toast.LENGTH_SHORT).show()
+                                            Toast.makeText(context, e.message, Toast.LENGTH_SHORT)
+                                                .show()
                                             return@launch
                                         }
                                     }.invokeOnCompletion {
                                         if (isSignSuccess) {
-                                            Toast.makeText(context, "签到成功", Toast.LENGTH_SHORT).show()
-                                            UMengHelper.onSignLocationEvent(context, postLocationEntity)
+                                            Toast.makeText(context, "签到成功", Toast.LENGTH_SHORT)
+                                                .show()
+                                            UMengHelper.onSignLocationEvent(
+                                                context,
+                                                postLocationEntity
+                                            )
                                             navToCourseDetailDestination()
                                         }
                                     }
@@ -454,7 +474,8 @@ fun GetLocationPage(
                                     mapView
                                 })
                         }
-                        null->{
+
+                        null -> {
                             CenterCircularProgressIndicator()
                         }
                     }

@@ -33,8 +33,8 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.screen.LoginDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.LoginPage
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.OtherUserDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.OtherUserScreen
-import org.aquamarine5.brainspark.chaoxingsignfaker.screen.QRCodeScanDestination
-import org.aquamarine5.brainspark.chaoxingsignfaker.screen.QRCodeScanScreen
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.QRCodeScanDestination
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.QRCodeScanScreen
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.WelcomeDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.WelcomeScreen
 import org.aquamarine5.brainspark.chaoxingsignfaker.ui.theme.ChaoxingSignFakerTheme
@@ -104,7 +104,7 @@ class MainActivity : ComponentActivity() {
                     }
                     composable<CourseListDestination> {
                         CourseListScreen(navToOtherUserDestination = {
-                            navController.navigate(OtherUserDestination)
+                            navController.navigate(OtherUserDestination())
                         }) {
                             navController.navigate(it, navOptions {
                                 popUpTo<CourseListDestination> { saveState = true }
