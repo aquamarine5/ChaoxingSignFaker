@@ -6,7 +6,21 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.screen
 
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Scaffold
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import kotlinx.serialization.Serializable
 
 @Serializable
 object QRCodeSignDestination
+
+@Composable
+fun QRCodeSignScreen() {
+    Scaffold { innerPadding ->
+        Column(modifier = Modifier.padding(innerPadding)) {
+
+        }
+    }
+}

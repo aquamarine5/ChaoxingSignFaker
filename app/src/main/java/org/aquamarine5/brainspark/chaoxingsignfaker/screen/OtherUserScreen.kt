@@ -26,9 +26,9 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -40,12 +40,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -81,7 +81,6 @@ data class OtherUserDestination(
 @Composable
 fun OtherUserScreen(naviBack: () -> Unit) {
     Scaffold { innerPadding ->
-
         val context = LocalContext.current
         var isQRCodeScanPause by remember { mutableStateOf(false) }
         var isQRCodeScanning by remember { mutableStateOf(false) }
@@ -92,7 +91,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
         var currentImportData by remember { mutableStateOf("") }
         var qrcodeIllegalText by remember { mutableStateOf("") }
         var importSharedEntity by remember { mutableStateOf<ChaoxingOtherUserSharedEntity?>(null) }
-        var otherUserSessions = remember { mutableStateListOf<ChaoxingOtherUserSession>() }
+        val otherUserSessions = remember { mutableStateListOf<ChaoxingOtherUserSession>() }
         var qrCode by remember { mutableStateOf<Bitmap?>(null) }
         val coroutineScope = rememberCoroutineScope()
         LaunchedEffect(Unit) {
@@ -122,6 +121,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
             Column(
                 modifier = Modifier
                     .padding(8.dp)
+                    .verticalScroll(rememberScrollState())
                     .fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
@@ -170,7 +170,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            "随意分享此二维码给不熟悉的人会增加你的学习通账号风险，他人可以通过二维码控制你的账号，但并不会知晓你的明文密码。",
+                            "随意分享此二维码给他人会增加你的学习通账号风险，他人可以通过二维码登录从而控制你的账号，但这个分享行为并不会暴露你的明文密码。",
                             color = Color.White,
                             fontSize = 13.sp,
                             lineHeight = 18.sp,
@@ -200,7 +200,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                 }
                 LaunchedEffect(Unit) {
                     context.chaoxingDataStore.data.first().let {
-                        otherUserSessions = it.otherUsersList.toMutableStateList()
+                        otherUserSessions.addAll(it.otherUsersList)
                     }
                 }
                 Spacer(modifier = Modifier.height(20.dp))
@@ -236,15 +236,10 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Medium
                         )
-
                         Spacer(modifier = Modifier.height(8.dp))
                     } else
-                        LazyColumn(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(8.dp)
-                        ) {
-                            items(otherUserSessions, key = { it.phoneNumber }) { user ->
+                        otherUserSessions.forEachIndexed { index, user ->
+                            key(user.phoneNumber) {
                                 Card(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -255,7 +250,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                     Row(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .padding(16.dp),
+                                            .padding(17.dp, 8.dp),
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.SpaceBetween
                                     ) {
@@ -269,7 +264,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                                 coroutineScope.launch {
                                                     context.chaoxingDataStore.updateData { datastore ->
                                                         datastore.toBuilder()
-                                                            .apply { otherUsersList.removeIf { it.phoneNumber == user.phoneNumber } }
+                                                            .apply { removeOtherUsers(index) }
                                                             .build()
                                                     }
                                                 }

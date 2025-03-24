@@ -101,6 +101,7 @@ fun GetLocationPage(
     destination: GetLocationDestination,
     navToCourseDetailDestination: () -> Unit
 ) {
+    val coroutineScope = rememberCoroutineScope()
     LocalContext.current.let { context ->
         ChaoxingHttpClient.CheckInstance()
         Log.d("GetLocationPage", "GetLocationPage: $destination")
@@ -114,14 +115,13 @@ fun GetLocationPage(
                     setIsNeedAddress(true)
                     setNeedNewVersionRgc(true)
                 }
-            }.apply {
-                start()
             })
         }
         var isAlreadySigned by remember { mutableStateOf<Boolean?>(null) }
         val signer = ChaoxingLocationSigner(ChaoxingHttpClient.instance!!, destination)
         LaunchedEffect(Unit) {
             isAlreadySigned = signer.preSign()
+            locationClient.start()
         }
         var isShowDialog by remember { mutableStateOf(false) }
         Scaffold(
@@ -186,8 +186,6 @@ fun GetLocationPage(
                             var locationRange by remember { mutableStateOf<Int?>(null) }
                             var locationPosition by remember { mutableStateOf<LatLng?>(null) }
                             var clickedName by remember { mutableStateOf("未指定") }
-
-                            val coroutineScope = rememberCoroutineScope()
                             if (isShowDialog) {
                                 AlertDialog(onDismissRequest = {
                                     isShowDialog = false
