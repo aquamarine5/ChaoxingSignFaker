@@ -125,7 +125,7 @@ object ChaoxingOtherUserHelper {
             )
 
             val session = ChaoxingOtherUserSession.newBuilder()
-                .setPassword(sharedEntity.encryptedPassword.replace(" ","+"))
+                .setPassword(sharedEntity.encryptedPassword.replace(" ", "+"))
                 .setName(sharedEntity.userName)
                 .setPhoneNumber(sharedEntity.phoneNumber)
                 .addAllCookies(tempOkHttpClient.cookieJar.loadForRequest(

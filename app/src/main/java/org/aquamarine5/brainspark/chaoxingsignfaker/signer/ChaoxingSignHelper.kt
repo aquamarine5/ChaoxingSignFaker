@@ -11,31 +11,13 @@ import android.widget.Toast
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.res.painterResource
-import com.alibaba.fastjson2.JSONObject
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import okhttp3.HttpUrl.Companion.toHttpUrl
-import okhttp3.Request
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
-import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.GetLocationDestination
+import org.aquamarine5.brainspark.chaoxingsignfaker.screen.PhotoSignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.QRCodeSignDestination
-import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSigner.Companion.URL_SIGN_INFO
 
 object ChaoxingSignHelper {
-    suspend fun getSignInfo(activeId: Long): JSONObject = withContext(Dispatchers.IO) {
-        ChaoxingHttpClient.instance!!.newCall(
-            Request.Builder().get().url(
-                URL_SIGN_INFO.toHttpUrl().newBuilder()
-                    .addQueryParameter("activeId", activeId.toString())
-                    .build()
-            ).build()
-        ).execute().use {
-            return@withContext JSONObject.parseObject(it.body?.string()).getJSONObject("data")
-        }
-    }
-
     @Composable
     fun getSignIcon(activity: ChaoxingSignActivityEntity): Painter = when (activity.otherId) {
         "0" -> painterResource(R.drawable.ic_square_mouse_pointer)
@@ -50,7 +32,8 @@ object ChaoxingSignHelper {
     fun getSignDestination(context: Context, activityEntity: ChaoxingSignActivityEntity): Any? =
         when (activityEntity.otherId) {
             "4" -> GetLocationDestination.parseFromSignActivityEntity(activityEntity)
-            "2" -> QRCodeSignDestination
+            "2" -> QRCodeSignDestination.parseFromSignActivityEntity(activityEntity)
+            "0" -> PhotoSignDestination.parseFromSignActivityEntity(activityEntity)
             else -> {
                 Toast.makeText(context, "暂不支持该活动类型", Toast.LENGTH_SHORT).show()
                 null

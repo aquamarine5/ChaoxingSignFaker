@@ -6,9 +6,7 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.entity
 
-import kotlinx.serialization.Serializable
-
-@Serializable
-data class QRCodeScanResultEntity(
-    val result: String
+data class ChaoxingQRCodeDetailEntity(
+    val isPositionRequired: Boolean,
+    val isQRCodeRefreshed: Boolean
 )

@@ -30,7 +30,11 @@ import coil3.compose.AsyncImage
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCourseEntity
 
 @Composable
-fun CourseInfoColumnCard(course: ChaoxingCourseEntity,imageLoader: ImageLoader, onClick: () -> Unit) {
+fun CourseInfoColumnCard(
+    course: ChaoxingCourseEntity,
+    imageLoader: ImageLoader,
+    onClick: () -> Unit
+) {
     Button(
         onClick = onClick,
         shape = RoundedCornerShape(18.dp),
@@ -42,7 +46,7 @@ fun CourseInfoColumnCard(course: ChaoxingCourseEntity,imageLoader: ImageLoader, 
             modifier = Modifier.fillMaxWidth()
         ) {
             AsyncImage(
-                course.imageUrl.replace("http://","https://"),
+                course.imageUrl.replace("http://", "https://"),
                 imageLoader = imageLoader,
                 contentScale = ContentScale.FillHeight,
                 contentDescription = null,
@@ -58,10 +62,14 @@ fun CourseInfoColumnCard(course: ChaoxingCourseEntity,imageLoader: ImageLoader, 
             )
             Spacer(modifier = Modifier.width(14.dp))
             Column {
-                Text(course.courseName.replace("\n",""), fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                Text(course.teacherName.replace("\n",""))
-                if(!course.schools.isNullOrBlank()){
-                    Text(course.schools.replace("\n",""),  fontSize = 12.sp)
+                Text(
+                    course.courseName.replace("\n", ""),
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(course.teacherName.replace("\n", ""))
+                if (!course.schools.isNullOrBlank()) {
+                    Text(course.schools.replace("\n", ""), fontSize = 12.sp)
                 }
             }
         }

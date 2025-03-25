@@ -73,7 +73,6 @@ fun CourseListScreen(
     var activitiesData: List<ChaoxingCourseEntity> by rememberSaveable(
         saver = ChaoxingCourseEntity.Saver
     ) { mutableStateOf(emptyList()) }
-    ChaoxingHttpClient.CheckInstance()
     LaunchedEffect(Unit) {
         if (activitiesData.isEmpty()) {
             ChaoxingHttpClient.instance?.let {
@@ -82,18 +81,18 @@ fun CourseListScreen(
         }
     }
     val coroutineScope = rememberCoroutineScope()
-    val context=LocalContext.current
-        val imageLoader = ImageLoader.Builder(context).components {
-            add(
-                OkHttpNetworkFetcherFactory(
-                    callFactory = { ChaoxingHttpClient.instance!!.okHttpClient })
-            )
-        }.diskCache {
-            DiskCache.Builder()
-                .directory(context.cacheDir.resolve("image_cache"))
+    val context = LocalContext.current
+    val imageLoader = ImageLoader.Builder(context).components {
+        add(
+            OkHttpNetworkFetcherFactory(
+                callFactory = { ChaoxingHttpClient.instance!!.okHttpClient })
+        )
+    }.diskCache {
+        DiskCache.Builder()
+            .directory(context.cacheDir.resolve("image_cache"))
             .maxSizePercent(0.02)
             .build()
-        }.crossfade(true).build()
+    }.crossfade(true).build()
 
     val stackbricksState by rememberStackbricksStatus()
     Scaffold { innerPadding ->
@@ -146,22 +145,29 @@ fun CourseListScreen(
                         item {
                             SponsorCard()
                         }
-                        item{
+                        item {
                             Button(
                                 onClick = {
                                     navToOtherUserDestination()
                                 },
                                 shape = RoundedCornerShape(18.dp),
                                 modifier = Modifier.fillMaxWidth(),
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xff1177b0))
-                            ){
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color(
+                                        0xff1177b0
+                                    )
+                                )
+                            ) {
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .padding(3.dp),
                                     verticalAlignment = Alignment.CenterVertically
-                                ){
-                                    Icon(painterResource(R.drawable.ic_users_round), contentDescription = "多用户")
+                                ) {
+                                    Icon(
+                                        painterResource(R.drawable.ic_users_round),
+                                        contentDescription = "多用户"
+                                    )
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text("多用户（Beta）")
                                 }

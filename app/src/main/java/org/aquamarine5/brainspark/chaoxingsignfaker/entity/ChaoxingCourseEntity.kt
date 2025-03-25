@@ -19,8 +19,8 @@ data class ChaoxingCourseEntity(
     val courseId: Int,
     val classId: Int,
     val className: String,
-    val imageUrl:String,
-    val schools:String?
+    val imageUrl: String,
+    val schools: String?
 ) {
     companion object {
         val Saver: Saver<MutableState<List<ChaoxingCourseEntity>>, *> = listSaver(

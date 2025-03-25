@@ -45,10 +45,12 @@ object UMengHelper {
     }
 
     fun onSignLocationEvent(context: Context, postLocationEntity: ChaoxingLocationSignEntity) {
-        onEvent(context, EVENT_TAG_SIGN_LOCATION, mapOf(
-            "latitude" to postLocationEntity.latitude,
-            "longitude" to postLocationEntity.longitude,
-            "address" to postLocationEntity.address
-        ))
+        onEvent(
+            context, EVENT_TAG_SIGN_LOCATION, mapOf(
+                "latitude" to postLocationEntity.latitude,
+                "longitude" to postLocationEntity.longitude,
+                "address" to postLocationEntity.address
+            )
+        )
     }
 }

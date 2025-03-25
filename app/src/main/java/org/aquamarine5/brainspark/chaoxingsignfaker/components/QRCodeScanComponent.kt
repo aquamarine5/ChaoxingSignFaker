@@ -56,7 +56,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.R
 @Composable
 fun QRCodeScanComponent(
     isPause: Boolean,
-    isLoading:Boolean,
+    isLoading: Boolean,
     onClose: () -> Unit,
     onScanResult: suspend (Barcode) -> Unit,
     content: @Composable BoxScope.() -> Unit
@@ -65,7 +65,7 @@ fun QRCodeScanComponent(
     if (cameraPermission.status == PermissionStatus.Granted) {
         val application = LocalActivity.current!!
         val lifecycleOwner = LocalLifecycleOwner.current
-        val coroutineScope= rememberCoroutineScope()
+        val coroutineScope = rememberCoroutineScope()
         val cameraExecutor = ContextCompat.getMainExecutor(application)
         LocalContext.current.let { context ->
             val barcodeScanner = BarcodeScanning.getClient(
@@ -95,7 +95,7 @@ fun QRCodeScanComponent(
                                 val barcode = barcodeResult[0]
                                 previewView.overlay.clear()
                                 previewView.overlay.add(QRCodeDrawable(barcode))
-                                if (!isPause){
+                                if (!isPause) {
                                     coroutineScope.launch {
                                         onScanResult(barcode)
                                     }
@@ -105,7 +105,7 @@ fun QRCodeScanComponent(
                     })
             }
             Box(modifier = Modifier.fillMaxSize()) {
-                if(isLoading){
+                if (isLoading) {
                     CenterCircularProgressIndicator()
                 }
                 AndroidView(
@@ -117,7 +117,7 @@ fun QRCodeScanComponent(
                     modifier = Modifier
                         .align(Alignment.TopStart)
                         .padding(8.dp)
-                        .offset(y=38.dp)
+                        .offset(y = 38.dp)
                 ) {
                     Icon(painterResource(R.drawable.ic_arrow_left), "返回")
                 }

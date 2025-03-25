@@ -25,9 +25,10 @@ object ChaoxingCourseHelper {
                 for (i in 0 until channelList.size) {
                     val course = channelList.getJSONObject(i)
                     val content = course.getJSONObject("content")
-                    if(!content.containsKey("course")) continue
-                    if(!course.containsKey("cataName")) continue
-                    val courseContent = content.getJSONObject("course").getJSONArray("data").getJSONObject(0)
+                    if (!content.containsKey("course")) continue
+                    if (!course.containsKey("cataName")) continue
+                    val courseContent =
+                        content.getJSONObject("course").getJSONArray("data").getJSONObject(0)
                     courseList.add(
                         ChaoxingCourseEntity(
                             courseContent.getString("name"),

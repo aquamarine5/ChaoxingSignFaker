@@ -28,12 +28,13 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.screen.CourseDetailScreen
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.CourseListDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.CourseListScreen
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.GetLocationDestination
-import org.aquamarine5.brainspark.chaoxingsignfaker.screen.GetLocationPage
+import org.aquamarine5.brainspark.chaoxingsignfaker.screen.LocationSignScreen
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.LoginDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.LoginPage
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.OtherUserDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.OtherUserScreen
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.QRCodeSignDestination
+import org.aquamarine5.brainspark.chaoxingsignfaker.screen.QRCodeSignScreen
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.WelcomeDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.WelcomeScreen
 import org.aquamarine5.brainspark.chaoxingsignfaker.ui.theme.ChaoxingSignFakerTheme
@@ -60,8 +61,11 @@ class MainActivity : ComponentActivity() {
                                 UMengHelper.init(applicationContext)
                                 LocationClient.setAgreePrivacy(true)
                                 SDKInitializer.setAgreePrivacy(applicationContext, true)
-
                             }
+                            ChaoxingHttpClient.deviceCode =
+                                if (it.deviceCode == null)
+                                    ChaoxingHttpClient.generateDeviceCode(applicationContext)
+                                else it.deviceCode
                             when {
                                 !it.agreeTerms -> WelcomeDestination
                                 !it.hasLoginSession() -> LoginDestination
@@ -74,11 +78,13 @@ class MainActivity : ComponentActivity() {
                     }
                 ) {
                     composable<QRCodeSignDestination> {
-
+                        QRCodeSignScreen(it.toRoute()) {
+                            navController.navigateUp()
+                        }
                     }
 
                     composable<OtherUserDestination> {
-                        OtherUserScreen{
+                        OtherUserScreen {
                             navController.navigateUp()
                         }
                     }
@@ -102,8 +108,9 @@ class MainActivity : ComponentActivity() {
                     composable<GetLocationDestination>(
                         typeMap = mapOf(
                             typeOf<ChaoxingSignActivityEntity>() to ChaoxingSignActivityEntity.SignActivityNavType
-                        )) {
-                        GetLocationPage(it.toRoute()) {
+                        )
+                    ) {
+                        LocationSignScreen(it.toRoute()) {
                             navController.navigateUp()
                         }
                     }
@@ -119,7 +126,7 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
-                    composable<CourseDetailDestination>{
+                    composable<CourseDetailDestination> {
                         CourseDetailScreen(it.toRoute(), navToSignerDestination = { destination ->
                             navController.navigate(destination)
                         }) {

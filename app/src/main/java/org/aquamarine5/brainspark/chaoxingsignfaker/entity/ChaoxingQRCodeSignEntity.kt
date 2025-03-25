@@ -8,5 +8,5 @@ package org.aquamarine5.brainspark.chaoxingsignfaker.entity
 
 data class ChaoxingQRCodeSignEntity(
     val locationSignEntity: ChaoxingLocationSignEntity?,
-    val enc:String
+    val enc: String
 )

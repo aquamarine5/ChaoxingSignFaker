@@ -55,7 +55,6 @@ fun CourseDetailScreen(
     navToListDestination: () -> Unit,
 ) {
     var activitiesData by remember { mutableStateOf<ChaoxingCourseActivitiesEntity?>(null) }
-    ChaoxingHttpClient.CheckInstance()
     LaunchedEffect(Unit) {
         if (activitiesData == null) {
             ChaoxingHttpClient.instance?.let {

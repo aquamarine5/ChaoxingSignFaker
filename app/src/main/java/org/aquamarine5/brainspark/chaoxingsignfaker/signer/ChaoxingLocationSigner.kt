@@ -33,19 +33,19 @@ class ChaoxingLocationSigner(
             "https://mobilelearn.chaoxing.com/pptSign/stuSignajax?&clientip=&appType=15&ifTiJiao=1&validate=&vpProbability=-1&vpStrategy="
 
         const val CLASSTAG = "ChaoxingLocationSigner"
-
-        suspend fun getLocationSignInfo(activeId: Long): ChaoxingLocationDetailEntity {
-            ChaoxingSignHelper.getSignInfo(activeId).let { jsonResult ->
-                return ChaoxingLocationDetailEntity(
-                    jsonResult.getDouble("locationLatitude"),
-                    jsonResult.getDouble("locationLongitude"),
-                    jsonResult.getInteger("locationRange")
-                )
-            }
-        }
     }
 
     class ChaoxingLocationSignException(message: String) : Exception(message)
+
+    suspend fun getLocationSignInfo(): ChaoxingLocationDetailEntity {
+        getSignInfo().let { jsonResult ->
+            return ChaoxingLocationDetailEntity(
+                jsonResult.getDouble("locationLatitude"),
+                jsonResult.getDouble("locationLongitude"),
+                jsonResult.getInteger("locationRange")
+            )
+        }
+    }
 
     suspend fun sign(signLocation: ChaoxingLocationSignEntity) = withContext(Dispatchers.IO) {
         client.newCall(
@@ -58,7 +58,7 @@ class ChaoxingLocationSigner(
                     .addQueryParameter("uid", client.userEntity.uid.toString())
                     .addQueryParameter("name", client.userEntity.name)
                     .addQueryParameter("fid", client.userEntity.fid.toString())
-                    .addQueryParameter("deviceCode", "")
+                    .addQueryParameter("deviceCode", ChaoxingHttpClient.deviceCode!!)
                     .build()
             ).get().build()
         ).execute().use {

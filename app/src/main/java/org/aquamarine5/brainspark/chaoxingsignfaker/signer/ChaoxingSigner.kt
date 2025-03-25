@@ -17,10 +17,10 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 
 abstract class ChaoxingSigner(
     val client: ChaoxingHttpClient,
-    val activeId:Long,
-    val classId:Int,
-    val courseId:Int,
-    val extContent:String
+    val activeId: Long,
+    val classId: Int,
+    val courseId: Int,
+    val extContent: String
 ) {
 
     companion object {
@@ -32,11 +32,13 @@ abstract class ChaoxingSigner(
             "https://mobilelearn.chaoxing.com/pptSign/analysis?vs=1&DB_STRATEGY=RANDOM"
         const val URL_AFTER_ANALYSIS2 =
             "https://mobilelearn.chaoxing.com/pptSign/analysis2?DB_STRATEGY=RANDOM"
+
+        const val URL_SIGN =
+            "https://mobilelearn.chaoxing.com/pptSign/stuSignajax?&clientip=&appType=15&ifTiJiao=1&validate=&vpProbability=-1&vpStrategy="
     }
 
+    abstract suspend fun checkAlreadySign(response: Response): Boolean
 
-    //abstract suspend fun sign()
-    abstract suspend fun checkAlreadySign(response: Response):Boolean
     open suspend fun getSignInfo(): JSONObject = withContext(Dispatchers.IO) {
         client.newCall(
             Request.Builder().get().url(
@@ -49,10 +51,10 @@ abstract class ChaoxingSigner(
         }
     }
 
-    open suspend fun preSign():Boolean = withContext(Dispatchers.IO) {
+    open suspend fun preSign(): Boolean = withContext(Dispatchers.IO) {
         client.newCall(
             Request.Builder().post(
-                FormBody.Builder().addEncoded("ext",extContent).build()
+                FormBody.Builder().addEncoded("ext", extContent).build()
             ).url(
                 URL_PERSIGN.toHttpUrl().newBuilder()
                     .addQueryParameter("courseId", courseId.toString())
@@ -71,7 +73,7 @@ abstract class ChaoxingSigner(
         client.newCall(
             Request.Builder().get().url(
                 URL_ANALYSIS.toHttpUrl().newBuilder()
-                    .addQueryParameter("aid",activeId.toString()).build()
+                    .addQueryParameter("aid", activeId.toString()).build()
             ).build()
         ).execute().use {
             postAfterAnalysis(

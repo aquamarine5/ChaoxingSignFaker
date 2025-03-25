@@ -36,7 +36,7 @@ fun CourseSignActivityColumnCard(
         .fillMaxWidth()
         .clickable {
             if (isAvailable) {
-                ChaoxingSignHelper.getSignDestination(context,activity)?.let {
+                ChaoxingSignHelper.getSignDestination(context, activity)?.let {
                     onSignAction(it)
                 }
             } else {

@@ -319,11 +319,12 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                 }, onScanResult = {
                     withContext(Dispatchers.IO) {
                         runCatching {
+                            isQRCodeParsing = true
+                            isQRCodeScanPause = true
                             return@runCatching ChaoxingOtherUserSharedEntity.parseFromQRCode(it)
                         }.onSuccess { sharedEntity ->
                             coroutineScope.launch {
                                 runCatching {
-                                    isQRCodeParsing = true
                                     ChaoxingOtherUserHelper.saveOtherUser(context, sharedEntity)
                                 }.onSuccess {
                                     isQRCodeScanning = false
@@ -334,14 +335,12 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                     otherUserSessions.add(it)
                                 }.onFailure {
                                     isQRCodeIllegal = true
-                                    isQRCodeScanPause = true
                                     isQRCodeParsing = false
                                     qrcodeIllegalText = it.message ?: "二维码解析失败，登录失败。"
                                     job?.cancel()
-                                    job = coroutineScope.launch {
-                                        delay(1000)
+                                    job = coroutineScope.launch{
+                                        delay(3000)
                                         isQRCodeScanPause = false
-                                        delay(2000)
                                         isQRCodeIllegal = false
                                     }
                                 }
@@ -352,9 +351,8 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                             qrcodeIllegalText = it.message ?: "二维码解析失败，不是正确码。"
                             job?.cancel()
                             job = coroutineScope.launch {
-                                delay(1000)
+                                delay(3000)
                                 isQRCodeScanPause = false
-                                delay(2000)
                                 isQRCodeIllegal = false
                             }
                         }
