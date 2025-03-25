@@ -6,6 +6,7 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.screen
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.BorderStroke
@@ -21,6 +22,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -42,8 +44,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -62,7 +69,9 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.components.QRCodeScanCompone
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationSignEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignStatus
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingQRCodeSigner
+import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSigner
 
 @Serializable
 data class QRCodeSignDestination(
@@ -86,6 +95,7 @@ data class QRCodeSignDestination(
 @Composable
 fun QRCodeSignScreen(destination: QRCodeSignDestination, navBack: () -> Unit) {
     var isAlreadySigned by remember { mutableStateOf<Boolean?>(null) }
+    var isCurrentAlreadySigned by remember { mutableStateOf<Boolean?>(null) }
     val coroutineScope = rememberCoroutineScope()
     val signer = ChaoxingQRCodeSigner(ChaoxingHttpClient.instance!!, destination)
     var isMapRequired by remember { mutableStateOf(false) }
@@ -95,7 +105,10 @@ fun QRCodeSignScreen(destination: QRCodeSignDestination, navBack: () -> Unit) {
     }
     when (isAlreadySigned) {
         true -> {
-            AlreadySignedNotice { navBack() }
+            AlreadySignedNotice(onSignForOtherUser = {
+                isAlreadySigned = false
+                isCurrentAlreadySigned = true
+            }) { navBack() }
         }
 
         false -> {
@@ -104,15 +117,19 @@ fun QRCodeSignScreen(destination: QRCodeSignDestination, navBack: () -> Unit) {
             var isQRCodeParsing by remember { mutableStateOf(false) }
             var isQRCodeIllegal by remember { mutableStateOf(false) }
             var isMapGetting by remember { mutableStateOf(false) }
+            var isSignExecuted by remember { mutableStateOf(false) }
             var qrcodeIllegalText by remember { mutableStateOf("二维码不合法") }
             val signUserList = remember { mutableStateListOf<ChaoxingOtherUserSession>() }
             var locationData by remember { mutableStateOf<ChaoxingLocationSignEntity?>(null) }
             var job by remember { mutableStateOf<Job?>(null) }
+            val userSelections = remember { mutableStateListOf(true) }
+            val signStatus = remember { mutableStateListOf(ChaoxingSignStatus()) }
             val context = LocalContext.current
             Scaffold { innerPadding ->
                 Box(
                     modifier = Modifier
                         .padding(innerPadding)
+                        .padding(8.dp)
                         .zIndex(0f)
                 ) {
                     Column {
@@ -138,21 +155,29 @@ fun QRCodeSignScreen(destination: QRCodeSignDestination, navBack: () -> Unit) {
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    "通常情况下，随地大小签 的二维码签到功能是用于给其他用户签到的，而不是用于仅给自己签到。",
-                                    color = Color.White
+                                    buildAnnotatedString {
+                                        append("通常情况下，")
+                                        withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
+                                            append("随地大小签")
+                                        }
+                                        append(" 的二维码签到功能是用于给其他用户签到的，而不是用于仅给自己签到。")
+                                    },
+                                    color = Color.White,
+                                    fontSize = 13.sp,
+                                    lineHeight = 18.sp,
+                                    fontWeight = FontWeight.W500
                                 )
                             }
                         }
                         LaunchedEffect(Unit) {
                             signUserList.addAll(context.chaoxingDataStore.data.first().otherUsersList)
-                        }
-                        val userSelections = remember {
-                            mutableStateListOf(true, *Array(signUserList.size) { false })
+                            userSelections.addAll(List(signUserList.size) { false })
+                            signStatus.addAll(Array(signUserList.size + 1) { ChaoxingSignStatus() })
                         }
 
                         Column(
                             modifier = Modifier
-                                .fillMaxSize()
+                                .fillMaxWidth()
                                 .padding(16.dp)
                         ) {
                             Row(
@@ -165,10 +190,16 @@ fun QRCodeSignScreen(destination: QRCodeSignDestination, navBack: () -> Unit) {
                                     checked = userSelections[0],
                                     onCheckedChange = { isChecked ->
                                         userSelections[0] = isChecked
-                                    }
+                                    }, enabled = isCurrentAlreadySigned == true
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text("给自己签到")
+                                Text(
+                                    signStatus[0].getText(),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .wrapContentWidth(Alignment.End)
+                                )
                             }
                             signUserList.forEachIndexed { index, userSelection ->
                                 Row(
@@ -185,17 +216,23 @@ fun QRCodeSignScreen(destination: QRCodeSignDestination, navBack: () -> Unit) {
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text(text = userSelection.name)
+                                    Text(
+                                        signStatus[1 + index].getText(),
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .wrapContentWidth(Alignment.End)
+                                    )
                                 }
                             }
                         }
 
-                        Button(onClick={
-                            if(isMapRequired){
+                        Button(onClick = {
+                            if (isMapRequired) {
                                 isMapGetting = true
-                            }else{
-                                isQRCodeScanning=true
+                            } else {
+                                isQRCodeScanning = true
                             }
-                        }){
+                        }) {
                             Text("签到")
                         }
                     }
@@ -213,8 +250,17 @@ fun QRCodeSignScreen(destination: QRCodeSignDestination, navBack: () -> Unit) {
                             }) {
                                 locationData = it
                             }
+                            BackHandler(isMapGetting) {
+                                isMapGetting = false
+                            }
                         }
                         AnimatedVisibility(isQRCodeScanning) {
+                            BackHandler(isQRCodeScanning) {
+                                isQRCodeScanning = false
+                                isQRCodeParsing = false
+                                isQRCodeScanPause = false
+                                isQRCodeIllegal = false
+                            }
                             QRCodeScanComponent(isQRCodeScanPause, isQRCodeParsing, onClose = {
                                 isQRCodeScanning = false
                             }, onScanResult = {
@@ -228,10 +274,38 @@ fun QRCodeSignScreen(destination: QRCodeSignDestination, navBack: () -> Unit) {
                                     }.onSuccess { enc ->
                                         runCatching {
                                             signer.sign(enc, locationData)
+                                            signUserList.forEachIndexed { index, it ->
+                                                runCatching {
+                                                    ChaoxingQRCodeSigner(
+                                                        ChaoxingHttpClient.loadFromOtherUserSession(
+                                                            it
+                                                        ), destination
+                                                    ).apply {
+                                                        if (preSign()) {
+                                                            throw ChaoxingSigner.AlreadySignedException()
+                                                        } else {
+                                                            sign(enc, locationData)
+                                                        }
+                                                    }
+                                                }.onSuccess {
+                                                    var success by signStatus[index].isSuccess
+                                                    success = true
+                                                }.onFailure {
+                                                    var success by signStatus[index].isSuccess
+                                                    var error by signStatus[index].error
+                                                    success = true
+                                                    error = when (it) {
+                                                        is ChaoxingSigner.SignActivityNoPermissionException -> "无权限访问"
+                                                        is ChaoxingSigner.AlreadySignedException -> "已签到"
+                                                        else -> it.message ?: "签到成功"
+                                                    }
+                                                }
+                                            }
                                         }.onSuccess {
                                             isQRCodeScanning = false
                                             isQRCodeParsing = false
-                                            navBack()
+                                            var success by signStatus[0].isSuccess
+                                            success = true
                                         }.onFailure {
                                             isQRCodeIllegal = true
                                             isQRCodeParsing = false
@@ -313,7 +387,7 @@ fun QRCodeSignScreen(destination: QRCodeSignDestination, navBack: () -> Unit) {
                                                         contentDescription = "Scan QR Code"
                                                     )
                                                     Spacer(modifier = Modifier.width(5.dp))
-                                                    Text("扫描其他设备的二维码以添加用户")
+                                                    Text("扫描签到二维码")
                                                 }
                                             }
                                         }

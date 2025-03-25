@@ -75,34 +75,36 @@ fun QRCodeScanComponent(
             )
 
             val previewView = remember { PreviewView(context) }
-            val preview = Preview.Builder().build()
-            val controller = LifecycleCameraController(context).apply {
-                this.bindToLifecycle(lifecycleOwner)
-                previewView.controller = this
-                setEnabledUseCases(LifecycleCameraController.IMAGE_ANALYSIS)
-                preview.surfaceProvider = previewView.surfaceProvider
-                cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
-                setImageAnalysisAnalyzer(
-                    cameraExecutor, MlKitAnalyzer(
-                        listOf(barcodeScanner),
-                        ImageAnalysis.COORDINATE_SYSTEM_VIEW_REFERENCED,
-                        cameraExecutor,
-                    ) {
-                        it?.let { result ->
-                            val barcodeResult =
-                                result.getValue(barcodeScanner) ?: return@MlKitAnalyzer
-                            if (barcodeResult.size > 0) {
-                                val barcode = barcodeResult[0]
-                                previewView.overlay.clear()
-                                previewView.overlay.add(QRCodeDrawable(barcode))
-                                if (!isPause) {
-                                    coroutineScope.launch {
-                                        onScanResult(barcode)
+            val preview = remember { Preview.Builder().build() }
+            val controller = remember {
+                LifecycleCameraController(context).apply {
+                    this.bindToLifecycle(lifecycleOwner)
+                    previewView.controller = this
+                    setEnabledUseCases(LifecycleCameraController.IMAGE_ANALYSIS)
+                    preview.surfaceProvider = previewView.surfaceProvider
+                    cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
+                    setImageAnalysisAnalyzer(
+                        cameraExecutor, MlKitAnalyzer(
+                            listOf(barcodeScanner),
+                            ImageAnalysis.COORDINATE_SYSTEM_VIEW_REFERENCED,
+                            cameraExecutor,
+                        ) {
+                            it?.let { result ->
+                                val barcodeResult =
+                                    result.getValue(barcodeScanner) ?: return@MlKitAnalyzer
+                                if (barcodeResult.size > 0) {
+                                    val barcode = barcodeResult[0]
+                                    previewView.overlay.clear()
+                                    previewView.overlay.add(QRCodeDrawable(barcode))
+                                    if (!isPause) {
+                                        coroutineScope.launch {
+                                            onScanResult(barcode)
+                                        }
                                     }
                                 }
                             }
-                        }
-                    })
+                        })
+                }
             }
             Box(modifier = Modifier.fillMaxSize()) {
                 if (isLoading) {

@@ -22,7 +22,6 @@ abstract class ChaoxingSigner(
     val courseId: Int,
     val extContent: String
 ) {
-
     companion object {
         const val URL_PERSIGN =
             "https://mobilelearn.chaoxing.com/newsign/preSign?&general=1&sys=1&ls=1&appType=15&isTeacherViewOpen=0"
@@ -36,6 +35,11 @@ abstract class ChaoxingSigner(
         const val URL_SIGN =
             "https://mobilelearn.chaoxing.com/pptSign/stuSignajax?&clientip=&appType=15&ifTiJiao=1&validate=&vpProbability=-1&vpStrategy="
     }
+
+    class SignActivityNoPermissionException:Exception()
+
+
+    class AlreadySignedException:Exception()
 
     abstract suspend fun checkAlreadySign(response: Response): Boolean
 
@@ -64,6 +68,9 @@ abstract class ChaoxingSigner(
                     .build()
             ).build()
         ).execute().use {
+            if(it.code==302 || it.body?.string()?.contains("校验失败，未查询到活动数据") == true){
+                throw SignActivityNoPermissionException()
+            }
             postAnalysis()
             return@withContext checkAlreadySign(it)
         }

@@ -153,7 +153,7 @@ class ChaoxingHttpClient private constructor(
         }
 
         suspend fun loadFromDataStore(dataStore: ChaoxingSignFakerDataStore): ChaoxingHttpClient {
-            val okHttpClient = instance!!.okHttpClient.newBuilder().cookieJar(object : CookieJar {
+            val okHttpClient = OkHttpClient.Builder().cookieJar(object : CookieJar {
                 private val cookieStore: MutableMap<String, List<Cookie>> = mutableMapOf()
                 private var chaoxingCookieSession: List<Cookie> = listOf()
                 override fun saveFromResponse(url: HttpUrl, cookies: List<Cookie>) {

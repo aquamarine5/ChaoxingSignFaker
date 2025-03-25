@@ -6,16 +6,15 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.components
 
+import android.annotation.SuppressLint
 import android.graphics.Color
 import android.util.Log
 import android.widget.Toast
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -37,7 +36,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -68,10 +66,10 @@ import com.baidu.mapapi.search.geocode.ReverseGeoCodeResult
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
-import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationDetailEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationSignEntity
 
+@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun GetLocationComponent(
@@ -118,31 +116,8 @@ fun GetLocationComponent(
         ) { innerPadding ->
             Column(
                 modifier = Modifier
-                    .padding(innerPadding)
                     .fillMaxSize()
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable {
-                            onClose()
-                        }
-                ) {
-                    Icon(painterResource(R.drawable.ic_arrow_left), contentDescription = null)
-                    Spacer(
-                        modifier = Modifier
-                            .height(8.dp)
-                            .width(5.dp)
-                    )
-                    Text(
-                        "返回",
-                        color = androidx.compose.ui.graphics.Color.DarkGray,
-                        textAlign = TextAlign.Left,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                    )
-                }
                 val locationPermissionsState = rememberMultiplePermissionsState(
                     listOf(
                         android.Manifest.permission.ACCESS_FINE_LOCATION,

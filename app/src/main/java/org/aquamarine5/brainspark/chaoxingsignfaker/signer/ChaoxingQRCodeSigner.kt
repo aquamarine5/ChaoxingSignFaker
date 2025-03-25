@@ -31,8 +31,9 @@ class ChaoxingQRCodeSigner(
     qrCodeActivityEntity.courseId,
     qrCodeActivityEntity.extContent
 ) {
+
     suspend fun getQRCodeSignInfo(): ChaoxingQRCodeDetailEntity {
-        return getSignInfo().run {
+        return getSignInfo().getJSONObject("data").run {
             ChaoxingQRCodeDetailEntity(
                 getInteger("ifopenAddress") == 1,
                 getInteger("ifrefreshewm") == 1
@@ -82,7 +83,6 @@ class ChaoxingQRCodeSigner(
     fun parseQRCode(qrcode: Barcode): String =
         qrcode.url!!.url!!.toHttpUrl().queryParameter("enc")!!
 
-    override suspend fun checkAlreadySign(response: Response): Boolean {
-        TODO("Not yet implemented")
-    }
+    override suspend fun checkAlreadySign(response: Response): Boolean=
+        response.body?.string()?.contains("扫一扫")?.not()?:false
 }
