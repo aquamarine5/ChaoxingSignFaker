@@ -74,7 +74,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationSignE
 @Composable
 fun GetLocationComponent(
     locationInfo: ChaoxingLocationDetailEntity? = null,
-    confirmButtonText:@Composable ()->Unit,
+    confirmButtonText: @Composable () -> Unit,
     onLocationResult: (ChaoxingLocationSignEntity) -> Unit
 ) {
     LocalContext.current.let { context ->
@@ -154,7 +154,6 @@ fun GetLocationComponent(
                             override fun onGetGeoCodeResult(p0: GeoCodeResult?) {}
 
                             override fun onGetReverseGeoCodeResult(p0: ReverseGeoCodeResult?) {
-                                Log.d("GetLocationPage", "ReverseGeoCodeResult: $p0")
                                 if (p0 == null || p0.error != SearchResult.ERRORNO.NO_ERROR) {
                                     Log.w(
                                         "GetLocationPage",

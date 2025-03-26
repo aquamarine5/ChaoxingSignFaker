@@ -29,9 +29,10 @@ class ChaoxingQRCodeSigner(
     qrCodeActivityEntity.courseId,
     qrCodeActivityEntity.extContent
 ) {
-    companion object{
-        const val CLASSTAG="ChaoxingQRCodeSigner"
+    companion object {
+        const val CLASSTAG = "ChaoxingQRCodeSigner"
     }
+
     suspend fun getQRCodeSignInfo(): ChaoxingQRCodeDetailEntity {
         return getSignInfo().getJSONObject("data").run {
             ChaoxingQRCodeDetailEntity(
@@ -83,7 +84,7 @@ class ChaoxingQRCodeSigner(
     fun parseQRCode(qrcode: Barcode): String =
         qrcode.url!!.url!!.toHttpUrl().queryParameter("enc")!!
 
-    override suspend fun checkAlreadySign(response: String): Boolean=
+    override suspend fun checkAlreadySign(response: String): Boolean =
         response.contains("扫一扫").not()
 
 }

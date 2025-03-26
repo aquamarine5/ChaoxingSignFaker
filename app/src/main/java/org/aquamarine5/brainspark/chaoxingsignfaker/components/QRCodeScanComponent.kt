@@ -32,6 +32,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -49,16 +50,15 @@ import com.google.accompanist.permissions.shouldShowRationale
 import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.barcode.common.Barcode
-import kotlinx.coroutines.launch
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun QRCodeScanComponent(
-    isPause: Boolean,
-    isLoading: Boolean,
+    isPause: MutableState<Boolean>,
+    isLoading: MutableState<Boolean>,
     onClose: () -> Unit,
-    onScanResult: suspend (Barcode) -> Unit,
+    onScanResult: (Barcode) -> Unit,
     content: @Composable BoxScope.() -> Unit
 ) {
     val cameraPermission = rememberPermissionState(android.Manifest.permission.CAMERA)
@@ -95,10 +95,8 @@ fun QRCodeScanComponent(
                                     val barcode = barcodeResult[0]
                                     previewView.overlay.clear()
                                     previewView.overlay.add(QRCodeDrawable(barcode))
-                                    if (!isPause) {
-                                        coroutineScope.launch {
-                                            onScanResult(barcode)
-                                        }
+                                    if (!isPause.value) {
+                                        onScanResult(barcode)
                                     }
                                 }
                             }
@@ -106,7 +104,7 @@ fun QRCodeScanComponent(
                 }
             }
             Box(modifier = Modifier.fillMaxSize()) {
-                if (isLoading) {
+                if (isLoading.value) {
                     CenterCircularProgressIndicator()
                 }
                 AndroidView(

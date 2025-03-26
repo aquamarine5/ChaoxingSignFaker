@@ -38,7 +38,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil3.ImageLoader
 import coil3.disk.DiskCache
 import coil3.disk.directory
@@ -123,7 +125,6 @@ fun CourseListScreen(
                                 delay(1000)
                                 isRefreshing = false
                             }
-
                         }
                     }
                 ) {
@@ -177,8 +178,32 @@ fun CourseListScreen(
                                         contentDescription = "多用户"
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
-                                    Text("多用户（Beta）")
+                                    Text("多用户（测试版）")
                                 }
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+                        }
+                        item{
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(10.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Icon(
+                                    painterResource(R.drawable.ic_info),
+                                    contentDescription = "Info",
+                                    tint = Color.Yellow
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text="注意！当前是测试版。",
+                                    color = Color.Yellow,
+                                    fontSize = 13.sp,
+                                    lineHeight = 18.sp,
+                                    fontWeight = FontWeight.W500
+                                )
                             }
                             Spacer(modifier = Modifier.height(8.dp))
                         }

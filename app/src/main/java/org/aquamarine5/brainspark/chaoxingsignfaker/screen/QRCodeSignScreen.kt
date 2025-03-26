@@ -121,8 +121,8 @@ fun QRCodeSignScreen(destination: QRCodeSignDestination, navBack: () -> Unit) {
 
         false -> {
             var isQRCodeScanning by remember { mutableStateOf(false) }
-            var isQRCodeScanPause by remember { mutableStateOf(false) }
-            var isQRCodeParsing by remember { mutableStateOf(false) }
+            var isQRCodeScanPause = remember { mutableStateOf(false) }
+            var isQRCodeParsing = remember { mutableStateOf(false) }
             var isQRCodeIllegal by remember { mutableStateOf(false) }
             var isMapGetting by remember { mutableStateOf(false) }
             var isSignExecuted by remember { mutableStateOf(false) }
@@ -238,6 +238,8 @@ fun QRCodeSignScreen(destination: QRCodeSignDestination, navBack: () -> Unit) {
                                 isMapGetting = true
                             } else {
                                 isQRCodeScanning = true
+                                isQRCodeScanPause.value = false
+                                isQRCodeParsing.value = false
                             }
                         }) {
                             Text("签到")
@@ -254,6 +256,8 @@ fun QRCodeSignScreen(destination: QRCodeSignDestination, navBack: () -> Unit) {
                             }) {
                                 isMapGetting = false
                                 isQRCodeScanning = true
+                                isQRCodeScanPause.value = false
+                                isQRCodeParsing.value = false
                                 locationData = it
                             }
                             BackHandler(isMapGetting) {
@@ -263,22 +267,28 @@ fun QRCodeSignScreen(destination: QRCodeSignDestination, navBack: () -> Unit) {
                         AnimatedVisibility(isQRCodeScanning) {
                             BackHandler(isQRCodeScanning) {
                                 isQRCodeScanning = false
-                                isQRCodeParsing = false
-                                isQRCodeScanPause = false
+                                isQRCodeParsing.value = false
+                                isQRCodeScanPause.value = false
                                 isQRCodeIllegal = false
                             }
                             QRCodeScanComponent(isQRCodeScanPause, isQRCodeParsing, onClose = {
                                 isQRCodeScanning = false
                             }, onScanResult = {
-                                isQRCodeScanPause = true
-                                isQRCodeParsing = true
-                                withContext(Dispatchers.IO) {
-                                    runCatching {
-                                        return@runCatching signer.parseQRCode(it)
-                                    }.onSuccess { enc ->
+                                isQRCodeScanPause.value = true
+                                isQRCodeParsing.value = true
+                                coroutineScope.launch {
+                                    withContext(Dispatchers.IO) {
                                         runCatching {
+                                            return@runCatching signer.parseQRCode(it)
+                                        }.onSuccess { enc ->
+                                            isQRCodeScanning = false
                                             runCatching {
                                                 signer.sign(enc, locationData)
+                                            }.onSuccess {
+                                                signStatus[0].success()
+                                            }.onFailure {
+                                                it.printStackTrace()
+                                                signStatus[0].failed(it)
                                             }
                                             signUserList.forEachIndexed { index, it ->
                                                 runCatching {
@@ -294,45 +304,24 @@ fun QRCodeSignScreen(destination: QRCodeSignDestination, navBack: () -> Unit) {
                                                         }
                                                     }
                                                 }.onSuccess {
-                                                    var success by signStatus[index].isSuccess
-                                                    success = true
+                                                    signStatus[1 + index].success()
                                                 }.onFailure {
-                                                    var success by signStatus[index].isSuccess
-                                                    var error by signStatus[index].error
-                                                    success = true
-                                                    error = when (it) {
-                                                        is ChaoxingSigner.SignActivityNoPermissionException -> "无权限访问"
-                                                        is ChaoxingSigner.AlreadySignedException -> "已签到"
-                                                        else -> it.message ?: "签到失败"
-                                                    }
+                                                    it.printStackTrace()
+                                                    signStatus[1 + index].failed(it)
                                                 }
                                             }
-                                        }.onSuccess {
-                                            isQRCodeScanning = false
-                                            isQRCodeParsing = false
-                                            var success by signStatus[0].isSuccess
-                                            success = true
                                         }.onFailure {
+                                            it.printStackTrace()
                                             isQRCodeIllegal = true
-                                            isQRCodeParsing = false
-                                            qrcodeIllegalText = it.message ?: "签到失败。"
+                                            isQRCodeScanPause.value = true
+                                            qrcodeIllegalText =
+                                                it.message ?: "二维码解析失败，不是正确码。"
                                             job?.cancel()
                                             job = coroutineScope.launch {
                                                 delay(3000)
-                                                isQRCodeScanPause = false
+                                                isQRCodeScanPause.value = false
                                                 isQRCodeIllegal = false
                                             }
-                                        }
-                                    }.onFailure {
-                                        isQRCodeIllegal = true
-                                        isQRCodeScanPause = true
-                                        qrcodeIllegalText =
-                                            it.message ?: "二维码解析失败，不是正确码。"
-                                        job?.cancel()
-                                        job = coroutineScope.launch {
-                                            delay(3000)
-                                            isQRCodeScanPause = false
-                                            isQRCodeIllegal = false
                                         }
                                     }
                                 }

@@ -35,10 +35,10 @@ abstract class ChaoxingSigner(
             "https://mobilelearn.chaoxing.com/pptSign/stuSignajax?&clientip=&appType=15&ifTiJiao=1&validate=&vpProbability=-1&vpStrategy="
     }
 
-    class SignActivityNoPermissionException:Exception()
+    class SignActivityNoPermissionException : Exception()
 
 
-    class AlreadySignedException:Exception()
+    class AlreadySignedException : Exception()
 
     abstract suspend fun checkAlreadySign(response: String): Boolean
 
@@ -67,12 +67,12 @@ abstract class ChaoxingSigner(
                     .build()
             ).build()
         ).execute().use {
-            val body=it.body?.string()
-            if(it.code==302 || body?.contains("校验失败，未查询到活动数据") == true){
+            val body = it.body?.string()
+            if (it.code == 302 || body?.contains("校验失败，未查询到活动数据") == true) {
                 throw SignActivityNoPermissionException()
             }
             postAnalysis()
-            return@withContext checkAlreadySign(body?:"")
+            return@withContext checkAlreadySign(body ?: "")
         }
     }
 

@@ -58,7 +58,7 @@ fun CourseDetailScreen(
     navToListDestination: () -> Unit,
 ) {
     var activitiesData by remember { mutableStateOf<ChaoxingCourseActivitiesEntity?>(null) }
-    val context= LocalContext.current
+    val context = LocalContext.current
     LaunchedEffect(Unit) {
         runCatching {
             if (activitiesData == null) {

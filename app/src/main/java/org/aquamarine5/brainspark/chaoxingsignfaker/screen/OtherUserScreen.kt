@@ -58,6 +58,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
+import io.sentry.Sentry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -82,10 +83,10 @@ data class OtherUserDestination(
 fun OtherUserScreen(naviBack: () -> Unit) {
     Scaffold { innerPadding ->
         val context = LocalContext.current
-        var isQRCodeScanPause by remember { mutableStateOf(false) }
+        var isQRCodeScanPause = remember { mutableStateOf(false) }
         var isQRCodeScanning by remember { mutableStateOf(false) }
         var isQRCodeIllegal by remember { mutableStateOf(false) }
-        var isQRCodeParsing by remember { mutableStateOf(false) }
+        var isQRCodeParsing = remember { mutableStateOf(false) }
         var isQRCodeImportSuccess by remember { mutableStateOf(false) }
         var isLocalSharedEntityReady by remember { mutableStateOf<Boolean?>(null) }
         var currentImportData by remember { mutableStateOf("") }
@@ -317,43 +318,48 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                 QRCodeScanComponent(isQRCodeScanPause, isQRCodeParsing, onClose = {
                     isQRCodeScanning = false
                 }, onScanResult = {
-                    withContext(Dispatchers.IO) {
-                        runCatching {
-                            isQRCodeParsing = true
-                            isQRCodeScanPause = true
-                            return@runCatching ChaoxingOtherUserSharedEntity.parseFromQRCode(it)
-                        }.onSuccess { sharedEntity ->
-                            coroutineScope.launch {
-                                runCatching {
-                                    ChaoxingOtherUserHelper.saveOtherUser(context, sharedEntity)
-                                }.onSuccess {
-                                    isQRCodeScanning = false
-                                    isQRCodeParsing = false
-                                    currentImportData =
-                                        "${sharedEntity.userName}(手机号：${sharedEntity.phoneNumber})"
-                                    isQRCodeImportSuccess = true
-                                    otherUserSessions.add(it)
-                                }.onFailure {
-                                    isQRCodeIllegal = true
-                                    isQRCodeParsing = false
-                                    qrcodeIllegalText = it.message ?: "二维码解析失败，登录失败。"
-                                    job?.cancel()
-                                    job = coroutineScope.launch{
-                                        delay(3000)
-                                        isQRCodeScanPause = false
-                                        isQRCodeIllegal = false
+                    coroutineScope.launch {
+                        withContext(Dispatchers.IO) {
+                            runCatching {
+                                isQRCodeParsing.value = true
+                                isQRCodeScanPause.value = true
+                                return@runCatching ChaoxingOtherUserSharedEntity.parseFromQRCode(it)
+                            }.onSuccess { sharedEntity ->
+                                coroutineScope.launch {
+                                    runCatching {
+                                        ChaoxingOtherUserHelper.saveOtherUser(context, sharedEntity)
+                                    }.onSuccess {
+                                        isQRCodeScanning = false
+                                        isQRCodeParsing.value = false
+                                        currentImportData =
+                                            "${sharedEntity.userName}(手机号：${sharedEntity.phoneNumber})"
+                                        isQRCodeImportSuccess = true
+                                        otherUserSessions.add(it)
+                                    }.onFailure {
+                                        it.printStackTrace()
+                                        Sentry.captureException(it)
+                                        isQRCodeIllegal = true
+                                        isQRCodeParsing.value = false
+                                        qrcodeIllegalText = it.message ?: "二维码解析失败，登录失败。"
+                                        job?.cancel()
+                                        job = coroutineScope.launch {
+                                            delay(3000)
+                                            isQRCodeScanPause.value = false
+                                            isQRCodeIllegal = false
+                                        }
                                     }
                                 }
-                            }
-                        }.onFailure {
-                            isQRCodeIllegal = true
-                            isQRCodeScanPause = true
-                            qrcodeIllegalText = it.message ?: "二维码解析失败，不是正确码。"
-                            job?.cancel()
-                            job = coroutineScope.launch {
-                                delay(3000)
-                                isQRCodeScanPause = false
-                                isQRCodeIllegal = false
+                            }.onFailure {
+                                it.printStackTrace()
+                                isQRCodeIllegal = true
+                                isQRCodeScanPause.value = true
+                                qrcodeIllegalText = it.message ?: "二维码解析失败，不是正确码。"
+                                job?.cancel()
+                                job = coroutineScope.launch {
+                                    delay(3000)
+                                    isQRCodeScanPause.value = false
+                                    isQRCodeIllegal = false
+                                }
                             }
                         }
                     }
