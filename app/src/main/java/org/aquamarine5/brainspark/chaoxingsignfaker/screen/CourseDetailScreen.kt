@@ -6,6 +6,7 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.screen
 
+import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -32,9 +33,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import io.sentry.Sentry
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
@@ -55,11 +58,17 @@ fun CourseDetailScreen(
     navToListDestination: () -> Unit,
 ) {
     var activitiesData by remember { mutableStateOf<ChaoxingCourseActivitiesEntity?>(null) }
+    val context= LocalContext.current
     LaunchedEffect(Unit) {
-        if (activitiesData == null) {
-            ChaoxingHttpClient.instance?.let {
-                activitiesData = ChaoxingActivityHelper.getActivities(it, courseEntity)
+        runCatching {
+            if (activitiesData == null) {
+                ChaoxingHttpClient.instance?.let {
+                    activitiesData = ChaoxingActivityHelper.getActivities(it, courseEntity)
+                }
             }
+        }.onFailure {
+            Sentry.captureException(it)
+            Toast.makeText(context, "获取课程活动失败", Toast.LENGTH_SHORT).show()
         }
     }
     val coroutineScope = rememberCoroutineScope()

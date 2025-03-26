@@ -11,7 +11,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Request
-import okhttp3.Response
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationDetailEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationSignEntity
@@ -70,7 +69,7 @@ class ChaoxingLocationSigner(
         }
     }
 
-    override suspend fun checkAlreadySign(response: Response): Boolean {
-        return response.body?.string()?.contains("恭喜你已完成签到")?.not() ?: false
+    override suspend fun checkAlreadySign(response: String): Boolean {
+        return response.contains("恭喜你已完成签到").not()
     }
 }

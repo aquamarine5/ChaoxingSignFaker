@@ -12,7 +12,6 @@ import kotlinx.coroutines.withContext
 import okhttp3.FormBody
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Request
-import okhttp3.Response
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 
 abstract class ChaoxingSigner(
@@ -41,7 +40,7 @@ abstract class ChaoxingSigner(
 
     class AlreadySignedException:Exception()
 
-    abstract suspend fun checkAlreadySign(response: Response): Boolean
+    abstract suspend fun checkAlreadySign(response: String): Boolean
 
     open suspend fun getSignInfo(): JSONObject = withContext(Dispatchers.IO) {
         client.newCall(
@@ -68,11 +67,12 @@ abstract class ChaoxingSigner(
                     .build()
             ).build()
         ).execute().use {
-            if(it.code==302 || it.body?.string()?.contains("校验失败，未查询到活动数据") == true){
+            val body=it.body?.string()
+            if(it.code==302 || body?.contains("校验失败，未查询到活动数据") == true){
                 throw SignActivityNoPermissionException()
             }
             postAnalysis()
-            return@withContext checkAlreadySign(it)
+            return@withContext checkAlreadySign(body?:"")
         }
     }
 

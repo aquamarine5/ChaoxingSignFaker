@@ -6,6 +6,7 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.screen
 
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
@@ -52,6 +53,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
+import io.sentry.Sentry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -98,10 +100,16 @@ fun QRCodeSignScreen(destination: QRCodeSignDestination, navBack: () -> Unit) {
     var isCurrentAlreadySigned by remember { mutableStateOf<Boolean?>(null) }
     val coroutineScope = rememberCoroutineScope()
     val signer = ChaoxingQRCodeSigner(ChaoxingHttpClient.instance!!, destination)
+    val context = LocalContext.current
     var isMapRequired by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
-        isAlreadySigned = signer.preSign()
-        isMapRequired = signer.getQRCodeSignInfo().isPositionRequired
+        runCatching {
+            isAlreadySigned = signer.preSign()
+            isMapRequired = signer.getQRCodeSignInfo().isPositionRequired
+        }.onFailure {
+            Sentry.captureException(it)
+            Toast.makeText(context, "获取签到事件详情失败", Toast.LENGTH_SHORT).show()
+        }
     }
     when (isAlreadySigned) {
         true -> {
@@ -124,7 +132,6 @@ fun QRCodeSignScreen(destination: QRCodeSignDestination, navBack: () -> Unit) {
             var job by remember { mutableStateOf<Job?>(null) }
             val userSelections = remember { mutableStateListOf(true) }
             val signStatus = remember { mutableStateListOf(ChaoxingSignStatus()) }
-            val context = LocalContext.current
             Scaffold { innerPadding ->
                 Box(
                     modifier = Modifier
@@ -236,18 +243,17 @@ fun QRCodeSignScreen(destination: QRCodeSignDestination, navBack: () -> Unit) {
                             Text("签到")
                         }
                     }
-
-
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
                             .zIndex(1f)
                     ) {
                         AnimatedVisibility(isMapGetting) {
-                            GetLocationComponent(onClose = {
+                            GetLocationComponent(confirmButtonText = {
+                                Text("设置")
+                            }) {
                                 isMapGetting = false
                                 isQRCodeScanning = true
-                            }) {
                                 locationData = it
                             }
                             BackHandler(isMapGetting) {
@@ -268,12 +274,12 @@ fun QRCodeSignScreen(destination: QRCodeSignDestination, navBack: () -> Unit) {
                                 isQRCodeParsing = true
                                 withContext(Dispatchers.IO) {
                                     runCatching {
-                                        isQRCodeParsing = true
-                                        isQRCodeScanPause = true
                                         return@runCatching signer.parseQRCode(it)
                                     }.onSuccess { enc ->
                                         runCatching {
-                                            signer.sign(enc, locationData)
+                                            runCatching {
+                                                signer.sign(enc, locationData)
+                                            }
                                             signUserList.forEachIndexed { index, it ->
                                                 runCatching {
                                                     ChaoxingQRCodeSigner(
@@ -297,7 +303,7 @@ fun QRCodeSignScreen(destination: QRCodeSignDestination, navBack: () -> Unit) {
                                                     error = when (it) {
                                                         is ChaoxingSigner.SignActivityNoPermissionException -> "无权限访问"
                                                         is ChaoxingSigner.AlreadySignedException -> "已签到"
-                                                        else -> it.message ?: "签到成功"
+                                                        else -> it.message ?: "签到失败"
                                                     }
                                                 }
                                             }

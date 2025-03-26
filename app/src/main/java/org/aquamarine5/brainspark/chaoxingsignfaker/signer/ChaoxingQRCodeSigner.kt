@@ -13,13 +13,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Request
-import okhttp3.Response
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationSignEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingQRCodeDetailEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.QRCodeSignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingLocationSigner.ChaoxingLocationSignException
-import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingLocationSigner.Companion.CLASSTAG
 
 class ChaoxingQRCodeSigner(
     client: ChaoxingHttpClient,
@@ -31,7 +29,9 @@ class ChaoxingQRCodeSigner(
     qrCodeActivityEntity.courseId,
     qrCodeActivityEntity.extContent
 ) {
-
+    companion object{
+        const val CLASSTAG="ChaoxingQRCodeSigner"
+    }
     suspend fun getQRCodeSignInfo(): ChaoxingQRCodeDetailEntity {
         return getSignInfo().getJSONObject("data").run {
             ChaoxingQRCodeDetailEntity(
@@ -83,6 +83,7 @@ class ChaoxingQRCodeSigner(
     fun parseQRCode(qrcode: Barcode): String =
         qrcode.url!!.url!!.toHttpUrl().queryParameter("enc")!!
 
-    override suspend fun checkAlreadySign(response: Response): Boolean=
-        response.body?.string()?.contains("扫一扫")?.not()?:false
+    override suspend fun checkAlreadySign(response: String): Boolean=
+        response.contains("扫一扫").not()
+
 }

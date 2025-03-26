@@ -73,7 +73,6 @@ fun QRCodeScanComponent(
                     Barcode.FORMAT_QR_CODE
                 ).build()
             )
-
             val previewView = remember { PreviewView(context) }
             val preview = remember { Preview.Builder().build() }
             val controller = remember {

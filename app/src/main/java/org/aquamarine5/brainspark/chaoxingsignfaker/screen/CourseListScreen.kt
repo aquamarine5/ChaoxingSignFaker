@@ -6,6 +6,7 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.screen
 
+import android.widget.Toast
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -43,6 +44,7 @@ import coil3.disk.DiskCache
 import coil3.disk.directory
 import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import coil3.request.crossfade
+import io.sentry.Sentry
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
@@ -73,15 +75,21 @@ fun CourseListScreen(
     var activitiesData: List<ChaoxingCourseEntity> by rememberSaveable(
         saver = ChaoxingCourseEntity.Saver
     ) { mutableStateOf(emptyList()) }
+
+    val context = LocalContext.current
     LaunchedEffect(Unit) {
         if (activitiesData.isEmpty()) {
-            ChaoxingHttpClient.instance?.let {
-                activitiesData = ChaoxingCourseHelper.getAllCourse(it)
+            runCatching {
+                ChaoxingHttpClient.instance?.let {
+                    activitiesData = ChaoxingCourseHelper.getAllCourse(it)
+                }
+            }.onFailure {
+                Sentry.captureException(it)
+                Toast.makeText(context, "获取课程列表失败", Toast.LENGTH_SHORT).show()
             }
         }
     }
     val coroutineScope = rememberCoroutineScope()
-    val context = LocalContext.current
     val imageLoader = ImageLoader.Builder(context).components {
         add(
             OkHttpNetworkFetcherFactory(

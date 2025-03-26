@@ -74,7 +74,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationSignE
 @Composable
 fun GetLocationComponent(
     locationInfo: ChaoxingLocationDetailEntity? = null,
-    onClose: () -> Unit,
+    confirmButtonText:@Composable ()->Unit,
     onLocationResult: (ChaoxingLocationSignEntity) -> Unit
 ) {
     LocalContext.current.let { context ->
@@ -375,7 +375,7 @@ fun GetLocationComponent(
                                 )
                             )
                         }, modifier = Modifier.width(80.dp)) {
-                            Text("签到")
+                            confirmButtonText()
                         }
                     }
                     AndroidView(

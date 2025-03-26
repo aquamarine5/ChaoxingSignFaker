@@ -12,7 +12,6 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import okhttp3.Response
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.PhotoSignDestination
 
@@ -28,7 +27,7 @@ class ChaoxingPhotoSigner(
     photoActivityEntity.courseId,
     photoActivityEntity.extContent
 ) {
-    override suspend fun checkAlreadySign(response: Response): Boolean {
+    override suspend fun checkAlreadySign(response: String): Boolean {
         TODO("Not yet implemented")
     }
 

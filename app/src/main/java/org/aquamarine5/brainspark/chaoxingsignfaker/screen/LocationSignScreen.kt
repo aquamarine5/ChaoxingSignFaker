@@ -7,6 +7,7 @@
 package org.aquamarine5.brainspark.chaoxingsignfaker.screen
 
 import android.widget.Toast
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -56,8 +57,13 @@ fun LocationSignScreen(
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     LaunchedEffect(Unit) {
-        signInfo = signer.getLocationSignInfo()
-        isAlreadySigned = signer.preSign()
+        runCatching {
+            signInfo = signer.getLocationSignInfo()
+            isAlreadySigned = signer.preSign()
+        }.onFailure {
+            Sentry.captureException(it)
+            Toast.makeText(context, "获取签到事件详情失败", Toast.LENGTH_SHORT).show()
+        }
     }
     when (isAlreadySigned) {
         true -> {
@@ -65,8 +71,8 @@ fun LocationSignScreen(
         }
 
         false -> {
-            GetLocationComponent(signInfo, onClose = {
-                navToCourseDetailDestination()
+            GetLocationComponent(signInfo, confirmButtonText = {
+                Text("签到")
             }) {
                 coroutineScope.launch {
                     runCatching {
