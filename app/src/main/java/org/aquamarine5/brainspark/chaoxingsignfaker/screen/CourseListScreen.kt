@@ -183,7 +183,7 @@ fun CourseListScreen(
                             }
                             Spacer(modifier = Modifier.height(8.dp))
                         }
-                        item{
+                        item {
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -194,12 +194,12 @@ fun CourseListScreen(
                                 Icon(
                                     painterResource(R.drawable.ic_info),
                                     contentDescription = "Info",
-                                    tint = Color.Yellow
+                                    tint = Color.Red
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    text="注意！当前是测试版。",
-                                    color = Color.Yellow,
+                                    text = "注意！当前是测试版。",
+                                    color = Color.Red,
                                     fontSize = 13.sp,
                                     lineHeight = 18.sp,
                                     fontWeight = FontWeight.W500

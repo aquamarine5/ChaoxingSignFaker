@@ -23,7 +23,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -48,6 +47,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -121,25 +121,25 @@ fun QRCodeSignScreen(destination: QRCodeSignDestination, navBack: () -> Unit) {
 
         false -> {
             var isQRCodeScanning by remember { mutableStateOf(false) }
-            var isQRCodeScanPause = remember { mutableStateOf(false) }
-            var isQRCodeParsing = remember { mutableStateOf(false) }
+            val isQRCodeScanPause = remember { mutableStateOf(false) }
+            val isQRCodeParsing = remember { mutableStateOf(false) }
             var isQRCodeIllegal by remember { mutableStateOf(false) }
             var isMapGetting by remember { mutableStateOf(false) }
-            var isSignExecuted by remember { mutableStateOf(false) }
             var qrcodeIllegalText by remember { mutableStateOf("二维码不合法") }
             val signUserList = remember { mutableStateListOf<ChaoxingOtherUserSession>() }
             var locationData by remember { mutableStateOf<ChaoxingLocationSignEntity?>(null) }
             var job by remember { mutableStateOf<Job?>(null) }
             val userSelections = remember { mutableStateListOf(true) }
             val signStatus = remember { mutableStateListOf(ChaoxingSignStatus()) }
+            var success by signStatus[0].isSuccess
             Scaffold { innerPadding ->
                 Box(
                     modifier = Modifier
                         .padding(innerPadding)
-                        .padding(8.dp)
+                        .fillMaxSize()
                         .zIndex(0f)
                 ) {
-                    Column {
+                    Column(modifier = Modifier.padding(16.dp)) {
                         Card(
                             shape = RoundedCornerShape(18.dp),
                             colors = CardDefaults.cardColors(
@@ -180,6 +180,8 @@ fun QRCodeSignScreen(destination: QRCodeSignDestination, navBack: () -> Unit) {
                             signUserList.addAll(context.chaoxingDataStore.data.first().otherUsersList)
                             userSelections.addAll(List(signUserList.size) { false })
                             signStatus.addAll(Array(signUserList.size + 1) { ChaoxingSignStatus() })
+                            success = isCurrentAlreadySigned
+                            userSelections[0] = isCurrentAlreadySigned!=true
                         }
 
                         Column(
@@ -197,16 +199,12 @@ fun QRCodeSignScreen(destination: QRCodeSignDestination, navBack: () -> Unit) {
                                     checked = userSelections[0],
                                     onCheckedChange = { isChecked ->
                                         userSelections[0] = isChecked
-                                    }, enabled = isCurrentAlreadySigned == true
+                                    },
+                                    enabled = (success == true).not()
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("给自己签到")
-                                Text(
-                                    signStatus[0].getText(),
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .wrapContentWidth(Alignment.End)
-                                )
+                                Text("给自己签到", textDecoration = if(success!=true) TextDecoration.None else TextDecoration.LineThrough)
+                                signStatus[0].ResultCard()
                             }
                             signUserList.forEachIndexed { index, userSelection ->
                                 Row(
@@ -215,20 +213,17 @@ fun QRCodeSignScreen(destination: QRCodeSignDestination, navBack: () -> Unit) {
                                         .fillMaxWidth()
                                         .padding(vertical = 8.dp)
                                 ) {
+                                    val successForOtherUser by signStatus[1+index].isSuccess
                                     Checkbox(
                                         checked = userSelections[1 + index],
                                         onCheckedChange = { isChecked ->
                                             userSelections[1 + index] = isChecked
-                                        }
+                                        },
+                                        enabled = (successForOtherUser == true).not()
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
-                                    Text(text = userSelection.name)
-                                    Text(
-                                        signStatus[1 + index].getText(),
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .wrapContentWidth(Alignment.End)
-                                    )
+                                    Text(text = userSelection.name, textDecoration = if(successForOtherUser!=true) TextDecoration.None else TextDecoration.LineThrough)
+                                    signStatus[1 + index].ResultCard()
                                 }
                             }
                         }
@@ -241,7 +236,7 @@ fun QRCodeSignScreen(destination: QRCodeSignDestination, navBack: () -> Unit) {
                                 isQRCodeScanPause.value = false
                                 isQRCodeParsing.value = false
                             }
-                        }) {
+                        }, modifier = Modifier.fillMaxWidth()) {
                             Text("签到")
                         }
                     }
@@ -283,15 +278,20 @@ fun QRCodeSignScreen(destination: QRCodeSignDestination, navBack: () -> Unit) {
                                         }.onSuccess { enc ->
                                             isQRCodeScanning = false
                                             runCatching {
+                                                signStatus[0].loading()
                                                 signer.sign(enc, locationData)
+                                                userSelections[0] = false
                                             }.onSuccess {
                                                 signStatus[0].success()
                                             }.onFailure {
                                                 it.printStackTrace()
                                                 signStatus[0].failed(it)
                                             }
-                                            signUserList.forEachIndexed { index, it ->
+                                            signUserList.filterIndexed { index, _ ->
+                                                userSelections[1 + index]
+                                            }.forEachIndexed { index, it ->
                                                 runCatching {
+                                                    signStatus[1 + index].loading()
                                                     ChaoxingQRCodeSigner(
                                                         ChaoxingHttpClient.loadFromOtherUserSession(
                                                             it
@@ -305,6 +305,7 @@ fun QRCodeSignScreen(destination: QRCodeSignDestination, navBack: () -> Unit) {
                                                     }
                                                 }.onSuccess {
                                                     signStatus[1 + index].success()
+                                                    userSelections[1 + index] = false
                                                 }.onFailure {
                                                     it.printStackTrace()
                                                     signStatus[1 + index].failed(it)

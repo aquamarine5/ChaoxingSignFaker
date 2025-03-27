@@ -103,9 +103,7 @@ class ChaoxingHttpClient private constructor(
             return ChaoxingHttpClient(
                 okHttpClient,
                 userInfo
-            ).apply {
-                instance = this
-            }
+            )
         }
 
         suspend fun create(

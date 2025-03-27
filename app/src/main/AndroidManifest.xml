@@ -74,7 +74,7 @@
 
         <meta-data
             android:name="io.sentry.environment"
-            android:value="development" />
+            android:value="test-beta" />
     </application>
 
 </manifest>
