@@ -40,6 +40,8 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.screen.LoginDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.LoginPage
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.OtherUserDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.OtherUserScreen
+import org.aquamarine5.brainspark.chaoxingsignfaker.screen.PhotoSignDestination
+import org.aquamarine5.brainspark.chaoxingsignfaker.screen.PhotoSignScreen
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.QRCodeSignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.QRCodeSignScreen
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.WelcomeDestination
@@ -151,6 +153,12 @@ class MainActivity : ComponentActivity() {
                         CourseDetailScreen(it.toRoute(), navToSignerDestination = { destination ->
                             navController.navigate(destination)
                         }) {
+                            navController.navigateUp()
+                        }
+                    }
+
+                    composable<PhotoSignDestination> {
+                        PhotoSignScreen(it.toRoute()) {
                             navController.navigateUp()
                         }
                     }

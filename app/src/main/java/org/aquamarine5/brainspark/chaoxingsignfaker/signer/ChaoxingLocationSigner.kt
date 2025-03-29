@@ -29,9 +29,6 @@ class ChaoxingLocationSigner(
 ) {
 
     companion object {
-        const val URL_SIGN =
-            "https://mobilelearn.chaoxing.com/pptSign/stuSignajax?&clientip=&appType=15&ifTiJiao=1&validate=&vpProbability=-1&vpStrategy="
-
         const val CLASSTAG = "ChaoxingLocationSigner"
     }
 
