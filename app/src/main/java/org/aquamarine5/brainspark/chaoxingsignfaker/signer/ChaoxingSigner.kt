@@ -1,3 +1,9 @@
+/*
+ * Copyright (c) 2025, @aquamarine5 (@海蓝色的咕咕鸽). All Rights Reserved.
+ * Author: aquamarine5@163.com (Github: https://github.com/aquamarine5) and Brainspark (previously RenegadeCreation)
+ * Repository: https://github.com/aquamarine5/ChaoxingSignFaker
+ */
+
 package org.aquamarine5.brainspark.chaoxingsignfaker.signer
 
 import com.alibaba.fastjson2.JSONObject
@@ -6,16 +12,16 @@ import kotlinx.coroutines.withContext
 import okhttp3.FormBody
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Request
-import okhttp3.Response
+import org.aquamarine5.brainspark.chaoxingsignfaker.ChaoxingPredictableException
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 
 abstract class ChaoxingSigner(
-    val activeId:Long,
-    val classId:Int,
-    val courseId:Int,
-    val extContent:String
+    val client: ChaoxingHttpClient,
+    val activeId: Long,
+    val classId: Int,
+    val courseId: Int,
+    val extContent: String
 ) {
-
     companion object {
         const val URL_PERSIGN =
             "https://mobilelearn.chaoxing.com/newsign/preSign?&general=1&sys=1&ls=1&appType=15&isTeacherViewOpen=0"
@@ -25,12 +31,17 @@ abstract class ChaoxingSigner(
             "https://mobilelearn.chaoxing.com/pptSign/analysis?vs=1&DB_STRATEGY=RANDOM"
         const val URL_AFTER_ANALYSIS2 =
             "https://mobilelearn.chaoxing.com/pptSign/analysis2?DB_STRATEGY=RANDOM"
+
+        const val URL_SIGN =
+            "https://mobilelearn.chaoxing.com/pptSign/stuSignajax?&clientip=&appType=15&ifTiJiao=1&validate=&vpProbability=-1&vpStrategy="
     }
 
-    val client = ChaoxingHttpClient.instance!!
+    class SignActivityNoPermissionException : ChaoxingPredictableException("无权限访问")
 
-    abstract suspend fun sign()
-    abstract suspend fun checkAlreadySign(response: Response):Boolean
+    class AlreadySignedException : ChaoxingPredictableException("已经签到过了")
+
+    abstract suspend fun checkAlreadySign(response: String): Boolean
+
     open suspend fun getSignInfo(): JSONObject = withContext(Dispatchers.IO) {
         client.newCall(
             Request.Builder().get().url(
@@ -43,10 +54,10 @@ abstract class ChaoxingSigner(
         }
     }
 
-    open suspend fun preSign():Boolean = withContext(Dispatchers.IO) {
+    open suspend fun preSign(): Boolean = withContext(Dispatchers.IO) {
         client.newCall(
             Request.Builder().post(
-                FormBody.Builder().addEncoded("ext",extContent).build()
+                FormBody.Builder().addEncoded("ext", extContent).build()
             ).url(
                 URL_PERSIGN.toHttpUrl().newBuilder()
                     .addQueryParameter("courseId", courseId.toString())
@@ -56,8 +67,12 @@ abstract class ChaoxingSigner(
                     .build()
             ).build()
         ).execute().use {
+            val body = it.body?.string()
+            if (it.code == 302 || body?.contains("校验失败，未查询到活动数据") == true) {
+                throw SignActivityNoPermissionException()
+            }
             postAnalysis()
-            return@withContext checkAlreadySign(it)
+            return@withContext checkAlreadySign(body ?: "")
         }
     }
 
@@ -65,7 +80,7 @@ abstract class ChaoxingSigner(
         client.newCall(
             Request.Builder().get().url(
                 URL_ANALYSIS.toHttpUrl().newBuilder()
-                    .addQueryParameter("aid",activeId.toString()).build()
+                    .addQueryParameter("aid", activeId.toString()).build()
             ).build()
         ).execute().use {
             postAfterAnalysis(

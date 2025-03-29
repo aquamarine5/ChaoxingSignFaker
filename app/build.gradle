@@ -1,3 +1,9 @@
+/*
+ * Copyright (c) 2025, @aquamarine5 (@海蓝色的咕咕鸽). All Rights Reserved.
+ * Author: aquamarine5@163.com (Github: https://github.com/aquamarine5) and Brainspark (previously RenegadeCreation)
+ * Repository: https://github.com/aquamarine5/ChaoxingSignFaker
+ */
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -31,8 +37,8 @@ android {
         applicationId = "org.aquamarine5.brainspark.chaoxingsignfaker"
         minSdk = 26
         targetSdk = 35
-        versionCode = 101038805
-        versionName = "1.1.3-stable-250319"
+        versionCode = 102008814
+        versionName = "1.2.0-stable-250329"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -85,7 +91,13 @@ protobuf {
 }
 
 dependencies {
-    //implementation(libs.coil.network.cache.control)
+    implementation libs.core
+    implementation libs.camera.mlkit.vision
+    implementation libs.barcode.scanning
+    implementation libs.androidx.camera.core
+    implementation libs.androidx.camera.camera2
+    implementation libs.androidx.camera.lifecycle
+    implementation libs.androidx.camera.view
     implementation(libs.coil.compose)
     implementation(libs.coil.network.okhttp)
     implementation libs.accompanist.permissions

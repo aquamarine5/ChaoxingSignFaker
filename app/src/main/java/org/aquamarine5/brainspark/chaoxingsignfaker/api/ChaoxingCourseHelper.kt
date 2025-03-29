@@ -1,3 +1,9 @@
+/*
+ * Copyright (c) 2025, @aquamarine5 (@海蓝色的咕咕鸽). All Rights Reserved.
+ * Author: aquamarine5@163.com (Github: https://github.com/aquamarine5) and Brainspark (previously RenegadeCreation)
+ * Repository: https://github.com/aquamarine5/ChaoxingSignFaker
+ */
+
 package org.aquamarine5.brainspark.chaoxingsignfaker.api
 
 import com.alibaba.fastjson2.JSONObject
@@ -19,9 +25,10 @@ object ChaoxingCourseHelper {
                 for (i in 0 until channelList.size) {
                     val course = channelList.getJSONObject(i)
                     val content = course.getJSONObject("content")
-                    if(!content.containsKey("course")) continue
-                    if(!course.containsKey("cataName")) continue
-                    val courseContent = content.getJSONObject("course").getJSONArray("data").getJSONObject(0)
+                    if (!content.containsKey("course")) continue
+                    if (!course.containsKey("cataName")) continue
+                    val courseContent =
+                        content.getJSONObject("course").getJSONArray("data").getJSONObject(0)
                     courseList.add(
                         ChaoxingCourseEntity(
                             courseContent.getString("name"),

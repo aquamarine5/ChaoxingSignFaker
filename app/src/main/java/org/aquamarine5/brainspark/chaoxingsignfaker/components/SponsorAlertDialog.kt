@@ -1,3 +1,9 @@
+/*
+ * Copyright (c) 2025, @aquamarine5 (@海蓝色的咕咕鸽). All Rights Reserved.
+ * Author: aquamarine5@163.com (Github: https://github.com/aquamarine5) and Brainspark (previously RenegadeCreation)
+ * Repository: https://github.com/aquamarine5/ChaoxingSignFaker
+ */
+
 package org.aquamarine5.brainspark.chaoxingsignfaker.components
 
 import androidx.compose.foundation.Image
@@ -15,6 +21,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
@@ -46,9 +54,17 @@ fun SponsorAlertDialog(showDialog: MutableState<Boolean>) {
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(buildAnnotatedString {
                     sponsorList.forEach {
-                        append(it[0])
-                        append(" 赞赏了 ")
                         withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+                            append(it[0])
+                        }
+                        append(" 赞赏了 ")
+                        withStyle(
+                            SpanStyle(
+                                fontWeight = FontWeight.Bold, fontFamily = FontFamily(
+                                    Font(R.font.gilroy)
+                                )
+                            )
+                        ) {
                             append(it[1])
                         }
                         append(" 元")

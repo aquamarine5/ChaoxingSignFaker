@@ -1,5 +1,12 @@
-package org.aquamarine5.brainspark.chaoxingsignfaker.screens
+/*
+ * Copyright (c) 2025, @aquamarine5 (@海蓝色的咕咕鸽). All Rights Reserved.
+ * Author: aquamarine5@163.com (Github: https://github.com/aquamarine5) and Brainspark (previously RenegadeCreation)
+ * Repository: https://github.com/aquamarine5/ChaoxingSignFaker
+ */
 
+package org.aquamarine5.brainspark.chaoxingsignfaker.components
+
+import android.annotation.SuppressLint
 import android.graphics.Color
 import android.util.Log
 import android.widget.Toast
@@ -24,7 +31,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -59,44 +65,19 @@ import com.baidu.mapapi.search.geocode.ReverseGeoCodeOption
 import com.baidu.mapapi.search.geocode.ReverseGeoCodeResult
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
-import kotlinx.coroutines.launch
-import kotlinx.serialization.Serializable
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
-import org.aquamarine5.brainspark.chaoxingsignfaker.UMengHelper
-import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
-import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingPostLocationEntity
-import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
-import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingLocationSigner
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationDetailEntity
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationSignEntity
 
-
-@Serializable
-data class GetLocationDestination(
-    val activeId: Long,
-    val classId: Int,
-    val courseId: Int,
-    val extContent: String
-) {
-    companion object {
-        fun parseFromSignActivityEntity(activityEntity: ChaoxingSignActivityEntity): GetLocationDestination {
-            return GetLocationDestination(
-                activityEntity.id,
-                activityEntity.course.classId,
-                activityEntity.course.courseId,
-                activityEntity.ext
-            )
-        }
-    }
-}
-
+@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
-fun GetLocationPage(
-    destination: GetLocationDestination,
-    navToCourseDetailDestination: () -> Unit
+fun GetLocationComponent(
+    locationInfo: ChaoxingLocationDetailEntity? = null,
+    confirmButtonText: @Composable () -> Unit,
+    onLocationResult: (ChaoxingLocationSignEntity) -> Unit
 ) {
     LocalContext.current.let { context ->
-        ChaoxingHttpClient.CheckInstance()
-        Log.d("GetLocationPage", "GetLocationPage: $destination")
         val locationClient by remember {
             mutableStateOf(LocationClient(context.applicationContext).apply {
                 locOption = LocationClientOption().apply {
@@ -107,9 +88,10 @@ fun GetLocationPage(
                     setIsNeedAddress(true)
                     setNeedNewVersionRgc(true)
                 }
-            }.apply {
-                start()
             })
+        }
+        LaunchedEffect(Unit) {
+            locationClient.start()
         }
         var isShowDialog by remember { mutableStateOf(false) }
         Scaffold(
@@ -118,7 +100,7 @@ fun GetLocationPage(
                     FloatingActionButton(onClick = {
                         isShowDialog = true
                     }) {
-                        Icon(painterResource(R.drawable.ic_edit), contentDescription = "定位")
+                        Icon(painterResource(R.drawable.ic_edit), contentDescription = "修改备注")
                     }
                     Spacer(modifier = Modifier.height(8.dp))
                     FloatingActionButton(onClick = {
@@ -132,10 +114,8 @@ fun GetLocationPage(
                 }
             }
         ) { innerPadding ->
-
             Column(
                 modifier = Modifier
-                    .padding(innerPadding)
                     .fillMaxSize()
             ) {
                 val locationPermissionsState = rememberMultiplePermissionsState(
@@ -146,15 +126,12 @@ fun GetLocationPage(
                 )
                 if (locationPermissionsState.allPermissionsGranted) {
                     SDKInitializer.initialize(context.applicationContext)
-                    var isSignSuccess by remember { mutableStateOf(false) }
                     var marker by remember { mutableStateOf<Marker?>(null) }
                     var isNeedLocationDescribe by remember { mutableStateOf(false) }
                     var clickedPosition by remember { mutableStateOf(LatLng(0.0, 0.0)) }
                     var locationRange by remember { mutableStateOf<Int?>(null) }
                     var locationPosition by remember { mutableStateOf<LatLng?>(null) }
                     var clickedName by remember { mutableStateOf("未指定") }
-
-                    val coroutineScope = rememberCoroutineScope()
                     if (isShowDialog) {
                         AlertDialog(onDismissRequest = {
                             isShowDialog = false
@@ -177,7 +154,6 @@ fun GetLocationPage(
                             override fun onGetGeoCodeResult(p0: GeoCodeResult?) {}
 
                             override fun onGetReverseGeoCodeResult(p0: ReverseGeoCodeResult?) {
-                                Log.d("GetLocationPage", "ReverseGeoCodeResult: $p0")
                                 if (p0 == null || p0.error != SearchResult.ERRORNO.NO_ERROR) {
                                     Log.w(
                                         "GetLocationPage",
@@ -250,7 +226,6 @@ fun GetLocationPage(
                         })
                         map.setOnMapClickListener(object : BaiduMap.OnMapClickListener {
                             override fun onMapClick(p0: LatLng?) {
-                                Log.d("GetLocationPage", "onMapClick: $p0")
                                 p0?.let {
                                     clickedPosition = it
                                     geoCoder.reverseGeoCode(
@@ -275,7 +250,6 @@ fun GetLocationPage(
                             }
 
                             override fun onMapPoiClick(p0: MapPoi?) {
-                                Log.d("GetLocationPage", "onMapPoiClick: $p0")
                                 p0?.let {
                                     clickedPosition = it.position
                                     clickedName = it.name
@@ -320,33 +294,29 @@ fun GetLocationPage(
                             override fun onMarkerDragStart(p0: Marker?) {}
                         })
                     }
+                    if (locationInfo != null && locationInfo.isAvailable()) {
+                        locationRange = locationInfo.locationRange
 
+                        locationPosition =
+                            LatLng(locationInfo.latitude!!, locationInfo.longitude!!)
+                        mapView.map.setMapStatus(
+                            MapStatusUpdateFactory.newLatLng(
+                                locationPosition
+                            )
+                        )
+                        mapView.map.addOverlay(
+                            CircleOptions()
+                                .center(locationPosition)
+                                .radius(locationInfo.locationRange!!)
+                                .fillColor(Color.argb(128, 255, 0, 0))
+                        )
+                    }
                     DisposableEffect(Unit) {
                         onDispose {
                             mapView.onDestroy()
                             locationClient.stop()
                             mapView.map.isMyLocationEnabled = false
                             geoCoder.destroy()
-                        }
-                    }
-                    LaunchedEffect(Unit) {
-                        val signInfo =
-                            ChaoxingLocationSigner.getLocationSignInfo(destination.activeId)
-                        if (signInfo.isAvailable()) {
-                            locationRange = signInfo.locationRange
-
-                            locationPosition = LatLng(signInfo.latitude!!, signInfo.longitude!!)
-                            mapView.map.setMapStatus(
-                                MapStatusUpdateFactory.newLatLng(
-                                    locationPosition
-                                )
-                            )
-                            mapView.map.addOverlay(
-                                CircleOptions()
-                                    .center(locationPosition)
-                                    .radius(signInfo.locationRange!!)
-                                    .fillColor(Color.argb(128, 255, 0, 0))
-                            )
                         }
                     }
                     Row(
@@ -373,7 +343,11 @@ fun GetLocationPage(
                         }
                         Button(onClick = {
                             if (marker == null) {
-                                Toast.makeText(context, "请先点击地图选择位置", Toast.LENGTH_SHORT)
+                                Toast.makeText(
+                                    context,
+                                    "请先点击地图选择位置",
+                                    Toast.LENGTH_SHORT
+                                )
                                     .show()
                                 return@Button
                             }
@@ -383,48 +357,24 @@ fun GetLocationPage(
                                         CoordUtil.ll2point(locationPosition)
                                     ) > locationRange!!
                                 ) {
-                                    Toast.makeText(context, "位置超出范围", Toast.LENGTH_SHORT)
+                                    Toast.makeText(
+                                        context,
+                                        "位置超出范围",
+                                        Toast.LENGTH_SHORT
+                                    )
                                         .show()
                                     return@Button
                                 }
                             }
-                            val postLocationEntity = ChaoxingPostLocationEntity(
-                                clickedPosition.latitude,
-                                clickedPosition.longitude,
-                                clickedName
+                            onLocationResult(
+                                ChaoxingLocationSignEntity(
+                                    clickedPosition.latitude,
+                                    clickedPosition.longitude,
+                                    clickedName
+                                )
                             )
-                            coroutineScope.launch {
-                                try {
-                                    ChaoxingLocationSigner(
-                                        destination,
-                                        postLocationEntity
-                                    ).apply {
-                                        if (preSign()) {
-                                            Toast.makeText(
-                                                context,
-                                                "当前签到活动已经签到，不能重复签到",
-                                                Toast.LENGTH_SHORT
-                                            )
-                                                .show()
-                                            return@apply
-                                        } else {
-                                            sign()
-                                            isSignSuccess = true
-                                        }
-                                    }
-                                } catch (e: ChaoxingLocationSigner.ChaoxingLocationSignException) {
-                                    Toast.makeText(context, e.message, Toast.LENGTH_SHORT).show()
-                                    return@launch
-                                }
-                            }.invokeOnCompletion {
-                                if (isSignSuccess) {
-                                    Toast.makeText(context, "签到成功", Toast.LENGTH_SHORT).show()
-                                    UMengHelper.onSignLocationEvent(context, postLocationEntity)
-                                    navToCourseDetailDestination()
-                                }
-                            }
-                        }, enabled = !isSignSuccess, modifier = Modifier.width(80.dp)) {
-                            Text("签到")
+                        }, modifier = Modifier.width(80.dp)) {
+                            confirmButtonText()
                         }
                     }
                     AndroidView(

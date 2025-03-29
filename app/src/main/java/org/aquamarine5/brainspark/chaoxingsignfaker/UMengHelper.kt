@@ -1,9 +1,16 @@
+/*
+ * Copyright (c) 2025, @aquamarine5 (@海蓝色的咕咕鸽). All Rights Reserved.
+ * Author: aquamarine5@163.com (Github: https://github.com/aquamarine5) and Brainspark (previously RenegadeCreation)
+ * Repository: https://github.com/aquamarine5/ChaoxingSignFaker
+ */
+
 package org.aquamarine5.brainspark.chaoxingsignfaker
 
 import android.content.Context
 import com.umeng.analytics.MobclickAgent
 import com.umeng.commonsdk.UMConfigure
-import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingPostLocationEntity
+import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationSignEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingUserEntity
 
 object UMengHelper {
@@ -12,6 +19,9 @@ object UMengHelper {
 
     const val EVENT_TAG_ACCOUNT_LOGIN = "account_login"
     const val EVENT_TAG_SIGN_LOCATION = "sign_location"
+    const val EVENT_TAG_SIGN_QR_CODE = "sign_qr_code"
+    const val EVENT_TAG_ADD_OTHER_USER= "account_add_other_user"
+
     fun preInit(context: Context) {
         UMConfigure.preInit(context, API_KEY, API_CHANNEL)
     }
@@ -30,7 +40,7 @@ object UMengHelper {
         MobclickAgent.onProfileSignOff()
     }
 
-    fun onEvent(context: Context, eventId: String, data: Map<String, Any>) {
+    private fun onEvent(context: Context, eventId: String, data: Map<String, Any>) {
         MobclickAgent.onEventObject(context, eventId, data)
     }
 
@@ -38,11 +48,20 @@ object UMengHelper {
         onEvent(context, EVENT_TAG_ACCOUNT_LOGIN, mapOf("phone" to phoneNumber))
     }
 
-    fun onSignLocationEvent(context: Context, postLocationEntity: ChaoxingPostLocationEntity) {
-        onEvent(context, EVENT_TAG_SIGN_LOCATION, mapOf(
-            "latitude" to postLocationEntity.latitude,
-            "longitude" to postLocationEntity.longitude,
-            "address" to postLocationEntity.address
-        ))
+    fun onSignLocationEvent(context: Context, postLocationEntity: ChaoxingLocationSignEntity,userEntity: ChaoxingUserEntity) {
+        onEvent(
+            context, EVENT_TAG_SIGN_LOCATION, mapOf(
+                "address" to postLocationEntity.address,
+                "user" to userEntity.name,
+            )
+        )
+    }
+
+    fun onSignQRCodeEvent(context: Context, userEntity: ChaoxingUserEntity) {
+        onEvent(context, EVENT_TAG_SIGN_QR_CODE, mapOf("user" to userEntity.name))
+    }
+
+    fun onAccountOtherUserAddEvent(context: Context, userEntity: ChaoxingOtherUserSession) {
+        onEvent(context, EVENT_TAG_ADD_OTHER_USER, mapOf("phone" to userEntity.phoneNumber))
     }
 }

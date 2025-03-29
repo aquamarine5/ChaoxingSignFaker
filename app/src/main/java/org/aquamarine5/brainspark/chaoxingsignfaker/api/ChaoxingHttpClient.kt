@@ -1,13 +1,14 @@
+/*
+ * Copyright (c) 2025, @aquamarine5 (@海蓝色的咕咕鸽). All Rights Reserved.
+ * Author: aquamarine5@163.com (Github: https://github.com/aquamarine5) and Brainspark (previously RenegadeCreation)
+ * Repository: https://github.com/aquamarine5/ChaoxingSignFaker
+ */
+
 package org.aquamarine5.brainspark.chaoxingsignfaker.api
 
 import android.content.Context
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.ui.platform.LocalContext
-import androidx.navigation.compose.rememberNavController
 import com.alibaba.fastjson2.JSONObject
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import okhttp3.Call
 import okhttp3.Cookie
@@ -19,11 +20,14 @@ import okhttp3.Request
 import org.aquamarine5.brainspark.chaoxingsignfaker.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingLoginSession
+import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingSignFakerDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.HttpCookie
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingOtherUserSharedEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingUserEntity
-import org.aquamarine5.brainspark.chaoxingsignfaker.screens.LoginDestination
+import java.security.MessageDigest
 import java.util.Base64
+import java.util.UUID
 import javax.crypto.Cipher
 import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.SecretKeySpec
@@ -32,7 +36,6 @@ class ChaoxingHttpClient private constructor(
     val okHttpClient: OkHttpClient,
     val userEntity: ChaoxingUserEntity
 ) {
-
     class ChaoxingLoginException(message: String) : Exception(message)
 
     fun newCall(request: Request): Call = okHttpClient.newCall(request)
@@ -45,6 +48,63 @@ class ChaoxingHttpClient private constructor(
         private const val URL_LOGIN = "https://passport2.chaoxing.com/fanyalogin"
 
         var instance: ChaoxingHttpClient? = null
+
+        var deviceCode: String? = null
+
+        suspend fun generateDeviceCode(context: Context): String {
+            val rawData = MessageDigest.getInstance("SHA-256").digest(
+                (UUID.randomUUID().toString().replace("-", "") + UUID.randomUUID().toString()
+                    .replace("-", "")).toByteArray()
+            )
+            return Base64.getEncoder().encodeToString(rawData + rawData).apply {
+                context.chaoxingDataStore.updateData {
+                    it.toBuilder().setDeviceCode(this).build()
+                }
+            }
+        }
+
+        suspend fun loadFromOtherUserSession(session: ChaoxingOtherUserSession): ChaoxingHttpClient {
+            val okHttpClient = instance!!.okHttpClient.newBuilder().cookieJar(object : CookieJar {
+                private val cookieStore: MutableMap<String, List<Cookie>> = mutableMapOf()
+                private var chaoxingCookieSession: List<Cookie> = listOf()
+                override fun saveFromResponse(url: HttpUrl, cookies: List<Cookie>) {
+                    if (url.host.endsWith("chaoxing.com") && url.encodedPath == "/fanyalogin") {
+                        chaoxingCookieSession = cookies
+                    } else
+                        cookieStore[url.host] = cookies
+                }
+
+                override fun loadForRequest(url: HttpUrl): List<Cookie> {
+                    return if (url.host.endsWith("chaoxing.com")) {
+                        chaoxingCookieSession
+                    } else {
+                        cookieStore[url.host] ?: listOf()
+                    }
+                }
+            }).addInterceptor { chain ->
+                chain.proceed(
+                    chain.request().newBuilder()
+                        .header("User-Agent", CHAOXING_USER_AGENT).build()
+                )
+            }.build().apply {
+                cookieJar.saveFromResponse(
+                    HttpUrl.Builder().scheme("https").host("chaoxing.com")
+                        .encodedPath("/fanyalogin").build(),
+                    session.cookiesList.map {
+                        Cookie.Builder()
+                            .value(it.value)
+                            .name(it.name)
+                            .domain(it.host)
+                            .build()
+                    }
+                )
+            }
+            val userInfo = getInfo(okHttpClient)
+            return ChaoxingHttpClient(
+                okHttpClient,
+                userInfo
+            )
+        }
 
         suspend fun create(
             phoneNumber: String,
@@ -79,10 +139,12 @@ class ChaoxingHttpClient private constructor(
                 }
                 .build()
             login(client, phoneNumber, password, context)
+            val userInfo = getInfo(client).apply {
+                UMengHelper.profileSignIn(this, phoneNumber)
+            }
             return ChaoxingHttpClient(
-                client, getInfo(client).apply {
-                    UMengHelper.profileSignIn(this, phoneNumber)
-                }
+                client,
+                userInfo
             ).apply {
                 instance = this
             }
@@ -125,36 +187,13 @@ class ChaoxingHttpClient private constructor(
                         }
                 )
             }
+            val userInfo = getInfo(okHttpClient)
             return ChaoxingHttpClient(
                 okHttpClient,
-                getInfo(okHttpClient)
+                userInfo
             ).apply {
                 instance = this
             }
-        }
-
-        @Composable
-        fun CheckInstance() {
-            val context = LocalContext.current
-            val navController = rememberNavController()
-            LaunchedEffect(Unit) {
-                if (instance == null) {
-                    if (!checkSession(context)) {
-                        navController.navigate(LoginDestination)
-                    } else {
-                        loadFromDataStore(context)
-                    }
-                }
-            }
-        }
-
-        suspend fun loadFromDataStore(context: Context): ChaoxingHttpClient =
-            withContext(Dispatchers.IO) {
-                loadFromDataStore(context.chaoxingDataStore.data.first())
-            }
-
-        suspend fun checkSession(context: Context): Boolean = withContext(Dispatchers.IO) {
-            return@withContext context.chaoxingDataStore.data.first().hasLoginSession()
         }
 
         private suspend fun getInfo(client: OkHttpClient): ChaoxingUserEntity =
@@ -168,17 +207,17 @@ class ChaoxingHttpClient private constructor(
                             jsonResult.getInteger("fid"),
                             jsonResult.getString("name"),
                             jsonResult.getString("schoolname"),
-                            jsonResult.getString("uname")
+                            jsonResult.getString("uname"),
+                            jsonResult.getString("pic").replace("http://", "https://")
                         )
                     }
             }
 
-        private suspend fun login(
-            client: OkHttpClient,
+        suspend fun checkSharedEntity(
             phoneNumber: String,
             password: String,
             context: Context
-        ): Unit =
+        ): ChaoxingOtherUserSharedEntity =
             withContext(Dispatchers.IO) {
                 val uname = encryptByAES(phoneNumber)
                 val encryptedPassword = encryptByAES(password)
@@ -187,7 +226,94 @@ class ChaoxingHttpClient private constructor(
                     .post(FormBody.Builder().apply {
                         addEncoded("fid", "-1")
                         addEncoded("uname", uname.replace("+", "%2B"))
-                        addEncoded("password", encryptedPassword.replace("+", "%2B"))
+                        addEncoded(
+                            "password",
+                            encryptedPassword.replace("+", "%2B").replace(" ", "%2B")
+                        )
+                        addEncoded("refer", "https%3A%2F%2Fi.chaoxing.com")
+                        addEncoded("t", "true")
+                        addEncoded("forbidotherlogin", "0")
+                        addEncoded("validate", "")
+                        addEncoded("doubleFactorLogin", "0")
+                        addEncoded("independentId", "0")
+                        addEncoded("independentNameId", "0")
+                    }.build())
+                    .build()
+
+                val tempOkHttpClient =
+                    instance!!.okHttpClient.newBuilder()
+                        .cookieJar(object : CookieJar {
+                            private val cookieStore: MutableMap<String, List<Cookie>> =
+                                mutableMapOf()
+                            private var chaoxingCookieSession: List<Cookie> = listOf()
+                            override fun saveFromResponse(url: HttpUrl, cookies: List<Cookie>) {
+                                if (url.host.endsWith("chaoxing.com") && url.encodedPath == "/fanyalogin") {
+                                    chaoxingCookieSession = cookies
+                                } else
+                                    cookieStore[url.host] = cookies
+                            }
+
+                            override fun loadForRequest(url: HttpUrl): List<Cookie> {
+                                return if (url.host.endsWith("chaoxing.com")) {
+                                    chaoxingCookieSession
+                                } else {
+                                    cookieStore[url.host] ?: listOf()
+                                }
+                            }
+                        }).build()
+                tempOkHttpClient.newCall(request).execute().use {
+                    val jsonResult = JSONObject.parseObject(it.body?.string())
+                    if (!jsonResult.getBoolean("status")) {
+                        throw ChaoxingLoginException(if (jsonResult.containsKey("msg2")) {
+                            jsonResult.getString("msg2").ifEmpty {
+                                "登录错误"
+                            }
+                        } else {
+                            "登录错误"
+                        })
+                    }
+                    tempOkHttpClient.cookieJar.saveFromResponse(
+                        request.url,
+                        Cookie.parseAll(request.url, it.headers)
+                    )
+                    return@withContext ChaoxingOtherUserSharedEntity(
+                        phoneNumber,
+                        encryptedPassword,
+                        getInfo(tempOkHttpClient).name
+                    ).apply {
+                        context.chaoxingDataStore.updateData { datastore ->
+                            datastore.toBuilder().setLoginSession(
+                                datastore.loginSession.toBuilder()
+                                    .setPassword(encryptedPassword)
+                                    .setPhoneNumber(phoneNumber).build()
+                            ).build()
+                        }
+                    }
+                }
+            }
+
+        suspend fun login(
+            client: OkHttpClient,
+            phoneNumber: String,
+            password: String,
+            context: Context,
+            isSaveToDataStore: Boolean = true,
+            isEncryptedPassword: Boolean = false
+        ): Unit =
+            withContext(Dispatchers.IO) {
+                val uname = encryptByAES(phoneNumber)
+                val encryptedPassword =
+                    if (isEncryptedPassword) password else encryptByAES(password)
+                val request = Request.Builder()
+                    .url(URL_LOGIN)
+                    .post(FormBody.Builder().apply {
+                        addEncoded("fid", "-1")
+                        addEncoded("uname", uname.replace("+", "%2B"))
+                        addEncoded(
+                            "password",
+                            encryptedPassword.replace("+", "%2B").replace("%20", "%2B")
+                                .replace(" ", "%2B")
+                        )
                         addEncoded("refer", "https%3A%2F%2Fi.chaoxing.com")
                         addEncoded("t", "true")
                         addEncoded("forbidotherlogin", "0")
@@ -216,21 +342,26 @@ class ChaoxingHttpClient private constructor(
                     )
 
                 }
-                context.chaoxingDataStore.updateData {
-                    it.toBuilder().setLoginSession(
-                        ChaoxingLoginSession.newBuilder().addAllCookies(
-                            client.cookieJar.loadForRequest(
-                                HttpUrl.Builder()
-                                    .scheme("https")
-                                    .host("chaoxing.com").build()
-                            ).map { cookie ->
-                                HttpCookie.newBuilder()
-                                    .setValue(cookie.value)
-                                    .setName(cookie.name)
-                                    .setHost(cookie.domain).build()
-                            }
+                if (isSaveToDataStore) {
+                    context.chaoxingDataStore.updateData {
+                        it.toBuilder().setLoginSession(
+                            ChaoxingLoginSession.newBuilder().addAllCookies(
+                                client.cookieJar.loadForRequest(
+                                    HttpUrl.Builder()
+                                        .scheme("https")
+                                        .host("chaoxing.com").build()
+                                ).map { cookie ->
+                                    HttpCookie.newBuilder()
+                                        .setValue(cookie.value)
+                                        .setName(cookie.name)
+                                        .setHost(cookie.domain).build()
+                                }
+                            )
+                                .setPassword(encryptedPassword)
+                                .setPhoneNumber(phoneNumber)
+                                .build()
                         ).build()
-                    ).build()
+                    }
                 }
             }
 

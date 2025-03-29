@@ -1,3 +1,9 @@
+/*
+ * Copyright (c) 2025, @aquamarine5 (@海蓝色的咕咕鸽). All Rights Reserved.
+ * Author: aquamarine5@163.com (Github: https://github.com/aquamarine5) and Brainspark (previously RenegadeCreation)
+ * Repository: https://github.com/aquamarine5/ChaoxingSignFaker
+ */
+
 package org.aquamarine5.brainspark.chaoxingsignfaker.signer
 
 import android.util.Log
@@ -5,15 +11,17 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Request
-import okhttp3.Response
+import org.aquamarine5.brainspark.chaoxingsignfaker.ChaoxingPredictableException
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationDetailEntity
-import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingPostLocationEntity
-import org.aquamarine5.brainspark.chaoxingsignfaker.screens.GetLocationDestination
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationSignEntity
+import org.aquamarine5.brainspark.chaoxingsignfaker.screen.GetLocationDestination
 
 class ChaoxingLocationSigner(
-    private val destination: GetLocationDestination,
-    private val signLocation: ChaoxingPostLocationEntity
+    client: ChaoxingHttpClient,
+    private val destination: GetLocationDestination
 ) : ChaoxingSigner(
+    client,
     destination.activeId,
     destination.classId,
     destination.courseId,
@@ -25,21 +33,21 @@ class ChaoxingLocationSigner(
             "https://mobilelearn.chaoxing.com/pptSign/stuSignajax?&clientip=&appType=15&ifTiJiao=1&validate=&vpProbability=-1&vpStrategy="
 
         const val CLASSTAG = "ChaoxingLocationSigner"
+    }
 
-        suspend fun getLocationSignInfo(activeId: Long): ChaoxingLocationDetailEntity {
-            ChaoxingSignHelper.getSignInfo(activeId).let { jsonResult ->
-                return ChaoxingLocationDetailEntity(
-                    jsonResult.getDouble("locationLatitude"),
-                    jsonResult.getDouble("locationLongitude"),
-                    jsonResult.getInteger("locationRange")
-                )
-            }
+    class ChaoxingLocationSignException(message: String) : ChaoxingPredictableException(message)
+
+    suspend fun getLocationSignInfo(): ChaoxingLocationDetailEntity {
+        getSignInfo().let { jsonResult ->
+            return ChaoxingLocationDetailEntity(
+                jsonResult.getDouble("locationLatitude"),
+                jsonResult.getDouble("locationLongitude"),
+                jsonResult.getInteger("locationRange")
+            )
         }
     }
 
-    class ChaoxingLocationSignException(message: String) : Exception(message)
-
-    override suspend fun sign() = withContext(Dispatchers.IO) {
+    suspend fun sign(signLocation: ChaoxingLocationSignEntity) = withContext(Dispatchers.IO) {
         client.newCall(
             Request.Builder().url(
                 URL_SIGN.toHttpUrl().newBuilder()
@@ -50,7 +58,7 @@ class ChaoxingLocationSigner(
                     .addQueryParameter("uid", client.userEntity.uid.toString())
                     .addQueryParameter("name", client.userEntity.name)
                     .addQueryParameter("fid", client.userEntity.fid.toString())
-                    .addQueryParameter("deviceCode", "")
+                    .addQueryParameter("deviceCode", ChaoxingHttpClient.deviceCode!!)
                     .build()
             ).get().build()
         ).execute().use {
@@ -62,7 +70,7 @@ class ChaoxingLocationSigner(
         }
     }
 
-    override suspend fun checkAlreadySign(response: Response): Boolean {
-        return response.body?.string()?.contains("恭喜你已完成签到")?.not() ?: false
+    override suspend fun checkAlreadySign(response: String): Boolean {
+        return response.contains("恭喜你已完成签到").not()
     }
 }
