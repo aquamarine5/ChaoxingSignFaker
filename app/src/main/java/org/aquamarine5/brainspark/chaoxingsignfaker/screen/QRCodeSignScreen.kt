@@ -63,6 +63,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
+import org.aquamarine5.brainspark.chaoxingsignfaker.ChaoxingPredictableException
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
@@ -114,8 +115,11 @@ fun QRCodeSignScreen(
             isAlreadySigned = signer.preSign()
             isMapRequired = signer.getQRCodeSignInfo().isPositionRequired
         }.onFailure {
-            Sentry.captureException(it)
+            if((it is ChaoxingPredictableException).not()){
+                Sentry.captureException(it)
+            }
             Toast.makeText(context, "获取签到事件详情失败", Toast.LENGTH_SHORT).show()
+            navBack()
         }
     }
     when (isAlreadySigned) {

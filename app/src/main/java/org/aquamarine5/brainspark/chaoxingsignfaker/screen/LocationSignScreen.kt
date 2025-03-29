@@ -67,8 +67,11 @@ fun LocationSignScreen(
             signInfo = signer.getLocationSignInfo()
             isAlreadySigned = signer.preSign()
         }.onFailure {
-            Sentry.captureException(it)
+            if((it is ChaoxingPredictableException).not()){
+                Sentry.captureException(it)
+            }
             Toast.makeText(context, "获取签到事件详情失败", Toast.LENGTH_SHORT).show()
+            navToCourseDetailDestination()
         }
     }
     Scaffold { innerPadding->
