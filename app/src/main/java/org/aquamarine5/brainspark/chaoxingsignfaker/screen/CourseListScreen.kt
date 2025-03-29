@@ -7,6 +7,7 @@
 package org.aquamarine5.brainspark.chaoxingsignfaker.screen
 
 import android.widget.Toast
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -35,6 +36,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -158,11 +160,19 @@ fun CourseListScreen(
                                     navToOtherUserDestination()
                                 },
                                 shape = RoundedCornerShape(18.dp),
-                                modifier = Modifier.fillMaxWidth(),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(
+                                        Brush.linearGradient(
+                                            *arrayOf(
+                                                0f to Color(0xff1eeefb),
+                                                0.6f to Color(0xffdaaaec),
+                                                0.8f to Color(0xffffe67f)
+                                            )
+                                        ),RoundedCornerShape(18.dp)
+                                    ),
                                 colors = ButtonDefaults.buttonColors(
-                                    containerColor = Color(
-                                        0xff1177b0
-                                    )
+                                    containerColor = Color.Transparent
                                 )
                             ) {
                                 Row(
@@ -175,8 +185,8 @@ fun CourseListScreen(
                                         painterResource(R.drawable.ic_users_round),
                                         contentDescription = "多用户"
                                     )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text("多用户（测试版）")
+                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Text("添加其他用户以签到")
                                 }
                             }
                             Spacer(modifier = Modifier.height(8.dp))

@@ -23,6 +23,8 @@ import androidx.compose.ui.platform.LocalContext
 import io.sentry.Sentry
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
+import org.aquamarine5.brainspark.chaoxingsignfaker.ChaoxingPredictableException
+import org.aquamarine5.brainspark.chaoxingsignfaker.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.AlreadySignedNotice
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
@@ -81,15 +83,16 @@ fun LocationSignScreen(
                 false -> {
                     GetLocationComponent(signInfo, confirmButtonText = {
                         Text("签到")
-                    }) {
+                    }) { result->
                         coroutineScope.launch {
                             runCatching {
-                                signer.sign(it)
+                                signer.sign(result)
                             }.onSuccess {
                                 navToCourseDetailDestination()
+                                UMengHelper.onSignLocationEvent(context,result,ChaoxingHttpClient.instance!!.userEntity)
                             }.onFailure {
                                 Toast.makeText(context, it.message, Toast.LENGTH_SHORT).show()
-                                if ((it is ChaoxingLocationSigner.ChaoxingLocationSignException).not()) {
+                                if ((it is ChaoxingPredictableException).not()) {
                                     Sentry.captureException(it)
                                 }
                             }

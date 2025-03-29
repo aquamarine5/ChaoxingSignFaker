@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
@@ -43,14 +44,14 @@ fun AlreadySignedNotice(onSignForOtherUser: (() -> Unit)?, navBack: () -> Unit) 
             Spacer(modifier = Modifier.width(6.dp))
             OutlinedButton(onClick = {
                 it.invoke()
-            }) {
+            }, modifier = Modifier.fillMaxWidth()) {
                 Text("为其他用户签到")
             }
         }
         Spacer(modifier = Modifier.width(6.dp))
         Button(onClick = {
             navBack()
-        }) {
+        }, modifier = Modifier.fillMaxWidth()) {
             Text("返回")
         }
     }

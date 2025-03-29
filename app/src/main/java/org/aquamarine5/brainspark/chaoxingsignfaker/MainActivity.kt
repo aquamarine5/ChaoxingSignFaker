@@ -97,7 +97,9 @@ class MainActivity : ComponentActivity() {
                         )}
                 ) {
                     composable<QRCodeSignDestination> {
-                        QRCodeSignScreen(it.toRoute()) {
+                        QRCodeSignScreen(it.toRoute(), navToOtherUser = {
+                            navController.navigate(OtherUserDestination)
+                        }) {
                             navController.navigateUp()
                         }
                     }
@@ -136,7 +138,7 @@ class MainActivity : ComponentActivity() {
 
                     composable<CourseListDestination> {
                         CourseListScreen(navToOtherUserDestination = {
-                            navController.navigate(OtherUserDestination())
+                            navController.navigate(OtherUserDestination)
                         }) {
                             navController.navigate(it, navOptions {
                                 popUpTo<CourseListDestination> { saveState = true }

@@ -21,8 +21,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import io.sentry.Sentry
+import org.aquamarine5.brainspark.chaoxingsignfaker.ChaoxingPredictableException
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
-import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSigner
 
 data class ChaoxingSignStatus(
     val isSuccess: MutableState<Boolean?> = mutableStateOf(null),
@@ -49,8 +49,7 @@ data class ChaoxingSignStatus(
         obj1 = false
         obj3=false
         obj2 = when (e) {
-            is ChaoxingSigner.SignActivityNoPermissionException -> "无权限访问"
-            is ChaoxingSigner.AlreadySignedException -> "已签到"
+            is ChaoxingPredictableException -> e.message ?: "签到失败"
             else -> {
                 Sentry.captureException(e)
                 e.message ?: "签到失败"

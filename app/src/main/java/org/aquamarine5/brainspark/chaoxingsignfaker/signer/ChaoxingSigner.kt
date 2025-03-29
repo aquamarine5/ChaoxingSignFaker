@@ -12,6 +12,7 @@ import kotlinx.coroutines.withContext
 import okhttp3.FormBody
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Request
+import org.aquamarine5.brainspark.chaoxingsignfaker.ChaoxingPredictableException
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 
 abstract class ChaoxingSigner(
@@ -35,10 +36,9 @@ abstract class ChaoxingSigner(
             "https://mobilelearn.chaoxing.com/pptSign/stuSignajax?&clientip=&appType=15&ifTiJiao=1&validate=&vpProbability=-1&vpStrategy="
     }
 
-    class SignActivityNoPermissionException : Exception()
+    class SignActivityNoPermissionException : ChaoxingPredictableException("无权限访问")
 
-
-    class AlreadySignedException : Exception()
+    class AlreadySignedException : ChaoxingPredictableException("已经签到过了")
 
     abstract suspend fun checkAlreadySign(response: String): Boolean
 

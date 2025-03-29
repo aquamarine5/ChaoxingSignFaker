@@ -11,6 +11,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Request
+import org.aquamarine5.brainspark.chaoxingsignfaker.ChaoxingPredictableException
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationDetailEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationSignEntity
@@ -34,7 +35,7 @@ class ChaoxingLocationSigner(
         const val CLASSTAG = "ChaoxingLocationSigner"
     }
 
-    class ChaoxingLocationSignException(message: String) : Exception(message)
+    class ChaoxingLocationSignException(message: String) : ChaoxingPredictableException(message)
 
     suspend fun getLocationSignInfo(): ChaoxingLocationDetailEntity {
         getSignInfo().let { jsonResult ->

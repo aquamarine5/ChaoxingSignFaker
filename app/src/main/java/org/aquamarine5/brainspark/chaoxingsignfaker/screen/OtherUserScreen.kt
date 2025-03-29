@@ -67,6 +67,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
+import org.aquamarine5.brainspark.chaoxingsignfaker.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingOtherUserHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.QRCodeScanComponent
@@ -75,18 +76,16 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserS
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingOtherUserSharedEntity
 
 @Serializable
-data class OtherUserDestination(
-    val scanResult: String? = null
-)
+object OtherUserDestination
 
 @Composable
 fun OtherUserScreen(naviBack: () -> Unit) {
     Scaffold { innerPadding ->
         val context = LocalContext.current
-        var isQRCodeScanPause = remember { mutableStateOf(false) }
+        val isQRCodeScanPause = remember { mutableStateOf(false) }
         var isQRCodeScanning by remember { mutableStateOf(false) }
         var isQRCodeIllegal by remember { mutableStateOf(false) }
-        var isQRCodeParsing = remember { mutableStateOf(false) }
+        val isQRCodeParsing = remember { mutableStateOf(false) }
         var isQRCodeImportSuccess by remember { mutableStateOf(false) }
         var isLocalSharedEntityReady by remember { mutableStateOf<Boolean?>(null) }
         var currentImportData by remember { mutableStateOf("") }
@@ -335,6 +334,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                             "${sharedEntity.userName}(手机号：${sharedEntity.phoneNumber})"
                                         isQRCodeImportSuccess = true
                                         otherUserSessions.add(it)
+                                        UMengHelper.onAccountOtherUserAddEvent(context, it)
                                     }.onFailure {
                                         it.printStackTrace()
                                         Sentry.captureException(it)
