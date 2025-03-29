@@ -13,6 +13,7 @@ import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,12 +21,12 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
@@ -152,7 +153,7 @@ fun QRCodeSignScreen(
                                 containerColor = Color(83, 83, 83)
                             ), modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(6.dp, 0.dp)
+                                .padding(9.dp, 3.dp)
                         ) {
                             Row(
                                 modifier = Modifier
@@ -182,25 +183,26 @@ fun QRCodeSignScreen(
                                 )
                             }
                         }
-                        Button(
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Card(
                             onClick = {
                                 navToOtherUser()
                             },
                             shape = RoundedCornerShape(18.dp),
-                            colors=ButtonDefaults.buttonColors(
+                            colors = CardDefaults.cardColors(
                                 containerColor = Color(0xFFFCD337)
                             ),
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(6.dp, 0.dp)
+                                .padding(6.dp, 3.dp)
                         ) {
                             Row(
                                 modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(10.dp),
+                                    .padding(10.dp)
+                                    .fillMaxWidth(),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Spacer(modifier = Modifier.width(4.dp))
+                                Spacer(modifier = Modifier.width(7.dp))
                                 Icon(
                                     painterResource(R.drawable.ic_lightbulb),
                                     contentDescription = "Help",
@@ -208,10 +210,12 @@ fun QRCodeSignScreen(
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    "如果你还没有添加其他用户，可以点击跳转。",
+                                    "如果你还没有添加其他用户，可以点击跳转添加用户向导。",
                                     color = Color.White,
                                     fontSize = 14.sp,
-                                    fontWeight = FontWeight.W500
+                                    lineHeight = 19.sp,
+                                    fontWeight = FontWeight.W500,
+                                    modifier = Modifier.fillMaxWidth()
                                 )
                             }
                         }
@@ -241,12 +245,17 @@ fun QRCodeSignScreen(
                                     },
                                     enabled = (success == true).not()
                                 )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    "给自己签到",
-                                    textDecoration = if (success != true) TextDecoration.None else TextDecoration.LineThrough
-                                )
-                                signStatus[0].ResultCard()
+                                Row(modifier = Modifier.clickable {
+                                    if((success == true).not())
+                                        userSelections[0] = userSelections[0].not()
+                                }) {
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        "给自己签到",
+                                        textDecoration = if (success != true) TextDecoration.None else TextDecoration.LineThrough
+                                    )
+                                    signStatus[0].ResultCard()
+                                }
                             }
                             signUserList.forEachIndexed { index, userSelection ->
                                 Row(
@@ -263,12 +272,17 @@ fun QRCodeSignScreen(
                                         },
                                         enabled = (successForOtherUser == true).not()
                                     )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                        text = userSelection.name,
-                                        textDecoration = if (successForOtherUser != true) TextDecoration.None else TextDecoration.LineThrough
-                                    )
-                                    signStatus[1 + index].ResultCard()
+                                    Row(modifier = Modifier.clickable {
+                                        if((successForOtherUser == true).not())
+                                            userSelections[1 + index] = userSelections[1 + index].not()
+                                    }) {
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            text = userSelection.name,
+                                            textDecoration = if (successForOtherUser != true) TextDecoration.None else TextDecoration.LineThrough
+                                        )
+                                        signStatus[1 + index].ResultCard()
+                                    }
                                 }
                             }
                         }
@@ -328,7 +342,10 @@ fun QRCodeSignScreen(
                                                 userSelections[0] = false
                                             }.onSuccess {
                                                 signStatus[0].success()
-                                                UMengHelper.onSignQRCodeEvent(context,ChaoxingHttpClient.instance!!.userEntity)
+                                                UMengHelper.onSignQRCodeEvent(
+                                                    context,
+                                                    ChaoxingHttpClient.instance!!.userEntity
+                                                )
                                             }.onFailure {
                                                 it.printStackTrace()
                                                 signStatus[0].failed(it)
@@ -340,7 +357,7 @@ fun QRCodeSignScreen(
                                                     signStatus[1 + index].loading()
                                                     ChaoxingHttpClient.loadFromOtherUserSession(
                                                         it
-                                                    ).also { client->
+                                                    ).also { client ->
                                                         ChaoxingQRCodeSigner(
                                                             client, destination
                                                         ).apply {
@@ -353,7 +370,10 @@ fun QRCodeSignScreen(
                                                     }
                                                 }.onSuccess {
                                                     signStatus[1 + index].success()
-                                                    UMengHelper.onSignQRCodeEvent(context,it.userEntity)
+                                                    UMengHelper.onSignQRCodeEvent(
+                                                        context,
+                                                        it.userEntity
+                                                    )
                                                     userSelections[1 + index] = false
                                                 }.onFailure {
                                                     it.printStackTrace()

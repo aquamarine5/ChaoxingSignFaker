@@ -40,7 +40,9 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil3.ImageLoader
 import coil3.disk.DiskCache
 import coil3.disk.directory
@@ -185,8 +187,8 @@ fun CourseListScreen(
                                         painterResource(R.drawable.ic_users_round),
                                         contentDescription = "多用户"
                                     )
-                                    Spacer(modifier = Modifier.width(10.dp))
-                                    Text("添加其他用户以签到")
+                                    Spacer(modifier = Modifier.width(14.dp))
+                                    Text("添加其他用户以签到", fontSize = 15.sp, fontWeight = FontWeight.W600)
                                 }
                             }
                             Spacer(modifier = Modifier.height(8.dp))

@@ -142,7 +142,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                 }
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    "使用其他设备扫描二维码\n以将你的账号添加到其他设备中",
+                    "使用其他设备打开随地大小签APP扫描二维码\n以将你的账号添加到其他设备中",
                     fontSize = 13.sp,
                     lineHeight = 17.sp,
                     textAlign = TextAlign.Center
