@@ -33,6 +33,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.R
 fun SponsorAlertDialog(showDialog: MutableState<Boolean>) {
     val sponsorList = listOf(
         listOf("催什么崔", "8.88"),
+        listOf("不愿透露姓名的耿先生", "8.88"),
         listOf("不愿透露姓名的景先生", "6.66"),
         listOf("不愿透露姓名的张先生", "2.88"),
     )

@@ -11,13 +11,11 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -63,106 +61,120 @@ class MainActivity : ComponentActivity() {
         setContent {
             ChaoxingSignFakerTheme {
                 val navController = rememberNavController()
-                NavHost(navController,
-                    runBlocking {
-                        applicationContext.chaoxingDataStore.data.first().let {
-                            if (it.agreeTerms) {
-                                UMengHelper.init(applicationContext)
-                                LocationClient.setAgreePrivacy(true)
-                                SDKInitializer.setAgreePrivacy(applicationContext, true)
+                Column(modifier = Modifier.background(MaterialTheme.colorScheme.background).fillMaxSize()){
+                    NavHost(navController,
+                        runBlocking {
+                            applicationContext.chaoxingDataStore.data.first().let {
+                                if (it.agreeTerms) {
+                                    UMengHelper.init(applicationContext)
+                                    LocationClient.setAgreePrivacy(true)
+                                    SDKInitializer.setAgreePrivacy(applicationContext, true)
+                                }
+                                ChaoxingHttpClient.deviceCode =
+                                    if (it.deviceCode == null)
+                                        ChaoxingHttpClient.generateDeviceCode(applicationContext)
+                                    else it.deviceCode
+                                when {
+                                    !it.agreeTerms -> WelcomeDestination
+                                    !it.hasLoginSession() -> LoginDestination
+                                    else -> {
+                                        ChaoxingHttpClient.loadFromDataStore(it)
+                                        CourseListDestination
+                                    }
+                                }
                             }
-                            ChaoxingHttpClient.deviceCode =
-                                if (it.deviceCode == null)
-                                    ChaoxingHttpClient.generateDeviceCode(applicationContext)
-                                else it.deviceCode
-                            when {
-                                !it.agreeTerms -> WelcomeDestination
-                                !it.hasLoginSession() -> LoginDestination
-                                else -> {
-                                    ChaoxingHttpClient.loadFromDataStore(it)
-                                    CourseListDestination
+                        },
+//                        enterTransition = {
+//                            slideInHorizontally(
+//                                initialOffsetX = { it },
+//                                animationSpec = tween(300)
+//                            ) + fadeIn(
+//                                animationSpec = tween(300)
+//                            )
+//                        }, exitTransition = {
+//                            scaleOut(targetScale = 0.8f, animationSpec = tween(300)) + fadeOut(
+//                                animationSpec = tween(300)
+//                            )
+//                        }, popEnterTransition = {
+//                            scaleIn(initialScale = 0.8f, animationSpec = tween(300)) + fadeIn(
+//                                animationSpec = tween(300)
+//                            )
+//                        }, popExitTransition = {
+//                            slideOutHorizontally(
+//                                targetOffsetX = { it },
+//                                animationSpec = tween(300)
+//                            ) + fadeOut(
+//                                animationSpec = tween(300)
+//                            )
+//                        }
+                    ) {
+                        composable<QRCodeSignDestination> {
+                            QRCodeSignScreen(it.toRoute(), navToOtherUser = {
+                                navController.navigate(OtherUserDestination)
+                            }) {
+                                navController.navigateUp()
+                            }
+                        }
+
+                        composable<OtherUserDestination> {
+                            OtherUserScreen {
+                                navController.navigateUp()
+                            }
+                        }
+
+                        composable<WelcomeDestination> {
+                            WelcomeScreen {
+                                navController.navigate(LoginDestination) {
+                                    popUpTo<WelcomeDestination>()
                                 }
                             }
                         }
-                    },
-                    enterTransition = {
-                        slideInHorizontally(initialOffsetX = { it }, animationSpec = tween(300)) + fadeIn(
-                            animationSpec = tween(300)
-                        )
-                    }, exitTransition = {
-                        scaleOut(targetScale = 0.8f, animationSpec = tween(300)) + fadeOut(animationSpec = tween(300))
-                    }, popEnterTransition = {
-                        scaleIn(initialScale = 0.8f, animationSpec = tween(300)) + fadeIn(animationSpec = tween(300))
-                    }, popExitTransition = {
-                        slideOutHorizontally(targetOffsetX = { it }, animationSpec = tween(300)) + fadeOut(
-                            animationSpec = tween(300)
-                        )}
-                ) {
-                    composable<QRCodeSignDestination> {
-                        QRCodeSignScreen(it.toRoute(), navToOtherUser = {
-                            navController.navigate(OtherUserDestination)
-                        }) {
-                            navController.navigateUp()
-                        }
-                    }
 
-                    composable<OtherUserDestination> {
-                        OtherUserScreen {
-                            navController.navigateUp()
-                        }
-                    }
-
-                    composable<WelcomeDestination> {
-                        WelcomeScreen {
-                            navController.navigate(LoginDestination) {
-                                popUpTo<WelcomeDestination>()
+                        composable<LoginDestination> {
+                            LoginPage {
+                                navController.navigate(CourseListDestination) {
+                                    popUpTo<LoginDestination> { inclusive = true }
+                                }
                             }
                         }
-                    }
 
-                    composable<LoginDestination> {
-                        LoginPage {
-                            navController.navigate(CourseListDestination) {
-                                popUpTo<LoginDestination> { inclusive = true }
+                        composable<GetLocationDestination>(
+                            typeMap = mapOf(
+                                typeOf<ChaoxingSignActivityEntity>() to ChaoxingSignActivityEntity.SignActivityNavType
+                            )
+                        ) {
+                            LocationSignScreen(it.toRoute()) {
+                                navController.navigateUp()
                             }
                         }
-                    }
 
-                    composable<GetLocationDestination>(
-                        typeMap = mapOf(
-                            typeOf<ChaoxingSignActivityEntity>() to ChaoxingSignActivityEntity.SignActivityNavType
-                        )
-                    ) {
-                        LocationSignScreen(it.toRoute()) {
-                            navController.navigateUp()
+                        composable<CourseListDestination> {
+                            CourseListScreen(navToOtherUserDestination = {
+                                navController.navigate(OtherUserDestination)
+                            }) {
+                                navController.navigate(it, navOptions {
+                                    popUpTo<CourseListDestination> { saveState = true }
+                                    restoreState = true
+                                })
+                            }
                         }
-                    }
 
-                    composable<CourseListDestination> {
-                        CourseListScreen(navToOtherUserDestination = {
-                            navController.navigate(OtherUserDestination)
-                        }) {
-                            navController.navigate(it, navOptions {
-                                popUpTo<CourseListDestination> { saveState = true }
-                                restoreState = true
-                            })
+                        composable<CourseDetailDestination> {
+                            CourseDetailScreen(it.toRoute(), navToSignerDestination = { destination ->
+                                navController.navigate(destination)
+                            }) {
+                                navController.navigateUp()
+                            }
                         }
-                    }
 
-                    composable<CourseDetailDestination> {
-                        CourseDetailScreen(it.toRoute(), navToSignerDestination = { destination ->
-                            navController.navigate(destination)
-                        }) {
-                            navController.navigateUp()
-                        }
-                    }
-
-                    composable<PhotoSignDestination> {
-                        PhotoSignScreen(it.toRoute()) {
-                            navController.navigateUp()
+                        composable<PhotoSignDestination> {
+                            PhotoSignScreen(it.toRoute()) {
+                                navController.navigateUp()
+                            }
                         }
                     }
                 }
+
             }
         }
     }

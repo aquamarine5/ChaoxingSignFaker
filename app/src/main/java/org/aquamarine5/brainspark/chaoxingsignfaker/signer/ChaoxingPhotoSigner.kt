@@ -97,23 +97,28 @@ class ChaoxingPhotoSigner(
         }.getOrElse { throw ChaoxingPhotoSignException("文件转换失败") }
     }
 
-    suspend fun uploadImage(context: Context, uri:Uri,token: String): String = withContext(Dispatchers.IO) {
-        val filename="${UUID.randomUUID()}.jpg"
-        client.newCall(
-            Request.Builder().url(URL_CLOUD_UPLOAD + token).post(
-                MultipartBody.Builder().setType(MultipartBody.FORM)
-                    .addFormDataPart("puid", client.userEntity.puid.toString())
-                    .addFormDataPart(
-                        "file",
-                        filename,
-                        uriToFile(context,uri,filename).asRequestBody("image/jpeg".toMediaType())
-                    )
-                    .build()
-            ).build()
-        ).execute().use {
-            JSONObject.parseObject(it.body!!.string()).getString("objectId")
+    suspend fun uploadImage(context: Context, uri: Uri, token: String): String =
+        withContext(Dispatchers.IO) {
+            val filename = "${UUID.randomUUID()}.jpg"
+            client.newCall(
+                Request.Builder().url(URL_CLOUD_UPLOAD + token).post(
+                    MultipartBody.Builder().setType(MultipartBody.FORM)
+                        .addFormDataPart("puid", client.userEntity.puid.toString())
+                        .addFormDataPart(
+                            "file",
+                            filename,
+                            uriToFile(
+                                context,
+                                uri,
+                                filename
+                            ).asRequestBody("image/jpeg".toMediaType())
+                        )
+                        .build()
+                ).build()
+            ).execute().use {
+                JSONObject.parseObject(it.body!!.string()).getString("objectId")
+            }
         }
-    }
 
     suspend fun ifPhotoRequiredLogin(): Boolean = getSignInfo().getInteger("ifphoto") == 1
 

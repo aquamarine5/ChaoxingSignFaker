@@ -20,7 +20,7 @@ object UMengHelper {
     const val EVENT_TAG_ACCOUNT_LOGIN = "account_login"
     const val EVENT_TAG_SIGN_LOCATION = "sign_location"
     const val EVENT_TAG_SIGN_QR_CODE = "sign_qr_code"
-    const val EVENT_TAG_ADD_OTHER_USER= "account_add_other_user"
+    const val EVENT_TAG_ADD_OTHER_USER = "account_add_other_user"
 
     fun preInit(context: Context) {
         UMConfigure.preInit(context, API_KEY, API_CHANNEL)
@@ -48,7 +48,11 @@ object UMengHelper {
         onEvent(context, EVENT_TAG_ACCOUNT_LOGIN, mapOf("phone" to phoneNumber))
     }
 
-    fun onSignLocationEvent(context: Context, postLocationEntity: ChaoxingLocationSignEntity,userEntity: ChaoxingUserEntity) {
+    fun onSignLocationEvent(
+        context: Context,
+        postLocationEntity: ChaoxingLocationSignEntity,
+        userEntity: ChaoxingUserEntity
+    ) {
         onEvent(
             context, EVENT_TAG_SIGN_LOCATION, mapOf(
                 "address" to postLocationEntity.address,

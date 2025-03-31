@@ -142,7 +142,7 @@ fun PhotoSignScreen(destination: PhotoSignDestination, navBack: () -> Unit) {
                                     navBack()
                                 }) { Text("返回") }
                             }
-                        }else{
+                        } else {
                             Button(onClick = {
                                 isShowPhotoPicker = true
                             }) {

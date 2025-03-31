@@ -148,7 +148,12 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                 Text(
                     buildAnnotatedString {
                         append("使用其他设备打开")
-                        withStyle(SpanStyle(fontWeight = FontWeight.Bold, textDecoration = TextDecoration.Underline)) {
+                        withStyle(
+                            SpanStyle(
+                                fontWeight = FontWeight.Bold,
+                                textDecoration = TextDecoration.Underline
+                            )
+                        ) {
                             append(" 随地大小签APP ")
                         }
                         append("扫描二维码\n以将你的账号添加到其他设备中")

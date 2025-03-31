@@ -117,7 +117,7 @@ fun QRCodeSignScreen(
             isAlreadySigned = signer.preSign()
             isMapRequired = signer.getQRCodeSignInfo().isPositionRequired
         }.onFailure {
-            if((it is ChaoxingPredictableException).not()){
+            if ((it is ChaoxingPredictableException).not()) {
                 Sentry.captureException(it)
             }
             Toast.makeText(context, "获取签到事件详情失败", Toast.LENGTH_SHORT).show()
@@ -152,7 +152,11 @@ fun QRCodeSignScreen(
                         .fillMaxSize()
                         .zIndex(0f)
                 ) {
-                    Column(modifier = Modifier.padding(16.dp).verticalScroll(rememberScrollState())) {
+                    Column(
+                        modifier = Modifier
+                            .padding(16.dp)
+                            .verticalScroll(rememberScrollState())
+                    ) {
                         Card(
                             shape = RoundedCornerShape(18.dp),
                             colors = CardDefaults.cardColors(
@@ -233,7 +237,10 @@ fun QRCodeSignScreen(
                             userSelections[0] = isCurrentAlreadySigned != true
                         }
                         Spacer(modifier = Modifier.height(6.dp))
-                        Text("选择要进行二维码签到的用户：", modifier = Modifier.padding(start=3.dp))
+                        Text(
+                            "选择要进行二维码签到的用户：",
+                            modifier = Modifier.padding(start = 3.dp)
+                        )
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -253,7 +260,7 @@ fun QRCodeSignScreen(
                                     enabled = (success == true).not()
                                 )
                                 Row(modifier = Modifier.clickable {
-                                    if((success == true).not())
+                                    if ((success == true).not())
                                         userSelections[0] = userSelections[0].not()
                                 }) {
                                     Spacer(modifier = Modifier.width(8.dp))
@@ -281,8 +288,9 @@ fun QRCodeSignScreen(
                                         enabled = (successForOtherUser == true).not()
                                     )
                                     Row(modifier = Modifier.clickable {
-                                        if((successForOtherUser == true).not())
-                                            userSelections[1 + index] = userSelections[1 + index].not()
+                                        if ((successForOtherUser == true).not())
+                                            userSelections[1 + index] =
+                                                userSelections[1 + index].not()
                                     }) {
                                         Spacer(modifier = Modifier.width(8.dp))
                                         Text(
@@ -296,8 +304,9 @@ fun QRCodeSignScreen(
                         }
 
                         Button(onClick = {
-                            if(!userSelections.any { it }){
-                                Toast.makeText(context, "请选择要签到的用户", Toast.LENGTH_SHORT).show()
+                            if (!userSelections.any { it }) {
+                                Toast.makeText(context, "请选择要签到的用户", Toast.LENGTH_SHORT)
+                                    .show()
                                 return@Button
                             }
                             if (isMapRequired) {
