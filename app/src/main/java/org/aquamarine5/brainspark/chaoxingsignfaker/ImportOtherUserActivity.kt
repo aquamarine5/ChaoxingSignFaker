@@ -14,18 +14,20 @@ import kotlinx.coroutines.launch
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingOtherUserHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingOtherUserSharedEntity
 
-class ImportOtherUserActivity:ComponentActivity() {
+class ImportOtherUserActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         runCatching {
             intent.data?.let {
-                if(it.host=="import"){
+                if (it.host == "import") {
                     this.lifecycle.coroutineScope.launch {
-                        ChaoxingOtherUserHelper.saveOtherUser(this@ImportOtherUserActivity, ChaoxingOtherUserSharedEntity(
-                            it.getQueryParameter("phone")!!,
-                            it.getQueryParameter("pwd")!!,
-                            it.getQueryParameter("name")!!,
-                        ))
+                        ChaoxingOtherUserHelper.saveOtherUser(
+                            this@ImportOtherUserActivity, ChaoxingOtherUserSharedEntity(
+                                it.getQueryParameter("phone")!!,
+                                it.getQueryParameter("pwd")!!,
+                                it.getQueryParameter("name")!!,
+                            )
+                        )
                     }.invokeOnCompletion {
                         startActivity(Intent(this, MainActivity::class.java))
                         finish()

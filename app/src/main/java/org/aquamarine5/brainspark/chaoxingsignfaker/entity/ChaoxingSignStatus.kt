@@ -27,19 +27,19 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.R
 data class ChaoxingSignStatus(
     val isSuccess: MutableState<Boolean?> = mutableStateOf(null),
     val error: MutableState<String> = mutableStateOf(""),
-    val isLoading:MutableState<Boolean> = mutableStateOf(false)
+    val isLoading: MutableState<Boolean> = mutableStateOf(false)
 ) {
 
-    fun loading(){
+    fun loading() {
         var obj by isLoading
-        obj=true
+        obj = true
     }
 
     fun success() {
         var obj1 by isSuccess
         var obj2 by isLoading
         obj1 = true
-        obj2=false
+        obj2 = false
     }
 
     fun failed(e: Throwable) {
@@ -47,7 +47,7 @@ data class ChaoxingSignStatus(
         var obj2 by error
         var obj3 by isLoading
         obj1 = false
-        obj3=false
+        obj3 = false
         obj2 = when (e) {
             is ChaoxingPredictableException -> e.message ?: "签到失败"
             else -> {
@@ -58,17 +58,19 @@ data class ChaoxingSignStatus(
     }
 
     @Composable
-    fun ResultCard(){
+    fun ResultCard() {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-            when(isSuccess.value){
-                true->{
-                    Icon(painterResource(R.drawable.ic_check),"签到成功")
+            when (isSuccess.value) {
+                true -> {
+                    Icon(painterResource(R.drawable.ic_check), "签到成功")
                 }
-                false->{
+
+                false -> {
                     Text(error.value, color = Color(0xFFF43E06))
                 }
-                null->{
-                    if(isLoading.value)
+
+                null -> {
+                    if (isLoading.value)
                         CircularProgressIndicator()
                 }
             }

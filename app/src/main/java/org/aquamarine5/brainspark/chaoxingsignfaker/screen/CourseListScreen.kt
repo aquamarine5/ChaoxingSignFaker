@@ -171,7 +171,7 @@ fun CourseListScreen(
                                                 0.6f to Color(0xffdaaaec),
                                                 0.8f to Color(0xffffe67f)
                                             )
-                                        ),RoundedCornerShape(18.dp)
+                                        ), RoundedCornerShape(18.dp)
                                     ),
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = Color.Transparent
@@ -188,7 +188,11 @@ fun CourseListScreen(
                                         contentDescription = "多用户"
                                     )
                                     Spacer(modifier = Modifier.width(14.dp))
-                                    Text("添加其他用户以签到", fontSize = 15.sp, fontWeight = FontWeight.W600)
+                                    Text(
+                                        "添加其他用户以签到",
+                                        fontSize = 15.sp,
+                                        fontWeight = FontWeight.W600
+                                    )
                                 }
                             }
                             Spacer(modifier = Modifier.height(8.dp))

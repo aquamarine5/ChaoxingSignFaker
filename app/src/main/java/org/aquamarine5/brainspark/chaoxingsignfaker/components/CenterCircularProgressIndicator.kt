@@ -17,9 +17,11 @@ import androidx.compose.ui.Modifier
 
 @Composable
 fun CenterCircularProgressIndicator(modifier: Modifier = Modifier) {
-    Box(modifier = Modifier
-        .fillMaxSize()
-        .background(MaterialTheme.colorScheme.background)) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
         CircularProgressIndicator(
             modifier = Modifier
                 .align(Alignment.Center)

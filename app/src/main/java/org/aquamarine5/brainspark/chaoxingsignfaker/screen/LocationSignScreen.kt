@@ -67,14 +67,17 @@ fun LocationSignScreen(
             signInfo = signer.getLocationSignInfo()
             isAlreadySigned = signer.preSign()
         }.onFailure {
-            Sentry.captureException(it)
+            if ((it is ChaoxingPredictableException).not()) {
+                Sentry.captureException(it)
+            }
             Toast.makeText(context, "获取签到事件详情失败", Toast.LENGTH_SHORT).show()
+            navToCourseDetailDestination()
         }
     }
-    Scaffold { innerPadding->
+    Scaffold { innerPadding ->
         Column(
-            modifier=Modifier.padding(innerPadding)
-        ){
+            modifier = Modifier.padding(innerPadding)
+        ) {
             when (isAlreadySigned) {
                 true -> {
                     AlreadySignedNotice(onSignForOtherUser = null) { navToCourseDetailDestination() }
@@ -83,13 +86,17 @@ fun LocationSignScreen(
                 false -> {
                     GetLocationComponent(signInfo, confirmButtonText = {
                         Text("签到")
-                    }) { result->
+                    }) { result ->
                         coroutineScope.launch {
                             runCatching {
                                 signer.sign(result)
                             }.onSuccess {
                                 navToCourseDetailDestination()
-                                UMengHelper.onSignLocationEvent(context,result,ChaoxingHttpClient.instance!!.userEntity)
+                                UMengHelper.onSignLocationEvent(
+                                    context,
+                                    result,
+                                    ChaoxingHttpClient.instance!!.userEntity
+                                )
                             }.onFailure {
                                 Toast.makeText(context, it.message, Toast.LENGTH_SHORT).show()
                                 if ((it is ChaoxingPredictableException).not()) {

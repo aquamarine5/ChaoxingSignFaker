@@ -52,8 +52,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -142,7 +146,18 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                 }
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    "使用其他设备打开随地大小签APP扫描二维码\n以将你的账号添加到其他设备中",
+                    buildAnnotatedString {
+                        append("使用其他设备打开")
+                        withStyle(
+                            SpanStyle(
+                                fontWeight = FontWeight.Bold,
+                                textDecoration = TextDecoration.Underline
+                            )
+                        ) {
+                            append(" 随地大小签APP ")
+                        }
+                        append("扫描二维码\n以将你的账号添加到其他设备中")
+                    },
                     fontSize = 13.sp,
                     lineHeight = 17.sp,
                     textAlign = TextAlign.Center

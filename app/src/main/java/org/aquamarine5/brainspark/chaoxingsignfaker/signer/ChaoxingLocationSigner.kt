@@ -29,9 +29,6 @@ class ChaoxingLocationSigner(
 ) {
 
     companion object {
-        const val URL_SIGN =
-            "https://mobilelearn.chaoxing.com/pptSign/stuSignajax?&clientip=&appType=15&ifTiJiao=1&validate=&vpProbability=-1&vpStrategy="
-
         const val CLASSTAG = "ChaoxingLocationSigner"
     }
 
@@ -55,7 +52,7 @@ class ChaoxingLocationSigner(
                     .addQueryParameter("longitude", signLocation.longitude.toString())
                     .addQueryParameter("address", signLocation.address)
                     .addQueryParameter("activeId", destination.activeId.toString())
-                    .addQueryParameter("uid", client.userEntity.uid.toString())
+                    .addQueryParameter("uid", client.userEntity.puid.toString())
                     .addQueryParameter("name", client.userEntity.name)
                     .addQueryParameter("fid", client.userEntity.fid.toString())
                     .addQueryParameter("deviceCode", ChaoxingHttpClient.deviceCode!!)
