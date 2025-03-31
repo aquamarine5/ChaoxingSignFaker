@@ -67,7 +67,7 @@ class ChaoxingPhotoSigner(
                 URL_SIGN.toHttpUrl().newBuilder()
                     .addQueryParameter("objectId", objectId)
                     .addQueryParameter("activeId", photoActivityEntity.activeId.toString())
-                    .addQueryParameter("uid", client.userEntity.uid.toString())
+                    .addQueryParameter("uid", client.userEntity.puid.toString())
                     .addQueryParameter("name", client.userEntity.name)
                     .addQueryParameter("fid", client.userEntity.fid.toString())
                     .addQueryParameter("deviceCode", ChaoxingHttpClient.deviceCode!!)
@@ -98,14 +98,15 @@ class ChaoxingPhotoSigner(
     }
 
     suspend fun uploadImage(context: Context, uri:Uri,token: String): String = withContext(Dispatchers.IO) {
+        val filename="${UUID.randomUUID()}.jpg"
         client.newCall(
             Request.Builder().url(URL_CLOUD_UPLOAD + token).post(
                 MultipartBody.Builder().setType(MultipartBody.FORM)
-                    .addFormDataPart("puid", client.userEntity.uid.toString())
+                    .addFormDataPart("puid", client.userEntity.puid.toString())
                     .addFormDataPart(
                         "file",
-                        "photo.jpg",
-                        uriToFile(context,uri,"${UUID.randomUUID()}.jpg").asRequestBody("image/jpeg".toMediaType())
+                        filename,
+                        uriToFile(context,uri,filename).asRequestBody("image/jpeg".toMediaType())
                     )
                     .build()
             ).build()
@@ -117,13 +118,11 @@ class ChaoxingPhotoSigner(
     suspend fun ifPhotoRequiredLogin(): Boolean = getSignInfo().getInteger("ifphoto") == 1
 
     @Composable
-    fun GetPhotoFromMediaStore(onResult: (Uri) -> Unit) {
+    fun GetPhotoFromMediaStore(onResult: (Uri?) -> Unit) {
         val gallery = rememberLauncherForActivityResult(
             contract = ActivityResultContracts.PickVisualMedia(),
             onResult = { uri ->
-                uri?.let {
-                    onResult(it)
-                }
+                onResult(uri)
             }
         )
         LaunchedEffect(Unit) {

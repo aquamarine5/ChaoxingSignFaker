@@ -63,7 +63,7 @@ abstract class ChaoxingSigner(
                     .addQueryParameter("courseId", courseId.toString())
                     .addQueryParameter("classId", classId.toString())
                     .addQueryParameter("activePrimaryId", activeId.toString())
-                    .addQueryParameter("uid", client.userEntity.uid.toString())
+                    .addQueryParameter("uid", client.userEntity.puid.toString())
                     .build()
             ).build()
         ).execute().use {

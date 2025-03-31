@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -27,6 +28,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
@@ -34,6 +36,7 @@ import io.sentry.Sentry
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import org.aquamarine5.brainspark.chaoxingsignfaker.ChaoxingPredictableException
+import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.AlreadySignedNotice
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
@@ -73,6 +76,8 @@ fun PhotoSignScreen(destination: PhotoSignDestination, navBack: () -> Unit) {
             val signer = ChaoxingPhotoSigner(ChaoxingHttpClient.instance!!, destination)
             var isImage by remember { mutableStateOf<Boolean?>(null) }
             var isAlreadySigned by remember { mutableStateOf<Boolean?>(null) }
+            var isSignSuccess by remember { mutableStateOf(false) }
+            var isShowPhotoPicker by remember { mutableStateOf(false) }
             LaunchedEffect(Unit) {
                 runCatching {
                     isImage = signer.ifPhotoRequiredLogin()
@@ -101,13 +106,47 @@ fun PhotoSignScreen(destination: PhotoSignDestination, navBack: () -> Unit) {
                             )
                     )
                     if (photoPermissionsState.allPermissionsGranted) {
-                        signer.GetPhotoFromMediaStore {
-                            coroutineScope.launch {
-                                signer.getCloudToken().let { token ->
-                                    signer.uploadImage(context,it, token).let { objectId ->
-                                        signer.sign(objectId)
+                        if (isShowPhotoPicker)
+                            signer.GetPhotoFromMediaStore {
+                                coroutineScope.launch {
+                                    runCatching {
+                                        signer.getCloudToken().let { token ->
+                                            it?.let { image ->
+                                                signer.uploadImage(context, image, token)
+                                                    .let { objectId ->
+                                                        signer.sign(objectId)
+                                                    }
+                                            }
+                                        }
+                                    }.onFailure {
+                                        if ((it is ChaoxingPredictableException).not()) {
+                                            Sentry.captureException(it)
+                                        }
+                                        Toast.makeText(context, "签到失败", Toast.LENGTH_SHORT)
+                                            .show()
+                                    }.onSuccess {
+                                        isSignSuccess = true
                                     }
+                                    isShowPhotoPicker = false
                                 }
+                            }
+                        if (isSignSuccess) {
+                            Column(
+                                modifier = Modifier.fillMaxSize(),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Icon(painterResource(R.drawable.ic_check_px80), "")
+                                Text("签到成功")
+                                Button(onClick = {
+                                    navBack()
+                                }) { Text("返回") }
+                            }
+                        }else{
+                            Button(onClick = {
+                                isShowPhotoPicker = true
+                            }) {
+                                Text("选择图片")
                             }
                         }
                     } else {

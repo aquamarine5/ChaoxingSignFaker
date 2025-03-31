@@ -42,7 +42,7 @@ class ChaoxingHttpClient private constructor(
 
     companion object {
         private const val CHAOXING_USER_AGENT =
-            "Mozilla/5.0 (Linux; Android 15; V2359A Build/AP3A.240905.015.A1; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/134.0.6998.39 Mobile Safari/537.36 (schild:d68cdcee51c93693feca61f7141a4cd8) (device:V2359A) Language/zh_CN com.chaoxing.mobile/ChaoXingStudy_3_6.4.8_android_phone_10834_264 (@Kalimdor)_fd20364147f64d6ab387a682425f7495"
+            "Dalvik/2.1.0 (Linux; U; Android 12; SM-N9006 Build/8aba9e4.0) (schild:ce31140dfcdc2fcd113ccdd86f89a9aa) (device:SM-N9006) Language/zh_CN com.chaoxing.mobile/ChaoXingStudy_3_6.5.1_android_phone_10837_265 (@Kalimdor)_68f184fd763546c1a04ab3a09b3deebb"
         private const val TRANSFER_KEY = "u2oh6Vu^HWe4_AES"
         private const val URL_USER_INFO = "https://sso.chaoxing.com/apis/login/userLogin4Uname.do"
         private const val URL_LOGIN = "https://passport2.chaoxing.com/fanyalogin"
@@ -208,7 +208,8 @@ class ChaoxingHttpClient private constructor(
                             jsonResult.getString("name"),
                             jsonResult.getString("schoolname"),
                             jsonResult.getString("uname"),
-                            jsonResult.getString("pic").replace("http://", "https://")
+                            jsonResult.getString("pic").replace("http://", "https://"),
+                            jsonResult.getInteger("puid")
                         )
                     }
             }

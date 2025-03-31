@@ -25,7 +25,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -150,14 +152,14 @@ fun QRCodeSignScreen(
                         .fillMaxSize()
                         .zIndex(0f)
                 ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
+                    Column(modifier = Modifier.padding(16.dp).verticalScroll(rememberScrollState())) {
                         Card(
                             shape = RoundedCornerShape(18.dp),
                             colors = CardDefaults.cardColors(
                                 containerColor = Color(83, 83, 83)
                             ), modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(9.dp, 3.dp)
+                                .padding(3.dp, 3.dp)
                         ) {
                             Row(
                                 modifier = Modifier
@@ -198,7 +200,7 @@ fun QRCodeSignScreen(
                             ),
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(6.dp, 3.dp)
+                                .padding(3.dp, 6.dp)
                         ) {
                             Row(
                                 modifier = Modifier
@@ -230,7 +232,8 @@ fun QRCodeSignScreen(
                             success = isCurrentAlreadySigned
                             userSelections[0] = isCurrentAlreadySigned != true
                         }
-
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text("选择要进行二维码签到的用户：", modifier = Modifier.padding(start=3.dp))
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -240,7 +243,7 @@ fun QRCodeSignScreen(
                                 verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(vertical = 8.dp)
+                                    .padding(vertical = 4.dp)
                             ) {
                                 Checkbox(
                                     checked = userSelections[0],
@@ -256,6 +259,7 @@ fun QRCodeSignScreen(
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text(
                                         "给自己签到",
+                                        fontWeight = FontWeight.Bold,
                                         textDecoration = if (success != true) TextDecoration.None else TextDecoration.LineThrough
                                     )
                                     signStatus[0].ResultCard()
@@ -266,7 +270,7 @@ fun QRCodeSignScreen(
                                     verticalAlignment = Alignment.CenterVertically,
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(vertical = 8.dp)
+                                        .padding(vertical = 4.dp)
                                 ) {
                                     val successForOtherUser by signStatus[1 + index].isSuccess
                                     Checkbox(
@@ -292,6 +296,10 @@ fun QRCodeSignScreen(
                         }
 
                         Button(onClick = {
+                            if(!userSelections.any { it }){
+                                Toast.makeText(context, "请选择要签到的用户", Toast.LENGTH_SHORT).show()
+                                return@Button
+                            }
                             if (isMapRequired) {
                                 isMapGetting = true
                             } else {
