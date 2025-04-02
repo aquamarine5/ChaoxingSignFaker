@@ -189,7 +189,7 @@ fun CourseListScreen(
                                     )
                                     Spacer(modifier = Modifier.width(14.dp))
                                     Text(
-                                        "添加其他用户以签到",
+                                        "添加其他用户以进行二维码签到",
                                         fontSize = 15.sp,
                                         fontWeight = FontWeight.W600
                                     )

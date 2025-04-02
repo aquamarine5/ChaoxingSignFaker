@@ -11,6 +11,9 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -84,6 +87,17 @@ class MainActivity : ComponentActivity() {
                                 }
                             }
                         },
+                        enterTransition = {
+                            fadeIn(
+                                animationSpec = tween(300)
+                            )
+                        },
+                        exitTransition = {
+                            fadeOut(
+                                animationSpec = tween(300)
+                            )
+                        },
+
 //                        enterTransition = {
 //                            slideInHorizontally(
 //                                initialOffsetX = { it },
