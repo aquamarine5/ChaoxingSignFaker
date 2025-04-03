@@ -11,7 +11,6 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -20,16 +19,14 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.BottomNavigation
 import androidx.compose.material.BottomNavigationItem
-import androidx.compose.material.Surface
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavDestination.Companion.hasRoute
@@ -88,7 +85,7 @@ class MainActivity : ComponentActivity() {
                     bottomBar = {
                         val navBackStackEntry by navController.currentBackStackEntryAsState()
                         val currentDestination = navBackStackEntry?.destination
-                        BottomNavigation{
+                        BottomNavigation {
                             listOf(
                                 NavigationBarItemData(
                                     CourseListDestination,
@@ -100,8 +97,9 @@ class MainActivity : ComponentActivity() {
                                     "设置",
                                     painterResource(R.drawable.ic_settings)
                                 )
-                            ).forEach{ item->
-                                val isSelected=currentDestination?.hierarchy?.any{it.hasRoute(item.destination::class)}==true
+                            ).forEach { item ->
+                                val isSelected =
+                                    currentDestination?.hierarchy?.any { it.hasRoute(item.destination::class) } == true
                                 BottomNavigationItem(
                                     isSelected,
                                     onClick = {
@@ -116,13 +114,17 @@ class MainActivity : ComponentActivity() {
                                     icon = {
                                         Icon(
                                             item.icon,
-                                            contentDescription = item.name, modifier = Modifier.size(26.dp)
+                                            contentDescription = item.name,
+                                            modifier = Modifier.size(26.dp)
                                         )
-                                    },label={
-                                        AnimatedVisibility(visible = isSelected) {
-                                            Surface(shape = CircleShape, modifier = Modifier.size(5.dp),color = Color(0xFF252527)) { }
-                                        }
-                                    })
+                                    },
+                                    label = {
+                                        Text(item.name)
+                                    },
+                                    alwaysShowLabel = false,
+                                    selectedContentColor = MaterialTheme.colorScheme.primary,
+                                    unselectedContentColor = MaterialTheme.colorScheme.onSurface
+                                )
                             }
                         }
                     }
@@ -176,7 +178,9 @@ class MainActivity : ComponentActivity() {
                             }
 
                             composable<SettingDestination> {
-                                SettingScreen()
+                                SettingScreen {
+                                    navController.popBackStack()
+                                }
                             }
 
                             composable<OtherUserDestination> {

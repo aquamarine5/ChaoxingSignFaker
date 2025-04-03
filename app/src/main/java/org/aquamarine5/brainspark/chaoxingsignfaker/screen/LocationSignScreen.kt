@@ -70,39 +70,39 @@ fun LocationSignScreen(
             navToCourseDetailDestination()
         }
     }
-            when (isAlreadySigned) {
-                true -> {
-                    AlreadySignedNotice(onSignForOtherUser = null) { navToCourseDetailDestination() }
-                }
+    when (isAlreadySigned) {
+        true -> {
+            AlreadySignedNotice(onSignForOtherUser = null) { navToCourseDetailDestination() }
+        }
 
-                false -> {
-                    GetLocationComponent(signInfo, confirmButtonText = {
-                        Text("签到")
-                    }) { result ->
-                        coroutineScope.launch {
-                            runCatching {
-                                signer.sign(result)
-                            }.onSuccess {
-                                navToCourseDetailDestination()
-                                UMengHelper.onSignLocationEvent(
-                                    context,
-                                    result,
-                                    ChaoxingHttpClient.instance!!.userEntity
-                                )
-                            }.onFailure {
-                                Toast.makeText(context, it.message, Toast.LENGTH_SHORT).show()
-                                if ((it is ChaoxingPredictableException).not()) {
-                                    Sentry.captureException(it)
-                                }
-                            }
+        false -> {
+            GetLocationComponent(signInfo, confirmButtonText = {
+                Text("签到")
+            }) { result ->
+                coroutineScope.launch {
+                    runCatching {
+                        signer.sign(result)
+                    }.onSuccess {
+                        navToCourseDetailDestination()
+                        UMengHelper.onSignLocationEvent(
+                            context,
+                            result,
+                            ChaoxingHttpClient.instance!!.userEntity
+                        )
+                    }.onFailure {
+                        Toast.makeText(context, it.message, Toast.LENGTH_SHORT).show()
+                        if ((it is ChaoxingPredictableException).not()) {
+                            Sentry.captureException(it)
                         }
                     }
                 }
-
-                null -> {
-                    CenterCircularProgressIndicator()
-                }
             }
+        }
+
+        null -> {
+            CenterCircularProgressIndicator()
+        }
+    }
 
 
 }

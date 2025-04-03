@@ -149,7 +149,7 @@ fun GetLocationComponent(
                             Text("OK")
                         }
                     }, text = {
-                        Column{
+                        Column {
                             TextField(value = clickedName, onValueChange = {
                                 clickedName = it
                             }, label = {

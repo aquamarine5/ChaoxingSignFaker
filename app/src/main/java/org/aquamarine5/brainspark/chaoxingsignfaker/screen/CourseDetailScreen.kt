@@ -71,62 +71,61 @@ fun CourseDetailScreen(
         }
     }
     val coroutineScope = rememberCoroutineScope()
-        Column(
-            modifier = Modifier
-                .padding(16.dp)
-        ) {
-            if (activitiesData == null) {
-                CenterCircularProgressIndicator()
-            } else {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
+    Column(
+        modifier = Modifier
+            .padding(16.dp)
+    ) {
+        if (activitiesData == null) {
+            CenterCircularProgressIndicator()
+        } else {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        navToListDestination()
+                    }
+            ) {
+                Icon(painterResource(R.drawable.ic_arrow_left), contentDescription = null)
+                Spacer(
+                    modifier = Modifier
+                        .height(8.dp)
+                        .width(5.dp)
+                )
+                Text(
+                    "课程名称：${courseEntity.courseName}",
+                    color = Color.DarkGray,
+                    textAlign = TextAlign.Left,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable {
-                            navToListDestination()
+                )
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+            var pullToRefreshState by remember { mutableStateOf(false) }
+            PullToRefreshBox(
+                isRefreshing = pullToRefreshState,
+                onRefresh = {
+                    pullToRefreshState = true
+                    coroutineScope.launch {
+                        ChaoxingHttpClient.instance?.let {
+                            activitiesData =
+                                ChaoxingActivityHelper.getActivities(it, courseEntity)
                         }
-                ) {
-                    Icon(painterResource(R.drawable.ic_arrow_left), contentDescription = null)
-                    Spacer(
-                        modifier = Modifier
-                            .height(8.dp)
-                            .width(5.dp)
-                    )
-                    Text(
-                        "课程名称：${courseEntity.courseName}",
-                        color = Color.DarkGray,
-                        textAlign = TextAlign.Left,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                    )
-                }
-                Spacer(modifier = Modifier.height(12.dp))
-                var pullToRefreshState by remember { mutableStateOf(false) }
-                PullToRefreshBox(
-                    isRefreshing = pullToRefreshState,
-                    onRefresh = {
-                        pullToRefreshState = true
-                        coroutineScope.launch {
-                            ChaoxingHttpClient.instance?.let {
-                                activitiesData =
-                                    ChaoxingActivityHelper.getActivities(it, courseEntity)
-                            }
-                            delay(1000)
-                            pullToRefreshState = false
-                        }
+                        delay(1000)
+                        pullToRefreshState = false
                     }
-                ) {
-                    LazyColumn(modifier = Modifier.fillMaxWidth()) {
-                        items(activitiesData!!.signActivities) {
-                            key(it.id) {
-                                CourseSignActivityColumnCard(it) { destination ->
-                                    navToSignerDestination(destination)
-                                }
+                }
+            ) {
+                LazyColumn(modifier = Modifier.fillMaxWidth()) {
+                    items(activitiesData!!.signActivities) {
+                        key(it.id) {
+                            CourseSignActivityColumnCard(it) { destination ->
+                                navToSignerDestination(destination)
                             }
                         }
                     }
                 }
-
+            }
         }
     }
 }

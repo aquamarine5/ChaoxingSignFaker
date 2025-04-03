@@ -137,7 +137,9 @@ inline fun QRCodeScanComponent(
         }
     } else {
         Column(
-            modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
