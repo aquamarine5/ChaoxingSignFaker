@@ -259,9 +259,8 @@ fun QRCodeSignScreen(
                                     },
                                     enabled = (success == true).not()
                                 )
-                                Row(modifier = Modifier.clickable {
-                                    if ((success == true).not())
-                                        userSelections[0] = userSelections[0].not()
+                                Row(modifier = Modifier.clickable((success == true).not()) {
+                                    userSelections[0] = userSelections[0].not()
                                 }) {
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text(
@@ -287,10 +286,9 @@ fun QRCodeSignScreen(
                                         },
                                         enabled = (successForOtherUser == true).not()
                                     )
-                                    Row(modifier = Modifier.clickable {
-                                        if ((successForOtherUser == true).not())
-                                            userSelections[1 + index] =
-                                                userSelections[1 + index].not()
+                                    Row(modifier = Modifier.clickable((successForOtherUser == true).not()) {
+                                        userSelections[1 + index] =
+                                            userSelections[1 + index].not()
                                     }) {
                                         Spacer(modifier = Modifier.width(8.dp))
                                         Text(

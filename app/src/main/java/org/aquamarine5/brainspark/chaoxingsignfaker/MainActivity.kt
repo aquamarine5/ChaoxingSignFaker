@@ -87,6 +87,30 @@ class MainActivity : ComponentActivity() {
                                 }
                             }
                         },
+//                        popEnterTransition = {
+//                            scaleIn(
+//                                animationSpec = tween(
+//                                    durationMillis = 100,
+//                                    delayMillis = 35,
+//                                ),
+//                                initialScale = 1.1F,
+//                            ) + fadeIn(
+//                                animationSpec = tween(
+//                                    durationMillis = 100,
+//                                    delayMillis = 35,
+//                                ),
+//                            )
+//                        },
+//                        popExitTransition = {
+//                            scaleOut(
+//                                targetScale = 0.9F,
+//                            ) + fadeOut(
+//                                animationSpec = tween(
+//                                    durationMillis = 35,
+//                                    easing = CubicBezierEasing(0.1f, 0.1f, 0f, 1f),
+//                                ),
+//                            )
+//                        }
                         enterTransition = {
                             fadeIn(
                                 animationSpec = tween(300)
