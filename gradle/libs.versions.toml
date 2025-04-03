@@ -20,6 +20,7 @@ kotlinxSerializationJson = "1.8.0"
 lifecycleRuntimeKtx = "2.8.7"
 activityCompose = "1.10.1"
 composeBom = "2025.03.01"
+material = "1.7.8"
 navigationCompose = "2.8.9"
 okhttp = "4.12.0"
 protobufJavalite = "3.18.0"
@@ -34,6 +35,7 @@ androidx-camera-lifecycle = { module = "androidx.camera:camera-lifecycle", versi
 androidx-camera-view = { module = "androidx.camera:camera-view", version.ref = "cameraMlkitVisionVersion" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-datastore = { module = "androidx.datastore:datastore", version.ref = "datastore" }
+androidx-material = { module = "androidx.compose.material:material", version.ref = "material" }
 androidx-navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
 asms = { module = "com.umeng.umsdk:asms", version.ref = "asms" }
 baidumapsdk_location = { module = "com.baidu.lbsyun:BaiduMapSDK_Location", version.ref = "baidumapsdk_location" }

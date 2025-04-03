@@ -26,9 +26,9 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSignHelper
 
 
 @Composable
-fun CourseSignActivityColumnCard(
+inline fun CourseSignActivityColumnCard(
     activity: ChaoxingSignActivityEntity,
-    onSignAction: (Any) -> Unit
+    crossinline onSignAction: (Any) -> Unit
 ) {
     val isAvailable = activity.status == 1
     val context = LocalContext.current

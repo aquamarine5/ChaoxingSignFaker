@@ -91,6 +91,7 @@ protobuf {
 }
 
 dependencies {
+    implementation libs.androidx.material
     implementation libs.core
     implementation libs.camera.mlkit.vision
     implementation libs.barcode.scanning

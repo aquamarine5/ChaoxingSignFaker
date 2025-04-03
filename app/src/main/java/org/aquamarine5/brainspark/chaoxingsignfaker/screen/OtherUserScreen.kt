@@ -10,6 +10,11 @@ import android.graphics.Bitmap
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInHorizontally
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -308,7 +313,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                     Text("导入成功")
                 },
                 text = {
-                    Text("${currentImportData}用户已经成功导入")
+                    Text("$currentImportData 用户已经成功导入")
                 },
                 confirmButton = {
                     Button(
@@ -321,7 +326,18 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                 }
             )
         }
-        AnimatedVisibility(isQRCodeScanning) {
+        AnimatedVisibility(
+            isQRCodeScanning, enter =
+            slideInHorizontally(
+                initialOffsetX = { it },
+                animationSpec = tween(300)
+            ) + fadeIn(
+                animationSpec = tween(300)
+            ), exit =
+            scaleOut(targetScale = 0.8f, animationSpec = tween(300)) + fadeOut(
+                animationSpec = tween(300)
+            )
+        ) {
             Column(
                 modifier = Modifier
                     .zIndex(1f)
