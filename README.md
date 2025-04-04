@@ -20,7 +20,7 @@
 - 二维码签到（需要一台设备在现场扫码，理论上可为任意多的用户签到）
 - 一台设备登录多账号以签到
 
-> [!TIPS]
+> [!TIP]
 > ChaoxingSignFaker 使用 [Stackbricks](https://github.com/aquamarine5/Stackbricks) 来实现更新逻辑，同样由作者维护。
 
 ## About Brainspark Project
