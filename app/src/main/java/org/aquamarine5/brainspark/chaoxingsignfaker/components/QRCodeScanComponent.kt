@@ -33,10 +33,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisallowComposableCalls
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -56,18 +56,17 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.R
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
-fun QRCodeScanComponent(
+inline fun QRCodeScanComponent(
     isPause: MutableState<Boolean>,
     isLoading: MutableState<Boolean>,
-    onClose: () -> Unit,
-    onScanResult: (Barcode) -> Unit,
+    noinline onClose: () -> Unit,
+    crossinline onScanResult: @DisallowComposableCalls (Barcode) -> Unit,
     content: @Composable BoxScope.() -> Unit
 ) {
     val cameraPermission = rememberPermissionState(android.Manifest.permission.CAMERA)
     if (cameraPermission.status == PermissionStatus.Granted) {
         val application = LocalActivity.current!!
         val lifecycleOwner = LocalLifecycleOwner.current
-        val coroutineScope = rememberCoroutineScope()
         val cameraExecutor = ContextCompat.getMainExecutor(application)
         LocalContext.current.let { context ->
             val barcodeScanner = BarcodeScanning.getClient(
@@ -138,9 +137,11 @@ fun QRCodeScanComponent(
         }
     } else {
         Column(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            verticalArrangement = Arrangement.Center,
         ) {
             val text = if (cameraPermission.status.shouldShowRationale) {
                 "相机权限已拒绝，点击按钮再次请求"

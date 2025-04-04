@@ -23,7 +23,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -66,96 +65,93 @@ fun LoginPage(
     var tipsText by remember { mutableStateOf("") }
     val coroutineContext = rememberCoroutineScope()
     val context = LocalContext.current
-    Scaffold { innerPadding ->
-        Column(
-            modifier = Modifier
-                .padding(innerPadding)
-                .padding(16.dp)
-                .fillMaxWidth(),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                buildAnnotatedString {
-                    withStyle(
-                        SpanStyle(
-                            fontFamily = FontFamily(
-                                Font(R.font.gilroy)
-                            ),
-                            fontSize = 16.sp
-                        )
-                    ) {
-                        append("ChaoxingSignFaker")
-                    }
-                    append(" 需要你的学习通账号信息\n请登录你的学习通账号")
-                },
-                fontWeight = FontWeight.Bold,
-                fontSize = 18.sp,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.align(Alignment.CenterHorizontally)
-            )
-            Spacer(modifier = Modifier.height(20.dp))
-            Text("输入手机号：")
-            OutlinedTextField(
-                value = phoneNumber,
-                onValueChange = {
-                    phoneNumber = it
-                },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                modifier = Modifier.fillMaxWidth()
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text("输入密码：")
-            OutlinedTextField(
-                value = password,
-                onValueChange = { password = it },
-                visualTransformation = PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                modifier = Modifier.fillMaxWidth()
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            Button(
-                onClick = {
-                    coroutineContext.launch {
-                        try {
-                            ChaoxingHttpClient.create(phoneNumber, password, context)
-                            UMengHelper.onLoginEvent(context, phoneNumber)
-                        } catch (e: ChaoxingHttpClient.ChaoxingLoginException) {
-                            tipsText = e.message ?: "登录失败"
-                        }
-                    }.invokeOnCompletion {
-                        if (ChaoxingHttpClient.instance != null) {
-                            Toast.makeText(context, "登录成功", Toast.LENGTH_SHORT).show()
-                            navToCourseListDestination()
-                        }
-                    }
-                },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("登录")
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            if (tipsText.isNotEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .padding(8.dp)
-                        .border(
-                            BorderStroke(1.dp, Color.LightGray),
-                            shape = RoundedCornerShape(8.dp)
-                        )
-                        .fillMaxWidth()
+    Column(
+        modifier = Modifier
+            .padding(16.dp)
+            .fillMaxWidth(),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            buildAnnotatedString {
+                withStyle(
+                    SpanStyle(
+                        fontFamily = FontFamily(
+                            Font(R.font.gilroy)
+                        ),
+                        fontSize = 16.sp
+                    )
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_octagon_alert),
-                            contentDescription = null,
-                            tint = Color.Red
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(tipsText, color = Color.Red)
+                    append("ChaoxingSignFaker")
+                }
+                append(" 需要你的学习通账号信息\n请登录你的学习通账号")
+            },
+            fontWeight = FontWeight.Bold,
+            fontSize = 18.sp,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.align(Alignment.CenterHorizontally)
+        )
+        Spacer(modifier = Modifier.height(20.dp))
+        Text("输入手机号：")
+        OutlinedTextField(
+            value = phoneNumber,
+            onValueChange = {
+                phoneNumber = it
+            },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            modifier = Modifier.fillMaxWidth()
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text("输入密码：")
+        OutlinedTextField(
+            value = password,
+            onValueChange = { password = it },
+            visualTransformation = PasswordVisualTransformation(),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+            modifier = Modifier.fillMaxWidth()
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Button(
+            onClick = {
+                coroutineContext.launch {
+                    try {
+                        ChaoxingHttpClient.create(phoneNumber, password, context)
+                        UMengHelper.onLoginEvent(context, phoneNumber)
+                    } catch (e: ChaoxingHttpClient.ChaoxingLoginException) {
+                        tipsText = e.message ?: "登录失败"
                     }
+                }.invokeOnCompletion {
+                    if (ChaoxingHttpClient.instance != null) {
+                        Toast.makeText(context, "登录成功", Toast.LENGTH_SHORT).show()
+                        navToCourseListDestination()
+                    }
+                }
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("登录")
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        if (tipsText.isNotEmpty()) {
+            Box(
+                modifier = Modifier
+                    .padding(8.dp)
+                    .border(
+                        BorderStroke(1.dp, Color.LightGray),
+                        shape = RoundedCornerShape(8.dp)
+                    )
+                    .fillMaxWidth()
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_octagon_alert),
+                        contentDescription = null,
+                        tint = Color.Red
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(tipsText, color = Color.Red)
                 }
             }
         }

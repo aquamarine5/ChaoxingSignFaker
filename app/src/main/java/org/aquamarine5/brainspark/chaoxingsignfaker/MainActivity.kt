@@ -11,16 +11,37 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.BottomNavigation
+import androidx.compose.material.BottomNavigationItem
+import androidx.compose.material.ContentAlpha
+import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.navigation.NavDestination.Companion.hasRoute
+import androidx.navigation.NavDestination.Companion.hierarchy
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navOptions
 import androidx.navigation.toRoute
@@ -31,6 +52,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.NavigationBarItemData
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.CourseDetailDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.CourseDetailScreen
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.CourseListDestination
@@ -45,6 +67,10 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.screen.PhotoSignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.PhotoSignScreen
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.QRCodeSignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.QRCodeSignScreen
+import org.aquamarine5.brainspark.chaoxingsignfaker.screen.SettingDestination
+import org.aquamarine5.brainspark.chaoxingsignfaker.screen.SettingGraphDestination
+import org.aquamarine5.brainspark.chaoxingsignfaker.screen.SettingScreen
+import org.aquamarine5.brainspark.chaoxingsignfaker.screen.SignGraphDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.WelcomeDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.WelcomeScreen
 import org.aquamarine5.brainspark.chaoxingsignfaker.ui.theme.ChaoxingSignFakerTheme
@@ -62,152 +88,186 @@ class MainActivity : ComponentActivity() {
         UMengHelper.preInit(this)
         enableEdgeToEdge()
         setContent {
+            val navController = rememberNavController()
             ChaoxingSignFakerTheme {
-                val navController = rememberNavController()
-                Column(modifier = Modifier.background(MaterialTheme.colorScheme.background).fillMaxSize()){
-                    NavHost(navController,
-                        runBlocking {
-                            applicationContext.chaoxingDataStore.data.first().let {
-                                if (it.agreeTerms) {
-                                    UMengHelper.init(applicationContext)
-                                    LocationClient.setAgreePrivacy(true)
-                                    SDKInitializer.setAgreePrivacy(applicationContext, true)
+                Scaffold(
+                    bottomBar = {
+                        val navBackStackEntry by navController.currentBackStackEntryAsState()
+                        val currentDestination = navBackStackEntry?.destination
+                        BottomNavigation(
+                            backgroundColor = MaterialTheme.colorScheme.primaryContainer,
+                            elevation = 14.dp
+                        ) {
+                            listOf(
+                                NavigationBarItemData(
+                                    SignGraphDestination,
+                                    "签到",
+                                    painterResource(R.drawable.ic_clipboard_pen_line)
+                                ),
+                                NavigationBarItemData(
+                                    SettingGraphDestination,
+                                    "设置",
+                                    painterResource(R.drawable.ic_settings)
+                                )
+                            ).forEach { item ->
+                                val isSelected =
+                                    currentDestination?.hierarchy?.any { it.hasRoute(item.destination::class) } == true
+                                BottomNavigationItem(
+                                    isSelected,
+                                    onClick = {
+                                        navController.navigate(item.destination) {
+                                            popUpTo(navController.graph.findStartDestination().id) {
+                                                saveState = true
+                                            }
+                                            launchSingleTop = true
+                                            restoreState = true
+                                        }
+                                    },
+                                    icon = {
+                                        val iconColor by animateColorAsState(
+                                            if (isSelected) LocalContentColor.current else
+                                                LocalContentColor.current.copy(ContentAlpha.medium),
+                                            tween(300)
+                                        )
+                                        CompositionLocalProvider(LocalContentColor provides iconColor) {
+                                            Column {
+                                                Spacer(modifier = Modifier.size(1.5.dp))
+                                                Icon(
+                                                    item.icon,
+                                                    contentDescription = item.name,
+                                                    modifier = Modifier.size(26.dp)
+                                                )
+                                            }
+                                        }
+                                    },
+                                    label = {
+                                        Column {
+                                            Spacer(modifier = Modifier.size(1.5.dp))
+                                            Text(item.name, fontSize = 12.sp)
+                                        }
+                                    },
+                                    alwaysShowLabel = false
+                                )
+                            }
+                        }
+                    }
+                ) { innerPadding ->
+                    Column(
+                        modifier = Modifier
+                            .background(MaterialTheme.colorScheme.background)
+                            .padding(innerPadding)
+                            .fillMaxSize()
+                    ) {
+                        NavHost(
+                            navController,
+                            runBlocking {
+                                applicationContext.chaoxingDataStore.data.first().let {
+                                    if (it.agreeTerms) {
+                                        UMengHelper.init(applicationContext)
+                                        LocationClient.setAgreePrivacy(true)
+                                        SDKInitializer.setAgreePrivacy(applicationContext, true)
+                                    }
+                                    ChaoxingHttpClient.deviceCode =
+                                        if (it.deviceCode == null)
+                                            ChaoxingHttpClient.generateDeviceCode(applicationContext)
+                                        else it.deviceCode
+                                    when {
+                                        !it.agreeTerms -> WelcomeDestination
+                                        !it.hasLoginSession() -> LoginDestination
+                                        else -> {
+                                            ChaoxingHttpClient.loadFromDataStore(it)
+                                            SignGraphDestination
+                                        }
+                                    }
                                 }
-                                ChaoxingHttpClient.deviceCode =
-                                    if (it.deviceCode == null)
-                                        ChaoxingHttpClient.generateDeviceCode(applicationContext)
-                                    else it.deviceCode
-                                when {
-                                    !it.agreeTerms -> WelcomeDestination
-                                    !it.hasLoginSession() -> LoginDestination
-                                    else -> {
-                                        ChaoxingHttpClient.loadFromDataStore(it)
-                                        CourseListDestination
+                            },
+                            enterTransition = {
+                                fadeIn(
+                                    animationSpec = tween(300)
+                                )
+                            },
+                            exitTransition = {
+                                fadeOut(
+                                    animationSpec = tween(300)
+                                )
+                            },
+                        ) {
+                            navigation<SignGraphDestination>(startDestination = CourseListDestination) {
+                                composable<QRCodeSignDestination> {
+                                    QRCodeSignScreen(it.toRoute(), navToOtherUser = {
+                                        navController.navigate(OtherUserDestination)
+                                    }) {
+                                        navController.navigateUp()
+                                    }
+                                }
+
+                                composable<GetLocationDestination>(
+                                    typeMap = mapOf(
+                                        typeOf<ChaoxingSignActivityEntity>() to ChaoxingSignActivityEntity.SignActivityNavType
+                                    )
+                                ) {
+                                    LocationSignScreen(it.toRoute()) {
+                                        navController.navigateUp()
+                                    }
+                                }
+
+                                composable<CourseListDestination> {
+                                    CourseListScreen {
+                                        navController.navigate(it, navOptions {
+                                            popUpTo<CourseListDestination> { saveState = true }
+                                            restoreState = true
+                                        })
+                                    }
+                                }
+
+                                composable<CourseDetailDestination> {
+                                    CourseDetailScreen(
+                                        it.toRoute(),
+                                        navToSignerDestination = { destination ->
+                                            navController.navigate(destination)
+                                        }) {
+                                        navController.navigateUp()
+                                    }
+                                }
+
+                                composable<PhotoSignDestination> {
+                                    PhotoSignScreen(it.toRoute()) {
+                                        navController.navigateUp()
                                     }
                                 }
                             }
-                        },
-//                        popEnterTransition = {
-//                            scaleIn(
-//                                animationSpec = tween(
-//                                    durationMillis = 100,
-//                                    delayMillis = 35,
-//                                ),
-//                                initialScale = 1.1F,
-//                            ) + fadeIn(
-//                                animationSpec = tween(
-//                                    durationMillis = 100,
-//                                    delayMillis = 35,
-//                                ),
-//                            )
-//                        },
-//                        popExitTransition = {
-//                            scaleOut(
-//                                targetScale = 0.9F,
-//                            ) + fadeOut(
-//                                animationSpec = tween(
-//                                    durationMillis = 35,
-//                                    easing = CubicBezierEasing(0.1f, 0.1f, 0f, 1f),
-//                                ),
-//                            )
-//                        }
-                        enterTransition = {
-                            fadeIn(
-                                animationSpec = tween(300)
-                            )
-                        },
-                        exitTransition = {
-                            fadeOut(
-                                animationSpec = tween(300)
-                            )
-                        },
 
-//                        enterTransition = {
-//                            slideInHorizontally(
-//                                initialOffsetX = { it },
-//                                animationSpec = tween(300)
-//                            ) + fadeIn(
-//                                animationSpec = tween(300)
-//                            )
-//                        }, exitTransition = {
-//                            scaleOut(targetScale = 0.8f, animationSpec = tween(300)) + fadeOut(
-//                                animationSpec = tween(300)
-//                            )
-//                        }, popEnterTransition = {
-//                            scaleIn(initialScale = 0.8f, animationSpec = tween(300)) + fadeIn(
-//                                animationSpec = tween(300)
-//                            )
-//                        }, popExitTransition = {
-//                            slideOutHorizontally(
-//                                targetOffsetX = { it },
-//                                animationSpec = tween(300)
-//                            ) + fadeOut(
-//                                animationSpec = tween(300)
-//                            )
-//                        }
-                    ) {
-                        composable<QRCodeSignDestination> {
-                            QRCodeSignScreen(it.toRoute(), navToOtherUser = {
-                                navController.navigate(OtherUserDestination)
-                            }) {
-                                navController.navigateUp()
-                            }
-                        }
+                            navigation<SettingGraphDestination>(startDestination = SettingDestination) {
 
-                        composable<OtherUserDestination> {
-                            OtherUserScreen {
-                                navController.navigateUp()
-                            }
-                        }
+                                composable<SettingDestination> {
+                                    SettingScreen {
+                                        navController.navigate(OtherUserDestination)
+                                    }
+                                }
 
-                        composable<WelcomeDestination> {
-                            WelcomeScreen {
-                                navController.navigate(LoginDestination) {
-                                    popUpTo<WelcomeDestination>()
+
+                                composable<OtherUserDestination> {
+                                    OtherUserScreen {
+                                        navController.navigateUp()
+                                    }
                                 }
                             }
-                        }
 
-                        composable<LoginDestination> {
-                            LoginPage {
-                                navController.navigate(CourseListDestination) {
-                                    popUpTo<LoginDestination> { inclusive = true }
+
+                            composable<WelcomeDestination> {
+                                WelcomeScreen {
+                                    navController.navigate(LoginDestination) {
+                                        popUpTo<WelcomeDestination>()
+                                    }
                                 }
                             }
-                        }
 
-                        composable<GetLocationDestination>(
-                            typeMap = mapOf(
-                                typeOf<ChaoxingSignActivityEntity>() to ChaoxingSignActivityEntity.SignActivityNavType
-                            )
-                        ) {
-                            LocationSignScreen(it.toRoute()) {
-                                navController.navigateUp()
-                            }
-                        }
-
-                        composable<CourseListDestination> {
-                            CourseListScreen(navToOtherUserDestination = {
-                                navController.navigate(OtherUserDestination)
-                            }) {
-                                navController.navigate(it, navOptions {
-                                    popUpTo<CourseListDestination> { saveState = true }
-                                    restoreState = true
-                                })
-                            }
-                        }
-
-                        composable<CourseDetailDestination> {
-                            CourseDetailScreen(it.toRoute(), navToSignerDestination = { destination ->
-                                navController.navigate(destination)
-                            }) {
-                                navController.navigateUp()
-                            }
-                        }
-
-                        composable<PhotoSignDestination> {
-                            PhotoSignScreen(it.toRoute()) {
-                                navController.navigateUp()
+                            composable<LoginDestination> {
+                                LoginPage {
+                                    navController.navigate(CourseListDestination) {
+                                        popUpTo<LoginDestination> { inclusive = true }
+                                    }
+                                }
                             }
                         }
                     }
