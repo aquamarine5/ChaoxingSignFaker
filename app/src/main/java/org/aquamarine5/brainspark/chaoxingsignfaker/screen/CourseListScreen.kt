@@ -43,10 +43,12 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCourseEntity
 @Serializable
 object CourseListDestination
 
+@Serializable
+object SignGraphDestination
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CourseListScreen(
-    navToOtherUserDestination: () -> Unit,
     navToDetailDestination: (ChaoxingCourseEntity) -> Unit,
 ) {
     var activitiesData: List<ChaoxingCourseEntity> by rememberSaveable(
@@ -67,17 +69,19 @@ fun CourseListScreen(
         }
     }
     val coroutineScope = rememberCoroutineScope()
-    val imageLoader = ImageLoader.Builder(context).components {
-        add(
-            OkHttpNetworkFetcherFactory(
-                callFactory = { ChaoxingHttpClient.instance!!.okHttpClient })
-        )
-    }.diskCache {
-        DiskCache.Builder()
-            .directory(context.cacheDir.resolve("image_cache"))
-            .maxSizePercent(0.02)
-            .build()
-    }.crossfade(true).build()
+    val imageLoader = remember {
+        ImageLoader.Builder(context).components {
+            add(
+                OkHttpNetworkFetcherFactory(
+                    callFactory = { ChaoxingHttpClient.instance!!.okHttpClient })
+            )
+        }.diskCache {
+            DiskCache.Builder()
+                .directory(context.cacheDir.resolve("image_cache"))
+                .maxSizePercent(0.02)
+                .build()
+        }.crossfade(true).build()
+    }
 
     Column(
         modifier = Modifier
@@ -101,7 +105,6 @@ fun CourseListScreen(
                 }
             ) {
                 LazyColumn {
-
                     items(activitiesData) {
                         key(it.courseId) {
                             CourseInfoColumnCard(it, imageLoader) {
@@ -111,7 +114,6 @@ fun CourseListScreen(
                     }
                 }
             }
-
         }
     }
 }

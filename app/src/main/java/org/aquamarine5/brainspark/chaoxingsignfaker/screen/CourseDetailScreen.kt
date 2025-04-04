@@ -8,6 +8,7 @@ package org.aquamarine5.brainspark.chaoxingsignfaker.screen
 
 import android.widget.Toast
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -94,7 +95,7 @@ fun CourseDetailScreen(
                 )
                 Text(
                     "课程名称：${courseEntity.courseName}",
-                    color = Color.DarkGray,
+                    color = if(isSystemInDarkTheme())Color.Gray else Color.DarkGray,
                     textAlign = TextAlign.Left,
                     modifier = Modifier
                         .fillMaxWidth()

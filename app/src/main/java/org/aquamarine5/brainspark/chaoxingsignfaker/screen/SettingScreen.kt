@@ -43,12 +43,15 @@ import org.aquamarine5.brainspark.stackbricks.rememberStackbricksStatus
 import java.util.concurrent.TimeUnit
 
 @Serializable
+object SettingGraphDestination
+
+@Serializable
 object SettingDestination
 
 @Composable
 fun SettingScreen(navToOtherUserDestination: () -> Unit) {
 
-    Column {
+    Column(modifier = Modifier.padding(16.dp)) {
         val stackbricksState by rememberStackbricksStatus()
         QiniuConfiguration(
             "cdn.aquamarine5.fun",
