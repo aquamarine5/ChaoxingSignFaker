@@ -7,14 +7,19 @@
 package org.aquamarine5.brainspark.chaoxingsignfaker
 
 import android.content.Intent
+import android.content.pm.PackageManager.GET_META_DATA
 import android.os.Bundle
+import android.os.Debug
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -30,7 +35,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
@@ -43,11 +50,11 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.navOptions
 import androidx.navigation.toRoute
 import com.baidu.location.LocationClient
 import com.baidu.mapapi.SDKInitializer
 import com.umeng.analytics.MobclickAgent
+import io.sentry.android.core.SentryAndroid
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
@@ -62,6 +69,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.screen.LocationSignScreen
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.LoginDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.LoginPage
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.OtherUserDestination
+import org.aquamarine5.brainspark.chaoxingsignfaker.screen.OtherUserGraphDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.OtherUserScreen
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.PhotoSignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.PhotoSignScreen
@@ -85,6 +93,22 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        SentryAndroid.init(this) {
+            if (Debug.isDebuggerConnected())
+                it.isEnabled = false
+            val versionName = packageManager.getPackageInfo(
+                packageName,
+                GET_META_DATA
+            ).versionName!!
+            if (versionName.contains("rc"))
+                it.environment = "rc"
+            else if (versionName.contains("beta"))
+                it.environment = "beta"
+            else if (versionName.contains("alpha"))
+                it.environment = "alpha"
+            else
+                it.environment = "stable"
+        }
         UMengHelper.preInit(this)
         enableEdgeToEdge()
         setContent {
@@ -94,60 +118,81 @@ class MainActivity : ComponentActivity() {
                     bottomBar = {
                         val navBackStackEntry by navController.currentBackStackEntryAsState()
                         val currentDestination = navBackStackEntry?.destination
-                        BottomNavigation(
-                            backgroundColor = MaterialTheme.colorScheme.primaryContainer,
-                            elevation = 14.dp
+
+                        val isNoBottomNavigationBar by remember {
+                            derivedStateOf {
+                                listOf(
+                                    WelcomeDestination::class,
+                                    LoginDestination::class
+                                ).any { currentDestination?.hasRoute(it) ?: false }
+                            }
+                        }
+                        AnimatedVisibility(
+                            isNoBottomNavigationBar,
+                            enter = expandHorizontally(),
+                            exit = shrinkHorizontally()
                         ) {
-                            listOf(
-                                NavigationBarItemData(
-                                    SignGraphDestination,
-                                    "签到",
-                                    painterResource(R.drawable.ic_clipboard_pen_line)
-                                ),
-                                NavigationBarItemData(
-                                    SettingGraphDestination,
-                                    "设置",
-                                    painterResource(R.drawable.ic_settings)
+                            BottomNavigation(
+                                backgroundColor = MaterialTheme.colorScheme.primaryContainer,
+                                elevation = 14.dp
+                            ) {
+                                val bottomBarItem = listOf(
+                                    NavigationBarItemData(
+                                        SignGraphDestination,
+                                        "签到",
+                                        painterResource(R.drawable.ic_clipboard_pen_line)
+                                    ),
+                                    NavigationBarItemData(
+                                        OtherUserGraphDestination,
+                                        "代签",
+                                        painterResource(R.drawable.ic_users_round)
+                                    ),
+                                    NavigationBarItemData(
+                                        SettingGraphDestination,
+                                        "设置",
+                                        painterResource(R.drawable.ic_settings)
+                                    )
                                 )
-                            ).forEach { item ->
-                                val isSelected =
-                                    currentDestination?.hierarchy?.any { it.hasRoute(item.destination::class) } == true
-                                BottomNavigationItem(
-                                    isSelected,
-                                    onClick = {
-                                        navController.navigate(item.destination) {
-                                            popUpTo(navController.graph.findStartDestination().id) {
-                                                saveState = true
+                                bottomBarItem.forEach { item ->
+                                    val isSelected =
+                                        currentDestination?.hierarchy?.any { it.hasRoute(item.destination::class) } == true
+                                    BottomNavigationItem(
+                                        isSelected,
+                                        onClick = {
+                                            navController.navigate(item.destination) {
+                                                popUpTo(navController.graph.findStartDestination().id) {
+                                                    saveState = true
+                                                }
+                                                launchSingleTop = true
+                                                restoreState = true
                                             }
-                                            launchSingleTop = true
-                                            restoreState = true
-                                        }
-                                    },
-                                    icon = {
-                                        val iconColor by animateColorAsState(
-                                            if (isSelected) LocalContentColor.current else
-                                                LocalContentColor.current.copy(ContentAlpha.medium),
-                                            tween(300)
-                                        )
-                                        CompositionLocalProvider(LocalContentColor provides iconColor) {
+                                        },
+                                        icon = {
+                                            val iconColor by animateColorAsState(
+                                                if (isSelected) LocalContentColor.current else
+                                                    LocalContentColor.current.copy(ContentAlpha.medium),
+                                                tween(300)
+                                            )
+                                            CompositionLocalProvider(LocalContentColor provides iconColor) {
+                                                Column {
+                                                    Spacer(modifier = Modifier.size(1.5.dp))
+                                                    Icon(
+                                                        item.icon,
+                                                        contentDescription = item.name,
+                                                        modifier = Modifier.size(26.dp)
+                                                    )
+                                                }
+                                            }
+                                        },
+                                        label = {
                                             Column {
                                                 Spacer(modifier = Modifier.size(1.5.dp))
-                                                Icon(
-                                                    item.icon,
-                                                    contentDescription = item.name,
-                                                    modifier = Modifier.size(26.dp)
-                                                )
+                                                Text(item.name, fontSize = 12.sp)
                                             }
-                                        }
-                                    },
-                                    label = {
-                                        Column {
-                                            Spacer(modifier = Modifier.size(1.5.dp))
-                                            Text(item.name, fontSize = 12.sp)
-                                        }
-                                    },
-                                    alwaysShowLabel = false
-                                )
+                                        },
+                                        alwaysShowLabel = false
+                                    )
+                                }
                             }
                         }
                     }
@@ -193,6 +238,12 @@ class MainActivity : ComponentActivity() {
                             },
                         ) {
                             navigation<SignGraphDestination>(startDestination = CourseListDestination) {
+                                composable<CourseListDestination> {
+                                    CourseListScreen {
+                                        navController.navigate(it)
+                                    }
+                                }
+
                                 composable<QRCodeSignDestination> {
                                     QRCodeSignScreen(it.toRoute(), navToOtherUser = {
                                         navController.navigate(OtherUserDestination)
@@ -208,15 +259,6 @@ class MainActivity : ComponentActivity() {
                                 ) {
                                     LocationSignScreen(it.toRoute()) {
                                         navController.navigateUp()
-                                    }
-                                }
-
-                                composable<CourseListDestination> {
-                                    CourseListScreen {
-                                        navController.navigate(it, navOptions {
-                                            popUpTo<CourseListDestination> { saveState = true }
-                                            restoreState = true
-                                        })
                                     }
                                 }
 
@@ -237,18 +279,19 @@ class MainActivity : ComponentActivity() {
                                 }
                             }
 
+                            navigation<OtherUserGraphDestination>(startDestination = OtherUserDestination) {
+                                composable<OtherUserDestination> {
+                                    OtherUserScreen {
+                                        navController.navigateUp()
+                                    }
+                                }
+                            }
+
                             navigation<SettingGraphDestination>(startDestination = SettingDestination) {
 
                                 composable<SettingDestination> {
                                     SettingScreen {
                                         navController.navigate(OtherUserDestination)
-                                    }
-                                }
-
-
-                                composable<OtherUserDestination> {
-                                    OtherUserScreen {
-                                        navController.navigateUp()
                                     }
                                 }
                             }

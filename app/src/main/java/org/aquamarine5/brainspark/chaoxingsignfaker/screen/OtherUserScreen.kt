@@ -87,6 +87,9 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingOtherUserShar
 @Serializable
 object OtherUserDestination
 
+@Serializable
+object OtherUserGraphDestination
+
 @Composable
 fun OtherUserScreen(naviBack: () -> Unit) {
     Scaffold { innerPadding ->
@@ -129,13 +132,12 @@ fun OtherUserScreen(naviBack: () -> Unit) {
         ) {
             Column(
                 modifier = Modifier
-                    .padding(8.dp)
+                    .padding(8.dp,0.dp,8.dp,8.dp)
                     .verticalScroll(rememberScrollState())
                     .fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 val qrcodeSize = ChaoxingOtherUserHelper.getQRCodeDpSize(context)
-                Spacer(modifier = Modifier.height(22.dp))
                 Box(
                     modifier = Modifier
                         .border(
@@ -215,7 +217,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                             contentDescription = "Add User"
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("添加其他用户", fontSize = 16.sp)
+                        Text("扫码添加其他用户", fontSize = 16.sp)
                     }
                 }
                 LaunchedEffect(Unit) {

@@ -20,7 +20,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -35,7 +34,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SponsorCard
 import org.aquamarine5.brainspark.stackbricks.StackbricksComponent
-import org.aquamarine5.brainspark.stackbricks.StackbricksStateService
+import org.aquamarine5.brainspark.stackbricks.StackbricksService
 import org.aquamarine5.brainspark.stackbricks.providers.qiniu.QiniuConfiguration
 import org.aquamarine5.brainspark.stackbricks.providers.qiniu.QiniuMessageProvider
 import org.aquamarine5.brainspark.stackbricks.providers.qiniu.QiniuPackageProvider
@@ -52,11 +51,11 @@ object SettingDestination
 fun SettingScreen(navToOtherUserDestination: () -> Unit) {
 
     Column(modifier = Modifier.padding(16.dp)) {
-        val stackbricksState by rememberStackbricksStatus()
+        val stackbricksState = rememberStackbricksStatus()
         QiniuConfiguration(
             "cdn.aquamarine5.fun",
             referer = "http://cdn.aquamarine5.fun/",
-            configFilePath = "chaoxingsignfaker_stackbricks_v1_config.json",
+            configFilePath = "chaoxingsignfaker_stackbricks_v2_manifest.json",
             okHttpClient = ChaoxingHttpClient.instance!!.okHttpClient.newBuilder()
                 .callTimeout(20, TimeUnit.MINUTES)
                 .readTimeout(20, TimeUnit.MINUTES)
@@ -64,7 +63,7 @@ fun SettingScreen(navToOtherUserDestination: () -> Unit) {
                 .build()
         ).let {
             StackbricksComponent(
-                StackbricksStateService(
+                StackbricksService(
                     LocalContext.current,
                     QiniuMessageProvider(it),
                     QiniuPackageProvider(it),
