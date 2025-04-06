@@ -104,9 +104,10 @@ class MainActivity : ComponentActivity() {
                 it.environment = "rc"
             else if (versionName.contains("beta"))
                 it.environment = "beta"
-            else if (versionName.contains("alpha"))
+            else if (versionName.contains("alpha")) {
                 it.environment = "alpha"
-            else
+                it.isEnabled = false
+            } else
                 it.environment = "stable"
         }
         UMengHelper.preInit(this)

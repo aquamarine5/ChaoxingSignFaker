@@ -17,10 +17,17 @@ object UMengHelper {
     private const val API_KEY = "67d42c1c48ac1b4f87e7edae"
     private const val API_CHANNEL = "WXPublish"
 
-    const val EVENT_TAG_ACCOUNT_LOGIN = "account_login"
-    const val EVENT_TAG_SIGN_LOCATION = "sign_location"
-    const val EVENT_TAG_SIGN_QR_CODE = "sign_qr_code"
-    const val EVENT_TAG_ADD_OTHER_USER = "account_add_other_user"
+    private const val EVENT_TAG_ACCOUNT_LOGIN = "account_login"
+    private const val EVENT_TAG_SIGN_LOCATION = "sign_location"
+    private const val EVENT_TAG_SIGN_QR_CODE = "sign_qr_code"
+    private const val EVENT_TAG_ADD_OTHER_USER = "account_add_other_user"
+    private const val EVENT_TAG_GOTO_SPONSOR_WECHAT="sponsor_wechat_goto"
+
+    private const val EVENT_TAG_STACKBRICKS_CHECK_UPDATE="stackbricks_check_update"
+    private const val EVENT_TAG_STACKBRICKS_INSTALL_NEWEST="stackbricks_install_newest"
+    private const val EVENT_TAG_STACKBRICKS_INSTALL_TEST_CHANNEL="stackbricks_install_test_channel"
+    private const val EVENT_TAG_STACKBRICKS_CHECK_ON_LAUNCH_CHANGED="stackbricks_check_on_launch_status_changed"
+    private const val EVENT_TAG_STACKBRICKS_TEST_CHANNEL_CHANGED="stackbricks_test_channel_status_changed"
 
     fun preInit(context: Context) {
         UMConfigure.preInit(context, API_KEY, API_CHANNEL)
@@ -66,6 +73,30 @@ object UMengHelper {
     }
 
     fun onAccountOtherUserAddEvent(context: Context, userEntity: ChaoxingOtherUserSession) {
-        onEvent(context, EVENT_TAG_ADD_OTHER_USER, mapOf("phone" to userEntity.phoneNumber))
+        onEvent(context, EVENT_TAG_ADD_OTHER_USER, mapOf("phone" to userEntity.phoneNumber,"user" to userEntity.name))
+    }
+
+    fun onGotoSponsorWechatEvent(context: Context,userEntity: ChaoxingUserEntity){
+        onEvent(context, EVENT_TAG_GOTO_SPONSOR_WECHAT, mapOf("user" to userEntity.name))
+    }
+
+    fun onStackbricksCheckUpdateEvent(context: Context, userEntity: ChaoxingUserEntity) {
+        onEvent(context, EVENT_TAG_STACKBRICKS_CHECK_UPDATE, mapOf("user" to userEntity.name))
+    }
+
+    fun onStackbricksInstallNewestEvent(context: Context, userEntity: ChaoxingUserEntity) {
+        onEvent(context, EVENT_TAG_STACKBRICKS_INSTALL_NEWEST, mapOf("user" to userEntity.name))
+    }
+
+    fun onStackbricksInstallTestChannelEvent(context: Context, userEntity: ChaoxingUserEntity) {
+        onEvent(context, EVENT_TAG_STACKBRICKS_INSTALL_TEST_CHANNEL, mapOf("user" to userEntity.name))
+    }
+
+    fun onStackbricksCheckOnLaunchChangedEvent(context: Context, userEntity: ChaoxingUserEntity, status: Boolean) {
+        onEvent(context, EVENT_TAG_STACKBRICKS_CHECK_ON_LAUNCH_CHANGED, mapOf("user" to userEntity.name,"status" to status))
+    }
+
+    fun onStackbricksTestChannelChangedEvent(context: Context, userEntity: ChaoxingUserEntity, status: Boolean) {
+        onEvent(context, EVENT_TAG_STACKBRICKS_TEST_CHANNEL_CHANGED, mapOf("user" to userEntity.name,"status" to status))
     }
 }
