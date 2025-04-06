@@ -9,6 +9,7 @@ message ChaoxingSignFakerDataStore{
   repeated ChaoxingOtherUserSession otherUsers = 4;
   bool agreeTerms = 3;
   string deviceCode = 5;
+  repeated uint32 preferCourse=6;
 }
 
 message ChaoxingLocation{

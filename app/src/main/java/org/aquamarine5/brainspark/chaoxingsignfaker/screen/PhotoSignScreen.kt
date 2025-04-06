@@ -140,10 +140,14 @@ fun PhotoSignScreen(destination: PhotoSignDestination, navBack: () -> Unit) {
                             }) { Text("返回") }
                         }
                     } else {
-                        Button(onClick = {
-                            isShowPhotoPicker = true
-                        }) {
-                            Text("选择图片")
+                        if(isImage == true){
+                            Button(onClick = {
+                                isShowPhotoPicker = true
+                            }) {
+                                Text("选择图片")
+                            }
+                        }else if(isImage==false){
+                            Text("这不是拍照签到，普通的点击签到请在学习通签到。")
                         }
                     }
                 } else {

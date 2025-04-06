@@ -35,8 +35,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
@@ -119,14 +119,13 @@ class MainActivity : ComponentActivity() {
                     bottomBar = {
                         val navBackStackEntry by navController.currentBackStackEntryAsState()
                         val currentDestination = navBackStackEntry?.destination
-
-                        val isNoBottomNavigationBar by remember {
-                            derivedStateOf {
+                        val isNoBottomNavigationBar by remember(currentDestination) {
+                            mutableStateOf(
                                 listOf(
                                     WelcomeDestination::class,
                                     LoginDestination::class
-                                ).any { currentDestination?.hasRoute(it) ?: false }
-                            }
+                                ).any { currentDestination?.hasRoute(it) ?: false }.not()
+                            )
                         }
                         AnimatedVisibility(
                             isNoBottomNavigationBar,
@@ -291,9 +290,7 @@ class MainActivity : ComponentActivity() {
                             navigation<SettingGraphDestination>(startDestination = SettingDestination) {
 
                                 composable<SettingDestination> {
-                                    SettingScreen {
-                                        navController.navigate(OtherUserDestination)
-                                    }
+                                    SettingScreen()
                                 }
                             }
 

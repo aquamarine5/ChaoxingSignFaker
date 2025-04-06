@@ -6,7 +6,6 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.components
 
-import android.annotation.SuppressLint
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
@@ -78,7 +77,6 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationDetailEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationSignEntity
 
-@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun GetLocationComponent(
@@ -103,24 +101,6 @@ fun GetLocationComponent(
             locationClient.start()
         }
         var isShowDialog by remember { mutableStateOf(false) }
-        Box {
-            Column(modifier = Modifier.align(Alignment.BottomEnd)) {
-                FloatingActionButton(onClick = {
-                    isShowDialog = true
-                }) {
-                    Icon(painterResource(R.drawable.ic_edit), contentDescription = "修改备注")
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-                FloatingActionButton(onClick = {
-                    locationClient.start()
-                }) {
-                    Icon(
-                        painterResource(R.drawable.ic_locate_fixed),
-                        contentDescription = "定位"
-                    )
-                }
-            }
-        }
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -423,10 +403,28 @@ fun GetLocationComponent(
                         confirmButtonText()
                     }
                 }
-                AndroidView(
-                    factory = {
-                        mapView
-                    })
+                Box(modifier=Modifier.fillMaxSize()) {
+                    Column(modifier = Modifier.align(Alignment.BottomEnd)) {
+                        FloatingActionButton(onClick = {
+                            isShowDialog = true
+                        }) {
+                            Icon(painterResource(R.drawable.ic_edit), contentDescription = "修改备注")
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        FloatingActionButton(onClick = {
+                            locationClient.start()
+                        }) {
+                            Icon(
+                                painterResource(R.drawable.ic_locate_fixed),
+                                contentDescription = "定位"
+                            )
+                        }
+                    }
+                    AndroidView(
+                        factory = {
+                            mapView
+                        })
+                }
             } else {
                 val allPermissionsRevoked =
                     locationPermissionsState.permissions.size ==

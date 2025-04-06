@@ -95,7 +95,7 @@ fun CourseDetailScreen(
                 )
                 Text(
                     "课程名称：${courseEntity.courseName}",
-                    color = if(isSystemInDarkTheme())Color.Gray else Color.DarkGray,
+                    color = if (isSystemInDarkTheme()) Color.Gray else Color.DarkGray,
                     textAlign = TextAlign.Left,
                     modifier = Modifier
                         .fillMaxWidth()

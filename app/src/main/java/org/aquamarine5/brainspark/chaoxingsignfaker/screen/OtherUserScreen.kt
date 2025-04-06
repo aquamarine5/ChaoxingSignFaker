@@ -132,7 +132,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
         ) {
             Column(
                 modifier = Modifier
-                    .padding(8.dp,0.dp,8.dp,8.dp)
+                    .padding(8.dp, 0.dp, 8.dp, 8.dp)
                     .verticalScroll(rememberScrollState())
                     .fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally

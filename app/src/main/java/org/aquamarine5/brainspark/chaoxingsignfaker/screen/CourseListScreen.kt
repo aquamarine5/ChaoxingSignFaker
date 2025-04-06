@@ -32,10 +32,13 @@ import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import coil3.request.crossfade
 import io.sentry.Sentry
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
+import okhttp3.internal.filterList
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCourseHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
+import org.aquamarine5.brainspark.chaoxingsignfaker.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CourseInfoColumnCard
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCourseEntity
@@ -59,8 +62,15 @@ fun CourseListScreen(
     LaunchedEffect(Unit) {
         if (activitiesData.isEmpty()) {
             runCatching {
-                ChaoxingHttpClient.instance?.let {
-                    activitiesData = ChaoxingCourseHelper.getAllCourse(it)
+                val preferredCourse = context.chaoxingDataStore.data.first().preferCourseList.reversed()
+                ChaoxingHttpClient.instance?.let { httpClient ->
+                    ChaoxingCourseHelper.getAllCourse(httpClient).apply {
+                        activitiesData = this.filterList {
+                            preferredCourse.contains(courseId)
+                        }.map { it.apply { isPreferred = true } } + this.filterList {
+                            !preferredCourse.contains(courseId)
+                        }
+                    }
                 }
             }.onFailure {
                 Sentry.captureException(it)
@@ -105,10 +115,25 @@ fun CourseListScreen(
                 }
             ) {
                 LazyColumn {
-                    items(activitiesData) {
-                        key(it.courseId) {
-                            CourseInfoColumnCard(it, imageLoader) {
-                                navToDetailDestination(it)
+                    items(activitiesData) { data->
+                        key(data.courseId) {
+                            CourseInfoColumnCard(
+                                data,
+                                imageLoader,
+                                modifier = Modifier.animateItem(),
+                                onPreferredResort = {
+                                    coroutineScope.launch {
+                                        data.isPreferred = !data.isPreferred
+                                        context.chaoxingDataStore.updateData {
+                                            it.toBuilder().addPreferCourse(data.courseId).build()
+                                        }
+                                        activitiesData =  listOf(data)+activitiesData.filterList {
+                                            courseId != data.courseId
+                                        }
+                                    }
+                                }
+                            ) {
+                                navToDetailDestination(data)
                             }
                         }
                     }
