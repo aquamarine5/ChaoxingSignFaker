@@ -22,6 +22,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -41,7 +44,7 @@ inline fun CourseInfoColumnCard(
     course: ChaoxingCourseEntity,
     imageLoader: ImageLoader,
     modifier: Modifier = Modifier,
-    crossinline onPreferredResort: () -> Unit,
+    crossinline onPreferredResort: (Boolean) -> Unit,
     noinline onClick: () -> Unit,
 ) {
     Button(
@@ -72,7 +75,7 @@ inline fun CourseInfoColumnCard(
                 }
             )
             Spacer(modifier = Modifier.width(14.dp))
-            Column(modifier=Modifier.fillMaxWidth(), horizontalAlignment = Alignment.Start) {
+            Column(horizontalAlignment = Alignment.Start) {
                 Text(
                     course.courseName.replace("\n", ""),
                     fontSize = 14.sp,
@@ -83,26 +86,25 @@ inline fun CourseInfoColumnCard(
                     Text(course.schools.replace("\n", ""), fontSize = 12.sp)
                 }
             }
+            var isPreferred by remember{ mutableStateOf(course.isPreferred) }
             val animTint by animateColorAsState(
-                targetValue = if (course.isPreferred) {
+                targetValue = if (isPreferred) {
                     Color.Yellow
                 } else {
                     Color.Gray
                 }
             )
             Spacer(modifier=Modifier.width(6.dp))
-            Icon(
-                painterResource(R.drawable.ic_star_fill),
-                null,
-                tint = animTint,
-                modifier = Modifier.clickable {
-                    if (course.isPreferred) {
-                        course.isPreferred = false
-                    } else {
-                        course.isPreferred = true
-                        onPreferredResort()
-                    }
-                })
+            Column(modifier=Modifier.fillMaxWidth(), horizontalAlignment = Alignment.End){
+                Icon(
+                    painterResource(R.drawable.ic_star_fill),
+                    null,
+                    tint = animTint,
+                    modifier = Modifier.clickable {
+                        isPreferred=!isPreferred
+                        onPreferredResort(isPreferred)
+                    })
+            }
         }
     }
     Spacer(modifier = Modifier.height(8.dp))

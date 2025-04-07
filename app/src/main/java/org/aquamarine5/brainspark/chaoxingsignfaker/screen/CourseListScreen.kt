@@ -62,7 +62,8 @@ fun CourseListScreen(
     LaunchedEffect(Unit) {
         if (activitiesData.isEmpty()) {
             runCatching {
-                val preferredCourse = context.chaoxingDataStore.data.first().preferCourseList.reversed()
+                val preferredCourse =
+                    context.chaoxingDataStore.data.first().preferCourseList.reversed()
                 ChaoxingHttpClient.instance?.let { httpClient ->
                     ChaoxingCourseHelper.getAllCourse(httpClient).apply {
                         activitiesData = this.filterList {
@@ -115,20 +116,37 @@ fun CourseListScreen(
                 }
             ) {
                 LazyColumn {
-                    items(activitiesData) { data->
+                    items(activitiesData) { data ->
                         key(data.courseId) {
                             CourseInfoColumnCard(
                                 data,
                                 imageLoader,
                                 modifier = Modifier.animateItem(),
-                                onPreferredResort = {
-                                    coroutineScope.launch {
-                                        data.isPreferred = !data.isPreferred
-                                        context.chaoxingDataStore.updateData {
-                                            it.toBuilder().addPreferCourse(data.courseId).build()
+                                onPreferredResort = { isPreferred ->
+                                    if (isPreferred)
+                                        coroutineScope.launch {
+                                            context.chaoxingDataStore.updateData {
+                                                it.toBuilder().addPreferCourse(data.courseId)
+                                                    .build()
+                                            }
+                                            activitiesData =
+                                                listOf(data) + activitiesData.filterList {
+                                                    courseId != data.courseId
+                                                }
                                         }
-                                        activitiesData =  listOf(data)+activitiesData.filterList {
-                                            courseId != data.courseId
+                                    else {
+                                        coroutineScope.launch {
+                                            context.chaoxingDataStore.updateData { dataStore ->
+                                                dataStore.toBuilder().apply {
+                                                    val newList =
+                                                        preferCourseList.filterNot { it == data.courseId }
+                                                    clearPreferCourse()
+                                                    addAllPreferCourse(newList)
+                                                }.build()
+                                            }
+                                            activitiesData = activitiesData.filterList {
+                                                courseId != data.courseId
+                                            } + listOf(data)
                                         }
                                     }
                                 }

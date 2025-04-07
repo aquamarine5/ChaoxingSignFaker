@@ -12,20 +12,36 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import kotlinx.coroutines.delay
+
+
+private const val WAIT_DELAY=500L
 
 @Composable
 fun CenterCircularProgressIndicator(modifier: Modifier = Modifier) {
+    var isShow by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        delay(WAIT_DELAY)
+        isShow=true
+    }
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        CircularProgressIndicator(
-            modifier = Modifier
-                .align(Alignment.Center)
-                .then(modifier)
-        )
+        if(isShow){
+            CircularProgressIndicator(
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .then(modifier)
+            )
+        }
     }
 }
