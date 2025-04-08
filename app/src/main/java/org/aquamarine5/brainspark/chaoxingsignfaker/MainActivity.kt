@@ -35,9 +35,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
@@ -56,8 +59,8 @@ import com.baidu.mapapi.SDKInitializer
 import com.umeng.analytics.MobclickAgent
 import io.sentry.android.core.SentryAndroid
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.NavigationBarItemData
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.CourseDetailDestination
@@ -113,6 +116,7 @@ class MainActivity : ComponentActivity() {
         UMengHelper.preInit(this)
         enableEdgeToEdge()
         setContent {
+            val coroutineScope = rememberCoroutineScope()
             val navController = rememberNavController()
             ChaoxingSignFakerTheme {
                 Scaffold(
@@ -203,114 +207,119 @@ class MainActivity : ComponentActivity() {
                             .padding(innerPadding)
                             .fillMaxSize()
                     ) {
-                        NavHost(
-                            navController,
-                            runBlocking {
-                                applicationContext.chaoxingDataStore.data.first().let {
-                                    if (it.agreeTerms) {
-                                        UMengHelper.init(applicationContext)
-                                        LocationClient.setAgreePrivacy(true)
-                                        SDKInitializer.setAgreePrivacy(applicationContext, true)
+                        var destination by remember { mutableStateOf<Any?>(null) }
+                        LaunchedEffect(Unit) {
+                            val datastore = applicationContext.chaoxingDataStore.data.first()
+                            ChaoxingHttpClient.loadFromDataStore(datastore)
+                            if (datastore.agreeTerms) {
+                                UMengHelper.init(applicationContext)
+                                LocationClient.setAgreePrivacy(true)
+                                SDKInitializer.setAgreePrivacy(applicationContext, true)
+                            }
+                            destination =
+                                when {
+                                    !datastore.agreeTerms -> WelcomeDestination
+                                    !datastore.hasLoginSession() -> LoginDestination
+                                    else -> {
+                                        SignGraphDestination
                                     }
-                                    ChaoxingHttpClient.deviceCode =
-                                        if (it.deviceCode == null)
-                                            ChaoxingHttpClient.generateDeviceCode(applicationContext)
-                                        else it.deviceCode
-                                    when {
-                                        !it.agreeTerms -> WelcomeDestination
-                                        !it.hasLoginSession() -> LoginDestination
-                                        else -> {
-                                            ChaoxingHttpClient.loadFromDataStore(it)
-                                            SignGraphDestination
+                                }
+                            ChaoxingHttpClient.deviceCode =
+                                datastore.deviceCode ?: ChaoxingHttpClient.generateDeviceCode(
+                                    applicationContext
+                                )
+                        }
+                        if (destination == null) {
+                            CenterCircularProgressIndicator()
+                        } else
+                            NavHost(
+                                navController,
+                                destination!!,
+                                enterTransition = {
+                                    fadeIn(
+                                        animationSpec = tween(300)
+                                    )
+                                },
+                                exitTransition = {
+                                    fadeOut(
+                                        animationSpec = tween(300)
+                                    )
+                                },
+                            ) {
+                                navigation<SignGraphDestination>(startDestination = CourseListDestination) {
+                                    composable<CourseListDestination> {
+                                        CourseListScreen {
+                                            navController.navigate(it)
+                                        }
+                                    }
+
+                                    composable<QRCodeSignDestination> {
+                                        QRCodeSignScreen(it.toRoute(), navToOtherUser = {
+                                            navController.navigate(OtherUserDestination)
+                                        }) {
+                                            navController.navigateUp()
+                                        }
+                                    }
+
+                                    composable<GetLocationDestination>(
+                                        typeMap = mapOf(
+                                            typeOf<ChaoxingSignActivityEntity>() to ChaoxingSignActivityEntity.SignActivityNavType
+                                        )
+                                    ) {
+                                        LocationSignScreen(it.toRoute()) {
+                                            navController.navigateUp()
+                                        }
+                                    }
+
+                                    composable<CourseDetailDestination> {
+                                        CourseDetailScreen(
+                                            it.toRoute(),
+                                            navToSignerDestination = { destination ->
+                                                navController.navigate(destination)
+                                            }) {
+                                            navController.navigateUp()
+                                        }
+                                    }
+
+                                    composable<PhotoSignDestination> {
+                                        PhotoSignScreen(it.toRoute()) {
+                                            navController.navigateUp()
                                         }
                                     }
                                 }
-                            },
-                            enterTransition = {
-                                fadeIn(
-                                    animationSpec = tween(300)
-                                )
-                            },
-                            exitTransition = {
-                                fadeOut(
-                                    animationSpec = tween(300)
-                                )
-                            },
-                        ) {
-                            navigation<SignGraphDestination>(startDestination = CourseListDestination) {
-                                composable<CourseListDestination> {
-                                    CourseListScreen {
-                                        navController.navigate(it)
+
+                                navigation<OtherUserGraphDestination>(startDestination = OtherUserDestination) {
+                                    composable<OtherUserDestination> {
+                                        OtherUserScreen {
+                                            navController.navigateUp()
+                                        }
                                     }
                                 }
 
-                                composable<QRCodeSignDestination> {
-                                    QRCodeSignScreen(it.toRoute(), navToOtherUser = {
-                                        navController.navigate(OtherUserDestination)
-                                    }) {
-                                        navController.navigateUp()
+                                navigation<SettingGraphDestination>(startDestination = SettingDestination) {
+
+                                    composable<SettingDestination> {
+                                        SettingScreen()
                                     }
                                 }
 
-                                composable<GetLocationDestination>(
-                                    typeMap = mapOf(
-                                        typeOf<ChaoxingSignActivityEntity>() to ChaoxingSignActivityEntity.SignActivityNavType
-                                    )
-                                ) {
-                                    LocationSignScreen(it.toRoute()) {
-                                        navController.navigateUp()
+
+                                composable<WelcomeDestination> {
+                                    WelcomeScreen {
+                                        navController.navigate(LoginDestination) {
+                                            popUpTo<WelcomeDestination>()
+                                        }
                                     }
                                 }
 
-                                composable<CourseDetailDestination> {
-                                    CourseDetailScreen(
-                                        it.toRoute(),
-                                        navToSignerDestination = { destination ->
-                                            navController.navigate(destination)
-                                        }) {
-                                        navController.navigateUp()
-                                    }
-                                }
-
-                                composable<PhotoSignDestination> {
-                                    PhotoSignScreen(it.toRoute()) {
-                                        navController.navigateUp()
+                                composable<LoginDestination> {
+                                    LoginPage {
+                                        navController.navigate(CourseListDestination) {
+                                            popUpTo<LoginDestination> { inclusive = true }
+                                        }
                                     }
                                 }
                             }
-
-                            navigation<OtherUserGraphDestination>(startDestination = OtherUserDestination) {
-                                composable<OtherUserDestination> {
-                                    OtherUserScreen {
-                                        navController.navigateUp()
-                                    }
-                                }
-                            }
-
-                            navigation<SettingGraphDestination>(startDestination = SettingDestination) {
-
-                                composable<SettingDestination> {
-                                    SettingScreen()
-                                }
-                            }
-
-
-                            composable<WelcomeDestination> {
-                                WelcomeScreen {
-                                    navController.navigate(LoginDestination) {
-                                        popUpTo<WelcomeDestination>()
-                                    }
-                                }
-                            }
-
-                            composable<LoginDestination> {
-                                LoginPage {
-                                    navController.navigate(CourseListDestination) {
-                                        popUpTo<LoginDestination> { inclusive = true }
-                                    }
-                                }
-                            }
-                        }
                     }
                 }
 

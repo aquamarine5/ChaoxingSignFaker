@@ -75,7 +75,7 @@ inline fun CourseInfoColumnCard(
                 }
             )
             Spacer(modifier = Modifier.width(14.dp))
-            Column(horizontalAlignment = Alignment.Start) {
+            Column(horizontalAlignment = Alignment.Start, modifier = Modifier.weight(1f)) {
                 Text(
                     course.courseName.replace("\n", ""),
                     fontSize = 14.sp,
@@ -86,7 +86,7 @@ inline fun CourseInfoColumnCard(
                     Text(course.schools.replace("\n", ""), fontSize = 12.sp)
                 }
             }
-            var isPreferred by remember{ mutableStateOf(course.isPreferred) }
+            var isPreferred by remember { mutableStateOf(course.isPreferred) }
             val animTint by animateColorAsState(
                 targetValue = if (isPreferred) {
                     Color.Yellow
@@ -94,17 +94,16 @@ inline fun CourseInfoColumnCard(
                     Color.Gray
                 }
             )
-            Spacer(modifier=Modifier.width(6.dp))
-            Column(modifier=Modifier.fillMaxWidth(), horizontalAlignment = Alignment.End){
-                Icon(
-                    painterResource(R.drawable.ic_star_fill),
-                    null,
-                    tint = animTint,
-                    modifier = Modifier.clickable {
-                        isPreferred=!isPreferred
-                        onPreferredResort(isPreferred)
-                    })
-            }
+            Spacer(modifier = Modifier.width(6.dp))
+            Icon(
+                painterResource(R.drawable.ic_star_fill),
+                null,
+                tint = animTint,
+                modifier = Modifier.clickable {
+                    isPreferred = !isPreferred
+                    onPreferredResort(isPreferred)
+                })
+
         }
     }
     Spacer(modifier = Modifier.height(8.dp))

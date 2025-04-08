@@ -7,6 +7,9 @@
 package org.aquamarine5.brainspark.chaoxingsignfaker.screen
 
 import android.widget.Toast
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.VisibilityThreshold
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -24,6 +27,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import coil3.ImageLoader
 import coil3.disk.DiskCache
@@ -35,7 +39,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
-import okhttp3.internal.filterList
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCourseHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.chaoxingDataStore
@@ -58,6 +61,10 @@ fun CourseListScreen(
         saver = ChaoxingCourseEntity.Saver
     ) { mutableStateOf(emptyList()) }
 
+    var rawActivitiesData: List<ChaoxingCourseEntity> by rememberSaveable(
+        saver = ChaoxingCourseEntity.Saver
+    ) { mutableStateOf(emptyList()) }
+
     val context = LocalContext.current
     LaunchedEffect(Unit) {
         if (activitiesData.isEmpty()) {
@@ -66,10 +73,11 @@ fun CourseListScreen(
                     context.chaoxingDataStore.data.first().preferCourseList.reversed()
                 ChaoxingHttpClient.instance?.let { httpClient ->
                     ChaoxingCourseHelper.getAllCourse(httpClient).apply {
-                        activitiesData = this.filterList {
-                            preferredCourse.contains(courseId)
-                        }.map { it.apply { isPreferred = true } } + this.filterList {
-                            !preferredCourse.contains(courseId)
+                        rawActivitiesData= this
+                        activitiesData = this.filter {
+                            preferredCourse.contains(it.courseId)
+                        }.map { it.apply { isPreferred = true } } + this.filter {
+                            !preferredCourse.contains(it.courseId)
                         }
                     }
                 }
@@ -121,7 +129,14 @@ fun CourseListScreen(
                             CourseInfoColumnCard(
                                 data,
                                 imageLoader,
-                                modifier = Modifier.animateItem(),
+                                modifier = Modifier.animateItem(
+                                    placementSpec = spring(
+                                        stiffness = Spring.StiffnessLow,
+                                        visibilityThreshold = IntOffset.VisibilityThreshold
+                                    ),
+                                    fadeInSpec = spring(Spring.StiffnessLow),
+                                    fadeOutSpec = spring(Spring.StiffnessLow)
+                                ),
                                 onPreferredResort = { isPreferred ->
                                     if (isPreferred)
                                         coroutineScope.launch {
@@ -130,8 +145,8 @@ fun CourseListScreen(
                                                     .build()
                                             }
                                             activitiesData =
-                                                listOf(data) + activitiesData.filterList {
-                                                    courseId != data.courseId
+                                                listOf(data) + activitiesData.filter {
+                                                    it.courseId != data.courseId
                                                 }
                                         }
                                     else {
@@ -144,8 +159,8 @@ fun CourseListScreen(
                                                     addAllPreferCourse(newList)
                                                 }.build()
                                             }
-                                            activitiesData = activitiesData.filterList {
-                                                courseId != data.courseId
+                                            activitiesData = activitiesData.filter {
+                                                it.courseId != data.courseId
                                             } + listOf(data)
                                         }
                                     }
