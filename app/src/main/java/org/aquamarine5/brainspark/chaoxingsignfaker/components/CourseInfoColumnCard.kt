@@ -101,6 +101,7 @@ inline fun CourseInfoColumnCard(
                 tint = animTint,
                 modifier = Modifier.clickable {
                     isPreferred = !isPreferred
+                    course.isPreferred = isPreferred
                     onPreferredResort(isPreferred)
                 })
 

@@ -141,7 +141,7 @@ fun SponsorAlertDialog(showDialog: MutableState<Boolean>) {
                         }
                     }.invokeOnCompletion {
                         Toast.makeText(context, "图片已保存到相册", Toast.LENGTH_SHORT).show()
-                        context.packageManager.getLaunchIntentForPackage("com.openai.chatgpt")
+                        context.packageManager.getLaunchIntentForPackage("com.tencent.mm")
                             ?.let {
                                 it.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                                 context.startActivity(it)

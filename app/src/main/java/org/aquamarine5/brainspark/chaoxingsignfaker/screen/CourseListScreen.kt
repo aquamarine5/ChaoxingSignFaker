@@ -20,10 +20,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -57,28 +57,26 @@ object SignGraphDestination
 fun CourseListScreen(
     navToDetailDestination: (ChaoxingCourseEntity) -> Unit,
 ) {
-    var activitiesData: List<ChaoxingCourseEntity> by rememberSaveable(
-        saver = ChaoxingCourseEntity.Saver
-    ) { mutableStateOf(emptyList()) }
+    var activitiesData = remember{ mutableStateListOf<ChaoxingCourseEntity>()}
 
-    var rawActivitiesData: List<ChaoxingCourseEntity> by rememberSaveable(
-        saver = ChaoxingCourseEntity.Saver
-    ) { mutableStateOf(emptyList()) }
-
+    var rawActivitiesData = remember{ mutableStateListOf<ChaoxingCourseEntity>()}
+    var preferredCourse = remember {
+        emptyList<Int>()
+    }
     val context = LocalContext.current
     LaunchedEffect(Unit) {
         if (activitiesData.isEmpty()) {
             runCatching {
-                val preferredCourse =
+                preferredCourse =
                     context.chaoxingDataStore.data.first().preferCourseList.reversed()
                 ChaoxingHttpClient.instance?.let { httpClient ->
                     ChaoxingCourseHelper.getAllCourse(httpClient).apply {
-                        rawActivitiesData= this
-                        activitiesData = this.filter {
+                        rawActivitiesData.addAll(this)
+                        activitiesData.addAll(this.filter {
                             preferredCourse.contains(it.courseId)
                         }.map { it.apply { isPreferred = true } } + this.filter {
                             !preferredCourse.contains(it.courseId)
-                        }
+                        })
                     }
                 }
             }.onFailure {
@@ -116,7 +114,15 @@ fun CourseListScreen(
                     isRefreshing = true
                     coroutineScope.launch {
                         ChaoxingHttpClient.instance?.let {
-                            activitiesData = ChaoxingCourseHelper.getAllCourse(it)
+                            activitiesData.clear()
+                            activitiesData.addAll(ChaoxingCourseHelper.getAllCourse(it).apply {
+                                rawActivitiesData.addAll(this)
+                                activitiesData.addAll(this.filter {
+                                    preferredCourse.contains(it.courseId)
+                                }.map { it.apply { isPreferred = true } } + this.filter {
+                                    !preferredCourse.contains(it.courseId)
+                                })
+                            })
                             delay(1000)
                             isRefreshing = false
                         }
@@ -133,9 +139,7 @@ fun CourseListScreen(
                                     placementSpec = spring(
                                         stiffness = Spring.StiffnessLow,
                                         visibilityThreshold = IntOffset.VisibilityThreshold
-                                    ),
-                                    fadeInSpec = spring(Spring.StiffnessLow),
-                                    fadeOutSpec = spring(Spring.StiffnessLow)
+                                    )
                                 ),
                                 onPreferredResort = { isPreferred ->
                                     if (isPreferred)
@@ -144,10 +148,12 @@ fun CourseListScreen(
                                                 it.toBuilder().addPreferCourse(data.courseId)
                                                     .build()
                                             }
-                                            activitiesData =
-                                                listOf(data) + activitiesData.filter {
-                                                    it.courseId != data.courseId
-                                                }
+                                            val index = activitiesData.indexOf(data)
+                                            if (index > 0) {
+                                                val item = activitiesData.removeAt(index)
+                                                activitiesData.add(0, item)
+                                            }
+                                            preferredCourse = preferredCourse + data.courseId
                                         }
                                     else {
                                         coroutineScope.launch {
@@ -159,9 +165,14 @@ fun CourseListScreen(
                                                     addAllPreferCourse(newList)
                                                 }.build()
                                             }
-                                            activitiesData = activitiesData.filter {
-                                                it.courseId != data.courseId
-                                            } + listOf(data)
+                                            preferredCourse = preferredCourse.filterNot { it == data.courseId }
+                                            activitiesData.clear()
+                                            activitiesData.addAll(rawActivitiesData.filter {
+                                                preferredCourse.contains(it.courseId)
+                                            })
+                                            activitiesData.addAll(rawActivitiesData.filter {
+                                                !preferredCourse.contains(it.courseId)
+                                            })
                                         }
                                     }
                                 }

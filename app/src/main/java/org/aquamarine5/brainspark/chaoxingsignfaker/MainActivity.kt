@@ -39,7 +39,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
@@ -97,8 +96,9 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         SentryAndroid.init(this) {
-            if (Debug.isDebuggerConnected())
+            if (Debug.isDebuggerConnected()) {
                 it.isEnabled = false
+            }
             val versionName = packageManager.getPackageInfo(
                 packageName,
                 GET_META_DATA
@@ -109,14 +109,13 @@ class MainActivity : ComponentActivity() {
                 it.environment = "beta"
             else if (versionName.contains("alpha")) {
                 it.environment = "alpha"
-                it.isEnabled = false
+                //it.isEnabled = false
             } else
                 it.environment = "stable"
         }
         UMengHelper.preInit(this)
         enableEdgeToEdge()
         setContent {
-            val coroutineScope = rememberCoroutineScope()
             val navController = rememberNavController()
             ChaoxingSignFakerTheme {
                 Scaffold(
@@ -210,7 +209,6 @@ class MainActivity : ComponentActivity() {
                         var destination by remember { mutableStateOf<Any?>(null) }
                         LaunchedEffect(Unit) {
                             val datastore = applicationContext.chaoxingDataStore.data.first()
-                            ChaoxingHttpClient.loadFromDataStore(datastore)
                             if (datastore.agreeTerms) {
                                 UMengHelper.init(applicationContext)
                                 LocationClient.setAgreePrivacy(true)
@@ -221,6 +219,7 @@ class MainActivity : ComponentActivity() {
                                     !datastore.agreeTerms -> WelcomeDestination
                                     !datastore.hasLoginSession() -> LoginDestination
                                     else -> {
+                                        ChaoxingHttpClient.loadFromDataStore(datastore)
                                         SignGraphDestination
                                     }
                                 }

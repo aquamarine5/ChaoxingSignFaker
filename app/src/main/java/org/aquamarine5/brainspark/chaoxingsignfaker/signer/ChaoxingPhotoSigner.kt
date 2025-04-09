@@ -7,6 +7,8 @@
 package org.aquamarine5.brainspark.chaoxingsignfaker.signer
 
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.net.Uri
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -28,7 +30,6 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.screen.PhotoSignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingLocationSigner.Companion.CLASSTAG
 import java.io.File
 import java.io.FileOutputStream
-import java.io.InputStream
 import java.util.UUID
 
 typealias ChaoxingPhotoActivityEntity = PhotoSignDestination
@@ -86,11 +87,14 @@ class ChaoxingPhotoSigner(
         val contentResolver = context.contentResolver
         val file = File(context.cacheDir, fileName)
         return runCatching {
-            val inputStream: InputStream? = contentResolver.openInputStream(uri)
-            val outputStream = FileOutputStream(file)
-            inputStream?.use { input ->
-                outputStream.use { output ->
-                    input.copyTo(output)
+            contentResolver.openInputStream(uri)?.use {
+                val bitmap = BitmapFactory.decodeStream(it)
+                FileOutputStream(file).use { output ->
+                    bitmap.compress(
+                        Bitmap.CompressFormat.JPEG,
+                        50,
+                        output
+                    )
                 }
             }
             return@runCatching file
