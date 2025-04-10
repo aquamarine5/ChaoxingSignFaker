@@ -10,6 +10,11 @@ import android.graphics.Bitmap
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInHorizontally
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -82,6 +87,9 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingOtherUserShar
 @Serializable
 object OtherUserDestination
 
+@Serializable
+object OtherUserGraphDestination
+
 @Composable
 fun OtherUserScreen(naviBack: () -> Unit) {
     Scaffold { innerPadding ->
@@ -124,13 +132,12 @@ fun OtherUserScreen(naviBack: () -> Unit) {
         ) {
             Column(
                 modifier = Modifier
-                    .padding(8.dp)
+                    .padding(8.dp, 0.dp, 8.dp, 8.dp)
                     .verticalScroll(rememberScrollState())
                     .fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 val qrcodeSize = ChaoxingOtherUserHelper.getQRCodeDpSize(context)
-                Spacer(modifier = Modifier.height(22.dp))
                 Box(
                     modifier = Modifier
                         .border(
@@ -210,7 +217,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                             contentDescription = "Add User"
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("添加其他用户", fontSize = 16.sp)
+                        Text("扫码添加其他用户", fontSize = 16.sp)
                     }
                 }
                 LaunchedEffect(Unit) {
@@ -308,7 +315,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                     Text("导入成功")
                 },
                 text = {
-                    Text("${currentImportData}用户已经成功导入")
+                    Text("$currentImportData 用户已经成功导入")
                 },
                 confirmButton = {
                     Button(
@@ -321,7 +328,18 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                 }
             )
         }
-        AnimatedVisibility(isQRCodeScanning) {
+        AnimatedVisibility(
+            isQRCodeScanning, enter =
+            slideInHorizontally(
+                initialOffsetX = { it },
+                animationSpec = tween(300)
+            ) + fadeIn(
+                animationSpec = tween(300)
+            ), exit =
+            scaleOut(targetScale = 0.8f, animationSpec = tween(300)) + fadeOut(
+                animationSpec = tween(300)
+            )
+        ) {
             Column(
                 modifier = Modifier
                     .zIndex(1f)

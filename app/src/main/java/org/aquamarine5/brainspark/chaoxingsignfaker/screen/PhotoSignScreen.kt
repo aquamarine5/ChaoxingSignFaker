@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -37,6 +36,7 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import org.aquamarine5.brainspark.chaoxingsignfaker.ChaoxingPredictableException
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
+import org.aquamarine5.brainspark.chaoxingsignfaker.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.AlreadySignedNotice
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
@@ -65,117 +65,119 @@ data class PhotoSignDestination(
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun PhotoSignScreen(destination: PhotoSignDestination, navBack: () -> Unit) {
-    Scaffold { innerPadding ->
-        Column(
-            modifier = Modifier
-                .padding(innerPadding)
-                .padding(8.dp)
-        ) {
-            val context = LocalContext.current
-            val coroutineScope = rememberCoroutineScope()
-            val signer = ChaoxingPhotoSigner(ChaoxingHttpClient.instance!!, destination)
-            var isImage by remember { mutableStateOf<Boolean?>(null) }
-            var isAlreadySigned by remember { mutableStateOf<Boolean?>(null) }
-            var isSignSuccess by remember { mutableStateOf(false) }
-            var isShowPhotoPicker by remember { mutableStateOf(false) }
-            LaunchedEffect(Unit) {
-                runCatching {
-                    isImage = signer.ifPhotoRequiredLogin()
-                    isAlreadySigned = signer.preSign()
-                }.onFailure {
-                    if ((it is ChaoxingPredictableException).not()) {
-                        Sentry.captureException(it)
-                    }
-                    Toast.makeText(context, "获取签到事件详情失败", Toast.LENGTH_SHORT).show()
-                    navBack()
+    Column(
+        modifier = Modifier
+            .padding(8.dp)
+    ) {
+        val context = LocalContext.current
+        val coroutineScope = rememberCoroutineScope()
+        val signer = ChaoxingPhotoSigner(ChaoxingHttpClient.instance!!, destination)
+        var isImage by remember { mutableStateOf<Boolean?>(null) }
+        var isAlreadySigned by remember { mutableStateOf<Boolean?>(null) }
+        var isSignSuccess by remember { mutableStateOf(false) }
+        var isShowPhotoPicker by remember { mutableStateOf(false) }
+        LaunchedEffect(Unit) {
+            runCatching {
+                isImage = signer.ifPhotoRequiredLogin()
+                isAlreadySigned = signer.preSign()
+            }.onFailure {
+                if ((it is ChaoxingPredictableException).not()) {
+                    Sentry.captureException(it)
                 }
+                Toast.makeText(context, "获取签到事件详情失败", Toast.LENGTH_SHORT).show()
+                navBack()
             }
-            when (isAlreadySigned) {
-                true -> {
-                    val photoPermissionsState = rememberMultiplePermissionsState(
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
-                            listOf(
-                                android.Manifest.permission.READ_MEDIA_IMAGES,
-                                android.Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED
-                            ) else if (Build.VERSION.SDK_INT == Build.VERSION_CODES.TIRAMISU)
-                            listOf(
-                                android.Manifest.permission.READ_MEDIA_IMAGES
-                            ) else
-                            listOf(
-                                android.Manifest.permission.READ_EXTERNAL_STORAGE
-                            )
-                    )
-                    if (photoPermissionsState.allPermissionsGranted) {
-                        if (isShowPhotoPicker)
-                            signer.GetPhotoFromMediaStore {
-                                coroutineScope.launch {
-                                    runCatching {
-                                        signer.getCloudToken().let { token ->
-                                            it?.let { image ->
-                                                signer.uploadImage(context, image, token)
-                                                    .let { objectId ->
-                                                        signer.sign(objectId)
-                                                    }
-                                            }
+        }
+        when (isAlreadySigned) {
+            true -> {
+                val photoPermissionsState = rememberMultiplePermissionsState(
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+                        listOf(
+                            android.Manifest.permission.READ_MEDIA_IMAGES,
+                            android.Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED
+                        ) else if (Build.VERSION.SDK_INT == Build.VERSION_CODES.TIRAMISU)
+                        listOf(
+                            android.Manifest.permission.READ_MEDIA_IMAGES
+                        ) else
+                        listOf(
+                            android.Manifest.permission.READ_EXTERNAL_STORAGE
+                        )
+                )
+                if (photoPermissionsState.allPermissionsGranted) {
+                    if (isShowPhotoPicker)
+                        signer.GetPhotoFromMediaStore {
+                            coroutineScope.launch {
+                                runCatching {
+                                    signer.getCloudToken().let { token ->
+                                        it?.let { image ->
+                                            signer.uploadImage(context, image, token)
+                                                .let { objectId ->
+                                                    signer.sign(objectId)
+                                                    UMengHelper.onSignPhotoEvent(context,ChaoxingHttpClient.instance!!.userEntity)
+                                                }
                                         }
-                                    }.onFailure {
-                                        if ((it is ChaoxingPredictableException).not()) {
-                                            Sentry.captureException(it)
-                                        }
-                                        Toast.makeText(context, "签到失败", Toast.LENGTH_SHORT)
-                                            .show()
-                                    }.onSuccess {
-                                        isSignSuccess = true
                                     }
-                                    isShowPhotoPicker = false
+                                }.onFailure {
+                                    if ((it is ChaoxingPredictableException).not()) {
+                                        Sentry.captureException(it)
+                                    }
+                                    Toast.makeText(context, "签到失败", Toast.LENGTH_SHORT)
+                                        .show()
+                                }.onSuccess {
+                                    isSignSuccess = true
                                 }
-                            }
-                        if (isSignSuccess) {
-                            Column(
-                                modifier = Modifier.fillMaxSize(),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.Center
-                            ) {
-                                Icon(painterResource(R.drawable.ic_check_px80), "")
-                                Text("签到成功")
-                                Button(onClick = {
-                                    navBack()
-                                }) { Text("返回") }
-                            }
-                        } else {
-                            Button(onClick = {
-                                isShowPhotoPicker = true
-                            }) {
-                                Text("选择图片")
+                                isShowPhotoPicker = false
                             }
                         }
-                    } else {
+                    if (isSignSuccess) {
                         Column(
                             modifier = Modifier.fillMaxSize(),
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.Center
                         ) {
-                            Text("请授予应用读取图片权限")
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Button(
-                                onClick = { photoPermissionsState.launchMultiplePermissionRequest() },
-                                modifier = Modifier.align(Alignment.CenterHorizontally)
-                            ) {
-                                Text("授予")
+                            Icon(painterResource(R.drawable.ic_check_px80), "")
+                            Text("签到成功")
+                            Button(onClick = {
+                                navBack()
+                            }) { Text("返回") }
+                        }
+                    } else {
+                        if(isImage == true){
+                            Button(onClick = {
+                                isShowPhotoPicker = true
+                            }) {
+                                Text("选择图片")
                             }
+                        }else if(isImage==false){
+                            Text("这不是拍照签到，普通的点击签到请在学习通签到。")
+                        }
+                    }
+                } else {
+                    Column(
+                        modifier = Modifier.fillMaxSize(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Text("请授予应用读取图片权限")
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Button(
+                            onClick = { photoPermissionsState.launchMultiplePermissionRequest() },
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        ) {
+                            Text("授予")
                         }
                     }
                 }
+            }
 
-                false -> {
-                    AlreadySignedNotice(null) {
-                        navBack()
-                    }
+            false -> {
+                AlreadySignedNotice(null) {
+                    navBack()
                 }
+            }
 
-                null -> {
-                    CenterCircularProgressIndicator()
-                }
+            null -> {
+                CenterCircularProgressIndicator()
             }
         }
     }

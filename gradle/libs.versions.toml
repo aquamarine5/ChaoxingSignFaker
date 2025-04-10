@@ -12,18 +12,20 @@ core = "3.5.3"
 datastore = "1.1.4"
 fastjson2 = "2.0.56"
 kotlin = "2.1.0"
-coreKtx = "1.15.0"
+coreKtx = "1.16.0"
 junit = "4.13.2"
 junitVersion = "1.2.1"
 espressoCore = "3.6.1"
 kotlinxSerializationJson = "1.8.0"
 lifecycleRuntimeKtx = "2.8.7"
 activityCompose = "1.10.1"
-composeBom = "2025.03.01"
+composeBom = "2025.04.00"
+material = "1.7.8"
 navigationCompose = "2.8.9"
 okhttp = "4.12.0"
+patternlocker = "2.5.7"
 protobufJavalite = "3.18.0"
-stackbricks = "2.1.5"
+stackbricks = "2.2.12"
 
 [libraries]
 accompanist-permissions = { module = "com.google.accompanist:accompanist-permissions", version.ref = "accompanistPermissions" }
@@ -34,6 +36,7 @@ androidx-camera-lifecycle = { module = "androidx.camera:camera-lifecycle", versi
 androidx-camera-view = { module = "androidx.camera:camera-view", version.ref = "cameraMlkitVisionVersion" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-datastore = { module = "androidx.datastore:datastore", version.ref = "datastore" }
+androidx-material = { module = "androidx.compose.material:material", version.ref = "material" }
 androidx-navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
 asms = { module = "com.umeng.umsdk:asms", version.ref = "asms" }
 baidumapsdk_location = { module = "com.baidu.lbsyun:BaiduMapSDK_Location", version.ref = "baidumapsdk_location" }
@@ -61,6 +64,7 @@ androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit
 androidx-material3 = { group = "androidx.compose.material3", name = "material3" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
 okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp" }
+patternlocker = { module = "com.github.ihsg:PatternLocker", version.ref = "patternlocker" }
 protobuf-javalite = { module = "com.google.protobuf:protobuf-javalite", version.ref = "protobufJavalite" }
 stackbricks = { module = "org.aquamarine5.brainspark:stackbricks", version.ref = "stackbricks" }
 

@@ -17,7 +17,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
@@ -46,29 +45,27 @@ fun WelcomeScreen(
 ) {
     val context = LocalContext.current.applicationContext
     val coroutineContext = rememberCoroutineScope()
-    Scaffold { innerPadding ->
+    Column(
+        modifier = Modifier
+            .padding(16.dp)
+            .fillMaxWidth()
+    ) {
+        Text(
+            "欢迎使用ChaoxingSignFaker",
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.align(Alignment.CenterHorizontally)
+        )
+        Spacer(
+            modifier = Modifier
+                .height(16.dp)
+        )
         Column(
             modifier = Modifier
-                .padding(innerPadding)
-                .padding(16.dp)
-                .fillMaxWidth()
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
         ) {
             Text(
-                "欢迎使用ChaoxingSignFaker",
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.align(Alignment.CenterHorizontally)
-            )
-            Spacer(
-                modifier = Modifier
-                    .height(16.dp)
-            )
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .verticalScroll(rememberScrollState())
-            ) {
-                Text(
-                    """
+                """
 ChaoxingSignFaker 是一个用于模拟超星学习通签到的应用，使用本应用前请您仔细阅读以下内容：
 本应用仅可用于学习使用，禁止用于任何商业用途。作者不承担任何因使用本应用而导致的法律责任。
 ChaoxingSignFaker 根据 GPL-3.0 协议进行开源。https://github.com/aquamarine5/ChaoxingSignFaker
@@ -89,45 +86,45 @@ ChaoxingSignFaker 根据 GPL-3.0 协议进行开源。https://github.com/aquamar
 服务类型：使用错误收集服务
 收集个人信息类型：设备信息、设备运行截图、设备运行日志
 隐私权政策链接：https://sentry.io/trust/privacy/""".trimIndent()
+            )
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            OutlinedButton(onClick = {
+                coroutineContext.launch {
+                    context.chaoxingDataStore.updateData {
+                        it.toBuilder().setAgreeTerms(true).build()
+                    }
+                }
+                UMengHelper.init(context)
+                SDKInitializer.setAgreePrivacy(context, true)
+                LocationClient.setAgreePrivacy(true)
+                navToLoginDestination()
+            }, modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    "允许协议并进入应用",
+                    fontSize = 16.sp
                 )
             }
-            Spacer(modifier = Modifier.height(16.dp))
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                OutlinedButton(onClick = {
-                    coroutineContext.launch {
-                        context.chaoxingDataStore.updateData {
-                            it.toBuilder().setAgreeTerms(true).build()
-                        }
-                    }
-                    UMengHelper.init(context)
-                    SDKInitializer.setAgreePrivacy(context, true)
-                    LocationClient.setAgreePrivacy(true)
-                    navToLoginDestination()
-                }, modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        "允许协议并进入应用",
-                        fontSize = 16.sp
-                    )
-                }
-                Button(
-                    onClick = {
-                        context.startActivity(Intent().apply {
-                            setClass(context, MainActivity::class.java)
-                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                            putExtra(MainActivity.INTENT_EXTRA_EXIT_FLAG, true)
-                        })
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFFD32F2F),
-                        contentColor = Color.White
-                    ),
-                    modifier = Modifier.fillMaxWidth()
-                ) { Text("退出应用", fontSize = 16.sp) }
-            }
+            Button(
+                onClick = {
+                    context.startActivity(Intent().apply {
+                        setClass(context, MainActivity::class.java)
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        putExtra(MainActivity.INTENT_EXTRA_EXIT_FLAG, true)
+                    })
+                },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFFD32F2F),
+                    contentColor = Color.White
+                ),
+                modifier = Modifier.fillMaxWidth()
+            ) { Text("退出应用", fontSize = 16.sp) }
         }
+
     }
 }
 

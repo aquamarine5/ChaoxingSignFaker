@@ -93,10 +93,15 @@
         <meta-data
             android:name="io.sentry.attach-view-hierarchy"
             android:value="true" />
-
         <meta-data
-            android:name="io.sentry.environment"
-            android:value="test-beta" />
+            android:name="io.sentry.traces.sample-rate"
+            android:value="1.0" />
+        <meta-data
+            android:name="io.sentry.traces.profiling.sample-rate"
+            android:value="1.0" />
+        <meta-data
+            android:name="io.sentry.traces.profiling.enable-app-start"
+            android:value="true" />
     </application>
 
 </manifest>

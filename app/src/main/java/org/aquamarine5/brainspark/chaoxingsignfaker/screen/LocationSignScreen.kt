@@ -7,9 +7,6 @@
 package org.aquamarine5.brainspark.chaoxingsignfaker.screen
 
 import android.widget.Toast
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -18,7 +15,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import io.sentry.Sentry
 import kotlinx.coroutines.launch
@@ -74,43 +70,40 @@ fun LocationSignScreen(
             navToCourseDetailDestination()
         }
     }
-    Scaffold { innerPadding ->
-        Column(
-            modifier = Modifier.padding(innerPadding)
-        ) {
-            when (isAlreadySigned) {
-                true -> {
-                    AlreadySignedNotice(onSignForOtherUser = null) { navToCourseDetailDestination() }
-                }
+    when (isAlreadySigned) {
+        true -> {
+            AlreadySignedNotice(onSignForOtherUser = null) { navToCourseDetailDestination() }
+        }
 
-                false -> {
-                    GetLocationComponent(signInfo, confirmButtonText = {
-                        Text("签到")
-                    }) { result ->
-                        coroutineScope.launch {
-                            runCatching {
-                                signer.sign(result)
-                            }.onSuccess {
-                                navToCourseDetailDestination()
-                                UMengHelper.onSignLocationEvent(
-                                    context,
-                                    result,
-                                    ChaoxingHttpClient.instance!!.userEntity
-                                )
-                            }.onFailure {
-                                Toast.makeText(context, it.message, Toast.LENGTH_SHORT).show()
-                                if ((it is ChaoxingPredictableException).not()) {
-                                    Sentry.captureException(it)
-                                }
-                            }
+        false -> {
+            GetLocationComponent(signInfo, confirmButtonText = {
+                Text("签到")
+            }) { result ->
+                coroutineScope.launch {
+                    runCatching {
+                        signer.sign(result)
+                    }.onSuccess {
+                        navToCourseDetailDestination()
+                        Toast.makeText(context, "签到成功", Toast.LENGTH_SHORT).show()
+                        UMengHelper.onSignLocationEvent(
+                            context,
+                            result,
+                            ChaoxingHttpClient.instance!!.userEntity
+                        )
+                    }.onFailure {
+                        Toast.makeText(context, it.message, Toast.LENGTH_SHORT).show()
+                        if ((it is ChaoxingPredictableException).not()) {
+                            Sentry.captureException(it)
                         }
                     }
                 }
-
-                null -> {
-                    CenterCircularProgressIndicator()
-                }
             }
         }
+
+        null -> {
+            CenterCircularProgressIndicator()
+        }
     }
+
+
 }

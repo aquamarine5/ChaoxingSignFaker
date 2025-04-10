@@ -10,6 +10,11 @@ import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInHorizontally
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -33,7 +38,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -145,339 +149,359 @@ fun QRCodeSignScreen(
             val userSelections = remember { mutableStateListOf(true) }
             val signStatus = remember { mutableStateListOf(ChaoxingSignStatus()) }
             var success by signStatus[0].isSuccess
-            Scaffold { innerPadding ->
-                Box(
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .zIndex(0f)
+            ) {
+                Column(
                     modifier = Modifier
-                        .padding(innerPadding)
-                        .fillMaxSize()
-                        .zIndex(0f)
+                        .padding(16.dp)
+                        .verticalScroll(rememberScrollState())
                 ) {
+                    Card(
+                        shape = RoundedCornerShape(18.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = Color(83, 83, 83)
+                        ), modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(3.dp, 3.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Icon(
+                                painterResource(R.drawable.ic_info),
+                                contentDescription = "Info",
+                                tint = Color.White
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                buildAnnotatedString {
+                                    append("通常情况下，")
+                                    withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
+                                        append("随地大小签")
+                                    }
+                                    append(" 的二维码签到功能是用于给其他用户签到的，而不是用于仅给自己签到。")
+                                },
+                                color = Color.White,
+                                fontSize = 13.sp,
+                                lineHeight = 18.sp,
+                                fontWeight = FontWeight.W500
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Card(
+                        onClick = {
+                            navToOtherUser()
+                        },
+                        shape = RoundedCornerShape(18.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = Color(0xFFFCD337)
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(3.dp, 6.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .padding(10.dp)
+                                .fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Icon(
+                                painterResource(R.drawable.ic_lightbulb),
+                                contentDescription = "Help",
+                                tint = Color.White
+                            )
+                            Spacer(modifier = Modifier.width(9.dp))
+                            Text(
+                                "如果你还没有添加其他用户，可以点击跳转添加用户向导。",
+                                color = Color.White,
+                                fontSize = 14.sp,
+                                lineHeight = 19.sp,
+                                fontWeight = FontWeight.W500,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    }
+                    LaunchedEffect(Unit) {
+                        signUserList.addAll(context.chaoxingDataStore.data.first().otherUsersList)
+                        userSelections.addAll(List(signUserList.size) { false })
+                        signStatus.addAll(Array(signUserList.size + 1) { ChaoxingSignStatus() })
+                        success = isCurrentAlreadySigned
+                        userSelections[0] = isCurrentAlreadySigned != true
+                    }
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        "选择要进行二维码签到的用户：",
+                        modifier = Modifier.padding(start = 3.dp)
+                    )
                     Column(
                         modifier = Modifier
+                            .fillMaxWidth()
                             .padding(16.dp)
-                            .verticalScroll(rememberScrollState())
                     ) {
-                        Card(
-                            shape = RoundedCornerShape(18.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = Color(83, 83, 83)
-                            ), modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(3.dp, 3.dp)
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(10.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Icon(
-                                    painterResource(R.drawable.ic_info),
-                                    contentDescription = "Info",
-                                    tint = Color.White
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    buildAnnotatedString {
-                                        append("通常情况下，")
-                                        withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
-                                            append("随地大小签")
-                                        }
-                                        append(" 的二维码签到功能是用于给其他用户签到的，而不是用于仅给自己签到。")
-                                    },
-                                    color = Color.White,
-                                    fontSize = 13.sp,
-                                    lineHeight = 18.sp,
-                                    fontWeight = FontWeight.W500
-                                )
-                            }
-                        }
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Card(
-                            onClick = {
-                                navToOtherUser()
-                            },
-                            shape = RoundedCornerShape(18.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = Color(0xFFFCD337)
-                            ),
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(3.dp, 6.dp)
+                                .padding(vertical = 4.dp)
                         ) {
-                            Row(
-                                modifier = Modifier
-                                    .padding(10.dp)
-                                    .fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Spacer(modifier = Modifier.width(7.dp))
-                                Icon(
-                                    painterResource(R.drawable.ic_lightbulb),
-                                    contentDescription = "Help",
-                                    tint = Color.White
-                                )
+                            Checkbox(
+                                checked = userSelections[0],
+                                onCheckedChange = { isChecked ->
+                                    userSelections[0] = isChecked
+                                },
+                                enabled = (success == true).not()
+                            )
+                            Row(modifier = Modifier.clickable((success == true).not()) {
+                                userSelections[0] = userSelections[0].not()
+                            }) {
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    "如果你还没有添加其他用户，可以点击跳转添加用户向导。",
-                                    color = Color.White,
-                                    fontSize = 14.sp,
-                                    lineHeight = 19.sp,
-                                    fontWeight = FontWeight.W500,
-                                    modifier = Modifier.fillMaxWidth()
+                                    "给自己签到",
+                                    fontWeight = FontWeight.Bold,
+                                    textDecoration = if (success != true) TextDecoration.None else TextDecoration.LineThrough
                                 )
+                                signStatus[0].ResultCard()
                             }
                         }
-                        LaunchedEffect(Unit) {
-                            signUserList.addAll(context.chaoxingDataStore.data.first().otherUsersList)
-                            userSelections.addAll(List(signUserList.size) { false })
-                            signStatus.addAll(Array(signUserList.size + 1) { ChaoxingSignStatus() })
-                            success = isCurrentAlreadySigned
-                            userSelections[0] = isCurrentAlreadySigned != true
-                        }
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Text(
-                            "选择要进行二维码签到的用户：",
-                            modifier = Modifier.padding(start = 3.dp)
-                        )
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp)
-                        ) {
+                        signUserList.forEachIndexed { index, userSelection ->
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(vertical = 4.dp)
                             ) {
+                                val successForOtherUser by signStatus[1 + index].isSuccess
                                 Checkbox(
-                                    checked = userSelections[0],
+                                    checked = userSelections[1 + index],
                                     onCheckedChange = { isChecked ->
-                                        userSelections[0] = isChecked
+                                        userSelections[1 + index] = isChecked
                                     },
-                                    enabled = (success == true).not()
+                                    enabled = (successForOtherUser == true).not()
                                 )
-                                Row(modifier = Modifier.clickable((success == true).not()) {
-                                    userSelections[0] = userSelections[0].not()
+                                Row(modifier = Modifier.clickable((successForOtherUser == true).not()) {
+                                    userSelections[1 + index] =
+                                        userSelections[1 + index].not()
                                 }) {
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text(
-                                        "给自己签到",
-                                        fontWeight = FontWeight.Bold,
-                                        textDecoration = if (success != true) TextDecoration.None else TextDecoration.LineThrough
+                                        text = userSelection.name,
+                                        textDecoration = if (successForOtherUser != true) TextDecoration.None else TextDecoration.LineThrough
                                     )
-                                    signStatus[0].ResultCard()
+                                    signStatus[1 + index].ResultCard()
                                 }
                             }
-                            signUserList.forEachIndexed { index, userSelection ->
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(vertical = 4.dp)
-                                ) {
-                                    val successForOtherUser by signStatus[1 + index].isSuccess
-                                    Checkbox(
-                                        checked = userSelections[1 + index],
-                                        onCheckedChange = { isChecked ->
-                                            userSelections[1 + index] = isChecked
-                                        },
-                                        enabled = (successForOtherUser == true).not()
-                                    )
-                                    Row(modifier = Modifier.clickable((successForOtherUser == true).not()) {
-                                        userSelections[1 + index] =
-                                            userSelections[1 + index].not()
-                                    }) {
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text(
-                                            text = userSelection.name,
-                                            textDecoration = if (successForOtherUser != true) TextDecoration.None else TextDecoration.LineThrough
-                                        )
-                                        signStatus[1 + index].ResultCard()
-                                    }
-                                }
-                            }
-                        }
-
-                        Button(onClick = {
-                            if (!userSelections.any { it }) {
-                                Toast.makeText(context, "请选择要签到的用户", Toast.LENGTH_SHORT)
-                                    .show()
-                                return@Button
-                            }
-                            if (isMapRequired) {
-                                isMapGetting = true
-                            } else {
-                                isQRCodeScanning = true
-                                isQRCodeScanPause.value = false
-                                isQRCodeParsing.value = false
-                            }
-                        }, modifier = Modifier.fillMaxWidth()) {
-                            Text("签到")
                         }
                     }
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .zIndex(1f)
-                    ) {
-                        AnimatedVisibility(isMapGetting) {
-                            GetLocationComponent(confirmButtonText = {
-                                Text("设置")
-                            }) {
-                                isMapGetting = false
-                                isQRCodeScanning = true
-                                isQRCodeScanPause.value = false
-                                isQRCodeParsing.value = false
-                                locationData = it
-                            }
-                            BackHandler(isMapGetting) {
-                                isMapGetting = false
-                            }
+
+                    Button(onClick = {
+                        if (!userSelections.any { it }) {
+                            Toast.makeText(context, "请选择要签到的用户", Toast.LENGTH_SHORT)
+                                .show()
+                            return@Button
                         }
-                        AnimatedVisibility(isQRCodeScanning) {
-                            BackHandler(isQRCodeScanning) {
-                                isQRCodeScanning = false
-                                isQRCodeParsing.value = false
-                                isQRCodeScanPause.value = false
-                                isQRCodeIllegal = false
-                            }
-                            QRCodeScanComponent(isQRCodeScanPause, isQRCodeParsing, onClose = {
-                                isQRCodeScanning = false
-                            }, onScanResult = {
-                                isQRCodeScanPause.value = true
-                                isQRCodeParsing.value = true
-                                coroutineScope.launch {
-                                    withContext(Dispatchers.IO) {
+                        if (isMapRequired) {
+                            isMapGetting = true
+                        } else {
+                            isQRCodeScanning = true
+                            isQRCodeScanPause.value = false
+                            isQRCodeParsing.value = false
+                        }
+                    }, modifier = Modifier.fillMaxWidth()) {
+                        Text("签到")
+                    }
+                }
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .zIndex(1f)
+                ) {
+                    AnimatedVisibility(
+                        visible = isMapGetting, enter =
+                        slideInHorizontally(
+                            initialOffsetX = { it },
+                            animationSpec = tween(300)
+                        ) + fadeIn(
+                            animationSpec = tween(300)
+                        ), exit =
+                        scaleOut(targetScale = 0.8f, animationSpec = tween(300)) + fadeOut(
+                            animationSpec = tween(300)
+                        )
+                    ) {
+                        GetLocationComponent(confirmButtonText = {
+                            Text("设置")
+                        }) {
+                            isMapGetting = false
+                            isQRCodeScanning = true
+                            isQRCodeScanPause.value = false
+                            isQRCodeParsing.value = false
+                            locationData = it
+                        }
+                        BackHandler(isMapGetting) {
+                            isMapGetting = false
+                        }
+                    }
+                    AnimatedVisibility(
+                        isQRCodeScanning, enter =
+                        slideInHorizontally(
+                            initialOffsetX = { it },
+                            animationSpec = tween(300)
+                        ) + fadeIn(
+                            animationSpec = tween(300)
+                        ), exit =
+                        scaleOut(targetScale = 0.8f, animationSpec = tween(300)) + fadeOut(
+                            animationSpec = tween(300)
+                        )
+                    ) {
+                        BackHandler(isQRCodeScanning) {
+                            isQRCodeScanning = false
+                            isQRCodeParsing.value = false
+                            isQRCodeScanPause.value = false
+                            isQRCodeIllegal = false
+                        }
+                        QRCodeScanComponent(isQRCodeScanPause, isQRCodeParsing, onClose = {
+                            isQRCodeScanning = false
+                        }, onScanResult = {
+                            isQRCodeScanPause.value = true
+                            isQRCodeParsing.value = true
+                            coroutineScope.launch {
+                                withContext(Dispatchers.IO) {
+                                    runCatching {
+                                        return@runCatching signer.parseQRCode(it)
+                                    }.onSuccess { enc ->
+                                        isQRCodeScanning = false
                                         runCatching {
-                                            return@runCatching signer.parseQRCode(it)
-                                        }.onSuccess { enc ->
-                                            isQRCodeScanning = false
-                                            runCatching {
-                                                signStatus[0].loading()
-                                                signer.sign(enc, locationData)
-                                                userSelections[0] = false
-                                            }.onSuccess {
-                                                signStatus[0].success()
-                                                UMengHelper.onSignQRCodeEvent(
-                                                    context,
-                                                    ChaoxingHttpClient.instance!!.userEntity
-                                                )
-                                            }.onFailure {
-                                                it.printStackTrace()
-                                                signStatus[0].failed(it)
-                                            }
-                                            signUserList.filterIndexed { index, _ ->
-                                                userSelections[1 + index]
-                                            }.forEachIndexed { index, it ->
-                                                runCatching {
-                                                    signStatus[1 + index].loading()
-                                                    ChaoxingHttpClient.loadFromOtherUserSession(
-                                                        it
-                                                    ).also { client ->
-                                                        ChaoxingQRCodeSigner(
-                                                            client, destination
-                                                        ).apply {
-                                                            if (preSign()) {
-                                                                throw ChaoxingSigner.AlreadySignedException()
-                                                            } else {
-                                                                sign(enc, locationData)
-                                                            }
-                                                        }
-                                                    }
-                                                }.onSuccess {
-                                                    signStatus[1 + index].success()
-                                                    UMengHelper.onSignQRCodeEvent(
-                                                        context,
-                                                        it.userEntity
-                                                    )
-                                                    userSelections[1 + index] = false
-                                                }.onFailure {
-                                                    it.printStackTrace()
-                                                    signStatus[1 + index].failed(it)
-                                                }
-                                            }
+                                            signStatus[0].loading()
+                                            signer.sign(enc, locationData)
+                                            userSelections[0] = false
+                                        }.onSuccess {
+                                            signStatus[0].success()
+                                            UMengHelper.onSignQRCodeEvent(
+                                                context,
+                                                ChaoxingHttpClient.instance!!.userEntity
+                                            )
                                         }.onFailure {
                                             it.printStackTrace()
-                                            isQRCodeIllegal = true
-                                            isQRCodeScanPause.value = true
-                                            qrcodeIllegalText =
-                                                it.message ?: "二维码解析失败，不是正确码。"
-                                            job?.cancel()
-                                            job = coroutineScope.launch {
-                                                delay(3000)
-                                                isQRCodeScanPause.value = false
-                                                isQRCodeIllegal = false
+                                            signStatus[0].failed(it)
+                                        }
+                                        signUserList.filterIndexed { index, _ ->
+                                            userSelections[1 + index]
+                                        }.forEachIndexed { index, it ->
+                                            runCatching {
+                                                signStatus[1 + index].loading()
+                                                ChaoxingHttpClient.loadFromOtherUserSession(
+                                                    it
+                                                ).also { client ->
+                                                    ChaoxingQRCodeSigner(
+                                                        client, destination
+                                                    ).apply {
+                                                        if (preSign()) {
+                                                            throw ChaoxingSigner.AlreadySignedException()
+                                                        } else {
+                                                            sign(enc, locationData)
+                                                        }
+                                                    }
+                                                }
+                                            }.onSuccess {
+                                                signStatus[1 + index].success()
+                                                UMengHelper.onSignQRCodeEvent(
+                                                    context,
+                                                    it.userEntity
+                                                )
+                                                userSelections[1 + index] = false
+                                            }.onFailure {
+                                                it.printStackTrace()
+                                                signStatus[1 + index].failed(it)
                                             }
+                                        }
+                                    }.onFailure {
+                                        it.printStackTrace()
+                                        isQRCodeIllegal = true
+                                        isQRCodeScanPause.value = true
+                                        qrcodeIllegalText =
+                                            it.message ?: "二维码解析失败，不是正确码。"
+                                        job?.cancel()
+                                        job = coroutineScope.launch {
+                                            delay(3000)
+                                            isQRCodeScanPause.value = false
+                                            isQRCodeIllegal = false
                                         }
                                     }
                                 }
-                            }) {
-                                Column(
-                                    modifier = Modifier
-                                        .offset(y = Dp(context.resources.displayMetrics.run {
-                                            0.75f * heightPixels / density
-                                        }))
-                                        .zIndex(2f)
-                                        .fillMaxWidth(),
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.Center
-                                ) {
-                                    Crossfade(isQRCodeIllegal) {
-                                        when (it) {
-                                            true -> {
-                                                Row(
-                                                    modifier = Modifier
-                                                        .background(
-                                                            Color(0x72F1441D),
-                                                            RoundedCornerShape(8.dp)
-                                                        )
-                                                        .border(
-                                                            BorderStroke(2.dp, Color(0xFFF1441D)),
-                                                            RoundedCornerShape(8.dp)
-                                                        )
-                                                        .padding(10.dp),
-                                                    verticalAlignment = Alignment.CenterVertically,
-                                                    horizontalArrangement = Arrangement.Center
-                                                ) {
-                                                    Icon(
-                                                        painterResource(R.drawable.ic_octagon_alert),
-                                                        contentDescription = "Illegal QR Code"
+                            }
+                        }) {
+                            Column(
+                                modifier = Modifier
+                                    .offset(y = Dp(context.resources.displayMetrics.run {
+                                        0.75f * heightPixels / density
+                                    }))
+                                    .zIndex(2f)
+                                    .fillMaxWidth(),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Crossfade(isQRCodeIllegal) {
+                                    when (it) {
+                                        true -> {
+                                            Row(
+                                                modifier = Modifier
+                                                    .background(
+                                                        Color(0x72F1441D),
+                                                        RoundedCornerShape(8.dp)
                                                     )
-                                                    Spacer(modifier = Modifier.width(5.dp))
-                                                    Text(qrcodeIllegalText)
-                                                }
+                                                    .border(
+                                                        BorderStroke(2.dp, Color(0xFFF1441D)),
+                                                        RoundedCornerShape(8.dp)
+                                                    )
+                                                    .padding(10.dp),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.Center
+                                            ) {
+                                                Icon(
+                                                    painterResource(R.drawable.ic_octagon_alert),
+                                                    contentDescription = "Illegal QR Code"
+                                                )
+                                                Spacer(modifier = Modifier.width(5.dp))
+                                                Text(qrcodeIllegalText)
                                             }
+                                        }
 
-                                            false -> {
-                                                Row(
-                                                    modifier = Modifier
-                                                        .background(
-                                                            Color(0x88888888),
-                                                            RoundedCornerShape(8.dp)
-                                                        )
-                                                        .border(
-                                                            BorderStroke(2.dp, Color(0xFF444444)),
-                                                            RoundedCornerShape(8.dp)
-                                                        )
-                                                        .padding(10.dp),
-                                                    verticalAlignment = Alignment.CenterVertically,
-                                                    horizontalArrangement = Arrangement.Center
-                                                ) {
-                                                    Icon(
-                                                        painterResource(R.drawable.ic_scan_qr_code),
-                                                        contentDescription = "Scan QR Code"
+                                        false -> {
+                                            Row(
+                                                modifier = Modifier
+                                                    .background(
+                                                        Color(0x88888888),
+                                                        RoundedCornerShape(8.dp)
                                                     )
-                                                    Spacer(modifier = Modifier.width(5.dp))
-                                                    Text("扫描签到二维码")
-                                                }
+                                                    .border(
+                                                        BorderStroke(2.dp, Color(0xFF444444)),
+                                                        RoundedCornerShape(8.dp)
+                                                    )
+                                                    .padding(10.dp),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.Center
+                                            ) {
+                                                Icon(
+                                                    painterResource(R.drawable.ic_scan_qr_code),
+                                                    contentDescription = "Scan QR Code"
+                                                )
+                                                Spacer(modifier = Modifier.width(5.dp))
+                                                Text("扫描签到二维码")
                                             }
                                         }
                                     }
                                 }
                             }
+
                         }
                     }
                 }

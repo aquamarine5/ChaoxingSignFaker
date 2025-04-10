@@ -8,6 +8,7 @@ package org.aquamarine5.brainspark.chaoxingsignfaker.screen
 
 import android.widget.Toast
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -19,7 +20,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
@@ -72,59 +72,56 @@ fun CourseDetailScreen(
         }
     }
     val coroutineScope = rememberCoroutineScope()
-    Scaffold { innerPadding ->
-        Column(
-            modifier = Modifier
-                .padding(innerPadding)
-                .padding(16.dp)
-        ) {
-            if (activitiesData == null) {
-                CenterCircularProgressIndicator()
-            } else {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
+    Column(
+        modifier = Modifier
+            .padding(16.dp)
+    ) {
+        if (activitiesData == null) {
+            CenterCircularProgressIndicator()
+        } else {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        navToListDestination()
+                    }
+            ) {
+                Icon(painterResource(R.drawable.ic_arrow_left), contentDescription = null)
+                Spacer(
+                    modifier = Modifier
+                        .height(8.dp)
+                        .width(5.dp)
+                )
+                Text(
+                    "课程名称：${courseEntity.courseName}",
+                    color = if (isSystemInDarkTheme()) Color.Gray else Color.DarkGray,
+                    textAlign = TextAlign.Left,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable {
-                            navToListDestination()
+                )
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+            var pullToRefreshState by remember { mutableStateOf(false) }
+            PullToRefreshBox(
+                isRefreshing = pullToRefreshState,
+                onRefresh = {
+                    pullToRefreshState = true
+                    coroutineScope.launch {
+                        ChaoxingHttpClient.instance?.let {
+                            activitiesData =
+                                ChaoxingActivityHelper.getActivities(it, courseEntity)
                         }
-                ) {
-                    Icon(painterResource(R.drawable.ic_arrow_left), contentDescription = null)
-                    Spacer(
-                        modifier = Modifier
-                            .height(8.dp)
-                            .width(5.dp)
-                    )
-                    Text(
-                        "课程名称：${courseEntity.courseName}",
-                        color = Color.DarkGray,
-                        textAlign = TextAlign.Left,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                    )
-                }
-                Spacer(modifier = Modifier.height(12.dp))
-                var pullToRefreshState by remember { mutableStateOf(false) }
-                PullToRefreshBox(
-                    isRefreshing = pullToRefreshState,
-                    onRefresh = {
-                        pullToRefreshState = true
-                        coroutineScope.launch {
-                            ChaoxingHttpClient.instance?.let {
-                                activitiesData =
-                                    ChaoxingActivityHelper.getActivities(it, courseEntity)
-                            }
-                            delay(1000)
-                            pullToRefreshState = false
-                        }
+                        delay(1000)
+                        pullToRefreshState = false
                     }
-                ) {
-                    LazyColumn(modifier = Modifier.fillMaxWidth()) {
-                        items(activitiesData!!.signActivities) {
-                            key(it.id) {
-                                CourseSignActivityColumnCard(it) { destination ->
-                                    navToSignerDestination(destination)
-                                }
+                }
+            ) {
+                LazyColumn(modifier = Modifier.fillMaxWidth()) {
+                    items(activitiesData!!.signActivities) {
+                        key(it.id) {
+                            CourseSignActivityColumnCard(it) { destination ->
+                                navToSignerDestination(destination)
                             }
                         }
                     }

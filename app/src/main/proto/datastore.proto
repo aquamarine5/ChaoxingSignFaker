@@ -7,8 +7,19 @@ message ChaoxingSignFakerDataStore{
   repeated ChaoxingLocation locations = 1;
   ChaoxingLoginSession loginSession = 2;
   repeated ChaoxingOtherUserSession otherUsers = 4;
+  ChaoxingAnalysis analysis = 7;
   bool agreeTerms = 3;
   string deviceCode = 5;
+  repeated uint32 preferCourse = 6;
+}
+
+message ChaoxingAnalysis{
+  uint32 locationSign = 1;
+  uint32 qrcodeSign = 2;
+  uint32 photoSign = 3;
+  uint32 clickSign = 4;
+  uint32 gestureSign = 5;
+  uint32 otherUserSign = 6;
 }
 
 message ChaoxingLocation{
