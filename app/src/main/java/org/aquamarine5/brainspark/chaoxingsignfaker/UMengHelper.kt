@@ -20,6 +20,7 @@ object UMengHelper {
     private const val EVENT_TAG_ACCOUNT_LOGIN = "account_login"
     private const val EVENT_TAG_SIGN_LOCATION = "sign_location"
     private const val EVENT_TAG_SIGN_QR_CODE = "sign_qr_code"
+    private const val EVENT_TAG_SIGN_PHOTO="sign_photo"
     private const val EVENT_TAG_ADD_OTHER_USER = "account_add_other_user"
     private const val EVENT_TAG_GOTO_SPONSOR_WECHAT = "sponsor_wechat_goto"
 
@@ -58,7 +59,7 @@ object UMengHelper {
         onEvent(context, EVENT_TAG_ACCOUNT_LOGIN, mapOf("phone" to phoneNumber))
     }
 
-    fun onSignLocationEvent(
+    suspend fun onSignLocationEvent(
         context: Context,
         postLocationEntity: ChaoxingLocationSignEntity,
         userEntity: ChaoxingUserEntity
@@ -69,18 +70,26 @@ object UMengHelper {
                 "user" to userEntity.name,
             )
         )
+        ChaoxingAnalyser.onLocationSignEvent(context)
     }
 
-    fun onSignQRCodeEvent(context: Context, userEntity: ChaoxingUserEntity) {
+    suspend fun onSignQRCodeEvent(context: Context, userEntity: ChaoxingUserEntity) {
         onEvent(context, EVENT_TAG_SIGN_QR_CODE, mapOf("user" to userEntity.name))
+        ChaoxingAnalyser.onQRCodeSignEvent(context)
     }
 
-    fun onAccountOtherUserAddEvent(context: Context, userEntity: ChaoxingOtherUserSession) {
+    suspend fun onSignPhotoEvent(context: Context,userEntity: ChaoxingUserEntity){
+        onEvent(context, EVENT_TAG_SIGN_PHOTO, mapOf("user" to userEntity.name))
+        ChaoxingAnalyser.onPhotoSignEvent(context)
+    }
+
+    suspend fun onAccountOtherUserAddEvent(context: Context, userEntity: ChaoxingOtherUserSession) {
         onEvent(
             context,
             EVENT_TAG_ADD_OTHER_USER,
             mapOf("phone" to userEntity.phoneNumber, "user" to userEntity.name)
         )
+        ChaoxingAnalyser.onOtherUserSignEvent(context)
     }
 
     fun onGotoSponsorWechatEvent(context: Context, userEntity: ChaoxingUserEntity) {

@@ -36,6 +36,7 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import org.aquamarine5.brainspark.chaoxingsignfaker.ChaoxingPredictableException
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
+import org.aquamarine5.brainspark.chaoxingsignfaker.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.AlreadySignedNotice
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
@@ -112,6 +113,7 @@ fun PhotoSignScreen(destination: PhotoSignDestination, navBack: () -> Unit) {
                                             signer.uploadImage(context, image, token)
                                                 .let { objectId ->
                                                     signer.sign(objectId)
+                                                    UMengHelper.onSignPhotoEvent(context,ChaoxingHttpClient.instance!!.userEntity)
                                                 }
                                         }
                                     }

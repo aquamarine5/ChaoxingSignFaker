@@ -47,6 +47,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.zIndex
 import com.baidu.location.BDAbstractLocationListener
 import com.baidu.location.BDLocation
 import com.baidu.location.LocationClient
@@ -403,12 +404,19 @@ fun GetLocationComponent(
                         confirmButtonText()
                     }
                 }
-                Box(modifier=Modifier.fillMaxSize()) {
-                    Column(modifier = Modifier.align(Alignment.BottomEnd)) {
+                Box(modifier = Modifier.fillMaxSize()) {
+                    Column(modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .zIndex(1f)
+                        .padding(22.dp)
+                    ) {
                         FloatingActionButton(onClick = {
                             isShowDialog = true
                         }) {
-                            Icon(painterResource(R.drawable.ic_edit), contentDescription = "修改备注")
+                            Icon(
+                                painterResource(R.drawable.ic_edit),
+                                contentDescription = "修改备注"
+                            )
                         }
                         Spacer(modifier = Modifier.height(8.dp))
                         FloatingActionButton(onClick = {
@@ -423,7 +431,8 @@ fun GetLocationComponent(
                     AndroidView(
                         factory = {
                             mapView
-                        })
+                        }, modifier = Modifier.zIndex(0f)
+                    )
                 }
             } else {
                 val allPermissionsRevoked =

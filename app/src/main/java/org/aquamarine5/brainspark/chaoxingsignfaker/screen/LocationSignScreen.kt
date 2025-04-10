@@ -84,6 +84,7 @@ fun LocationSignScreen(
                         signer.sign(result)
                     }.onSuccess {
                         navToCourseDetailDestination()
+                        Toast.makeText(context, "签到成功", Toast.LENGTH_SHORT).show()
                         UMengHelper.onSignLocationEvent(
                             context,
                             result,

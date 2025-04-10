@@ -16,6 +16,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import kotlinx.serialization.Serializable
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.AnalyserCard
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SponsorCard
 import org.aquamarine5.brainspark.stackbricks.StackbricksComponent
 import org.aquamarine5.brainspark.stackbricks.StackbricksService
@@ -51,11 +52,13 @@ fun SettingScreen() {
                     QiniuMessageProvider(it),
                     QiniuPackageProvider(it),
                     stackbricksState
-                ), checkUpdateOnLaunch = true
+                )
             )
         }
         Spacer(modifier = Modifier.height(8.dp))
 
         SponsorCard()
+
+        AnalyserCard()
     }
 }

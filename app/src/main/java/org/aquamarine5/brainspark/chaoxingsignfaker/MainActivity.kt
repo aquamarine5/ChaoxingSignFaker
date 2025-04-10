@@ -109,7 +109,7 @@ class MainActivity : ComponentActivity() {
                 it.environment = "beta"
             else if (versionName.contains("alpha")) {
                 it.environment = "alpha"
-                //it.isEnabled = false
+                it.isAnrEnabled=false
             } else
                 it.environment = "stable"
         }
@@ -229,7 +229,7 @@ class MainActivity : ComponentActivity() {
                                 )
                         }
                         if (destination == null) {
-                            CenterCircularProgressIndicator()
+                            CenterCircularProgressIndicator(isDelay = false)
                         } else
                             NavHost(
                                 navController,

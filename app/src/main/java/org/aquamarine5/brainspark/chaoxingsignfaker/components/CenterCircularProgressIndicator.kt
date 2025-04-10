@@ -22,21 +22,24 @@ import androidx.compose.ui.Modifier
 import kotlinx.coroutines.delay
 
 
-private const val WAIT_DELAY=500L
+private const val WAIT_DELAY = 500L
 
 @Composable
-fun CenterCircularProgressIndicator(modifier: Modifier = Modifier) {
-    var isShow by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) {
-        delay(WAIT_DELAY)
-        isShow=true
+fun CenterCircularProgressIndicator(modifier: Modifier = Modifier,
+                                    isDelay: Boolean = true) {
+    var isShow by remember { mutableStateOf(isDelay.not()) }
+    if (isDelay) {
+        LaunchedEffect(Unit) {
+            delay(WAIT_DELAY)
+            isShow = true
+        }
     }
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        if(isShow){
+        if (isShow) {
             CircularProgressIndicator(
                 modifier = Modifier
                     .align(Alignment.Center)

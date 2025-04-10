@@ -9,6 +9,7 @@ package org.aquamarine5.brainspark.chaoxingsignfaker.components
 import android.annotation.SuppressLint
 import android.content.ContentValues
 import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
@@ -141,11 +142,14 @@ fun SponsorAlertDialog(showDialog: MutableState<Boolean>) {
                         }
                     }.invokeOnCompletion {
                         Toast.makeText(context, "图片已保存到相册", Toast.LENGTH_SHORT).show()
-                        context.packageManager.getLaunchIntentForPackage("com.tencent.mm")
-                            ?.let {
-                                it.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                context.startActivity(it)
-                            }
+//                        context.packageManager.getLaunchIntentForPackage("com.tencent.mm")
+//                            ?.let {
+//                                it.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+//                                context.startActivity(it)
+//                            }
+                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("weixin://")).apply {
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        })
                         UMengHelper.onGotoSponsorWechatEvent(
                             context,
                             ChaoxingHttpClient.instance!!.userEntity

@@ -57,18 +57,19 @@ object SignGraphDestination
 fun CourseListScreen(
     navToDetailDestination: (ChaoxingCourseEntity) -> Unit,
 ) {
-    var activitiesData = remember{ mutableStateListOf<ChaoxingCourseEntity>()}
-
-    var rawActivitiesData = remember{ mutableStateListOf<ChaoxingCourseEntity>()}
+    val activitiesData = remember { mutableStateListOf<ChaoxingCourseEntity>() }
+    val rawActivitiesData = remember { mutableListOf<ChaoxingCourseEntity>() }
     var preferredCourse = remember {
-        emptyList<Int>()
+        mutableListOf<Int>()
     }
     val context = LocalContext.current
     LaunchedEffect(Unit) {
         if (activitiesData.isEmpty()) {
             runCatching {
                 preferredCourse =
-                    context.chaoxingDataStore.data.first().preferCourseList.reversed()
+                    context.chaoxingDataStore.data.first().preferCourseList.toMutableList().apply {
+                        reverse()
+                    }
                 ChaoxingHttpClient.instance?.let { httpClient ->
                     ChaoxingCourseHelper.getAllCourse(httpClient).apply {
                         rawActivitiesData.addAll(this)
@@ -104,8 +105,9 @@ fun CourseListScreen(
         modifier = Modifier
             .padding(16.dp)
     ) {
+        var isPredictedRefresh by remember { mutableStateOf(false) }
         if (activitiesData.isEmpty()) {
-            CenterCircularProgressIndicator()
+            CenterCircularProgressIndicator(isDelay = isPredictedRefresh)
         } else {
             var isRefreshing by remember { mutableStateOf(false) }
             PullToRefreshBox(
@@ -113,9 +115,11 @@ fun CourseListScreen(
                 onRefresh = {
                     isRefreshing = true
                     coroutineScope.launch {
-                        ChaoxingHttpClient.instance?.let {
+                        ChaoxingHttpClient.instance?.let { client ->
+                            isPredictedRefresh = true
                             activitiesData.clear()
-                            activitiesData.addAll(ChaoxingCourseHelper.getAllCourse(it).apply {
+                            activitiesData.addAll(ChaoxingCourseHelper.getAllCourse(client).apply {
+                                rawActivitiesData.clear()
                                 rawActivitiesData.addAll(this)
                                 activitiesData.addAll(this.filter {
                                     preferredCourse.contains(it.courseId)
@@ -148,12 +152,17 @@ fun CourseListScreen(
                                                 it.toBuilder().addPreferCourse(data.courseId)
                                                     .build()
                                             }
-                                            val index = activitiesData.indexOf(data)
-                                            if (index > 0) {
-                                                val item = activitiesData.removeAt(index)
-                                                activitiesData.add(0, item)
-                                            }
-                                            preferredCourse = preferredCourse + data.courseId
+//                                            val index = activitiesData.indexOf(data)
+//                                            if (index > 0) {
+//                                                val item = activitiesData.removeAt(index)
+//                                                activitiesData.add(0, item)
+//                                            }
+                                            activitiesData.sortWith(compareByDescending {
+                                                preferredCourse.contains(
+                                                    it.courseId
+                                                )
+                                            })
+                                            preferredCourse.add(data.courseId)
                                         }
                                     else {
                                         coroutineScope.launch {
@@ -165,7 +174,8 @@ fun CourseListScreen(
                                                     addAllPreferCourse(newList)
                                                 }.build()
                                             }
-                                            preferredCourse = preferredCourse.filterNot { it == data.courseId }
+                                            preferredCourse.remove(data.courseId)
+                                            return@launch
                                             activitiesData.clear()
                                             activitiesData.addAll(rawActivitiesData.filter {
                                                 preferredCourse.contains(it.courseId)
