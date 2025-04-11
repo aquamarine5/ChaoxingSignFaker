@@ -15,11 +15,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import kotlinx.serialization.Serializable
+import org.aquamarine5.brainspark.chaoxingsignfaker.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.AnalyserCard
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SponsorCard
 import org.aquamarine5.brainspark.stackbricks.StackbricksComponent
+import org.aquamarine5.brainspark.stackbricks.StackbricksEventTrigger
 import org.aquamarine5.brainspark.stackbricks.StackbricksService
+import org.aquamarine5.brainspark.stackbricks.StackbricksVersionData
 import org.aquamarine5.brainspark.stackbricks.providers.qiniu.QiniuConfiguration
 import org.aquamarine5.brainspark.stackbricks.providers.qiniu.QiniuMessageProvider
 import org.aquamarine5.brainspark.stackbricks.providers.qiniu.QiniuPackageProvider
@@ -36,6 +39,7 @@ object SettingDestination
 fun SettingScreen() {
     Column(modifier = Modifier.padding(16.dp)) {
         val stackbricksState = rememberStackbricksStatus()
+        val context = LocalContext.current
         QiniuConfiguration(
             "cdn.aquamarine5.fun",
             referer = "http://cdn.aquamarine5.fun/",
@@ -46,13 +50,58 @@ fun SettingScreen() {
                 .writeTimeout(20, TimeUnit.MINUTES)
                 .build()
         ).let {
+            val userEntity = ChaoxingHttpClient.instance!!.userEntity
             StackbricksComponent(
                 StackbricksService(
                     LocalContext.current,
                     QiniuMessageProvider(it),
                     QiniuPackageProvider(it),
                     stackbricksState
-                )
+                ),
+                trigger = object : StackbricksEventTrigger() {
+                    override fun onChannelChanged(isTestChannel: Boolean) {
+                        UMengHelper.onStackbricksTestChannelChangedEvent(
+                            context,
+                            userEntity,
+                            isTestChannel
+                        )
+                    }
+
+                    override fun onCheckUpdate(isTestChannel: Boolean) {
+                        UMengHelper.onStackbricksCheckUpdateEvent(context, userEntity)
+                    }
+
+                    override fun onCheckUpdateOnLaunchChanged(isChecked: Boolean) {
+                        UMengHelper.onStackbricksCheckOnLaunchChangedEvent(
+                            context,
+                            userEntity,
+                            isChecked
+                        )
+                    }
+
+                    override fun onDownloadPackage() {
+
+                    }
+
+                    override fun onInstallPackage(
+                        isTestChannel: Boolean,
+                        versionData: StackbricksVersionData
+                    ) {
+                        if (isTestChannel)
+                            UMengHelper.onStackbricksInstallTestChannelEvent(
+                                context,
+                                userEntity,
+                                versionData
+                            )
+                        else
+                            UMengHelper.onStackbricksInstallNewestEvent(
+                                context,
+                                userEntity,
+                                versionData
+                            )
+                    }
+
+                },
             )
         }
         Spacer(modifier = Modifier.height(8.dp))

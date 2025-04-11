@@ -25,6 +25,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.IntOffset
@@ -52,31 +53,36 @@ object CourseListDestination
 @Serializable
 object SignGraphDestination
 
+private const val SORT_TOP = 100
+private const val SORT_STAR = 10
+private const val SORT_UNORDERED = 5
+private const val SORT_COMMON = 0
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CourseListScreen(
     navToDetailDestination: (ChaoxingCourseEntity) -> Unit,
 ) {
     val activitiesData = remember { mutableStateListOf<ChaoxingCourseEntity>() }
-    val rawActivitiesData = remember { mutableListOf<ChaoxingCourseEntity>() }
-    var preferredCourse = remember {
+    var rawActivitiesData = remember { mutableListOf<ChaoxingCourseEntity>() }
+    var preferredClassIds = remember {
         mutableListOf<Int>()
     }
     val context = LocalContext.current
     LaunchedEffect(Unit) {
         if (activitiesData.isEmpty()) {
             runCatching {
-                preferredCourse =
-                    context.chaoxingDataStore.data.first().preferCourseList.toMutableList().apply {
+                preferredClassIds =
+                    context.chaoxingDataStore.data.first().preferClassIdList.toMutableList().apply {
                         reverse()
                     }
                 ChaoxingHttpClient.instance?.let { httpClient ->
                     ChaoxingCourseHelper.getAllCourse(httpClient).apply {
                         rawActivitiesData.addAll(this)
                         activitiesData.addAll(this.filter {
-                            preferredCourse.contains(it.courseId)
+                            preferredClassIds.contains(it.classId)
                         }.map { it.apply { isPreferred = true } } + this.filter {
-                            !preferredCourse.contains(it.courseId)
+                            !preferredClassIds.contains(it.classId)
                         })
                     }
                 }
@@ -116,17 +122,17 @@ fun CourseListScreen(
                     isRefreshing = true
                     coroutineScope.launch {
                         ChaoxingHttpClient.instance?.let { client ->
-                            isPredictedRefresh = true
                             activitiesData.clear()
-                            activitiesData.addAll(ChaoxingCourseHelper.getAllCourse(client).apply {
-                                rawActivitiesData.clear()
-                                rawActivitiesData.addAll(this)
+                            isPredictedRefresh = true
+                            ChaoxingCourseHelper.getAllCourse(client).apply {
                                 activitiesData.addAll(this.filter {
-                                    preferredCourse.contains(it.courseId)
+                                    preferredClassIds.contains(it.classId)
                                 }.map { it.apply { isPreferred = true } } + this.filter {
-                                    !preferredCourse.contains(it.courseId)
+                                    !preferredClassIds.contains(it.classId)
                                 })
-                            })
+                            }.apply {
+                                rawActivitiesData = this.toMutableStateList()
+                            }
                             delay(1000)
                             isRefreshing = false
                         }
@@ -135,7 +141,7 @@ fun CourseListScreen(
             ) {
                 LazyColumn {
                     items(activitiesData) { data ->
-                        key(data.courseId) {
+                        key(data.classId) {
                             CourseInfoColumnCard(
                                 data,
                                 imageLoader,
@@ -143,46 +149,48 @@ fun CourseListScreen(
                                     placementSpec = spring(
                                         stiffness = Spring.StiffnessLow,
                                         visibilityThreshold = IntOffset.VisibilityThreshold
-                                    )
+                                    ),
+                                    fadeInSpec = spring(Spring.StiffnessLow),
+                                    fadeOutSpec = spring(Spring.StiffnessLow)
                                 ),
                                 onPreferredResort = { isPreferred ->
                                     if (isPreferred)
                                         coroutineScope.launch {
                                             context.chaoxingDataStore.updateData {
-                                                it.toBuilder().addPreferCourse(data.courseId)
+                                                it.toBuilder().addPreferClassId(data.classId)
                                                     .build()
                                             }
-//                                            val index = activitiesData.indexOf(data)
-//                                            if (index > 0) {
-//                                                val item = activitiesData.removeAt(index)
-//                                                activitiesData.add(0, item)
-//                                            }
-                                            activitiesData.sortWith(compareByDescending {
-                                                preferredCourse.contains(
-                                                    it.courseId
-                                                )
-                                            })
-                                            preferredCourse.add(data.courseId)
+                                            preferredClassIds.add(data.classId)
+                                            activitiesData.sortByDescending {
+                                                if (it.classId == data.classId)
+                                                    return@sortByDescending SORT_TOP
+                                                if (preferredClassIds.contains(
+                                                        it.classId
+                                                    )
+                                                ) return@sortByDescending SORT_STAR
+                                                else return@sortByDescending SORT_COMMON
+                                            }
                                         }
                                     else {
                                         coroutineScope.launch {
                                             context.chaoxingDataStore.updateData { dataStore ->
                                                 dataStore.toBuilder().apply {
                                                     val newList =
-                                                        preferCourseList.filterNot { it == data.courseId }
-                                                    clearPreferCourse()
-                                                    addAllPreferCourse(newList)
+                                                        preferClassIdList.filterNot { it == data.classId }
+                                                    clearPreferClassId()
+                                                    addAllPreferClassId(newList)
                                                 }.build()
                                             }
-                                            preferredCourse.remove(data.courseId)
-                                            return@launch
-                                            activitiesData.clear()
-                                            activitiesData.addAll(rawActivitiesData.filter {
-                                                preferredCourse.contains(it.courseId)
-                                            })
-                                            activitiesData.addAll(rawActivitiesData.filter {
-                                                !preferredCourse.contains(it.courseId)
-                                            })
+                                            preferredClassIds.remove(data.classId)
+//                                            activitiesData.sortByDescending {
+//                                                if (it.classId == data.classId)
+//                                                    return@sortByDescending SORT_UNORDERED
+//                                                if (preferredClassIds.contains(
+//                                                        it.classId
+//                                                    )
+//                                                ) return@sortByDescending SORT_STAR
+//                                                else return@sortByDescending SORT_COMMON
+//                                            }
                                         }
                                     }
                                 }

@@ -12,6 +12,7 @@ import com.umeng.commonsdk.UMConfigure
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationSignEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingUserEntity
+import org.aquamarine5.brainspark.stackbricks.StackbricksVersionData
 
 object UMengHelper {
     private const val API_KEY = "67d42c1c48ac1b4f87e7edae"
@@ -20,7 +21,7 @@ object UMengHelper {
     private const val EVENT_TAG_ACCOUNT_LOGIN = "account_login"
     private const val EVENT_TAG_SIGN_LOCATION = "sign_location"
     private const val EVENT_TAG_SIGN_QR_CODE = "sign_qr_code"
-    private const val EVENT_TAG_SIGN_PHOTO="sign_photo"
+    private const val EVENT_TAG_SIGN_PHOTO = "sign_photo"
     private const val EVENT_TAG_ADD_OTHER_USER = "account_add_other_user"
     private const val EVENT_TAG_GOTO_SPONSOR_WECHAT = "sponsor_wechat_goto"
 
@@ -78,7 +79,7 @@ object UMengHelper {
         ChaoxingAnalyser.onQRCodeSignEvent(context)
     }
 
-    suspend fun onSignPhotoEvent(context: Context,userEntity: ChaoxingUserEntity){
+    suspend fun onSignPhotoEvent(context: Context, userEntity: ChaoxingUserEntity) {
         onEvent(context, EVENT_TAG_SIGN_PHOTO, mapOf("user" to userEntity.name))
         ChaoxingAnalyser.onPhotoSignEvent(context)
     }
@@ -100,15 +101,27 @@ object UMengHelper {
         onEvent(context, EVENT_TAG_STACKBRICKS_CHECK_UPDATE, mapOf("user" to userEntity.name))
     }
 
-    fun onStackbricksInstallNewestEvent(context: Context, userEntity: ChaoxingUserEntity) {
-        onEvent(context, EVENT_TAG_STACKBRICKS_INSTALL_NEWEST, mapOf("user" to userEntity.name))
+    fun onStackbricksInstallNewestEvent(
+        context: Context,
+        userEntity: ChaoxingUserEntity,
+        versionData: StackbricksVersionData
+    ) {
+        onEvent(
+            context,
+            EVENT_TAG_STACKBRICKS_INSTALL_NEWEST,
+            mapOf("user" to userEntity.name, "version" to versionData.versionName)
+        )
     }
 
-    fun onStackbricksInstallTestChannelEvent(context: Context, userEntity: ChaoxingUserEntity) {
+    fun onStackbricksInstallTestChannelEvent(
+        context: Context,
+        userEntity: ChaoxingUserEntity,
+        versionData: StackbricksVersionData
+    ) {
         onEvent(
             context,
             EVENT_TAG_STACKBRICKS_INSTALL_TEST_CHANNEL,
-            mapOf("user" to userEntity.name)
+            mapOf("user" to userEntity.name, "version" to versionData.versionName)
         )
     }
 

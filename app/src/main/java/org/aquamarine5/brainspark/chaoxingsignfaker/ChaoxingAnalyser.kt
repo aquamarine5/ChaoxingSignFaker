@@ -21,7 +21,7 @@ object ChaoxingAnalyser {
         val qrcodeSignCount: MutableState<Int> = mutableIntStateOf(0),
         val clickSignCount: MutableState<Int> = mutableIntStateOf(0),
         val otherUserSignCount: MutableState<Int> = mutableIntStateOf(0),
-        var isLoaded: MutableState<Boolean> = mutableStateOf(false)
+        val isLoaded: MutableState<Boolean> = mutableStateOf(false)
     ) {
         companion object {
             val Saver = listSaver(
@@ -107,7 +107,11 @@ object ChaoxingAnalyser {
         }
     }
 
-    suspend fun createStateAnalyser(context: Context): MutableStateAnalyser {
+    fun createStateAnalyser(): MutableStateAnalyser {
+        return mutableAnalyser
+    }
+
+    suspend fun setupStateAnalyser(context: Context): MutableStateAnalyser {
         context.chaoxingDataStore.data.first().apply {
             mutableAnalyser.photoSignCount.value = analysis.photoSign
             mutableAnalyser.gestureSignCount.value = analysis.gestureSign
