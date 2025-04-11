@@ -22,10 +22,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -45,13 +42,12 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.R
 @Composable
 fun AnalyserCard() {
     LocalContext.current.let { context ->
-//        var analyser = rememberSaveable(saver = ChaoxingAnalyser.MutableStateAnalyser.Saver) {
-//            ChaoxingAnalyser.MutableStateAnalyser()
-//        }
-        var analyser by remember{ mutableStateOf<ChaoxingAnalyser.MutableStateAnalyser?>(null)}
-        LaunchedEffect(Unit) {
-            if (analyser==null)
-                analyser = ChaoxingAnalyser.createStateAnalyser(context)
+        val analyser = rememberSaveable(saver = ChaoxingAnalyser.MutableStateAnalyser.Saver) {
+            ChaoxingAnalyser.createStateAnalyser()
+        }
+        LaunchedEffect(analyser.isLoaded) {
+            if (analyser.isLoaded.value.not())
+                ChaoxingAnalyser.setupStateAnalyser(context)
         }
         val fontGilroy = SpanStyle(
             fontFamily = FontFamily(Font(R.font.gilroy)),
@@ -71,13 +67,13 @@ fun AnalyserCard() {
                 Icon(painterResource(R.drawable.ic_chart_column), contentDescription = "analyser")
                 Spacer(modifier = Modifier.width(8.dp))
                 AnimatedVisibility(
-                    analyser!=null,
+                    analyser.isLoaded.value,
                     enter = expandVertically(),
                     exit = shrinkVertically()
                 ) {
                     Column {
                         Text("使用次数统计", fontSize = 17.sp, fontWeight = FontWeight.Bold)
-                        analyser?.apply {
+                        analyser.apply {
                             listOf(
                                 "位置签到" to locationSignCount,
                                 "二维码签到" to qrcodeSignCount,
