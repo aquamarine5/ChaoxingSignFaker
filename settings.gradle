@@ -48,7 +48,6 @@ dependencyResolutionManagement {
                 username = "aquamarine5"
                 password = System.getenv("GHP_TOKEN")
             }
-
             content{
                 includeModule("org.aquamarine5.brainspark","stackbricks")
             }

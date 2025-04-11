@@ -15,10 +15,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import kotlinx.serialization.Serializable
+import org.aquamarine5.brainspark.chaoxingsignfaker.BuildConfig
 import org.aquamarine5.brainspark.chaoxingsignfaker.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.AnalyserCard
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SponsorCard
+import org.aquamarine5.brainspark.stackbricks.ApplicationBuildConfig
 import org.aquamarine5.brainspark.stackbricks.StackbricksComponent
 import org.aquamarine5.brainspark.stackbricks.StackbricksEventTrigger
 import org.aquamarine5.brainspark.stackbricks.StackbricksService
@@ -56,7 +58,12 @@ fun SettingScreen() {
                     LocalContext.current,
                     QiniuMessageProvider(it),
                     QiniuPackageProvider(it),
-                    stackbricksState
+                    stackbricksState,
+                    buildConfig = ApplicationBuildConfig(
+                        versionName = BuildConfig.VERSION_NAME,
+                        isAllowedToDisableCheckUpdateOnLaunch = true,
+                        versionCode = null
+                    ),
                 ),
                 trigger = object : StackbricksEventTrigger() {
                     override fun onChannelChanged(isTestChannel: Boolean) {

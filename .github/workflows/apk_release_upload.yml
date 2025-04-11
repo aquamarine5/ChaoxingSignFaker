@@ -26,11 +26,13 @@ jobs:
         run: chmod +x gradlew
         env:
           GHP_TOKEN: ${{ secrets.GHP_TOKEN }}
+          UMENG_CHANNEL: GithubRelease
           keystorePassword: ${{ secrets.KEYSTORE_PASSWORD }}
       - name: Build apk file with Gradle
         run: ./gradlew assembleRelease
         env:
           GHP_TOKEN: ${{ secrets.GHP_TOKEN }}
+          UMENG_CHANNEL: GithubRelease
           keystorePassword: ${{ secrets.KEYSTORE_PASSWORD }}
       - name: Get version code
         id: version
@@ -43,4 +45,5 @@ jobs:
         run: gh release upload ${{steps.version.outputs.VERSION}} app/build/outputs/apk/release/app-release.apk
         env:
           GH_TOKEN: ${{ secrets.GHP_TOKEN }}
+          UMENG_CHANNEL: GithubRelease
           keystorePassword: ${{ secrets.KEYSTORE_PASSWORD }}
