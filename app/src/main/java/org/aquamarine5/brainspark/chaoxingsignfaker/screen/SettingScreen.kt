@@ -61,7 +61,7 @@ fun SettingScreen() {
                     stackbricksState,
                     buildConfig = ApplicationBuildConfig(
                         versionName = BuildConfig.VERSION_NAME,
-                        isAllowedToDisableCheckUpdateOnLaunch = true,
+                        isAllowedToDisableCheckUpdateOnLaunch = false,
                         versionCode = null
                     ),
                 ),
