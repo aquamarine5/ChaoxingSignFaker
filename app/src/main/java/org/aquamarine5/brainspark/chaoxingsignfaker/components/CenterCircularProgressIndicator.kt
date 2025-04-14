@@ -25,8 +25,10 @@ import kotlinx.coroutines.delay
 private const val WAIT_DELAY = 500L
 
 @Composable
-fun CenterCircularProgressIndicator(modifier: Modifier = Modifier,
-                                    isDelay: Boolean = true) {
+fun CenterCircularProgressIndicator(
+    modifier: Modifier = Modifier,
+    isDelay: Boolean = true
+) {
     var isShow by remember { mutableStateOf(isDelay.not()) }
     if (isDelay) {
         LaunchedEffect(Unit) {

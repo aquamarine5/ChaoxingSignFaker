@@ -34,7 +34,7 @@ class ChaoxingQRCodeSigner(
     }
 
     suspend fun getQRCodeSignInfo(): ChaoxingQRCodeDetailEntity {
-        return getSignInfo().getJSONObject("data").run {
+        return getSignInfo().run {
             ChaoxingQRCodeDetailEntity(
                 getInteger("ifopenAddress") == 1,
                 getInteger("ifrefreshewm") == 1

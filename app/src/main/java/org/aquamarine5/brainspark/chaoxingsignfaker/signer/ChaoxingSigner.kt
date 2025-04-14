@@ -50,7 +50,7 @@ abstract class ChaoxingSigner(
                     .build()
             ).build()
         ).execute().use {
-            return@withContext JSONObject.parseObject(it.body?.string())
+            return@withContext JSONObject.parseObject(it.body?.string()).getJSONObject("data")
         }
     }
 

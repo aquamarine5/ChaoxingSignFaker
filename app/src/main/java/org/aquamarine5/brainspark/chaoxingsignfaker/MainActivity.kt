@@ -109,7 +109,7 @@ class MainActivity : ComponentActivity() {
                 it.environment = "beta"
             else if (versionName.contains("alpha")) {
                 it.environment = "alpha"
-                it.isAnrEnabled=false
+                it.isAnrEnabled = false
             } else
                 it.environment = "stable"
         }

@@ -114,7 +114,7 @@ fun LoginPage(
         Button(
             onClick = {
                 coroutineContext.launch {
-                    tipsText=""
+                    tipsText = ""
                     try {
                         ChaoxingHttpClient.create(phoneNumber, password, context)
                         UMengHelper.onLoginEvent(context, phoneNumber)

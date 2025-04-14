@@ -405,10 +405,11 @@ fun GetLocationComponent(
                     }
                 }
                 Box(modifier = Modifier.fillMaxSize()) {
-                    Column(modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .zIndex(1f)
-                        .padding(22.dp)
+                    Column(
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .zIndex(1f)
+                            .padding(22.dp)
                     ) {
                         FloatingActionButton(onClick = {
                             isShowDialog = true

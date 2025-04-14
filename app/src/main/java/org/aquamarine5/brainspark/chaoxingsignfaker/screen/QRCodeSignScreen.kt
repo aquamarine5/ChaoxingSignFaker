@@ -133,6 +133,8 @@ fun QRCodeSignScreen(
             AlreadySignedNotice(onSignForOtherUser = {
                 isAlreadySigned = false
                 isCurrentAlreadySigned = true
+            }, onDismiss = {
+                isAlreadySigned = false
             }) { navBack() }
         }
 

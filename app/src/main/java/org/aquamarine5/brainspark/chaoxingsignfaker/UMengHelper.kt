@@ -22,6 +22,7 @@ object UMengHelper {
     private const val EVENT_TAG_SIGN_LOCATION = "sign_location"
     private const val EVENT_TAG_SIGN_QR_CODE = "sign_qr_code"
     private const val EVENT_TAG_SIGN_PHOTO = "sign_photo"
+    private const val EVENT_TAG_SIGN_CLICK = "sign_click"
     private const val EVENT_TAG_ADD_OTHER_USER = "account_add_other_user"
     private const val EVENT_TAG_GOTO_SPONSOR_WECHAT = "sponsor_wechat_goto"
 
@@ -77,6 +78,11 @@ object UMengHelper {
     suspend fun onSignQRCodeEvent(context: Context, userEntity: ChaoxingUserEntity) {
         onEvent(context, EVENT_TAG_SIGN_QR_CODE, mapOf("user" to userEntity.name))
         ChaoxingAnalyser.onQRCodeSignEvent(context)
+    }
+
+    suspend fun onSignClickEvent(context: Context, userEntity: ChaoxingUserEntity) {
+        onEvent(context, EVENT_TAG_SIGN_CLICK, mapOf("user" to userEntity.name))
+        ChaoxingAnalyser.onClickSignEvent(context)
     }
 
     suspend fun onSignPhotoEvent(context: Context, userEntity: ChaoxingUserEntity) {

@@ -6,16 +6,24 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.screen
 
+import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.widget.Toast
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -26,9 +34,12 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import io.sentry.Sentry
@@ -89,7 +100,7 @@ fun PhotoSignScreen(destination: PhotoSignDestination, navBack: () -> Unit) {
             }
         }
         when (isAlreadySigned) {
-            true -> {
+            false -> {
                 val photoPermissionsState = rememberMultiplePermissionsState(
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
                         listOf(
@@ -112,8 +123,11 @@ fun PhotoSignScreen(destination: PhotoSignDestination, navBack: () -> Unit) {
                                         it?.let { image ->
                                             signer.uploadImage(context, image, token)
                                                 .let { objectId ->
-                                                    signer.sign(objectId)
-                                                    UMengHelper.onSignPhotoEvent(context,ChaoxingHttpClient.instance!!.userEntity)
+                                                    signer.signByImage(objectId)
+                                                    UMengHelper.onSignPhotoEvent(
+                                                        context,
+                                                        ChaoxingHttpClient.instance!!.userEntity
+                                                    )
                                                 }
                                         }
                                     }
@@ -142,14 +156,74 @@ fun PhotoSignScreen(destination: PhotoSignDestination, navBack: () -> Unit) {
                             }) { Text("返回") }
                         }
                     } else {
-                        if(isImage == true){
-                            Button(onClick = {
-                                isShowPhotoPicker = true
-                            }) {
-                                Text("选择图片")
+                        Column(
+                            modifier = Modifier.fillMaxSize(),
+                            verticalArrangement = Arrangement.Center,
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            if (isImage == true) {
+                                Button(onClick = {
+                                    isShowPhotoPicker = true
+                                }) {
+                                    Text("选择图片")
+                                }
+                            } else if (isImage == false) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(10.dp)
+                                        .background(Color.DarkGray, RoundedCornerShape(18.dp))
+                                        .padding(10.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Icon(
+                                        painterResource(R.drawable.ic_info),
+                                        contentDescription = "Info",
+                                        tint = Color.White
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        "这是一个普通的点击签到，不会收集任何其他的信息，所以我们推荐对于这种签到使用学习通APP而不是随地大小签。",
+                                        color = Color.White,
+                                        fontSize = 13.sp,
+                                        lineHeight = 18.sp,
+                                        fontWeight = FontWeight.W500
+                                    )
+                                }
+                                OutlinedButton(onClick = {
+                                    context.startActivity(
+                                        Intent(
+                                            Intent.ACTION_VIEW,
+                                            Uri.parse("cxstudy://")
+                                        ).apply {
+                                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                        })
+                                }) {
+                                    Text("跳转到学习通")
+                                }
+                                Button(onClick = {
+                                    coroutineScope.launch {
+                                        runCatching {
+                                            signer.signByClick()
+                                        }.onFailure {
+                                            if ((it is ChaoxingPredictableException).not()) {
+                                                Sentry.captureException(it)
+                                            }
+                                            Toast.makeText(context, "签到失败", Toast.LENGTH_SHORT)
+                                                .show()
+                                        }.onSuccess {
+                                            isSignSuccess = true
+                                            UMengHelper.onSignClickEvent(
+                                                context,
+                                                ChaoxingHttpClient.instance!!.userEntity
+                                            )
+                                        }
+                                    }
+                                }) {
+                                    Text("点击签到")
+                                }
                             }
-                        }else if(isImage==false){
-                            Text("这不是拍照签到，普通的点击签到请在学习通签到。")
                         }
                     }
                 } else {
@@ -170,8 +244,10 @@ fun PhotoSignScreen(destination: PhotoSignDestination, navBack: () -> Unit) {
                 }
             }
 
-            false -> {
-                AlreadySignedNotice(null) {
+            true -> {
+                AlreadySignedNotice(null, onDismiss = {
+                    isAlreadySigned = true
+                }) {
                     navBack()
                 }
             }

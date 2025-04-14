@@ -53,7 +53,8 @@ class ChaoxingPhotoSigner(
     }
 
     override suspend fun checkAlreadySign(response: String): Boolean {
-        return response.contains("请先拍照")
+        return response.contains("请先拍照").not() &&
+                response.contains("<div class=\"zactives-btn\" onclick=\"send()\">").not()
     }
 
     suspend fun getCloudToken(): String = withContext(Dispatchers.IO) {
@@ -62,7 +63,27 @@ class ChaoxingPhotoSigner(
         }
     }
 
-    suspend fun sign(objectId: String) = withContext(Dispatchers.IO) {
+    suspend fun signByClick() = withContext(Dispatchers.IO) {
+        client.newCall(
+            Request.Builder().url(
+                URL_SIGN.toHttpUrl().newBuilder()
+                    .addQueryParameter("activeId", photoActivityEntity.activeId.toString())
+                    .addQueryParameter("uid", client.userEntity.puid.toString())
+                    .addQueryParameter("name", client.userEntity.name)
+                    .addQueryParameter("fid", client.userEntity.fid.toString())
+                    .addQueryParameter("deviceCode", ChaoxingHttpClient.deviceCode!!)
+                    .build()
+            ).get().build()
+        ).execute().use {
+            val result = it.body?.string()
+            if (result != "success") {
+                Log.w(CLASSTAG, result ?: "")
+                throw ChaoxingPhotoSignException(result ?: "签到失败")
+            }
+        }
+    }
+
+    suspend fun signByImage(objectId: String) = withContext(Dispatchers.IO) {
         client.newCall(
             Request.Builder().url(
                 URL_SIGN.toHttpUrl().newBuilder()
@@ -83,7 +104,7 @@ class ChaoxingPhotoSigner(
         }
     }
 
-    fun uriToFile(context: Context, uri: Uri, fileName: String): File {
+    private fun uriToFile(context: Context, uri: Uri, fileName: String): File {
         val contentResolver = context.contentResolver
         val file = File(context.cacheDir, fileName)
         return runCatching {

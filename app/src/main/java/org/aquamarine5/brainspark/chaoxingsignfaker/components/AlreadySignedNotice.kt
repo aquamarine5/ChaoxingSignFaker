@@ -27,7 +27,11 @@ import androidx.compose.ui.unit.dp
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 
 @Composable
-fun AlreadySignedNotice(onSignForOtherUser: (() -> Unit)?, navBack: () -> Unit) {
+fun AlreadySignedNotice(
+    onSignForOtherUser: (() -> Unit)?,
+    onDismiss: () -> Unit,
+    navBack: () -> Unit,
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -44,7 +48,7 @@ fun AlreadySignedNotice(onSignForOtherUser: (() -> Unit)?, navBack: () -> Unit) 
         Text("当前签到活动已经签到，不能重复签到。", color = MaterialTheme.colorScheme.onBackground)
         onSignForOtherUser?.let {
             Spacer(modifier = Modifier.width(6.dp))
-            OutlinedButton(onClick = {
+            Button(onClick = {
                 it.invoke()
             }, modifier = Modifier.fillMaxWidth()) {
                 Text("为其他用户签到")
@@ -55,6 +59,12 @@ fun AlreadySignedNotice(onSignForOtherUser: (() -> Unit)?, navBack: () -> Unit) 
             navBack()
         }, modifier = Modifier.fillMaxWidth()) {
             Text("返回")
+        }
+        Spacer(modifier = Modifier.width(6.dp))
+        OutlinedButton(onClick = {
+            onDismiss()
+        }, modifier = Modifier.fillMaxWidth()) {
+            Text("我认为这是BUG，我并没有签到。")
         }
     }
 }

@@ -72,7 +72,9 @@ fun LocationSignScreen(
     }
     when (isAlreadySigned) {
         true -> {
-            AlreadySignedNotice(onSignForOtherUser = null) { navToCourseDetailDestination() }
+            AlreadySignedNotice(onSignForOtherUser = null, onDismiss = {
+                isAlreadySigned = false
+            }) { navToCourseDetailDestination() }
         }
 
         false -> {
