@@ -21,8 +21,11 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -36,13 +39,19 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.toBitmap
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.isGranted
+import com.google.accompanist.permissions.rememberPermissionState
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
@@ -51,6 +60,7 @@ import java.io.File
 
 private const val SPONSOR_IMAGE_FILENAME_BASE = "ChaoxingSignFaker_sponsor"
 
+@OptIn(ExperimentalPermissionsApi::class)
 @SuppressLint("WrongConstant")
 @Composable
 fun SponsorAlertDialog(showDialog: MutableState<Boolean>) {
@@ -59,11 +69,16 @@ fun SponsorAlertDialog(showDialog: MutableState<Boolean>) {
         listOf("催什么崔", "8.88"),
         listOf("不愿透露姓名的耿先生", "8.88"),
         listOf("不愿透露姓名的景先生", "6.66"),
+        listOf("G*.","6.66"),
         listOf("*.", "6.00"),
         listOf("死后世界战线", "5.88"),
         listOf("不愿透露姓名的张先生", "2.88"),
     )
     val coroutineScope = rememberCoroutineScope()
+    val permissionCheck =
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) rememberPermissionState(
+            android.Manifest.permission.WRITE_EXTERNAL_STORAGE
+        ) else null
     var isShowDialog by showDialog
     if (isShowDialog) {
         AlertDialog(onDismissRequest = {
@@ -77,97 +92,130 @@ fun SponsorAlertDialog(showDialog: MutableState<Boolean>) {
                 }
                 Spacer(modifier = Modifier.width(4.dp))
                 Button(onClick = {
-                    coroutineScope.launch {
-                        val imageValues = ContentValues().apply {
-                            put(MediaStore.Images.Media.MIME_TYPE, "image/png")
-                            val date = System.currentTimeMillis() / 1000
-                            put(MediaStore.Images.Media.DATE_ADDED, date)
-                            put(MediaStore.Images.Media.DATE_MODIFIED, date)
-                        }
-                        val filename =
-                            "${SPONSOR_IMAGE_FILENAME_BASE}_${System.currentTimeMillis()}.png"
+                    if (permissionCheck?.status?.isGranted == false) {
+                        permissionCheck.launchPermissionRequest()
+                    } else
+                        coroutineScope.launch {
+                            withContext(Dispatchers.IO) {
+                                val imageValues = ContentValues().apply {
+                                    put(MediaStore.Images.Media.MIME_TYPE, "image/png")
+                                    val date = System.currentTimeMillis() / 1000
+                                    put(MediaStore.Images.Media.DATE_ADDED, date)
+                                    put(MediaStore.Images.Media.DATE_MODIFIED, date)
+                                }
+                                val filename =
+                                    "${SPONSOR_IMAGE_FILENAME_BASE}_${System.currentTimeMillis()}.png"
 
-                        var file: File? = null
-                        val collection = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                            imageValues.apply {
-                                put(MediaStore.Images.Media.DISPLAY_NAME, filename)
-                                put(
-                                    MediaStore.Images.Media.RELATIVE_PATH,
-                                    Environment.DIRECTORY_PICTURES
-                                )
-                                put(MediaStore.Images.Media.IS_PENDING, 1)
-                            }
-                            MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
-                        } else {
-                            val dir =
-                                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
-                            if (!dir.exists() && !dir.mkdirs()) {
-                                return@launch
-                            }
-                            file = File(dir, filename)
-                            imageValues.apply {
-                                put(MediaStore.Images.Media.DATA, file.absolutePath)
-                                put(MediaStore.Images.Media.DISPLAY_NAME, filename)
-                            }
-                            MediaStore.Images.Media.EXTERNAL_CONTENT_URI
-                        }
-                        val resultUri = context.contentResolver.insert(collection, imageValues)
-                        if (resultUri == null) {
-                            Toast.makeText(context, "保存失败", Toast.LENGTH_SHORT).show()
-                        } else {
-                            context.contentResolver.openOutputStream(resultUri)
-                                ?.use { outputStream ->
-                                    ContextCompat.getDrawable(context, R.drawable.image_sponsor)!!
-                                        .toBitmap().compress(
-                                            android.graphics.Bitmap.CompressFormat.PNG,
-                                            100,
-                                            outputStream
+                                var file: File? = null
+                                val collection =
+                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                                        imageValues.apply {
+                                            put(MediaStore.Images.Media.DISPLAY_NAME, filename)
+                                            put(
+                                                MediaStore.Images.Media.RELATIVE_PATH,
+                                                Environment.DIRECTORY_PICTURES
+                                            )
+                                            put(MediaStore.Images.Media.IS_PENDING, 1)
+                                        }
+                                        MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
+                                    } else {
+                                        val dir =
+                                            Environment.getExternalStoragePublicDirectory(
+                                                Environment.DIRECTORY_PICTURES
+                                            )
+                                        if (!dir.exists() && !dir.mkdirs()) {
+                                            return@withContext
+                                        }
+                                        file = File(dir, filename)
+                                        imageValues.apply {
+                                            put(MediaStore.Images.Media.DATA, file.absolutePath)
+                                            put(MediaStore.Images.Media.DISPLAY_NAME, filename)
+                                        }
+                                        MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+                                    }
+                                val resultUri =
+                                    context.contentResolver.insert(collection, imageValues)
+                                if (resultUri == null) {
+                                    Toast.makeText(context, "保存失败", Toast.LENGTH_SHORT).show()
+                                } else {
+                                    context.contentResolver.openOutputStream(resultUri)
+                                        ?.use { outputStream ->
+                                            ContextCompat.getDrawable(
+                                                context,
+                                                R.drawable.image_sponsor
+                                            )!!
+                                                .toBitmap().compress(
+                                                    android.graphics.Bitmap.CompressFormat.PNG,
+                                                    100,
+                                                    outputStream
+                                                )
+                                        }
+                                    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+                                        file?.let {
+                                            imageValues.put(
+                                                MediaStore.Images.Media.SIZE,
+                                                it.length()
+                                            )
+                                        }
+                                        context.contentResolver.update(
+                                            resultUri,
+                                            imageValues,
+                                            null,
+                                            null
                                         )
+                                        context.sendBroadcast(
+                                            Intent(
+                                                Intent.ACTION_MEDIA_SCANNER_SCAN_FILE,
+                                                resultUri
+                                            )
+                                        )
+                                    } else {
+                                        imageValues.put(MediaStore.Images.Media.IS_PENDING, 0)
+                                        context.contentResolver.update(
+                                            resultUri,
+                                            imageValues,
+                                            null,
+                                            null
+                                        )
+                                    }
                                 }
-                            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
-                                file?.let {
-                                    imageValues.put(MediaStore.Images.Media.SIZE, it.length())
-                                }
-                                context.contentResolver.update(resultUri, imageValues, null, null)
-                                context.sendBroadcast(
-                                    Intent(
-                                        Intent.ACTION_MEDIA_SCANNER_SCAN_FILE,
-                                        resultUri
-                                    )
-                                )
-                            } else {
-                                imageValues.put(MediaStore.Images.Media.IS_PENDING, 0)
-                                context.contentResolver.update(resultUri, imageValues, null, null)
                             }
-                        }
-                    }.invokeOnCompletion {
-                        Toast.makeText(context, "图片已保存到相册", Toast.LENGTH_SHORT).show()
+                        }.invokeOnCompletion {
+                            Toast.makeText(context, "图片已保存到相册", Toast.LENGTH_SHORT).show()
 //                        context.packageManager.getLaunchIntentForPackage("com.tencent.mm")
 //                            ?.let {
 //                                it.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
 //                                context.startActivity(it)
 //                            }
-                        context.startActivity(
-                            Intent(
-                                Intent.ACTION_VIEW,
-                                Uri.parse("weixin://")
-                            ).apply {
-                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                            })
-                        UMengHelper.onGotoSponsorWechatEvent(
-                            context,
-                            ChaoxingHttpClient.instance!!.userEntity
-                        )
-                    }
+                            context.startActivity(
+                                Intent(
+                                    Intent.ACTION_VIEW,
+                                    Uri.parse("weixin://")
+                                ).apply {
+                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                })
+                            UMengHelper.onGotoSponsorWechatEvent(
+                                context,
+                                ChaoxingHttpClient.instance!!.userEntity
+                            )
+                        }
                 }) {
                     Text("现在就去")
                 }
             }
         }, text = {
-            Column {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState())
+            ) {
                 Image(painterResource(R.drawable.image_sponsor), contentDescription = "sponsor")
                 Spacer(modifier = Modifier.height(4.dp))
-                Text("捐赠列表：", fontSize = 16.sp)
+                Text(
+                    "捐赠列表：",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text("如需在列表内显示完整名称，请添加备注。", fontStyle = FontStyle.Italic)
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(buildAnnotatedString {
                     sponsorList.forEach {

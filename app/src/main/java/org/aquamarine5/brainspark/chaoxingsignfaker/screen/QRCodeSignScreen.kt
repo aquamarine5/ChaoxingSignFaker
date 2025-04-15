@@ -417,7 +417,8 @@ fun QRCodeSignScreen(
                                                 signStatus[1 + index].success()
                                                 UMengHelper.onSignQRCodeEvent(
                                                     context,
-                                                    it.userEntity
+                                                    it.userEntity,
+                                                    true
                                                 )
                                                 userSelections[1 + index] = false
                                             }.onFailure {

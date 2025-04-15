@@ -7,15 +7,33 @@
 package org.aquamarine5.brainspark.chaoxingsignfaker.screen
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import kotlinx.serialization.Serializable
 import org.aquamarine5.brainspark.chaoxingsignfaker.BuildConfig
+import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.AnalyserCard
@@ -116,5 +134,41 @@ fun SettingScreen() {
         SponsorCard()
 
         AnalyserCard()
+        Button(
+            onClick = {
+
+            },
+            shape = RoundedCornerShape(18.dp),
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF22A2C3))
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(3.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(painterResource(R.drawable.ic_coffee), contentDescription = "sponsor")
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(buildAnnotatedString {
+                    withStyle(
+                        SpanStyle(
+                            fontFamily = FontFamily(
+                                Font(R.font.gilroy)
+                            ),
+                            fontSize = 14.sp
+                        )
+                    ) {
+                        append("随地大小签 ")
+                    }
+                    withStyle(
+                        SpanStyle(fontSize = 14.sp)
+                    ) {
+                        append("帮到你了嘛？\n")
+                        append("那就给作者赞赏一杯奶茶吧。或者给两杯奶茶，怎么样？")
+                    }
+                })
+            }
+        }
     }
 }
