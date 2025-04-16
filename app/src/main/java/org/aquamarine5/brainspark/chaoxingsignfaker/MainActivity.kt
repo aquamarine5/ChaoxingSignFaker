@@ -21,11 +21,14 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.BottomNavigation
 import androidx.compose.material.BottomNavigationItem
 import androidx.compose.material.ContentAlpha
@@ -40,7 +43,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -58,6 +64,7 @@ import com.baidu.mapapi.SDKInitializer
 import com.umeng.analytics.MobclickAgent
 import io.sentry.android.core.SentryAndroid
 import kotlinx.coroutines.flow.first
+import okhttp3.OkHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
@@ -84,6 +91,13 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.screen.SignGraphDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.WelcomeDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.WelcomeScreen
 import org.aquamarine5.brainspark.chaoxingsignfaker.ui.theme.ChaoxingSignFakerTheme
+import org.aquamarine5.brainspark.stackbricks.ApplicationBuildConfig
+import org.aquamarine5.brainspark.stackbricks.StackbricksService
+import org.aquamarine5.brainspark.stackbricks.providers.qiniu.QiniuConfiguration
+import org.aquamarine5.brainspark.stackbricks.providers.qiniu.QiniuMessageProvider
+import org.aquamarine5.brainspark.stackbricks.providers.qiniu.QiniuPackageProvider
+import org.aquamarine5.brainspark.stackbricks.rememberStackbricksStatus
+import java.util.concurrent.TimeUnit
 import kotlin.reflect.typeOf
 
 class MainActivity : ComponentActivity() {
@@ -117,6 +131,9 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             val navController = rememberNavController()
+            var isNewVersionAvailable by remember {
+                mutableStateOf(false)
+            }
             ChaoxingSignFakerTheme {
                 Scaffold(
                     bottomBar = {
@@ -179,11 +196,25 @@ class MainActivity : ComponentActivity() {
                                             CompositionLocalProvider(LocalContentColor provides iconColor) {
                                                 Column {
                                                     Spacer(modifier = Modifier.size(1.5.dp))
-                                                    Icon(
-                                                        item.icon,
-                                                        contentDescription = item.name,
-                                                        modifier = Modifier.size(26.dp)
-                                                    )
+                                                    Box{
+                                                        Icon(
+                                                            item.icon,
+                                                            contentDescription = item.name,
+                                                            modifier = Modifier.size(26.dp)
+                                                        )
+                                                        if(item.name=="设置"&&isNewVersionAvailable){
+                                                            Box(
+                                                                modifier = Modifier
+                                                                    .size(10.dp)
+                                                                    .background(
+                                                                        color = Color(0xFFF23E23),
+                                                                        shape = CircleShape
+                                                                    )
+                                                                    .align(Alignment.TopEnd)
+                                                                    .offset(x = 2.dp, y = (-2).dp)
+                                                            )
+                                                        }
+                                                    }
                                                 }
                                             }
                                         },
@@ -200,6 +231,28 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 ) { innerPadding ->
+                    val stackbricksService= QiniuConfiguration(
+                        "cdn.aquamarine5.fun",
+                        referer = "http://cdn.aquamarine5.fun/",
+                        configFilePath = "chaoxingsignfaker_stackbricks_v2_manifest.json",
+                        okHttpClient = OkHttpClient().newBuilder()
+                            .callTimeout(20, TimeUnit.MINUTES)
+                            .readTimeout(20, TimeUnit.MINUTES)
+                            .writeTimeout(20, TimeUnit.MINUTES)
+                            .build()
+                    ).let {
+                        StackbricksService(
+                            LocalContext.current,
+                            QiniuMessageProvider(it),
+                            QiniuPackageProvider(it),
+                            rememberStackbricksStatus(),
+                            buildConfig = ApplicationBuildConfig(
+                                versionName = BuildConfig.VERSION_NAME,
+                                isAllowedToDisableCheckUpdateOnLaunch = false,
+                                versionCode = null
+                            ),
+                        )
+                    }
                     Column(
                         modifier = Modifier
                             .background(MaterialTheme.colorScheme.background)
@@ -247,8 +300,18 @@ class MainActivity : ComponentActivity() {
                             ) {
                                 navigation<SignGraphDestination>(startDestination = CourseListDestination) {
                                     composable<CourseListDestination> {
-                                        CourseListScreen {
+                                        CourseListScreen(stackbricksService,navToDetailDestination = {
                                             navController.navigate(it)
+                                        }, onNewVersionAvailable = {
+                                            isNewVersionAvailable=true
+                                        }, navToSettingDestination = {
+                                            navController.navigate(SettingDestination) {
+                                                popUpTo<CourseListDestination> { inclusive = true }
+                                            }
+                                        }) {
+                                            navController.navigate(LoginDestination) {
+                                                popUpTo<CourseListDestination> { inclusive = true }
+                                            }
                                         }
                                     }
 
@@ -298,7 +361,7 @@ class MainActivity : ComponentActivity() {
                                 navigation<SettingGraphDestination>(startDestination = SettingDestination) {
 
                                     composable<SettingDestination> {
-                                        SettingScreen()
+                                        SettingScreen(stackbricksService)
                                     }
                                 }
 

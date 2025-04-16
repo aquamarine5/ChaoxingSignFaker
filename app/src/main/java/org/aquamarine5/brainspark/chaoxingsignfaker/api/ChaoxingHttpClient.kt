@@ -9,6 +9,7 @@ package org.aquamarine5.brainspark.chaoxingsignfaker.api
 import android.content.Context
 import com.alibaba.fastjson2.JSONObject
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import okhttp3.Call
 import okhttp3.Cookie
@@ -68,8 +69,12 @@ class ChaoxingHttpClient private constructor(
                 private val cookieStore: MutableMap<String, List<Cookie>> = mutableMapOf()
                 private var chaoxingCookieSession: List<Cookie> = listOf()
                 override fun saveFromResponse(url: HttpUrl, cookies: List<Cookie>) {
-                    if (url.host.endsWith("chaoxing.com") && url.encodedPath == "/fanyalogin") {
-                        chaoxingCookieSession = cookies
+                    if (url.host.endsWith("chaoxing.com") && (url.encodedPath == "/fanyalogin")) {
+                        chaoxingCookieSession = cookies.toMutableList()
+                    } else if (url.encodedPath == "/apis/login/userLogin4Uname.do") {
+                        val cookiesMap = cookies.associateBy { cookie -> cookie.name }
+                        val keepCookies = chaoxingCookieSession.filter { !cookiesMap.containsKey(it.name) }
+                        chaoxingCookieSession = (keepCookies + cookiesMap.values)
                     } else
                         cookieStore[url.host] = cookies
                 }
@@ -110,13 +115,17 @@ class ChaoxingHttpClient private constructor(
             phoneNumber: String,
             password: String,
             context: Context
-        ): ChaoxingHttpClient {
+        ): ChaoxingHttpClient = withContext(Dispatchers.IO){
             val cookieJar: CookieJar = object : CookieJar {
                 private val cookieStore: MutableMap<String, List<Cookie>> = mutableMapOf()
                 private var chaoxingCookieSession: List<Cookie> = listOf()
                 override fun saveFromResponse(url: HttpUrl, cookies: List<Cookie>) {
-                    if (url.host.endsWith("chaoxing.com") && url.encodedPath == "/fanyalogin") {
-                        chaoxingCookieSession = cookies
+                    if (url.host.endsWith("chaoxing.com") && (url.encodedPath == "/fanyalogin")) {
+                        chaoxingCookieSession = cookies.toMutableList()
+                    } else if (url.encodedPath == "/apis/login/userLogin4Uname.do") {
+                        val cookiesMap = cookies.associateBy { cookie -> cookie.name }
+                        val keepCookies = chaoxingCookieSession.filter { !cookiesMap.containsKey(it.name) }
+                        chaoxingCookieSession = (keepCookies + cookiesMap.values)
                     } else
                         cookieStore[url.host] = cookies
                 }
@@ -142,7 +151,7 @@ class ChaoxingHttpClient private constructor(
             val userInfo = getInfo(client).apply {
                 UMengHelper.profileSignIn(this, phoneNumber)
             }
-            return ChaoxingHttpClient(
+            return@withContext ChaoxingHttpClient(
                 client,
                 userInfo
             ).apply {
@@ -155,8 +164,12 @@ class ChaoxingHttpClient private constructor(
                 private val cookieStore: MutableMap<String, List<Cookie>> = mutableMapOf()
                 private var chaoxingCookieSession: List<Cookie> = listOf()
                 override fun saveFromResponse(url: HttpUrl, cookies: List<Cookie>) {
-                    if (url.host.endsWith("chaoxing.com") && url.encodedPath == "/fanyalogin") {
-                        chaoxingCookieSession = cookies
+                    if (url.host.endsWith("chaoxing.com") && (url.encodedPath == "/fanyalogin")) {
+                        chaoxingCookieSession = cookies.toMutableList()
+                    } else if (url.encodedPath == "/apis/login/userLogin4Uname.do") {
+                        val cookiesMap = cookies.associateBy { cookie -> cookie.name }
+                        val keepCookies = chaoxingCookieSession.filter { !cookiesMap.containsKey(it.name) }
+                        chaoxingCookieSession = (keepCookies + cookiesMap.values)
                     } else
                         cookieStore[url.host] = cookies
                 }
@@ -373,6 +386,26 @@ class ChaoxingHttpClient private constructor(
             cipher.init(Cipher.ENCRYPT_MODE, secretKey, iv)
             val encrypted = cipher.doFinal(message.toByteArray(Charsets.UTF_8))
             return Base64.getEncoder().encodeToString(encrypted)
+        }
+    }
+
+    suspend fun reLogin(context: Context): Boolean {
+        runCatching {
+            context.chaoxingDataStore.data.first().let {
+                if (it.loginSession.phoneNumber.isNullOrEmpty() || it.loginSession.password.isNullOrEmpty()) {
+                    return false
+                }
+                login(
+                    okHttpClient,
+                    it.loginSession.phoneNumber,
+                    it.loginSession.password,
+                    context,
+                    isEncryptedPassword = true
+                )
+            }
+            return true
+        }.getOrElse {
+            return false
         }
     }
 }

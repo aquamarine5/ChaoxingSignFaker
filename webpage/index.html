@@ -44,7 +44,7 @@
 
         // 首先获取配置文件
         function download() {
-            const configUrl = 'http://cdn.aquamarine5.fun/chaoxingsignfaker_stackbricks_v1_config.json';
+            const configUrl = 'http://cdn.aquamarine5.fun/chaoxingsignfaker_stackbricks_v2_manifest.json';
             fetch(configUrl)
                 .then(response => {
                     if (!response.ok) {
@@ -54,7 +54,7 @@
                     return response.json();
                 })
                 .then(config => {
-                    if (!config.latest || !config.latest.downloadUrl) {
+                    if (!config.latestStable || !config.latestStable.downloadUrl) {
                         console.error('配置文件格式无效');
                         return;
                     }

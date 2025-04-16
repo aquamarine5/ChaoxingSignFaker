@@ -9,6 +9,7 @@ package org.aquamarine5.brainspark.chaoxingsignfaker.components
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -19,8 +20,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -64,30 +67,35 @@ fun AnalyserCard() {
                     .padding(3.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(painterResource(R.drawable.ic_chart_column), contentDescription = "analyser")
-                Spacer(modifier = Modifier.width(8.dp))
-                AnimatedVisibility(
-                    analyser.isLoaded.value,
-                    enter = expandVertically(),
-                    exit = shrinkVertically()
-                ) {
-                    Column {
-                        Text("使用次数统计", fontSize = 17.sp, fontWeight = FontWeight.Bold)
-                        analyser.apply {
-                            listOf(
-                                "位置签到" to locationSignCount,
-                                "二维码签到" to qrcodeSignCount,
-                                "拍照签到" to photoSignCount,
-                                "代签次数" to otherUserSignCount
-                            ).forEach {
-                                Text(
-                                    buildAnnotatedString {
-                                        withStyle(SpanStyle(fontSize = 14.sp)) { append("${it.first}: ") }
-                                        withStyle(fontGilroy) {
-                                            append("${it.second.value}")
-                                        }
-                                    }, modifier = Modifier.fillMaxWidth()
-                                )
+                CompositionLocalProvider(LocalContentColor provides if (isSystemInDarkTheme()) Color.Black else Color.White) {
+                    Icon(
+                        painterResource(R.drawable.ic_chart_column),
+                        contentDescription = "analyser"
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    AnimatedVisibility(
+                        analyser.isLoaded.value,
+                        enter = expandVertically(),
+                        exit = shrinkVertically()
+                    ) {
+                        Column {
+                            Text("使用次数统计", fontSize = 17.sp, fontWeight = FontWeight.Bold)
+                            analyser.apply {
+                                listOf(
+                                    "位置签到" to locationSignCount,
+                                    "二维码签到" to qrcodeSignCount,
+                                    "拍照签到" to photoSignCount,
+                                    "代签次数" to otherUserSignCount
+                                ).forEach {
+                                    Text(
+                                        buildAnnotatedString {
+                                            withStyle(SpanStyle(fontSize = 14.sp)) { append("${it.first}: ") }
+                                            withStyle(fontGilroy) {
+                                                append("${it.second.value}")
+                                            }
+                                        }, modifier = Modifier.fillMaxWidth()
+                                    )
+                                }
                             }
                         }
                     }

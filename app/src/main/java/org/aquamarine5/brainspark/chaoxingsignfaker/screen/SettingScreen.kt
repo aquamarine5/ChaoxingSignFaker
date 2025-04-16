@@ -6,6 +6,8 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.screen
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -32,22 +34,15 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.serialization.Serializable
-import org.aquamarine5.brainspark.chaoxingsignfaker.BuildConfig
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.AnalyserCard
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SponsorCard
-import org.aquamarine5.brainspark.stackbricks.ApplicationBuildConfig
 import org.aquamarine5.brainspark.stackbricks.StackbricksComponent
 import org.aquamarine5.brainspark.stackbricks.StackbricksEventTrigger
 import org.aquamarine5.brainspark.stackbricks.StackbricksService
 import org.aquamarine5.brainspark.stackbricks.StackbricksVersionData
-import org.aquamarine5.brainspark.stackbricks.providers.qiniu.QiniuConfiguration
-import org.aquamarine5.brainspark.stackbricks.providers.qiniu.QiniuMessageProvider
-import org.aquamarine5.brainspark.stackbricks.providers.qiniu.QiniuPackageProvider
-import org.aquamarine5.brainspark.stackbricks.rememberStackbricksStatus
-import java.util.concurrent.TimeUnit
 
 @Serializable
 object SettingGraphDestination
@@ -56,91 +51,76 @@ object SettingGraphDestination
 object SettingDestination
 
 @Composable
-fun SettingScreen() {
+fun SettingScreen(stackbricksService: StackbricksService) {
     Column(modifier = Modifier.padding(16.dp)) {
-        val stackbricksState = rememberStackbricksStatus()
         val context = LocalContext.current
-        QiniuConfiguration(
-            "cdn.aquamarine5.fun",
-            referer = "http://cdn.aquamarine5.fun/",
-            configFilePath = "chaoxingsignfaker_stackbricks_v2_manifest.json",
-            okHttpClient = ChaoxingHttpClient.instance!!.okHttpClient.newBuilder()
-                .callTimeout(20, TimeUnit.MINUTES)
-                .readTimeout(20, TimeUnit.MINUTES)
-                .writeTimeout(20, TimeUnit.MINUTES)
-                .build()
-        ).let {
-            val userEntity = ChaoxingHttpClient.instance!!.userEntity
-            StackbricksComponent(
-                StackbricksService(
-                    LocalContext.current,
-                    QiniuMessageProvider(it),
-                    QiniuPackageProvider(it),
-                    stackbricksState,
-                    buildConfig = ApplicationBuildConfig(
-                        versionName = BuildConfig.VERSION_NAME,
-                        isAllowedToDisableCheckUpdateOnLaunch = false,
-                        versionCode = null
-                    ),
-                ),
-                trigger = object : StackbricksEventTrigger() {
-                    override fun onChannelChanged(isTestChannel: Boolean) {
-                        UMengHelper.onStackbricksTestChannelChangedEvent(
+        val userEntity = ChaoxingHttpClient.instance!!.userEntity
+        StackbricksComponent(
+            stackbricksService,
+            trigger = object : StackbricksEventTrigger() {
+                override fun onChannelChanged(isTestChannel: Boolean) {
+                    UMengHelper.onStackbricksTestChannelChangedEvent(
+                        context,
+                        userEntity,
+                        isTestChannel
+                    )
+                }
+
+                override fun onCheckUpdate(isTestChannel: Boolean) {
+                    UMengHelper.onStackbricksCheckUpdateEvent(context, userEntity)
+                }
+
+                override fun onCheckUpdateOnLaunchChanged(isChecked: Boolean) {
+                    UMengHelper.onStackbricksCheckOnLaunchChangedEvent(
+                        context,
+                        userEntity,
+                        isChecked
+                    )
+                }
+
+                override fun onDownloadPackage() {
+
+                }
+
+                override fun onInstallPackage(
+                    isTestChannel: Boolean,
+                    versionData: StackbricksVersionData
+                ) {
+                    if (isTestChannel)
+                        UMengHelper.onStackbricksInstallTestChannelEvent(
                             context,
                             userEntity,
-                            isTestChannel
+                            versionData
                         )
-                    }
-
-                    override fun onCheckUpdate(isTestChannel: Boolean) {
-                        UMengHelper.onStackbricksCheckUpdateEvent(context, userEntity)
-                    }
-
-                    override fun onCheckUpdateOnLaunchChanged(isChecked: Boolean) {
-                        UMengHelper.onStackbricksCheckOnLaunchChangedEvent(
+                    else
+                        UMengHelper.onStackbricksInstallNewestEvent(
                             context,
                             userEntity,
-                            isChecked
+                            versionData
                         )
-                    }
+                }
+            }
+        )
 
-                    override fun onDownloadPackage() {
-
-                    }
-
-                    override fun onInstallPackage(
-                        isTestChannel: Boolean,
-                        versionData: StackbricksVersionData
-                    ) {
-                        if (isTestChannel)
-                            UMengHelper.onStackbricksInstallTestChannelEvent(
-                                context,
-                                userEntity,
-                                versionData
-                            )
-                        else
-                            UMengHelper.onStackbricksInstallNewestEvent(
-                                context,
-                                userEntity,
-                                versionData
-                            )
-                    }
-
-                },
-            )
-        }
         Spacer(modifier = Modifier.height(8.dp))
 
         SponsorCard()
 
         AnalyserCard()
+        Spacer(modifier = Modifier.height(8.dp))
         Button(
             onClick = {
-
+                context.startActivity(Intent(Intent.ACTION_SEND).apply {
+                    setData(Uri.parse("mailto:aquamarine5forever@gmail.com"))
+                    putExtra(Intent.EXTRA_EMAIL, "aquamarine5forever@gmail.com")
+                    putExtra(Intent.EXTRA_CC, "aquamarine5forever@gmail.com")
+                    putExtra(Intent.EXTRA_SUBJECT, "Send to ChaoxingSignFaker:\n")
+                    putExtra(Intent.EXTRA_TEXT, "Your content:")
+                })
             },
             shape = RoundedCornerShape(18.dp),
             modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF22A2C3))
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFC08EAF))
         ) {
             Row(
                 modifier = Modifier
@@ -148,9 +128,10 @@ fun SettingScreen() {
                     .padding(3.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(painterResource(R.drawable.ic_coffee), contentDescription = "sponsor")
+                Icon(painterResource(R.drawable.ic_mail), contentDescription = "mail")
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(buildAnnotatedString {
+                    append("想要联系作者？\n发送邮件到：")
                     withStyle(
                         SpanStyle(
                             fontFamily = FontFamily(
@@ -159,13 +140,44 @@ fun SettingScreen() {
                             fontSize = 14.sp
                         )
                     ) {
-                        append("随地大小签 ")
+                        append("aquamarine5forever@gmail.com")
                     }
+                })
+            }
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        Button(
+            onClick = {
+                context.startActivity(
+                    Intent(
+                        Intent.ACTION_VIEW,
+                        Uri.parse("https://github.com/aquamarine5/ChaoxingSignFaker")
+                    )
+                )
+            },
+            shape = RoundedCornerShape(18.dp),
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF55BB8A))
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(3.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(painterResource(R.drawable.ic_github), contentDescription = "github")
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(buildAnnotatedString {
+                    append("前往Github给作者点一个Star吧\n前往：")
                     withStyle(
-                        SpanStyle(fontSize = 14.sp)
+                        SpanStyle(
+                            fontFamily = FontFamily(
+                                Font(R.font.gilroy)
+                            ),
+                            fontSize = 14.sp
+                        )
                     ) {
-                        append("帮到你了嘛？\n")
-                        append("那就给作者赞赏一杯奶茶吧。或者给两杯奶茶，怎么样？")
+                        append("aquamarine5/ChaoxingSignFaker")
                     }
                 })
             }

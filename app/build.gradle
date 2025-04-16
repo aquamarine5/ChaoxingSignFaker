@@ -18,7 +18,7 @@ plugins {
 stackbricksConfig {
     configJsonFilePath = "chaoxingsignfaker_stackbricks_v2_manifest.json"
     host = "cdn.aquamarine5.fun"
-    changelog = "【建议更新】1. 修复了拍照签到存在的严重BUG。"
+    changelog = "1. 修复了当登录信息超时导致的获取课程列表失败。2. 添加了更新新版本提示。3. 更新了Stackbricks框架。"
     qiniuConfig {
         accessKey = project.findProperty("qiniu.accessKey") ?: ""
         secretKey = project.findProperty("qiniu.secretKey") ?: ""
@@ -38,8 +38,8 @@ android {
         applicationId = "org.aquamarine5.brainspark.chaoxingsignfaker"
         minSdk = 26
         targetSdk = 35
-        versionCode = 104048521
-        versionName = "1.4.4-stable-250415"
+        versionCode = 104068521
+        versionName = "1.4.6-stable-250416"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
