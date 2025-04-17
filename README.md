@@ -27,3 +27,7 @@
 ## About Brainspark Project
 
 - Brainspark 项目是 @aquamarine5 日常头脑风暴的一部分，Code Anything Possible。
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=aquamarine5/ChaoxingSignFaker&type=Date)](https://www.star-history.com/#aquamarine5/ChaoxingSignFaker&Date)
