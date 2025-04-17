@@ -36,10 +36,11 @@
                 document.getElementById('info').innerText = '请使用 随地大小签APP（ChaoxingSignFaker） 扫码。';
 
             }
-            window.location.href = "cxsignfaker://import"+window.location.href.split("cdn.aquamarine5.fun")[1];
-                var myTimeout = setTimeout(function () {
-                    download();
-                }, 1000);
+            var myTimeout = setTimeout(function () {
+                download();
+            }, 1000);
+
+            //window.location.href = "cxsignfaker://import" + window.location.href.split("cdn.aquamarine5.fun")[1];
         });
 
         // 首先获取配置文件
@@ -59,7 +60,7 @@
                         return;
                     }
 
-                    const downloadPath = config.latest.downloadUrl;
+                    const downloadPath = config.latestStable.downloadUrl;
                     window.location.href = `http://cdn.aquamarine5.fun/${downloadPath}`
                     fetchData(downloadPath);
                 })
