@@ -10,6 +10,7 @@ import android.content.Intent
 import android.content.pm.PackageManager.GET_META_DATA
 import android.os.Bundle
 import android.os.Debug
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -63,7 +64,9 @@ import com.baidu.location.LocationClient
 import com.baidu.mapapi.SDKInitializer
 import com.umeng.analytics.MobclickAgent
 import io.sentry.android.core.SentryAndroid
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
@@ -91,7 +94,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.screen.SignGraphDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.WelcomeDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.WelcomeScreen
 import org.aquamarine5.brainspark.chaoxingsignfaker.ui.theme.ChaoxingSignFakerTheme
-import org.aquamarine5.brainspark.stackbricks.ApplicationBuildConfig
+import org.aquamarine5.brainspark.stackbricks.StackbricksPolicy
 import org.aquamarine5.brainspark.stackbricks.StackbricksService
 import org.aquamarine5.brainspark.stackbricks.providers.qiniu.QiniuConfiguration
 import org.aquamarine5.brainspark.stackbricks.providers.qiniu.QiniuMessageProvider
@@ -246,9 +249,10 @@ class MainActivity : ComponentActivity() {
                             QiniuMessageProvider(it),
                             QiniuPackageProvider(it),
                             rememberStackbricksStatus(),
-                            buildConfig = ApplicationBuildConfig(
+                            stackbricksPolicy = StackbricksPolicy(
                                 versionName = BuildConfig.VERSION_NAME,
                                 isAllowedToDisableCheckUpdateOnLaunch = false,
+                                isForceInstallValueCallback = false,
                                 versionCode = null
                             ),
                         )
@@ -261,25 +265,38 @@ class MainActivity : ComponentActivity() {
                     ) {
                         var destination by remember { mutableStateOf<Any?>(null) }
                         LaunchedEffect(Unit) {
-                            val datastore = applicationContext.chaoxingDataStore.data.first()
-                            if (datastore.agreeTerms) {
-                                UMengHelper.init(applicationContext)
-                                LocationClient.setAgreePrivacy(true)
-                                SDKInitializer.setAgreePrivacy(applicationContext, true)
-                            }
-                            destination =
-                                when {
-                                    !datastore.agreeTerms -> WelcomeDestination
-                                    !datastore.hasLoginSession() -> LoginDestination
-                                    else -> {
-                                        ChaoxingHttpClient.loadFromDataStore(datastore)
-                                        SignGraphDestination
-                                    }
+                            withContext(Dispatchers.IO){
+                                val datastore = applicationContext.chaoxingDataStore.data.first()
+                                if (datastore.agreeTerms) {
+                                    UMengHelper.init(applicationContext)
+                                    LocationClient.setAgreePrivacy(true)
+                                    SDKInitializer.setAgreePrivacy(applicationContext, true)
                                 }
-                            ChaoxingHttpClient.deviceCode =
-                                datastore.deviceCode ?: ChaoxingHttpClient.generateDeviceCode(
-                                    applicationContext
-                                )
+                                destination =
+                                    when {
+                                        !datastore.agreeTerms -> WelcomeDestination
+                                        !datastore.hasLoginSession() -> LoginDestination
+                                        else -> {
+                                            runCatching {
+                                                ChaoxingHttpClient.loadFromDataStore(datastore)
+                                                return@runCatching SignGraphDestination
+                                            }.getOrElse {
+                                                withContext(Dispatchers.Main){
+                                                    Toast.makeText(
+                                                        applicationContext,
+                                                        "初始化客户端失败，可能是网络问题或登录过期。",
+                                                        Toast.LENGTH_SHORT
+                                                    ).show()
+                                                }
+                                                LoginDestination
+                                            }
+                                        }
+                                    }
+                                ChaoxingHttpClient.deviceCode =
+                                    datastore.deviceCode ?: ChaoxingHttpClient.generateDeviceCode(
+                                        applicationContext
+                                    )
+                            }
                         }
                         if (destination == null) {
                             CenterCircularProgressIndicator(isDelay = false)
@@ -359,7 +376,6 @@ class MainActivity : ComponentActivity() {
                                 }
 
                                 navigation<SettingGraphDestination>(startDestination = SettingDestination) {
-
                                     composable<SettingDestination> {
                                         SettingScreen(stackbricksService)
                                     }

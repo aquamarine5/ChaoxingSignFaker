@@ -39,6 +39,8 @@ class ChaoxingHttpClient private constructor(
 ) {
     class ChaoxingLoginException(message: String) : Exception(message)
 
+    class ChaoxingGetUserInfoException(message: String, throwable: Throwable) : Exception(message,throwable)
+
     fun newCall(request: Request): Call = okHttpClient.newCall(request)
 
     companion object {
@@ -211,20 +213,24 @@ class ChaoxingHttpClient private constructor(
 
         private suspend fun getInfo(client: OkHttpClient): ChaoxingUserEntity =
             withContext(Dispatchers.IO) {
-                client.newCall(Request.Builder().get().url(URL_USER_INFO).build()).execute()
-                    .use { response ->
-                        val jsonResult =
-                            JSONObject.parseObject(response.body?.string()).getJSONObject("msg")
-                        return@withContext ChaoxingUserEntity(
-                            jsonResult.getInteger("uid"),
-                            jsonResult.getInteger("fid"),
-                            jsonResult.getString("name"),
-                            jsonResult.getString("schoolname"),
-                            jsonResult.getString("uname"),
-                            jsonResult.getString("pic").replace("http://", "https://"),
-                            jsonResult.getInteger("puid")
-                        )
-                    }
+                runCatching {
+                    client.newCall(Request.Builder().get().url(URL_USER_INFO).build()).execute()
+                        .use { response ->
+                            val jsonResult =
+                                JSONObject.parseObject(response.body?.string()).getJSONObject("msg")
+                            return@withContext ChaoxingUserEntity(
+                                jsonResult.getInteger("uid"),
+                                jsonResult.getInteger("fid"),
+                                jsonResult.getString("name"),
+                                jsonResult.getString("schoolname"),
+                                jsonResult.getString("uname"),
+                                jsonResult.getString("pic").replace("http://", "https://"),
+                                jsonResult.getInteger("puid")
+                            )
+                        }
+                }.getOrElse {
+                    throw ChaoxingGetUserInfoException("获取用户信息失败", it)
+                }
             }
 
         suspend fun checkSharedEntity(

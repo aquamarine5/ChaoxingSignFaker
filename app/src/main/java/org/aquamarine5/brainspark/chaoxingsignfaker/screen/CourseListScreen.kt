@@ -16,7 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -26,6 +26,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Modifier
@@ -45,8 +46,10 @@ import coil3.disk.directory
 import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import coil3.request.crossfade
 import io.sentry.Sentry
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCourseHelper
@@ -69,7 +72,6 @@ private const val SORT_STAR = 10
 private const val SORT_UNORDERED = 5
 private const val SORT_COMMON = 0
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CourseListScreen(
     stackbricksService: StackbricksService,
@@ -84,31 +86,40 @@ fun CourseListScreen(
     }
     val context = LocalContext.current
     var newestVersionData by remember { mutableStateOf<StackbricksVersionData?>(null) }
+    var isNewVersionDialogDisplayed = rememberSaveable { false }
     LaunchedEffect(Unit) {
-        newestVersionData = stackbricksService.isNeedUpdate()
-        if (activitiesData.isEmpty()) {
-            runCatching {
-                preferredClassIds =
-                    context.chaoxingDataStore.data.first().preferClassIdList.toMutableStateList()
-                        .apply {
-                            reverse()
-                        }
-                ChaoxingHttpClient.instance?.let { httpClient ->
-                    ChaoxingCourseHelper.getAllCourse(httpClient, context, navToLoginDestination)
-                        .apply {
-                            activitiesData.addAll(this.filter {
-                                preferredClassIds.contains(it.classId)
-                            }.map { it.apply { isPreferred = true } } + this.filter {
-                                !preferredClassIds.contains(it.classId)
-                            })
-                        }
+        withContext(Dispatchers.IO) {
+            if (stackbricksService.internalVersionData == null && !isNewVersionDialogDisplayed) {
+                newestVersionData = stackbricksService.isNeedUpdate()
+            }
+            if (activitiesData.isEmpty()) {
+                runCatching {
+                    preferredClassIds =
+                        context.chaoxingDataStore.data.first().preferClassIdList.toMutableStateList()
+                            .apply {
+                                reverse()
+                            }
+                    ChaoxingHttpClient.instance?.let { httpClient ->
+                        ChaoxingCourseHelper.getAllCourse(
+                            httpClient,
+                            context,
+                            navToLoginDestination
+                        )
+                            .apply {
+                                activitiesData.addAll(this.filter {
+                                    preferredClassIds.contains(it.classId)
+                                }.map { it.apply { isPreferred = true } } + this.filter {
+                                    !preferredClassIds.contains(it.classId)
+                                })
+                            }
+
+                    }
+                }.onFailure {
+                    Log.d("CourseListScreen", "获取课程列表失败")
+                    Sentry.captureException(it)
+                    Toast.makeText(context, "获取课程列表失败", Toast.LENGTH_SHORT).show()
+                    it.printStackTrace()
                 }
-            }.onFailure {
-                Log.d("CourseListScreen", "获取课程列表失败")
-                Sentry.captureException(it)
-                Toast.makeText(context, "获取课程列表失败", Toast.LENGTH_SHORT).show()
-                it.printStackTrace()
-                throw it
             }
         }
     }
@@ -126,12 +137,17 @@ fun CourseListScreen(
                 .build()
         }.crossfade(true).build()
     }
-    if (newestVersionData != null) {
+    if (newestVersionData != null && !isNewVersionDialogDisplayed) {
         onNewVersionAvailable()
+        isNewVersionDialogDisplayed = true
         AlertDialog(onDismissRequest = {
             newestVersionData = null
         }, confirmButton = {
-            navToSettingDestination()
+            Button(onClick = {
+                navToSettingDestination()
+            }) {
+                Text("去更新")
+            }
         }, text = {
             Text(buildAnnotatedString {
                 append("检测到新版本：")
@@ -144,12 +160,11 @@ fun CourseListScreen(
                 ) {
                     append(newestVersionData!!.versionName)
                 }
-                append("\n更新日志：")
+                append("\n更新日志：\n")
                 withStyle(SpanStyle(fontSize = 11.sp)) {
                     append(newestVersionData!!.changelog)
                 }
             })
-
         }, title = {
             Text("有新版本可用！")
         })

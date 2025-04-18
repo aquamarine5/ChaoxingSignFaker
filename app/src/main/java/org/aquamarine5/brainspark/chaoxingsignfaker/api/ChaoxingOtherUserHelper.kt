@@ -58,7 +58,7 @@ object ChaoxingOtherUserHelper {
     suspend fun generateQRCode(
         context: Context,
         insertSharedEntity: ChaoxingOtherUserSharedEntity? = null
-    ): Bitmap = withContext(Dispatchers.IO) {
+    ): Bitmap = withContext(Dispatchers.Default) {
         val qrcodeSize = getQRCodeSize(context)
         val sharedEntity =
             insertSharedEntity ?: getSharedUserEntity(context.chaoxingDataStore.data.first())
