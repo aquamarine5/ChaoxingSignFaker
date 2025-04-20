@@ -18,7 +18,7 @@ plugins {
 stackbricksConfig {
     configJsonFilePath = "chaoxingsignfaker_stackbricks_v2_manifest.json"
     host = "cdn.aquamarine5.fun"
-    changelog = "1. 修复了TopAppBar的显示错误，回退了关于TopAppBar的修改。2. cdn.aquamarine5.fun现在正常响应了。"
+    changelog = "1. 修复了没有邮件响应的崩溃。\n2. 修复了启动时的崩溃BUG。\n3. 修复了加载课程时的BUG。"
     qiniuConfig {
         accessKey = project.findProperty("qiniu.accessKey") ?: ""
         secretKey = project.findProperty("qiniu.secretKey") ?: ""
@@ -38,8 +38,8 @@ android {
         applicationId = "org.aquamarine5.brainspark.chaoxingsignfaker"
         minSdk = 26
         targetSdk = 35
-        versionCode = 104088521
-        versionName = "1.4.8-stable-250418"
+        versionCode = 104098521
+        versionName = "1.4.9-stable-250420"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

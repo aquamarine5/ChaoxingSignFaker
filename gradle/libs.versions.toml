@@ -1,6 +1,7 @@
 [versions]
 accompanistPermissions = "0.37.2"
 agp = "8.8.2"
+apm = "2.0.1"
 asms = "1.8.6"
 baidumapsdk_location = "9.6.4"
 baidumapsdk_map = "7.6.3"
@@ -38,6 +39,7 @@ androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = 
 androidx-datastore = { module = "androidx.datastore:datastore", version.ref = "datastore" }
 androidx-material = { module = "androidx.compose.material:material", version.ref = "material" }
 androidx-navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
+apm = { module = "com.umeng.umsdk:apm", version.ref = "apm" }
 asms = { module = "com.umeng.umsdk:asms", version.ref = "asms" }
 baidumapsdk_location = { module = "com.baidu.lbsyun:BaiduMapSDK_Location", version.ref = "baidumapsdk_location" }
 baidumapsdk_map = { module = "com.baidu.lbsyun:BaiduMapSDK_Map", version.ref = "baidumapsdk_map" }

@@ -107,8 +107,13 @@ fun OtherUserScreen(naviBack: () -> Unit) {
         var qrCode by remember { mutableStateOf<Bitmap?>(null) }
         val coroutineScope = rememberCoroutineScope()
         LaunchedEffect(Unit) {
-            isLocalSharedEntityReady =
-                ChaoxingOtherUserHelper.checkSharedEntity(context.chaoxingDataStore.data.first())
+            withContext(Dispatchers.IO) {
+                context.chaoxingDataStore.data.first().let {
+                    otherUserSessions.addAll(it.otherUsersList)
+                    isLocalSharedEntityReady =
+                        ChaoxingOtherUserHelper.checkSharedEntity(context.chaoxingDataStore.data.first())
+                }
+            }
         }
         var job: Job? = null
         BackHandler(isQRCodeScanning) {
@@ -218,11 +223,6 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("扫码添加其他用户", fontSize = 16.sp)
-                    }
-                }
-                LaunchedEffect(Unit) {
-                    context.chaoxingDataStore.data.first().let {
-                        otherUserSessions.addAll(it.otherUsersList)
                     }
                 }
                 Spacer(modifier = Modifier.height(20.dp))

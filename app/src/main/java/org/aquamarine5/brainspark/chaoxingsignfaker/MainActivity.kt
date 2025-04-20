@@ -137,6 +137,7 @@ class MainActivity : ComponentActivity() {
             var isNewVersionAvailable by remember {
                 mutableStateOf(false)
             }
+            var destination by remember { mutableStateOf<Any?>(null) }
             ChaoxingSignFakerTheme {
                 Scaffold(
                     bottomBar = {
@@ -182,13 +183,14 @@ class MainActivity : ComponentActivity() {
                                     BottomNavigationItem(
                                         isSelected,
                                         onClick = {
-                                            navController.navigate(item.destination) {
-                                                popUpTo(navController.graph.findStartDestination().id) {
-                                                    saveState = true
+                                            if (destination != null)
+                                                navController.navigate(item.destination) {
+                                                    popUpTo(navController.graph.findStartDestination().id) {
+                                                        saveState = true
+                                                    }
+                                                    launchSingleTop = true
+                                                    restoreState = true
                                                 }
-                                                launchSingleTop = true
-                                                restoreState = true
-                                            }
                                         },
                                         icon = {
                                             val iconColor by animateColorAsState(
@@ -199,13 +201,13 @@ class MainActivity : ComponentActivity() {
                                             CompositionLocalProvider(LocalContentColor provides iconColor) {
                                                 Column {
                                                     Spacer(modifier = Modifier.size(1.5.dp))
-                                                    Box{
+                                                    Box {
                                                         Icon(
                                                             item.icon,
                                                             contentDescription = item.name,
                                                             modifier = Modifier.size(26.dp)
                                                         )
-                                                        if(item.name=="设置"&&isNewVersionAvailable){
+                                                        if (item.name == "设置" && isNewVersionAvailable) {
                                                             Box(
                                                                 modifier = Modifier
                                                                     .size(10.dp)
@@ -234,7 +236,7 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 ) { innerPadding ->
-                    val stackbricksService= QiniuConfiguration(
+                    val stackbricksService = QiniuConfiguration(
                         "cdn.aquamarine5.fun",
                         referer = "http://cdn.aquamarine5.fun/",
                         configFilePath = "chaoxingsignfaker_stackbricks_v2_manifest.json",
@@ -263,9 +265,8 @@ class MainActivity : ComponentActivity() {
                             .padding(innerPadding)
                             .fillMaxSize()
                     ) {
-                        var destination by remember { mutableStateOf<Any?>(null) }
                         LaunchedEffect(Unit) {
-                            withContext(Dispatchers.IO){
+                            withContext(Dispatchers.IO) {
                                 val datastore = applicationContext.chaoxingDataStore.data.first()
                                 if (datastore.agreeTerms) {
                                     UMengHelper.init(applicationContext)
@@ -281,7 +282,7 @@ class MainActivity : ComponentActivity() {
                                                 ChaoxingHttpClient.loadFromDataStore(datastore)
                                                 return@runCatching SignGraphDestination
                                             }.getOrElse {
-                                                withContext(Dispatchers.Main){
+                                                withContext(Dispatchers.Main) {
                                                     Toast.makeText(
                                                         applicationContext,
                                                         "初始化客户端失败，可能是网络问题或登录过期。",
@@ -317,15 +318,21 @@ class MainActivity : ComponentActivity() {
                             ) {
                                 navigation<SignGraphDestination>(startDestination = CourseListDestination) {
                                     composable<CourseListDestination> {
-                                        CourseListScreen(stackbricksService,navToDetailDestination = {
-                                            navController.navigate(it)
-                                        }, onNewVersionAvailable = {
-                                            isNewVersionAvailable=true
-                                        }, navToSettingDestination = {
-                                            navController.navigate(SettingDestination) {
-                                                popUpTo<CourseListDestination> { inclusive = true }
-                                            }
-                                        }) {
+                                        CourseListScreen(
+                                            stackbricksService,
+                                            navToDetailDestination = {
+                                                navController.navigate(it)
+                                            },
+                                            onNewVersionAvailable = {
+                                                isNewVersionAvailable = true
+                                            },
+                                            navToSettingDestination = {
+                                                navController.navigate(SettingDestination) {
+                                                    popUpTo<CourseListDestination> {
+                                                        inclusive = true
+                                                    }
+                                                }
+                                            }) {
                                             navController.navigate(LoginDestination) {
                                                 popUpTo<CourseListDestination> { inclusive = true }
                                             }

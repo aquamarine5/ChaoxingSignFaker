@@ -32,6 +32,10 @@
 
 -keep class com.uyumao.** { *; }
 
+-keep class com.uc.** { *; }
+
+-keep class com.efs.** { *; }
+
 -keepclassmembers class * {
    public <init> (org.json.JSONObject);
 }

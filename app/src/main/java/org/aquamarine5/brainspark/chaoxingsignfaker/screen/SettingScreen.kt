@@ -110,13 +110,15 @@ fun SettingScreen(stackbricksService: StackbricksService) {
         Spacer(modifier = Modifier.height(8.dp))
         Button(
             onClick = {
-                context.startActivity(Intent(Intent.ACTION_SEND).apply {
-                    setData(Uri.parse("mailto:aquamarine5forever@gmail.com"))
-                    putExtra(Intent.EXTRA_EMAIL, "aquamarine5forever@gmail.com")
-                    putExtra(Intent.EXTRA_CC, "aquamarine5forever@gmail.com")
-                    putExtra(Intent.EXTRA_SUBJECT, "Send to ChaoxingSignFaker:\n")
-                    putExtra(Intent.EXTRA_TEXT, "Your content:")
-                })
+                runCatching {
+                    context.startActivity(Intent(Intent.ACTION_SEND).apply {
+                        setData(Uri.parse("mailto:aquamarine5forever@gmail.com"))
+                        putExtra(Intent.EXTRA_EMAIL, "aquamarine5forever@gmail.com")
+                        putExtra(Intent.EXTRA_CC, "aquamarine5forever@gmail.com")
+                        putExtra(Intent.EXTRA_SUBJECT, "Send to ChaoxingSignFaker:\n")
+                        putExtra(Intent.EXTRA_TEXT, "Your content:")
+                    })
+                }
             },
             shape = RoundedCornerShape(18.dp),
             modifier = Modifier.fillMaxWidth(),
@@ -148,12 +150,14 @@ fun SettingScreen(stackbricksService: StackbricksService) {
         Spacer(modifier = Modifier.height(8.dp))
         Button(
             onClick = {
-                context.startActivity(
-                    Intent(
-                        Intent.ACTION_VIEW,
-                        Uri.parse("https://github.com/aquamarine5/ChaoxingSignFaker")
+                runCatching {
+                    context.startActivity(
+                        Intent(
+                            Intent.ACTION_VIEW,
+                            Uri.parse("https://github.com/aquamarine5/ChaoxingSignFaker")
+                        )
                     )
-                )
+                }
             },
             shape = RoundedCornerShape(18.dp),
             modifier = Modifier.fillMaxWidth(),

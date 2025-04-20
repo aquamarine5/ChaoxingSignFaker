@@ -68,7 +68,7 @@ object ChaoxingCourseHelper {
                                 courseContent.getInteger("id"),
                                 content.getInteger("id"),
                                 courseContent.getString("name"),
-                                courseContent.getString("imageurl"),
+                                courseContent.getString("imageurl")?:"https://p.ananas.chaoxing.com/star3/270_160c/669ca80d6a0c5f74835bb936a41aabca.jpg",
                                 courseContent.getString("schools")
                             )
                         )

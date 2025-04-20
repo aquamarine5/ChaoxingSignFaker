@@ -117,7 +117,9 @@ fun CourseListScreen(
                 }.onFailure {
                     Log.d("CourseListScreen", "获取课程列表失败")
                     Sentry.captureException(it)
-                    Toast.makeText(context, "获取课程列表失败", Toast.LENGTH_SHORT).show()
+                    withContext(Dispatchers.Main){
+                        Toast.makeText(context, "获取课程列表失败", Toast.LENGTH_SHORT).show()
+                    }
                     it.printStackTrace()
                 }
             }
