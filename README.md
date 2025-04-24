@@ -22,7 +22,7 @@
 - 一台设备登录多账号以签到
 
 > [!TIP]
-> ChaoxingSignFaker 使用 [Stackbricks](https://github.com/aquamarine5/Stackbricks) 来实现更新逻辑，同样由作者维护。
+> ChaoxingSignFaker（随地大小签） 使用 [Stackbricks](https://github.com/aquamarine5/Stackbricks) 来实现更新逻辑，同样由作者维护。
 
 ## About Brainspark Project
 

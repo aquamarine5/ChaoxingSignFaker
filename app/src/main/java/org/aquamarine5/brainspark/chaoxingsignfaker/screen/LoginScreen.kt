@@ -26,6 +26,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.Font
@@ -58,6 +59,7 @@ fun LoginPage(
     var password by remember { mutableStateOf("") }
     val coroutineContext = rememberCoroutineScope()
     val context = LocalContext.current
+    val focusManager = LocalFocusManager.current
     Column(
         modifier = Modifier
             .padding(16.dp)
@@ -106,6 +108,7 @@ fun LoginPage(
         Spacer(modifier = Modifier.height(16.dp))
         Button(
             onClick = {
+                focusManager.clearFocus()
                 coroutineContext.launch {
                     var tipsText: String
                     runCatching {
@@ -119,14 +122,11 @@ fun LoginPage(
                             tipsText = "登录失败"
                         }
                         showSnackbar(tipsText, null, true, null)
-
                     }
                 }.invokeOnCompletion {
                     if (ChaoxingHttpClient.instance != null) {
                         Toast.makeText(context, "登录成功", Toast.LENGTH_SHORT).show()
                         navToCourseListDestination()
-                    } else {
-                        showSnackbar("创建客户端失败，请重试。", null, true, null)
                     }
                 }
             },
