@@ -39,7 +39,8 @@ class ChaoxingHttpClient private constructor(
 ) {
     class ChaoxingLoginException(message: String) : Exception(message)
 
-    class ChaoxingGetUserInfoException(message: String, throwable: Throwable) : Exception(message,throwable)
+    class ChaoxingGetUserInfoException(message: String, throwable: Throwable) :
+        Exception(message, throwable)
 
     fun newCall(request: Request): Call = okHttpClient.newCall(request)
 
@@ -75,7 +76,8 @@ class ChaoxingHttpClient private constructor(
                         chaoxingCookieSession = cookies.toMutableList()
                     } else if (url.encodedPath == "/apis/login/userLogin4Uname.do") {
                         val cookiesMap = cookies.associateBy { cookie -> cookie.name }
-                        val keepCookies = chaoxingCookieSession.filter { !cookiesMap.containsKey(it.name) }
+                        val keepCookies =
+                            chaoxingCookieSession.filter { !cookiesMap.containsKey(it.name) }
                         chaoxingCookieSession = (keepCookies + cookiesMap.values)
                     } else
                         cookieStore[url.host] = cookies
@@ -117,7 +119,7 @@ class ChaoxingHttpClient private constructor(
             phoneNumber: String,
             password: String,
             context: Context
-        ): ChaoxingHttpClient = withContext(Dispatchers.IO){
+        ): ChaoxingHttpClient = withContext(Dispatchers.IO) {
             val cookieJar: CookieJar = object : CookieJar {
                 private val cookieStore: MutableMap<String, List<Cookie>> = mutableMapOf()
                 private var chaoxingCookieSession: List<Cookie> = listOf()
@@ -126,7 +128,8 @@ class ChaoxingHttpClient private constructor(
                         chaoxingCookieSession = cookies.toMutableList()
                     } else if (url.encodedPath == "/apis/login/userLogin4Uname.do") {
                         val cookiesMap = cookies.associateBy { cookie -> cookie.name }
-                        val keepCookies = chaoxingCookieSession.filter { !cookiesMap.containsKey(it.name) }
+                        val keepCookies =
+                            chaoxingCookieSession.filter { !cookiesMap.containsKey(it.name) }
                         chaoxingCookieSession = (keepCookies + cookiesMap.values)
                     } else
                         cookieStore[url.host] = cookies
@@ -170,7 +173,8 @@ class ChaoxingHttpClient private constructor(
                         chaoxingCookieSession = cookies.toMutableList()
                     } else if (url.encodedPath == "/apis/login/userLogin4Uname.do") {
                         val cookiesMap = cookies.associateBy { cookie -> cookie.name }
-                        val keepCookies = chaoxingCookieSession.filter { !cookiesMap.containsKey(it.name) }
+                        val keepCookies =
+                            chaoxingCookieSession.filter { !cookiesMap.containsKey(it.name) }
                         chaoxingCookieSession = (keepCookies + cookiesMap.values)
                     } else
                         cookieStore[url.host] = cookies

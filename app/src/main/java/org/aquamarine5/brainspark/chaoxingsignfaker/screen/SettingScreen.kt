@@ -68,7 +68,7 @@ object SettingDestination
 fun SettingScreen(
     stackbricksService: StackbricksService,
     imageLoader: ImageLoader,
-    naviToLoginScreen:()->Unit,
+    naviToLoginScreen: () -> Unit,
 ) {
     Column(modifier = Modifier.padding(16.dp)) {
         val context = LocalContext.current

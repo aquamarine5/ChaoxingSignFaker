@@ -39,18 +39,18 @@ object ChaoxingCourseHelper {
                         } else {
                             client.newCall(Request.Builder().get().url(URL_COURSE_LIST).build())
                                 .execute().use {
-                                jsonResult = JSONObject.parseObject(it.body?.string())
-                                if (jsonResult.getInteger("result") == 0) {
-                                    Toast.makeText(
-                                        context,
-                                        "登录信息已过期，请重新登录",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-                                    withContext(Dispatchers.Main) {
-                                        naviToLogin()
+                                    jsonResult = JSONObject.parseObject(it.body?.string())
+                                    if (jsonResult.getInteger("result") == 0) {
+                                        Toast.makeText(
+                                            context,
+                                            "登录信息已过期，请重新登录",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                        withContext(Dispatchers.Main) {
+                                            naviToLogin()
+                                        }
                                     }
                                 }
-                            }
                         }
                     }
                     val channelList = jsonResult.getJSONArray("channelList")
@@ -68,7 +68,8 @@ object ChaoxingCourseHelper {
                                 courseContent.getInteger("id"),
                                 content.getInteger("id"),
                                 courseContent.getString("name"),
-                                courseContent.getString("imageurl")?:"https://p.ananas.chaoxing.com/star3/270_160c/669ca80d6a0c5f74835bb936a41aabca.jpg",
+                                courseContent.getString("imageurl")
+                                    ?: "https://p.ananas.chaoxing.com/star3/270_160c/669ca80d6a0c5f74835bb936a41aabca.jpg",
                                 courseContent.getString("schools")
                             )
                         )

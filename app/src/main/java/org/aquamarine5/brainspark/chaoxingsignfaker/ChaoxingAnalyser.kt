@@ -58,7 +58,6 @@ object ChaoxingAnalyser {
                 mutableAnalyser.photoSignCount.value++
                 setAnalysis(analysis.toBuilder().setPhotoSign(analysis.photoSign + 1))
             }.build()
-
         }
     }
 

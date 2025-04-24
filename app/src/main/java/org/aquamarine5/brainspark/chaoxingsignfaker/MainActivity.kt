@@ -432,7 +432,7 @@ class MainActivity : ComponentActivity() {
                                     composable<SettingDestination> {
                                         SettingScreen(stackbricksService, imageLoader) {
                                             navController.navigate(LoginDestination) {
-                                                popUpTo<SettingDestination>() { inclusive = true }
+                                                popUpTo<SettingDestination> { inclusive = true }
                                             }
                                         }
                                     }

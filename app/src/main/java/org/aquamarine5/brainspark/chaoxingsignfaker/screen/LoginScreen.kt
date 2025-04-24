@@ -125,7 +125,7 @@ fun LoginPage(
                     if (ChaoxingHttpClient.instance != null) {
                         Toast.makeText(context, "登录成功", Toast.LENGTH_SHORT).show()
                         navToCourseListDestination()
-                    }else{
+                    } else {
                         showSnackbar("创建客户端失败，请重试。", null, true, null)
                     }
                 }
