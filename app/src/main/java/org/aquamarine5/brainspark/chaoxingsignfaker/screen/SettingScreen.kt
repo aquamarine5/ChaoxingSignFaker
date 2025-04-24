@@ -8,6 +8,7 @@ package org.aquamarine5.brainspark.chaoxingsignfaker.screen
 
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -170,7 +171,7 @@ fun SettingScreen(
         Card(
             shape = RoundedCornerShape(18.dp),
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFF97846C))
+            colors = CardDefaults.cardColors(containerColor = Color(0xFFF0ADA0))
         ) {
             Row(
                 modifier = Modifier
@@ -195,11 +196,14 @@ fun SettingScreen(
                     modifier = Modifier
                         .padding(8.dp, 0.dp)
                         .weight(1f),
-                    fontWeight = FontWeight.Medium
+                    fontWeight = FontWeight.Medium,
+                    color = if (isSystemInDarkTheme()) Color.Black else Color.White
                 )
                 Button(onClick = {
                     isShowSignoffDialog = true
-                }) { Text("登出") }
+                }, colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFFF07C82)
+                )) { Text("登出") }
             }
         }
         Spacer(modifier = Modifier.height(8.dp))
