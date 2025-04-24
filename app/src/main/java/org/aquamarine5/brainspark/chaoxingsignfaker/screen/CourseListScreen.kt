@@ -41,10 +41,6 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.ImageLoader
-import coil3.disk.DiskCache
-import coil3.disk.directory
-import coil3.network.okhttp.OkHttpNetworkFetcherFactory
-import coil3.request.crossfade
 import io.sentry.Sentry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -75,6 +71,7 @@ private const val SORT_COMMON = 0
 @Composable
 fun CourseListScreen(
     stackbricksService: StackbricksService,
+    imageLoader: ImageLoader,
     navToDetailDestination: (ChaoxingCourseEntity) -> Unit,
     onNewVersionAvailable: () -> Unit,
     navToSettingDestination: () -> Unit,
@@ -126,19 +123,7 @@ fun CourseListScreen(
         }
     }
     val coroutineScope = rememberCoroutineScope()
-    val imageLoader = remember {
-        ImageLoader.Builder(context).components {
-            add(
-                OkHttpNetworkFetcherFactory(
-                    callFactory = { ChaoxingHttpClient.instance!!.okHttpClient })
-            )
-        }.diskCache {
-            DiskCache.Builder()
-                .directory(context.cacheDir.resolve("image_cache"))
-                .maxSizePercent(0.02)
-                .build()
-        }.crossfade(true).build()
-    }
+
     if (newestVersionData != null && !isNewVersionDialogDisplayed) {
         onNewVersionAvailable()
         isNewVersionDialogDisplayed = true

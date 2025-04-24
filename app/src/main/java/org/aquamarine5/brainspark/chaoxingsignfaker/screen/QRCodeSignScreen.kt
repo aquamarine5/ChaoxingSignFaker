@@ -234,7 +234,11 @@ fun QRCodeSignScreen(
                         }
                     }
                     LaunchedEffect(Unit) {
-                        signUserList.addAll(context.chaoxingDataStore.data.first().otherUsersList)
+                        signUserList.addAll(context.chaoxingDataStore.data.first().let { data ->
+                            data.otherUsersList.filter {
+                                it.phoneNumber != data.loginSession.phoneNumber
+                            }
+                        })
                         userSelections.addAll(List(signUserList.size) { false })
                         signStatus.addAll(Array(signUserList.size + 1) { ChaoxingSignStatus() })
                         success = isCurrentAlreadySigned

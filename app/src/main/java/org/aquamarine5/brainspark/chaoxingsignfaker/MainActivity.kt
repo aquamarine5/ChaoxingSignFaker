@@ -37,12 +37,16 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -60,12 +64,19 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
+import coil3.ImageLoader
+import coil3.disk.DiskCache
+import coil3.disk.directory
+import coil3.network.okhttp.OkHttpNetworkFetcherFactory
+import coil3.request.crossfade
 import com.baidu.location.LocationClient
 import com.baidu.mapapi.SDKInitializer
 import com.umeng.analytics.MobclickAgent
 import io.sentry.android.core.SentryAndroid
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
@@ -103,6 +114,9 @@ import org.aquamarine5.brainspark.stackbricks.rememberStackbricksStatus
 import java.util.concurrent.TimeUnit
 import kotlin.reflect.typeOf
 
+typealias SnackbarFunction =
+            (String, String?, Boolean, SnackbarDuration?) -> Job
+
 class MainActivity : ComponentActivity() {
     companion object {
         const val INTENT_EXTRA_EXIT_FLAG = "intent_extra_exit_flag"
@@ -138,8 +152,39 @@ class MainActivity : ComponentActivity() {
                 mutableStateOf(false)
             }
             var destination by remember { mutableStateOf<Any?>(null) }
+            val snackbarHostState = remember { SnackbarHostState() }
+            val coroutineScope = rememberCoroutineScope()
+            val showSnackbar =
+                { message: String, actionLabel: String?, withDismissButton: Boolean, duration: SnackbarDuration? ->
+                    coroutineScope.launch {
+                        snackbarHostState.currentSnackbarData?.dismiss()
+                        snackbarHostState.showSnackbar(
+                            message,
+                            actionLabel,
+                            withDismissButton,
+                            duration
+                                ?: if (actionLabel == null) SnackbarDuration.Short else SnackbarDuration.Indefinite
+                        )
+                    }
+                }
+            val imageLoader = remember {
+                ImageLoader.Builder(applicationContext).components {
+                    add(
+                        OkHttpNetworkFetcherFactory(
+                            callFactory = { ChaoxingHttpClient.instance!!.okHttpClient })
+                    )
+                }.diskCache {
+                    DiskCache.Builder()
+                        .directory(applicationContext.cacheDir.resolve("image_cache"))
+                        .maxSizePercent(0.02)
+                        .build()
+                }.crossfade(true).build()
+            }
             ChaoxingSignFakerTheme {
                 Scaffold(
+                    snackbarHost = {
+                        SnackbarHost(hostState = snackbarHostState)
+                    },
                     bottomBar = {
                         val navBackStackEntry by navController.currentBackStackEntryAsState()
                         val currentDestination = navBackStackEntry?.destination
@@ -320,6 +365,7 @@ class MainActivity : ComponentActivity() {
                                     composable<CourseListDestination> {
                                         CourseListScreen(
                                             stackbricksService,
+                                            imageLoader,
                                             navToDetailDestination = {
                                                 navController.navigate(it)
                                             },
@@ -384,7 +430,11 @@ class MainActivity : ComponentActivity() {
 
                                 navigation<SettingGraphDestination>(startDestination = SettingDestination) {
                                     composable<SettingDestination> {
-                                        SettingScreen(stackbricksService)
+                                        SettingScreen(stackbricksService, imageLoader) {
+                                            navController.navigate(LoginDestination) {
+                                                popUpTo<SettingDestination>() { inclusive = true }
+                                            }
+                                        }
                                     }
                                 }
 
@@ -392,13 +442,13 @@ class MainActivity : ComponentActivity() {
                                 composable<WelcomeDestination> {
                                     WelcomeScreen {
                                         navController.navigate(LoginDestination) {
-                                            popUpTo<WelcomeDestination>()
+                                            popUpTo<WelcomeDestination> { inclusive = true }
                                         }
                                     }
                                 }
 
                                 composable<LoginDestination> {
-                                    LoginPage {
+                                    LoginPage(showSnackbar) {
                                         navController.navigate(CourseListDestination) {
                                             popUpTo<LoginDestination> { inclusive = true }
                                         }
