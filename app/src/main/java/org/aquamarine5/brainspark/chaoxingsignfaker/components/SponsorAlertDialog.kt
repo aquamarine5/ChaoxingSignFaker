@@ -70,6 +70,7 @@ fun SponsorAlertDialog(showDialog: MutableState<Boolean>) {
         listOf("不愿透露姓名的耿先生", "8.88"),
         listOf("不愿透露姓名的景先生", "7.66"),
         listOf("G*.", "6.66"),
+        listOf("不愿透露姓名的高先生","6.66"),
         listOf("云端哥特", "6.60"),
         listOf("*.", "6.00"),
         listOf("死后世界战线", "5.88"),
@@ -183,11 +184,6 @@ fun SponsorAlertDialog(showDialog: MutableState<Boolean>) {
                             }
                         }.invokeOnCompletion {
                             Toast.makeText(context, "图片已保存到相册", Toast.LENGTH_SHORT).show()
-//                        context.packageManager.getLaunchIntentForPackage("com.tencent.mm")
-//                            ?.let {
-//                                it.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-//                                context.startActivity(it)
-//                            }
                             context.startActivity(
                                 Intent(
                                     Intent.ACTION_VIEW,

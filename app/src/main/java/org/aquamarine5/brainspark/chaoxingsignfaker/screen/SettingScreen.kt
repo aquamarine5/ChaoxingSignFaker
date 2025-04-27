@@ -80,6 +80,9 @@ fun SettingScreen(
             .verticalScroll(rememberScrollState())
     ) {
         val context = LocalContext.current
+        val fontGilroy = FontFamily(
+            Font(R.font.gilroy)
+        )
         val coroutineScope = rememberCoroutineScope()
         val userEntity = ChaoxingHttpClient.instance!!.userEntity
         var isShowSignoffDialog by remember { mutableStateOf(false) }
@@ -199,11 +202,13 @@ fun SettingScreen(
                     fontWeight = FontWeight.Medium,
                     color = if (isSystemInDarkTheme()) Color.Black else Color.White
                 )
-                Button(onClick = {
-                    isShowSignoffDialog = true
-                }, colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFFF07C82)
-                )) { Text("登出") }
+                Button(
+                    onClick = {
+                        isShowSignoffDialog = true
+                    }, colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFF07C82)
+                    )
+                ) { Text("登出") }
             }
         }
         Spacer(modifier = Modifier.height(8.dp))
@@ -240,13 +245,20 @@ fun SettingScreen(
                     append("想要联系作者？\n发送邮件到：")
                     withStyle(
                         SpanStyle(
-                            fontFamily = FontFamily(
-                                Font(R.font.gilroy)
-                            ),
+                            fontFamily = fontGilroy,
                             fontSize = 14.sp
                         )
                     ) {
-                        append("aquamarine5forever@gmail.com")
+                        append("aquamarine5forever")
+                    }
+                    append("@")
+                    withStyle(
+                        SpanStyle(
+                            fontFamily = fontGilroy,
+                            fontSize = 14.sp
+                        )
+                    ) {
+                        append("gmail.com")
                     }
                 })
             }
@@ -279,13 +291,20 @@ fun SettingScreen(
                     append("前往Github给作者点一个Star吧\n前往：")
                     withStyle(
                         SpanStyle(
-                            fontFamily = FontFamily(
-                                Font(R.font.gilroy)
-                            ),
+                            fontFamily = fontGilroy,
                             fontSize = 14.sp
                         )
                     ) {
-                        append("aquamarine5/ChaoxingSignFaker")
+                        append("aquamarine5/")
+                    }
+                    append("/")
+                    withStyle(
+                        SpanStyle(
+                            fontFamily = fontGilroy,
+                            fontSize = 14.sp
+                        )
+                    ) {
+                        append("ChaoxingSignFaker")
                     }
                 })
             }
