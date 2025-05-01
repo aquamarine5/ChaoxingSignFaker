@@ -240,7 +240,7 @@ fun QRCodeSignScreen(
                             }
                         })
                         userSelections.addAll(List(signUserList.size) { false })
-                        signStatus.addAll(Array(signUserList.size + 1) { ChaoxingSignStatus() })
+                        signStatus.addAll(Array(signUserList.size) { ChaoxingSignStatus() })
                         success = isCurrentAlreadySigned
                         userSelections[0] = isCurrentAlreadySigned != true
                     }

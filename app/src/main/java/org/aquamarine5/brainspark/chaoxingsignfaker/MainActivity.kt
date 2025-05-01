@@ -387,7 +387,7 @@ class MainActivity : ComponentActivity() {
 
                                     composable<QRCodeSignDestination> {
                                         QRCodeSignScreen(it.toRoute(), navToOtherUser = {
-                                            navController.navigate(OtherUserDestination)
+                                            navController.navigate(OtherUserGraphDestination)
                                         }) {
                                             navController.navigateUp()
                                         }
@@ -398,8 +398,10 @@ class MainActivity : ComponentActivity() {
                                             typeOf<ChaoxingSignActivityEntity>() to ChaoxingSignActivityEntity.SignActivityNavType
                                         )
                                     ) {
-                                        LocationSignScreen(it.toRoute()) {
+                                        LocationSignScreen(it.toRoute(), navToCourseDetailDestination = {
                                             navController.navigateUp()
+                                        }) {
+                                            navController.navigate(OtherUserGraphDestination)
                                         }
                                     }
 

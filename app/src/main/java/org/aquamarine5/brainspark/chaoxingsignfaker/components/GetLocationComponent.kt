@@ -8,6 +8,7 @@ package org.aquamarine5.brainspark.chaoxingsignfaker.components
 
 import android.util.Log
 import android.widget.Toast
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,6 +26,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
@@ -60,10 +62,10 @@ import com.baidu.mapapi.map.CircleOptions
 import com.baidu.mapapi.map.MapPoi
 import com.baidu.mapapi.map.MapStatus
 import com.baidu.mapapi.map.MapStatusUpdateFactory
+import com.baidu.mapapi.map.MapView
 import com.baidu.mapapi.map.Marker
 import com.baidu.mapapi.map.MarkerOptions
 import com.baidu.mapapi.map.MyLocationData
-import com.baidu.mapapi.map.TextureMapView
 import com.baidu.mapapi.model.CoordUtil
 import com.baidu.mapapi.model.LatLng
 import com.baidu.mapapi.search.core.SearchResult
@@ -74,6 +76,8 @@ import com.baidu.mapapi.search.geocode.ReverseGeoCodeOption
 import com.baidu.mapapi.search.geocode.ReverseGeoCodeResult
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationDetailEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationSignEntity
@@ -82,29 +86,29 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationSignE
 @Composable
 fun GetLocationComponent(
     locationInfo: ChaoxingLocationDetailEntity? = null,
+    locationCount:Int=1,
     confirmButtonText: @Composable () -> Unit,
     onLocationResult: (ChaoxingLocationSignEntity) -> Unit
 ) {
     LocalContext.current.let { context ->
-        val locationClient by remember {
-            mutableStateOf(LocationClient(context.applicationContext).apply {
+        val locationClient = remember {
+            LocationClient(context.applicationContext).apply {
                 locOption = LocationClientOption().apply {
                     setCoorType("bd09ll")
-                    setFirstLocType(LocationClientOption.FirstLocType.SPEED_IN_FIRST_LOC)
-                    locationMode = LocationClientOption.LocationMode.Battery_Saving
-                    setScanSpan(20000)
+                    setScanSpan(10000)
+                    isLocationNotify = false
+                    //setFirstLocType(LocationClientOption.FirstLocType.SPEED_IN_FIRST_LOC)
+                    //locationMode = LocationClientOption.LocationMode.Battery_Saving
                     setIsNeedAddress(true)
                     setNeedNewVersionRgc(true)
                 }
-            })
-        }
-        LaunchedEffect(Unit) {
-            locationClient.start()
+            }
         }
         var isShowDialog by remember { mutableStateOf(false) }
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
         ) {
             val locationPermissionsState = rememberMultiplePermissionsState(
                 listOf(
@@ -114,6 +118,11 @@ fun GetLocationComponent(
             )
             if (locationPermissionsState.allPermissionsGranted) {
                 SDKInitializer.initialize(context.applicationContext)
+                LaunchedEffect(Unit) {
+                    withContext(Dispatchers.IO){
+                        locationClient.start()
+                    }
+                }
                 var marker by remember { mutableStateOf<Marker?>(null) }
                 var isNeedLocationDescribe by remember { mutableStateOf(false) }
                 var clickedPosition by remember { mutableStateOf(LatLng(0.0, 0.0)) }
@@ -176,7 +185,7 @@ fun GetLocationComponent(
                         }
                     })
                 }
-                val geoCoder = GeoCoder.newInstance().apply {
+                val geoCoder = remember{GeoCoder.newInstance().apply {
                     setOnGetGeoCodeResultListener(object : OnGetGeoCoderResultListener {
                         override fun onGetGeoCodeResult(p0: GeoCodeResult?) {}
 
@@ -196,8 +205,8 @@ fun GetLocationComponent(
                             }
                         }
                     })
-                }
-                val mapView = TextureMapView(context, BaiduMapOptions().apply {
+                }}
+                val mapView = MapView(context, BaiduMapOptions().apply {
                     rotateGesturesEnabled(false)
                     overlookingGesturesEnabled(false)
                     compassEnabled(false)
@@ -421,6 +430,7 @@ fun GetLocationComponent(
                         }
                         Spacer(modifier = Modifier.height(8.dp))
                         FloatingActionButton(onClick = {
+                            Log.d("GetLocationPage", "onClick: ")
                             locationClient.start()
                         }) {
                             Icon(
