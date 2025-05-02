@@ -73,7 +73,8 @@ fun WelcomeScreen(
                     append(
                         """随地大小签（ChaoxingSignFaker） 是一个用于超星学习通的辅助应用，使用本应用前请您仔细阅读以下内容：
 
-""")
+"""
+                    )
                     withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
                         append("随地大小签（ChaoxingSignFaker） 仅作为交流学习使用，通过本项目加深前端设计、接口调用、数据库使用、网络通信安全等方面知识的理解，请勿将此项目用作商业用途，任何使用项目中功能或代码进行的任何违法违规行为与本人无关，作者不承担任何因使用本应用而导致的任何责任。")
                     }
@@ -82,7 +83,8 @@ fun WelcomeScreen(
 
 随地大小签（ChaoxingSignFaker） 根据 GPL-3.0 协议进行开源。在使用期间会收集您的部分信息，这些数据仅用于本项目的统计分析和用户体验提升，并不会用于其他用途。您的密码不会被公开。
 
-""")
+"""
+                    )
                     withStyle(SpanStyle(fontWeight = FontWeight.Bold, fontSize = 18.sp)) {
                         append("第三方信息共享清单：\n")
                     }

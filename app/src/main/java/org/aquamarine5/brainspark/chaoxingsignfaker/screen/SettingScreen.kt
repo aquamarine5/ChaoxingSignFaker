@@ -76,7 +76,7 @@ fun SettingScreen(
 ) {
     Column(
         modifier = Modifier
-            .padding(16.dp,16.dp,16.dp,0.dp)
+            .padding(16.dp, 16.dp, 16.dp, 0.dp)
             .verticalScroll(rememberScrollState())
     ) {
         val context = LocalContext.current
@@ -251,7 +251,9 @@ fun SettingScreen(
                     ) {
                         append("aquamarine5forever")
                     }
-                    append("@")
+                    withStyle(SpanStyle(fontWeight = FontWeight.Bold)){
+                        append("@")
+                    }
                     withStyle(
                         SpanStyle(
                             fontFamily = fontGilroy,
@@ -297,7 +299,9 @@ fun SettingScreen(
                     ) {
                         append("aquamarine5")
                     }
-                    append("/")
+                    withStyle(SpanStyle(fontWeight = FontWeight.Bold)){
+                        append("/")
+                    }
                     withStyle(
                         SpanStyle(
                             fontFamily = fontGilroy,

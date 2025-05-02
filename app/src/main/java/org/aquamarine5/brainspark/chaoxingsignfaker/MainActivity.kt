@@ -398,9 +398,11 @@ class MainActivity : ComponentActivity() {
                                             typeOf<ChaoxingSignActivityEntity>() to ChaoxingSignActivityEntity.SignActivityNavType
                                         )
                                     ) {
-                                        LocationSignScreen(it.toRoute(), navToCourseDetailDestination = {
-                                            navController.navigateUp()
-                                        }) {
+                                        LocationSignScreen(
+                                            it.toRoute(),
+                                            navToCourseDetailDestination = {
+                                                navController.navigateUp()
+                                            }) {
                                             navController.navigate(OtherUserGraphDestination)
                                         }
                                     }

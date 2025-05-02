@@ -64,7 +64,7 @@ object UMengHelper {
     suspend fun onSignLocationEvent(
         context: Context,
         postLocationEntity: ChaoxingLocationSignEntity,
-        name:String, isOtherUser: Boolean = false
+        name: String, isOtherUser: Boolean = false
     ) {
         onEvent(
             context, EVENT_TAG_SIGN_LOCATION, mapOf(
@@ -78,7 +78,7 @@ object UMengHelper {
 
     suspend fun onSignQRCodeEvent(
         context: Context,
-        name:String,
+        name: String,
         isOtherUser: Boolean = false
     ) {
         onEvent(context, EVENT_TAG_SIGN_QR_CODE, mapOf("user" to name))
@@ -88,7 +88,7 @@ object UMengHelper {
 
     suspend fun onSignClickEvent(
         context: Context,
-        name:String,
+        name: String,
         isOtherUser: Boolean = false
     ) {
         onEvent(context, EVENT_TAG_SIGN_CLICK, mapOf("user" to name))
@@ -98,7 +98,7 @@ object UMengHelper {
 
     suspend fun onSignPhotoEvent(
         context: Context,
-        name:String,
+        name: String,
         isOtherUser: Boolean = false
     ) {
         onEvent(context, EVENT_TAG_SIGN_PHOTO, mapOf("user" to name))

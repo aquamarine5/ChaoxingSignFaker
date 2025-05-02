@@ -245,12 +245,19 @@ fun PhotoSignScreen(
                             ) {
                                 Icon(painterResource(R.drawable.ic_image_up), null)
                                 Text("这是一个图片签到")
-                                Button(onClick = {
-                                    isSignForOther = false
-                                }, enabled = isForSelf.not()) { Text("为自己签到（从图库读取图片）") }
-                                Button(onClick = {
-                                    isSignForOther = true
-                                }) { Text("为他人代签（自己拍摄多张图片上传）") }
+                                Button(
+                                    onClick = {
+                                        isSignForOther = false
+                                    },
+                                    enabled = isForSelf.not(),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) { Text("为自己签到（从图库读取图片）") }
+                                Button(
+                                    onClick = {
+                                        isSignForOther = true
+                                    },
+                                    modifier = Modifier.fillMaxWidth()
+                                ) { Text("为他人代签（自己拍摄多张图片上传）") }
                             }
                         }
 
@@ -261,7 +268,7 @@ fun PhotoSignScreen(
                             val bitmapList = remember { mutableStateListOf<Bitmap>() }
                             val otherUserSessionForSignList =
                                 remember { mutableListOf<ChaoxingOtherUserSession>() }
-                            val bitmapIndexList = remember{ mutableListOf<Int>() }
+                            val bitmapIndexList = remember { mutableListOf<Int>() }
                             Box(
                                 modifier = Modifier
                                     .zIndex(0f)
@@ -277,9 +284,12 @@ fun PhotoSignScreen(
                                             bitmapIndexList.indexOf(index).let {
                                                 if (it != -1 && bitmapList.size > it) {
                                                     IconButton(onClick = {
-                                                        isShowDialog=true
+                                                        isShowDialog = true
                                                     }) {
-                                                        Icon(painterResource(R.drawable.ic_image),null)
+                                                        Icon(
+                                                            painterResource(R.drawable.ic_image),
+                                                            null
+                                                        )
                                                     }
                                                     if (isShowDialog)
                                                         AlertDialog(onDismissRequest = {
@@ -427,9 +437,11 @@ fun PhotoSignScreen(
                                                                         client,
                                                                         destination
                                                                     ).apply {
-                                                                        if(preSign()){
-                                                                            signStatus[1+index].failed(ChaoxingSigner.AlreadySignedException())
-                                                                        }else
+                                                                        if (preSign()) {
+                                                                            signStatus[1 + index].failed(
+                                                                                ChaoxingSigner.AlreadySignedException()
+                                                                            )
+                                                                        } else
                                                                             signByImage(
                                                                                 uploadImage(
                                                                                     context,

@@ -101,7 +101,8 @@ fun CameraComponent(
                 modifier = Modifier.fillMaxSize()
             )
             Box(
-                modifier = Modifier.padding(12.dp)
+                modifier = Modifier
+                    .padding(12.dp)
                     .align(Alignment.TopEnd)
             ) {
                 IconButton(onClick = {
@@ -121,7 +122,8 @@ fun CameraComponent(
             }
             content?.let {
                 Column(
-                    modifier = Modifier.padding(12.dp)
+                    modifier = Modifier
+                        .padding(12.dp)
                         .align(Alignment.TopStart)
                 ) {
                     it()
@@ -150,9 +152,10 @@ fun CameraComponent(
                                 super.onError(exception)
                             }
                         })
-                },color=Color.White,
+                }, color = Color.White,
                 shape = CircleShape,
-                modifier = Modifier.padding(18.dp)
+                modifier = Modifier
+                    .padding(18.dp)
                     .size(55.dp)
                     .align(Alignment.BottomCenter)
             ) {
@@ -160,7 +163,7 @@ fun CameraComponent(
                     modifier = Modifier.fillMaxSize(),
                     verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.CenterHorizontally
-                ){
+                ) {
                     Crossfade(needTakePictureCount) {
                         Text(
                             text = it.toString(),

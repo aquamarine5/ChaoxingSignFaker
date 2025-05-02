@@ -59,20 +59,20 @@ data class ChaoxingSignStatus(
     @Composable
     fun ResultCard() {
 
-            when (isSuccess.value) {
-                true -> {
-                    Icon(painterResource(R.drawable.ic_check), "签到成功")
-                }
-
-                false -> {
-                    Text(error.value, color = Color(0xFFF43E06))
-                }
-
-                null -> {
-                    if (isLoading.value)
-                        CircularProgressIndicator(modifier = Modifier.size(32.dp))
-                }
+        when (isSuccess.value) {
+            true -> {
+                Icon(painterResource(R.drawable.ic_check), "签到成功")
             }
+
+            false -> {
+                Text(error.value, color = Color(0xFFF43E06))
+            }
+
+            null -> {
+                if (isLoading.value)
+                    CircularProgressIndicator(modifier = Modifier.size(32.dp))
+            }
+        }
 
     }
 }

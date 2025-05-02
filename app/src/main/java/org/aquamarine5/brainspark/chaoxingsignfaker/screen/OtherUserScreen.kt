@@ -328,7 +328,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                             Icon(
                                                 painter = painterResource(R.drawable.ic_delete),
                                                 contentDescription = "Delete",
-                                                tint= Color(0xFFF1441D)
+                                                tint = Color(0xFFF1441D)
                                             )
                                         }
                                     }
