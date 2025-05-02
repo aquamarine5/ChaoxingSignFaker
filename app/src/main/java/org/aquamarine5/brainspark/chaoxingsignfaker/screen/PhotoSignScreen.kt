@@ -7,6 +7,7 @@
 package org.aquamarine5.brainspark.chaoxingsignfaker.screen
 
 import android.content.Intent
+import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Build
 import android.widget.Toast
@@ -19,26 +20,32 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -46,6 +53,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -56,6 +64,7 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import io.sentry.Sentry
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
@@ -101,7 +110,7 @@ fun PhotoSignScreen(
 ) {
     Column(
         modifier = Modifier
-            .padding(8.dp)
+            .padding(8.dp, 0.dp)
     ) {
         val context = LocalContext.current
         val coroutineScope = rememberCoroutineScope()
@@ -127,44 +136,46 @@ fun PhotoSignScreen(
             false -> {
                 if (isImage == false) {
                     Column {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(10.dp)
-                                .background(Color.DarkGray, RoundedCornerShape(18.dp))
-                                .padding(10.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Icon(
-                                painterResource(R.drawable.ic_info),
-                                contentDescription = "Info",
-                                tint = Color.White
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                "这是一个普通的点击签到，不会收集任何其他的信息，所以我们推荐对于这种签到使用学习通APP而不是随地大小签。",
-                                color = Color.White,
-                                fontSize = 13.sp,
-                                lineHeight = 18.sp,
-                                fontWeight = FontWeight.W500
-                            )
-                        }
-                        OutlinedButton(onClick = {
-                            context.startActivity(
-                                Intent(
-                                    Intent.ACTION_VIEW,
-                                    Uri.parse("cxstudy://")
-                                ).apply {
-                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                })
-                        }) {
-                            Text("跳转到学习通")
+                        Column(modifier = Modifier.padding(16.dp, 0.dp)) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(0.dp, 10.dp)
+                                    .background(Color.DarkGray, RoundedCornerShape(18.dp))
+                                    .padding(10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Icon(
+                                    painterResource(R.drawable.ic_info),
+                                    contentDescription = "Info",
+                                    tint = Color.White
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    "这是一个普通的点击签到，不会收集任何其他的信息，所以我们推荐对于这种签到使用学习通APP而不是随地大小签。",
+                                    color = Color.White,
+                                    fontSize = 13.sp,
+                                    lineHeight = 18.sp,
+                                    fontWeight = FontWeight.W500
+                                )
+                            }
+                            OutlinedButton(onClick = {
+                                context.startActivity(
+                                    Intent(
+                                        Intent.ACTION_VIEW,
+                                        Uri.parse("cxstudy://")
+                                    ).apply {
+                                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                    })
+                            }, modifier = Modifier.fillMaxWidth()) {
+                                Text("跳转到学习通")
+                            }
                         }
                         val signStatus = remember { mutableListOf(ChaoxingSignStatus()) }
                         OtherUserSelectorComponent(navToOtherUser = {
                             navToOtherUserDestination()
-                        }, signStatus, isForSelf) { isSelf, otherUserSessionList ->
+                        }, signStatus, isForSelf) { isSelf, otherUserSessionList, _ ->
                             coroutineScope.launch {
                                 withContext(Dispatchers.IO) {
                                     if (isSelf)
@@ -187,6 +198,7 @@ fun PhotoSignScreen(
                                     otherUserSessionList.forEachIndexed { index, userSession ->
                                         runCatching {
                                             signStatus[1 + index].loading()
+                                            delay(1500)
                                             ChaoxingHttpClient.loadFromOtherUserSession(userSession)
                                                 .also { client ->
                                                     ChaoxingPhotoSigner(client, destination).apply {
@@ -226,140 +238,228 @@ fun PhotoSignScreen(
                     var isSignForOther by remember { mutableStateOf<Boolean?>(null) }
                     when (isSignForOther) {
                         null -> {
-                            Icon(painterResource(R.drawable.ic_image_up), null)
-                            Text("这是一个图片签到。")
-                            Button(onClick = {
-                                isSignForOther = false
-                            }) { Text("为自己签到（从图库读取图片）") }
-                            Button(onClick = {
-                                isSignForOther = true
-                            }) { Text("为他人代签（自己拍摄多张图片上传）") }
+                            Column(
+                                modifier = Modifier.fillMaxSize(),
+                                verticalArrangement = Arrangement.Center,
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Icon(painterResource(R.drawable.ic_image_up), null)
+                                Text("这是一个图片签到")
+                                Button(onClick = {
+                                    isSignForOther = false
+                                }, enabled = isForSelf.not()) { Text("为自己签到（从图库读取图片）") }
+                                Button(onClick = {
+                                    isSignForOther = true
+                                }) { Text("为他人代签（自己拍摄多张图片上传）") }
+                            }
                         }
 
                         true -> {
                             val signStatus = remember { mutableListOf(ChaoxingSignStatus()) }
                             var isCamera by remember { mutableStateOf(false) }
                             var isSelfForSign by remember { mutableStateOf(false) }
+                            val bitmapList = remember { mutableStateListOf<Bitmap>() }
                             val otherUserSessionForSignList =
                                 remember { mutableListOf<ChaoxingOtherUserSession>() }
-
-                            OtherUserSelectorComponent(
-                                navToOtherUser = {
-                                    navToOtherUserDestination()
-                                }, signStatus, isForSelf
-                            ) { isSelf, otherUserSessionList ->
-                                isSelfForSign = isSelf
-                                otherUserSessionForSignList.addAll(otherUserSessionList)
-                                isCamera = true
-                            }
-                            AnimatedVisibility(
-                                isCamera, enter =
-                                slideInHorizontally(
-                                    initialOffsetX = { it },
-                                    animationSpec = tween(300)
-                                ) + fadeIn(
-                                    animationSpec = tween(300)
-                                ), exit =
-                                scaleOut(targetScale = 0.8f, animationSpec = tween(300)) + fadeOut(
-                                    animationSpec = tween(300)
-                                ), modifier = Modifier.zIndex(1f)
+                            val bitmapIndexList = remember{ mutableListOf<Int>() }
+                            Box(
+                                modifier = Modifier
+                                    .zIndex(0f)
+                                    .fillMaxSize()
                             ) {
-                                BackHandler(isCamera) {
-                                    isCamera = false
-                                }
-                                val combinedUserList = if (isSelfForSign) {
-                                    listOf(
-                                        ChaoxingHttpClient.instance!!.userEntity.name,
-                                    ) + otherUserSessionForSignList.map { it.name }
-                                } else {
-                                    otherUserSessionForSignList.map { it.name }
-                                }
-                                var index by remember { mutableIntStateOf(0) }
-                                CameraComponent(
-                                    pictureCount = otherUserSessionForSignList.size + if (isSelfForSign) 1 else 0,
-                                    onNextPhoto = {
-                                        index++
-                                    },
-                                    content = {
-                                        Row(
-                                            modifier = Modifier
-                                                .background(
-                                                    Color(0x88888888),
-                                                    RoundedCornerShape(14.dp)
-                                                )
-                                                .border(
-                                                    BorderStroke(2.dp, Color(0xFF444444)),
-                                                    RoundedCornerShape(14.dp)
-                                                )
-                                                .padding(10.dp),
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.Center
-                                        ) {
-                                            Crossfade(index) {
-                                                Text("拍摄给 ${combinedUserList[it]} 签到的图片")
-                                            }
-                                        }
-                                    }) {
-                                    coroutineScope.launch {
-                                        if (isSelfForSign) {
-                                            runCatching {
-                                                signStatus[0].loading()
-                                                signer.getCloudToken().let { token ->
-                                                    signer.uploadImage(context, it[0], token)
-                                                        .let { objectId ->
-                                                            signer.signByImage(objectId)
-                                                        }
-                                                }
-                                            }.onFailure {
-                                                if ((it is ChaoxingPredictableException).not()) {
-                                                    Sentry.captureException(it)
-                                                }
-                                                it.printStackTrace()
-                                                signStatus[0].failed(it)
-                                            }.onSuccess {
-                                                UMengHelper.onSignPhotoEvent(
-                                                    context,
-                                                    ChaoxingHttpClient.instance!!.userEntity.name
-                                                )
-                                                signStatus[0].success()
-                                            }
-                                            otherUserSessionForSignList.apply {
-                                                removeAt(0)
-                                            }.forEachIndexed { index, chaoxingOtherUserSession ->
-                                                runCatching {
-                                                    signStatus[1 + index].loading()
-                                                    ChaoxingHttpClient.loadFromOtherUserSession(
-                                                        chaoxingOtherUserSession
-                                                    ).also { client ->
-                                                        ChaoxingPhotoSigner(
-                                                            client,
-                                                            destination
-                                                        ).apply {
-                                                            signByImage(
-                                                                uploadImage(
-                                                                    context, it[index + 1],
-                                                                    getCloudToken()
-                                                                )
+                                Column {
+                                    OtherUserSelectorComponent(
+                                        navToOtherUser = {
+                                            navToOtherUserDestination()
+                                        }, signStatus, isForSelf, userContent = { index ->
+                                            var isShowDialog by remember { mutableStateOf(false) }
+                                            // bitmapIndexList: 2 3 5
+                                            bitmapIndexList.indexOf(index).let {
+                                                if (it != -1 && bitmapList.size > it) {
+                                                    IconButton(onClick = {
+                                                        isShowDialog=true
+                                                    }) {
+                                                        Icon(painterResource(R.drawable.ic_image),null)
+                                                    }
+                                                    if (isShowDialog)
+                                                        AlertDialog(onDismissRequest = {
+                                                            isShowDialog = false
+                                                        }, confirmButton = {
+                                                            Button(onClick = {
+                                                                isShowDialog = false
+                                                            }) {
+                                                                Text("关闭")
+                                                            }
+                                                        }, text = {
+                                                            Image(
+                                                                bitmapList[it].asImageBitmap(),
+                                                                null,
+                                                                modifier = Modifier
+                                                                    .fillMaxHeight(0.5f)
+                                                                    .padding(4.dp, 0.dp)
                                                             )
-                                                        }
-                                                    }
-                                                }.onFailure {
-                                                    if ((it is ChaoxingPredictableException).not()) {
-                                                        Sentry.captureException(it)
-                                                    }
-                                                    it.printStackTrace()
-                                                    signStatus[1 + index].failed(it)
-                                                }.onSuccess {
-                                                    UMengHelper.onSignPhotoEvent(
-                                                        context,
-                                                        ChaoxingHttpClient.instance!!.userEntity.name
-                                                    )
-                                                    signStatus[1 + index].success()
+                                                        })
                                                 }
                                             }
                                         }
+                                    ) { isSelf, otherUserSessionList, indexList ->
+                                        isSelfForSign = isSelf
+                                        otherUserSessionForSignList.clear()
+                                        otherUserSessionForSignList.addAll(otherUserSessionList)
+                                        bitmapIndexList.clear()
+                                        bitmapIndexList.addAll(indexList)
+                                        isCamera = true
                                     }
+                                }
+                                Column(
+                                    modifier = Modifier
+                                        .zIndex(1f)
+                                        .fillMaxSize(),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.Center
+                                ) {
+                                    AnimatedVisibility(
+                                        isCamera, enter =
+                                        slideInHorizontally(
+                                            initialOffsetX = { it },
+                                            animationSpec = tween(300)
+                                        ) + fadeIn(
+                                            animationSpec = tween(300)
+                                        ), exit =
+                                        scaleOut(
+                                            targetScale = 0.8f,
+                                            animationSpec = tween(300)
+                                        ) + fadeOut(
+                                            animationSpec = tween(300)
+                                        )
+                                    ) {
+                                        BackHandler(isCamera) {
+                                            isCamera = false
+                                        }
+                                        val combinedUserList = if (isSelfForSign) {
+                                            listOf(
+                                                ChaoxingHttpClient.instance!!.userEntity.name,
+                                            ) + otherUserSessionForSignList.map { it.name }
+                                        } else {
+                                            otherUserSessionForSignList.map { it.name }
+                                        }
+                                        var index by remember { mutableIntStateOf(0) }
+                                        Column(
+                                            modifier = Modifier
+                                                .zIndex(1f)
+                                                .fillMaxSize(),
+                                            horizontalAlignment = Alignment.CenterHorizontally,
+                                            verticalArrangement = Arrangement.Center
+                                        ) {
+                                            CameraComponent(
+                                                pictureCount = otherUserSessionForSignList.size + if (isSelfForSign) 1 else 0,
+                                                onNextPhoto = {
+                                                    index++
+                                                },
+                                                content = {
+                                                    Row(
+                                                        modifier = Modifier
+                                                            .background(
+                                                                Color(0x88888888),
+                                                                RoundedCornerShape(14.dp)
+                                                            )
+                                                            .border(
+                                                                BorderStroke(
+                                                                    2.dp,
+                                                                    Color(0xFF444444)
+                                                                ),
+                                                                RoundedCornerShape(14.dp)
+                                                            )
+                                                            .padding(10.dp),
+                                                        verticalAlignment = Alignment.CenterVertically,
+                                                        horizontalArrangement = Arrangement.Center
+                                                    ) {
+                                                        Crossfade(index) {
+                                                            Text("拍摄给 ${combinedUserList[it]} 签到的图片")
+                                                        }
+                                                    }
+                                                }) {
+                                                coroutineScope.launch {
+                                                    isCamera = false
+                                                    it.forEachIndexed { index, bitmap ->
+                                                        if (bitmapList.size <= index) {
+                                                            bitmapList.add(bitmap)
+                                                        } else {
+                                                            bitmapList[index] = bitmap
+                                                        }
+                                                    }
+                                                    if (isSelfForSign) {
+                                                        runCatching {
+                                                            signStatus[0].loading()
+                                                            signer.getCloudToken().let { token ->
+                                                                signer.uploadImage(
+                                                                    context,
+                                                                    it[0],
+                                                                    token
+                                                                )
+                                                                    .let { objectId ->
+                                                                        signer.signByImage(objectId)
+                                                                    }
+                                                            }
+                                                        }.onFailure {
+                                                            if ((it is ChaoxingPredictableException).not()) {
+                                                                Sentry.captureException(it)
+                                                            }
+                                                            it.printStackTrace()
+                                                            signStatus[0].failed(it)
+                                                        }.onSuccess {
+                                                            UMengHelper.onSignPhotoEvent(
+                                                                context,
+                                                                ChaoxingHttpClient.instance!!.userEntity.name
+                                                            )
+                                                            signStatus[0].success()
+                                                        }
+                                                    }
+                                                    otherUserSessionForSignList
+                                                        .forEachIndexed { index, chaoxingOtherUserSession ->
+                                                            runCatching {
+                                                                signStatus[1 + index].loading()
+                                                                delay(1500)
+                                                                ChaoxingHttpClient.loadFromOtherUserSession(
+                                                                    chaoxingOtherUserSession
+                                                                ).also { client ->
+                                                                    ChaoxingPhotoSigner(
+                                                                        client,
+                                                                        destination
+                                                                    ).apply {
+                                                                        if(preSign()){
+                                                                            signStatus[1+index].failed(ChaoxingSigner.AlreadySignedException())
+                                                                        }else
+                                                                            signByImage(
+                                                                                uploadImage(
+                                                                                    context,
+                                                                                    it[bitmapIndexList.indexOf(
+                                                                                        index + 1
+                                                                                    )],
+                                                                                    getCloudToken()
+                                                                                )
+                                                                            )
+                                                                    }
+                                                                }
+                                                            }.onFailure {
+                                                                if ((it is ChaoxingPredictableException).not()) {
+                                                                    Sentry.captureException(it)
+                                                                }
+                                                                it.printStackTrace()
+                                                                signStatus[1 + index].failed(it)
+                                                            }.onSuccess {
+                                                                UMengHelper.onSignPhotoEvent(
+                                                                    context,
+                                                                    it.userEntity.name
+                                                                )
+                                                                signStatus[1 + index].success()
+                                                            }
+                                                        }
+                                                }
+                                            }
+                                        }
 
+                                    }
                                 }
                             }
                         }
@@ -380,20 +480,21 @@ fun PhotoSignScreen(
                             )
                             if (photoPermissionsState.allPermissionsGranted) {
                                 if (isShowPhotoPicker)
-                                    signer.GetPhotoFromMediaStore {
+                                    signer.GetPhotoFromMediaStore { uri ->
+                                        if (uri == null) {
+                                            return@GetPhotoFromMediaStore
+                                        }
                                         coroutineScope.launch {
                                             runCatching {
                                                 signer.getCloudToken().let { token ->
-                                                    it?.let { image ->
-                                                        signer.uploadImage(context, image, token)
-                                                            .let { objectId ->
-                                                                signer.signByImage(objectId)
-                                                                UMengHelper.onSignPhotoEvent(
-                                                                    context,
-                                                                    ChaoxingHttpClient.instance!!.userEntity.name
-                                                                )
-                                                            }
-                                                    }
+                                                    signer.uploadImage(context, uri, token)
+                                                        .let { objectId ->
+                                                            signer.signByImage(objectId)
+                                                            UMengHelper.onSignPhotoEvent(
+                                                                context,
+                                                                ChaoxingHttpClient.instance!!.userEntity.name
+                                                            )
+                                                        }
                                                 }
                                             }.onFailure {
                                                 if ((it is ChaoxingPredictableException).not()) {
@@ -461,10 +562,10 @@ fun PhotoSignScreen(
 
             true -> {
                 AlreadySignedNotice({
-                    isAlreadySigned = true
+                    isAlreadySigned = false
                     isForSelf = true
                 }, onDismiss = {
-                    isAlreadySigned = true
+                    isAlreadySigned = false
                 }) {
                     navBack()
                 }

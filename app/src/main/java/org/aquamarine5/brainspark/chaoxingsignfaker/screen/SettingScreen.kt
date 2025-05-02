@@ -76,7 +76,7 @@ fun SettingScreen(
 ) {
     Column(
         modifier = Modifier
-            .padding(16.dp)
+            .padding(16.dp,16.dp,16.dp,0.dp)
             .verticalScroll(rememberScrollState())
     ) {
         val context = LocalContext.current
@@ -295,7 +295,7 @@ fun SettingScreen(
                             fontSize = 14.sp
                         )
                     ) {
-                        append("aquamarine5/")
+                        append("aquamarine5")
                     }
                     append("/")
                     withStyle(

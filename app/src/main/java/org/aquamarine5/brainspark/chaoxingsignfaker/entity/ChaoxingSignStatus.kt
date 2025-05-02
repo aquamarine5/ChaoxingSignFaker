@@ -6,9 +6,7 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.entity
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -20,6 +18,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.dp
 import io.sentry.Sentry
 import org.aquamarine5.brainspark.chaoxingsignfaker.ChaoxingPredictableException
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
@@ -59,7 +58,7 @@ data class ChaoxingSignStatus(
 
     @Composable
     fun ResultCard() {
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+
             when (isSuccess.value) {
                 true -> {
                     Icon(painterResource(R.drawable.ic_check), "签到成功")
@@ -71,9 +70,9 @@ data class ChaoxingSignStatus(
 
                 null -> {
                     if (isLoading.value)
-                        CircularProgressIndicator()
+                        CircularProgressIndicator(modifier = Modifier.size(32.dp))
                 }
             }
-        }
+
     }
 }

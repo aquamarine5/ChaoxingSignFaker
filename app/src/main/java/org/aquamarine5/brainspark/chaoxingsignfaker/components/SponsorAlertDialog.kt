@@ -212,7 +212,7 @@ fun SponsorAlertDialog(showDialog: MutableState<Boolean>) {
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary
                 )
-                Text("如需在列表内显示完整名称，请添加备注。", fontStyle = FontStyle.Italic)
+                Text("如需在列表内显示完整名称，请添加备注。", fontStyle = FontStyle.Italic, fontSize = 12.sp)
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(buildAnnotatedString {
                     sponsorList.forEach {

@@ -26,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.zIndex
 import io.sentry.Sentry
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import org.aquamarine5.brainspark.chaoxingsignfaker.ChaoxingPredictableException
@@ -105,7 +106,7 @@ fun LocationSignScreen(
                 navToOtherUser = { navToOtherUserDestination() },
                 signStatus = signStatus,
                 isCurrentAlreadySigned = isSignForOther,
-            ) { isSelf, otherUserSessionList ->
+            ) { isSelf, otherUserSessionList, _ ->
                 isSelfForSign = isSelf
                 otherUserSessionForSignList.addAll(otherUserSessionList)
                 isGetLocation = true
@@ -131,26 +132,28 @@ fun LocationSignScreen(
                 }) { result ->
                     isGetLocation = false
                     coroutineScope.launch {
-                        runCatching {
-                            signStatus[0].loading()
-                            signer.sign(result)
-                        }.onSuccess {
-                            signStatus[0].success()
-                            UMengHelper.onSignLocationEvent(
-                                context,
-                                result,
-                                ChaoxingHttpClient.instance!!.userEntity.name
-                            )
-                        }.onFailure {
-                            signStatus[0].failed(it)
-                            Toast.makeText(context, it.message, Toast.LENGTH_SHORT).show()
-                            if ((it is ChaoxingPredictableException).not()) {
-                                Sentry.captureException(it)
+                        if (isSelfForSign)
+                            runCatching {
+                                signStatus[0].loading()
+                                signer.sign(result)
+                            }.onSuccess {
+                                signStatus[0].success()
+                                UMengHelper.onSignLocationEvent(
+                                    context,
+                                    result,
+                                    ChaoxingHttpClient.instance!!.userEntity.name
+                                )
+                            }.onFailure {
+                                signStatus[0].failed(it)
+                                Toast.makeText(context, it.message, Toast.LENGTH_SHORT).show()
+                                if ((it is ChaoxingPredictableException).not()) {
+                                    Sentry.captureException(it)
+                                }
                             }
-                        }
                         otherUserSessionForSignList.forEachIndexed { index, userSession ->
                             runCatching {
                                 signStatus[index + 1].loading()
+                                delay(1500)
                                 ChaoxingHttpClient.loadFromOtherUserSession(userSession)
                                     .also { client ->
                                         ChaoxingLocationSigner(client, destination).apply {

@@ -8,6 +8,7 @@ package org.aquamarine5.brainspark.chaoxingsignfaker.components
 
 import android.widget.Toast
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -55,7 +56,8 @@ fun OtherUserSelectorComponent(
     navToOtherUser: () -> Unit,
     signStatus: MutableList<ChaoxingSignStatus>,
     isCurrentAlreadySigned: Boolean,
-    onSignAction: (isSelf:Boolean,otherUserSessionList:List<ChaoxingOtherUserSession>) -> Unit
+    userContent: @Composable ((index: Int) -> Unit)? = null,
+    onSignAction: (isSelf: Boolean, otherUserSessionList: List<ChaoxingOtherUserSession>, indexList: List<Int>) -> Unit
 ) {
     LocalContext.current.let { context ->
         val signUserList = remember { mutableStateListOf<ChaoxingOtherUserSession>() }
@@ -68,7 +70,7 @@ fun OtherUserSelectorComponent(
         ) {
             Column(
                 modifier = Modifier
-                    .padding(16.dp)
+                    .padding(16.dp, 2.dp)
                     .verticalScroll(rememberScrollState())
             ) {
                 Spacer(modifier = Modifier.height(6.dp))
@@ -108,7 +110,7 @@ fun OtherUserSelectorComponent(
                     }
                 }
                 LaunchedEffect(Unit) {
-                    withContext(Dispatchers.IO){
+                    withContext(Dispatchers.IO) {
                         signUserList.addAll(context.chaoxingDataStore.data.first().let { data ->
                             data.otherUsersList.filter {
                                 it.phoneNumber != data.loginSession.phoneNumber
@@ -130,7 +132,7 @@ fun OtherUserSelectorComponent(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp)
+                        .padding(2.dp, 16.dp)
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -147,14 +149,21 @@ fun OtherUserSelectorComponent(
                         )
                         Row(modifier = Modifier.clickable((success == true).not()) {
                             userSelections[0] = userSelections[0].not()
-                        }) {
+                        }, verticalAlignment = Alignment.CenterVertically) {
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
                                 "给自己签到",
                                 fontWeight = FontWeight.Bold,
                                 textDecoration = if (success != true) TextDecoration.None else TextDecoration.LineThrough
                             )
-                            signStatus[0].ResultCard()
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.End,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                userContent?.invoke(0)
+                                signStatus[0].ResultCard()
+                            }
                         }
                     }
                     signUserList.forEachIndexed { index, userSelection ->
@@ -164,7 +173,7 @@ fun OtherUserSelectorComponent(
                                 .fillMaxWidth()
                                 .padding(vertical = 4.dp)
                         ) {
-                            (1+index).let { i->
+                            (1 + index).let { i ->
                                 val successForOtherUser by signStatus[i].isSuccess
                                 Checkbox(
                                     checked = userSelections[i] && signStatus[i].isSuccess.value != true,
@@ -175,13 +184,20 @@ fun OtherUserSelectorComponent(
                                 )
                                 Row(modifier = Modifier.clickable((successForOtherUser == true).not()) {
                                     userSelections[i] = userSelections[i].not()
-                                }) {
+                                }, verticalAlignment = Alignment.CenterVertically) {
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text(
                                         text = userSelection.name,
                                         textDecoration = if (successForOtherUser != true) TextDecoration.None else TextDecoration.LineThrough
                                     )
-                                    signStatus[i].ResultCard()
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.End,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        userContent?.invoke(1 + index)
+                                        signStatus[i].ResultCard()
+                                    }
                                 }
                             }
                         }
@@ -194,16 +210,25 @@ fun OtherUserSelectorComponent(
                             .show()
                         return@Button
                     }
-                    if(signStatus.all{ it.isSuccess.value == true }){
-                        Toast.makeText(context,"所有用户均已签到", Toast.LENGTH_SHORT)
+                    if (signStatus.all { it.isSuccess.value == true }) {
+                        Toast.makeText(context, "所有用户均已签到", Toast.LENGTH_SHORT)
                             .show()
                         return@Button
                     }
+                    val indexList = mutableListOf<Int>()
+                    // 0 1 2 3 4 5 6
+                    // 2 3 5
+                    if (userSelections[0] && signStatus[0].isSuccess.value != true)
+                        indexList.add(0)
                     onSignAction(
-                        userSelections[0],
+                        userSelections[0] && signStatus[0].isSuccess.value != true,
                         signUserList.filterIndexed { index, _ ->
-                            userSelections[index + 1]
-                        }
+                            (userSelections[index + 1] && signStatus[1 + index].isSuccess.value != true).apply {
+                                if (this) {
+                                    indexList.add(index + 1)
+                                }
+                            }
+                        }, indexList
                     )
                 }, modifier = Modifier.fillMaxWidth()) {
                     Text("签到")

@@ -86,7 +86,6 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationSignE
 @Composable
 fun GetLocationComponent(
     locationInfo: ChaoxingLocationDetailEntity? = null,
-    locationCount:Int=1,
     confirmButtonText: @Composable () -> Unit,
     onLocationResult: (ChaoxingLocationSignEntity) -> Unit
 ) {
@@ -119,7 +118,7 @@ fun GetLocationComponent(
             if (locationPermissionsState.allPermissionsGranted) {
                 SDKInitializer.initialize(context.applicationContext)
                 LaunchedEffect(Unit) {
-                    withContext(Dispatchers.IO){
+                    withContext(Dispatchers.IO) {
                         locationClient.start()
                     }
                 }
@@ -185,27 +184,29 @@ fun GetLocationComponent(
                         }
                     })
                 }
-                val geoCoder = remember{GeoCoder.newInstance().apply {
-                    setOnGetGeoCodeResultListener(object : OnGetGeoCoderResultListener {
-                        override fun onGetGeoCodeResult(p0: GeoCodeResult?) {}
+                val geoCoder = remember {
+                    GeoCoder.newInstance().apply {
+                        setOnGetGeoCodeResultListener(object : OnGetGeoCoderResultListener {
+                            override fun onGetGeoCodeResult(p0: GeoCodeResult?) {}
 
-                        override fun onGetReverseGeoCodeResult(p0: ReverseGeoCodeResult?) {
-                            if (p0 == null || p0.error != SearchResult.ERRORNO.NO_ERROR) {
-                                Log.w(
-                                    "GetLocationPage",
-                                    "ReverseGeoCodeResult error: ${p0?.error}"
-                                )
-                                return
+                            override fun onGetReverseGeoCodeResult(p0: ReverseGeoCodeResult?) {
+                                if (p0 == null || p0.error != SearchResult.ERRORNO.NO_ERROR) {
+                                    Log.w(
+                                        "GetLocationPage",
+                                        "ReverseGeoCodeResult error: ${p0?.error}"
+                                    )
+                                    return
+                                }
+                                if (isNeedLocationDescribe) {
+                                    clickedName = p0.address + clickedName
+                                    isNeedLocationDescribe = false
+                                } else {
+                                    clickedName = p0.poiList?.get(0)?.address ?: p0.address
+                                }
                             }
-                            if (isNeedLocationDescribe) {
-                                clickedName = p0.address + clickedName
-                                isNeedLocationDescribe = false
-                            } else {
-                                clickedName = p0.poiList?.get(0)?.address ?: p0.address
-                            }
-                        }
-                    })
-                }}
+                        })
+                    }
+                }
                 val mapView = TextureMapView(context, BaiduMapOptions().apply {
                     rotateGesturesEnabled(false)
                     overlookingGesturesEnabled(false)

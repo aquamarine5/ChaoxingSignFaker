@@ -434,7 +434,6 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                 }
 
                                 false -> {
-
                                     Row(
                                         modifier = Modifier
                                             .background(

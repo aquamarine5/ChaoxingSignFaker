@@ -416,8 +416,10 @@ class MainActivity : ComponentActivity() {
                                     }
 
                                     composable<PhotoSignDestination> {
-                                        PhotoSignScreen(it.toRoute()) {
+                                        PhotoSignScreen(it.toRoute(), navBack = {
                                             navController.navigateUp()
+                                        }) {
+                                            navController.navigate(OtherUserGraphDestination)
                                         }
                                     }
                                 }
