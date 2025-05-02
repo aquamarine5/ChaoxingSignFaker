@@ -47,6 +47,9 @@ class ChaoxingPhotoSigner(
 
     class ChaoxingPhotoSignException(message: String) : ChaoxingPredictableException(message)
 
+    class ChaoxingIncorrectSignTypeException() :
+        ChaoxingPredictableException("签到类型不匹配，应是图片签到")
+
     companion object {
         const val URL_CLOUD_TOKEN = "https://pan-yz.chaoxing.com/api/token/uservalid"
         const val URL_CLOUD_UPLOAD = "https://pan-yz.chaoxing.com/upload?_from=mobilelearn&_token="
@@ -121,6 +124,29 @@ class ChaoxingPhotoSigner(
             return@runCatching file
         }.getOrElse { throw ChaoxingPhotoSignException("文件转换失败") }
     }
+
+    suspend fun uploadImage(context: Context, image: Bitmap, token: String): String =
+        withContext(Dispatchers.IO) {
+            val filename = "${UUID.randomUUID()}.jpg"
+            val file = File(context.cacheDir, filename)
+            file.outputStream().use { out ->
+                image.compress(Bitmap.CompressFormat.JPEG, 50, out)
+            }
+            client.newCall(
+                Request.Builder().url(URL_CLOUD_UPLOAD + token).post(
+                    MultipartBody.Builder().setType(MultipartBody.FORM)
+                        .addFormDataPart("puid", client.userEntity.puid.toString())
+                        .addFormDataPart(
+                            "file",
+                            filename,
+                            file.asRequestBody("image/jpeg".toMediaType())
+                        )
+                        .build()
+                ).build()
+            ).execute().use {
+                JSONObject.parseObject(it.body!!.string()).getString("objectId")
+            }
+        }
 
     suspend fun uploadImage(context: Context, uri: Uri, token: String): String =
         withContext(Dispatchers.IO) {

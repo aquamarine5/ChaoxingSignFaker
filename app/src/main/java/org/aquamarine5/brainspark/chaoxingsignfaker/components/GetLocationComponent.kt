@@ -62,10 +62,10 @@ import com.baidu.mapapi.map.CircleOptions
 import com.baidu.mapapi.map.MapPoi
 import com.baidu.mapapi.map.MapStatus
 import com.baidu.mapapi.map.MapStatusUpdateFactory
-import com.baidu.mapapi.map.MapView
 import com.baidu.mapapi.map.Marker
 import com.baidu.mapapi.map.MarkerOptions
 import com.baidu.mapapi.map.MyLocationData
+import com.baidu.mapapi.map.TextureMapView
 import com.baidu.mapapi.model.CoordUtil
 import com.baidu.mapapi.model.LatLng
 import com.baidu.mapapi.search.core.SearchResult
@@ -97,8 +97,8 @@ fun GetLocationComponent(
                     setCoorType("bd09ll")
                     setScanSpan(10000)
                     isLocationNotify = false
-                    //setFirstLocType(LocationClientOption.FirstLocType.SPEED_IN_FIRST_LOC)
-                    //locationMode = LocationClientOption.LocationMode.Battery_Saving
+                    setFirstLocType(LocationClientOption.FirstLocType.SPEED_IN_FIRST_LOC)
+                    locationMode = LocationClientOption.LocationMode.Battery_Saving
                     setIsNeedAddress(true)
                     setNeedNewVersionRgc(true)
                 }
@@ -206,7 +206,7 @@ fun GetLocationComponent(
                         }
                     })
                 }}
-                val mapView = MapView(context, BaiduMapOptions().apply {
+                val mapView = TextureMapView(context, BaiduMapOptions().apply {
                     rotateGesturesEnabled(false)
                     overlookingGesturesEnabled(false)
                     compassEnabled(false)

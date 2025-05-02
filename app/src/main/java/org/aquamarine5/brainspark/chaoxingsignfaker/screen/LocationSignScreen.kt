@@ -18,7 +18,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -89,7 +88,7 @@ fun LocationSignScreen(
     when (isAlreadySigned) {
         true -> {
             AlreadySignedNotice(onSignForOtherUser = {
-                isAlreadySigned=false
+                isAlreadySigned = false
                 isSignForOther = true
             }, onDismiss = {
                 isAlreadySigned = false
@@ -98,7 +97,7 @@ fun LocationSignScreen(
 
         false -> {
             var isGetLocation by remember { mutableStateOf(false) }
-            val signStatus = remember { mutableStateListOf(ChaoxingSignStatus()) }
+            val signStatus = remember { mutableListOf(ChaoxingSignStatus()) }
             var isSelfForSign by remember { mutableStateOf(false) }
             val otherUserSessionForSignList = remember { mutableListOf<ChaoxingOtherUserSession>() }
 
@@ -125,12 +124,12 @@ fun LocationSignScreen(
                 ), modifier = Modifier.zIndex(1f)
             ) {
                 BackHandler(isGetLocation) {
-                    isGetLocation=false
+                    isGetLocation = false
                 }
                 GetLocationComponent(signInfo, confirmButtonText = {
                     Text("签到")
                 }) { result ->
-                    isGetLocation=false
+                    isGetLocation = false
                     coroutineScope.launch {
                         runCatching {
                             signStatus[0].loading()
@@ -140,7 +139,7 @@ fun LocationSignScreen(
                             UMengHelper.onSignLocationEvent(
                                 context,
                                 result,
-                                ChaoxingHttpClient.instance!!.userEntity
+                                ChaoxingHttpClient.instance!!.userEntity.name
                             )
                         }.onFailure {
                             signStatus[0].failed(it)
@@ -152,21 +151,22 @@ fun LocationSignScreen(
                         otherUserSessionForSignList.forEachIndexed { index, userSession ->
                             runCatching {
                                 signStatus[index + 1].loading()
-                                ChaoxingHttpClient.loadFromOtherUserSession(userSession).also { client->
-                                    ChaoxingLocationSigner(client,destination).apply {
-                                        if(preSign()){
-                                            signStatus[index + 1].failed(ChaoxingSigner.AlreadySignedException())
-                                        }else{
-                                            sign(result)
+                                ChaoxingHttpClient.loadFromOtherUserSession(userSession)
+                                    .also { client ->
+                                        ChaoxingLocationSigner(client, destination).apply {
+                                            if (preSign()) {
+                                                signStatus[index + 1].failed(ChaoxingSigner.AlreadySignedException())
+                                            } else {
+                                                sign(result)
+                                            }
                                         }
                                     }
-                                }
                             }.onSuccess {
                                 signStatus[index + 1].success()
                                 UMengHelper.onSignLocationEvent(
                                     context,
                                     result,
-                                    ChaoxingHttpClient.instance!!.userEntity,
+                                    userSession.name,
                                     true
                                 )
                             }.onFailure {
