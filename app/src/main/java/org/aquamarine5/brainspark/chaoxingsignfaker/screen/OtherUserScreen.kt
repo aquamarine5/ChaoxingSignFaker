@@ -39,6 +39,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -137,7 +138,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
         ) {
             Column(
                 modifier = Modifier
-                    .padding(8.dp, 0.dp, 8.dp, 8.dp)
+                    .padding(8.dp, 0.dp)
                     .verticalScroll(rememberScrollState())
                     .fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally
@@ -205,6 +206,37 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                         )
                     }
                 }
+                Spacer(modifier = Modifier.height(8.dp))
+                Card(
+                    shape = RoundedCornerShape(18.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color(0xFF2486B9)
+                    ), modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(6.dp, 0.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Icon(
+                            painterResource(R.drawable.ic_mailbox_flag),
+                            contentDescription = "new",
+                            tint = Color.White
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            "在 1.5 版本更新后，代签功能支持了位置签到、拍照签到等所有的签到啦🥳",
+                            color = Color.White,
+                            fontSize = 13.sp,
+                            lineHeight = 18.sp,
+                            fontWeight = FontWeight.W500
+                        )
+                    }
+                }
                 Spacer(modifier = Modifier.height(20.dp))
                 Button(
                     onClick = {
@@ -225,7 +257,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                         Text("扫码添加其他用户", fontSize = 16.sp)
                     }
                 }
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(12.dp))
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -281,7 +313,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                             fontSize = 14.sp,
                                             fontWeight = FontWeight.Medium
                                         )
-                                        Button(
+                                        IconButton(
                                             onClick = {
                                                 coroutineScope.launch {
                                                     context.chaoxingDataStore.updateData { datastore ->
@@ -291,12 +323,12 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                                     }
                                                 }
                                                 otherUserSessions.removeIf { it.phoneNumber == user.phoneNumber }
-                                            },
-                                            shape = RoundedCornerShape(50)
+                                            }
                                         ) {
                                             Icon(
                                                 painter = painterResource(R.drawable.ic_delete),
-                                                contentDescription = "Delete"
+                                                contentDescription = "Delete",
+                                                tint= Color(0xFFF1441D)
                                             )
                                         }
                                     }
