@@ -8,6 +8,7 @@ package org.aquamarine5.brainspark.chaoxingsignfaker.api
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.net.Uri
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.google.zxing.BarcodeFormat
@@ -55,17 +56,20 @@ object ChaoxingOtherUserHelper {
         )
     }
 
+    suspend fun getSharedUrl(context: Context,insertSharedEntity: ChaoxingOtherUserSharedEntity?=null):String=
+        withContext(Dispatchers.IO){
+            val sharedEntity =
+                insertSharedEntity ?: getSharedUserEntity(context.chaoxingDataStore.data.first())
+            "http://cdn.aquamarine5.fun/?phone=${sharedEntity.phoneNumber}&pwd=${sharedEntity.encryptedPassword}&name=${Uri.encode(sharedEntity.userName)}"
+        }
+
     suspend fun generateQRCode(
         context: Context,
         insertSharedEntity: ChaoxingOtherUserSharedEntity? = null
     ): Bitmap = withContext(Dispatchers.Default) {
         val qrcodeSize = getQRCodeSize(context)
-        val sharedEntity =
-            insertSharedEntity ?: getSharedUserEntity(context.chaoxingDataStore.data.first())
-        val content =
-            "http://cdn.aquamarine5.fun/?phone=${sharedEntity.phoneNumber}&pwd=${sharedEntity.encryptedPassword}&name=${sharedEntity.userName}"
         val qrCode = QRCodeWriter().encode(
-            content, BarcodeFormat.QR_CODE, qrcodeSize, qrcodeSize, mapOf(
+            getSharedUrl(context, insertSharedEntity), BarcodeFormat.QR_CODE, qrcodeSize, qrcodeSize, mapOf(
                 EncodeHintType.CHARACTER_SET to "utf-8",
                 EncodeHintType.MARGIN to 1,
                 EncodeHintType.ERROR_CORRECTION to ErrorCorrectionLevel.M

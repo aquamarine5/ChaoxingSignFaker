@@ -158,7 +158,7 @@ fun CourseListScreen(
     }
     Column(
         modifier = Modifier
-            .padding(16.dp)
+            .padding(16.dp, 12.dp, 16.dp, 0.dp)
     ) {
         if (activitiesData.isEmpty()) {
             CenterCircularProgressIndicator()

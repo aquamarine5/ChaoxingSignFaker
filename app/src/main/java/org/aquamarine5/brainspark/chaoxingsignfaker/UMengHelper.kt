@@ -64,12 +64,12 @@ object UMengHelper {
     suspend fun onSignLocationEvent(
         context: Context,
         postLocationEntity: ChaoxingLocationSignEntity,
-        userEntity: ChaoxingUserEntity, isOtherUser: Boolean = false
+        name: String, isOtherUser: Boolean = false
     ) {
         onEvent(
             context, EVENT_TAG_SIGN_LOCATION, mapOf(
                 "address" to postLocationEntity.address,
-                "user" to userEntity.name,
+                "user" to name,
             )
         )
         ChaoxingAnalyser.onLocationSignEvent(context)
@@ -78,30 +78,30 @@ object UMengHelper {
 
     suspend fun onSignQRCodeEvent(
         context: Context,
-        userEntity: ChaoxingUserEntity,
+        name: String,
         isOtherUser: Boolean = false
     ) {
-        onEvent(context, EVENT_TAG_SIGN_QR_CODE, mapOf("user" to userEntity.name))
+        onEvent(context, EVENT_TAG_SIGN_QR_CODE, mapOf("user" to name))
         ChaoxingAnalyser.onQRCodeSignEvent(context)
         if (isOtherUser) ChaoxingAnalyser.onOtherUserSignEvent(context)
     }
 
     suspend fun onSignClickEvent(
         context: Context,
-        userEntity: ChaoxingUserEntity,
+        name: String,
         isOtherUser: Boolean = false
     ) {
-        onEvent(context, EVENT_TAG_SIGN_CLICK, mapOf("user" to userEntity.name))
+        onEvent(context, EVENT_TAG_SIGN_CLICK, mapOf("user" to name))
         ChaoxingAnalyser.onClickSignEvent(context)
         if (isOtherUser) ChaoxingAnalyser.onOtherUserSignEvent(context)
     }
 
     suspend fun onSignPhotoEvent(
         context: Context,
-        userEntity: ChaoxingUserEntity,
+        name: String,
         isOtherUser: Boolean = false
     ) {
-        onEvent(context, EVENT_TAG_SIGN_PHOTO, mapOf("user" to userEntity.name))
+        onEvent(context, EVENT_TAG_SIGN_PHOTO, mapOf("user" to name))
         ChaoxingAnalyser.onPhotoSignEvent(context)
         if (isOtherUser) ChaoxingAnalyser.onOtherUserSignEvent(context)
     }

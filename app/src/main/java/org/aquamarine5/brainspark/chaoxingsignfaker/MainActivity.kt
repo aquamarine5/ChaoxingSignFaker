@@ -387,7 +387,7 @@ class MainActivity : ComponentActivity() {
 
                                     composable<QRCodeSignDestination> {
                                         QRCodeSignScreen(it.toRoute(), navToOtherUser = {
-                                            navController.navigate(OtherUserDestination)
+                                            navController.navigate(OtherUserGraphDestination)
                                         }) {
                                             navController.navigateUp()
                                         }
@@ -398,8 +398,12 @@ class MainActivity : ComponentActivity() {
                                             typeOf<ChaoxingSignActivityEntity>() to ChaoxingSignActivityEntity.SignActivityNavType
                                         )
                                     ) {
-                                        LocationSignScreen(it.toRoute()) {
-                                            navController.navigateUp()
+                                        LocationSignScreen(
+                                            it.toRoute(),
+                                            navToCourseDetailDestination = {
+                                                navController.navigateUp()
+                                            }) {
+                                            navController.navigate(OtherUserGraphDestination)
                                         }
                                     }
 
@@ -414,8 +418,10 @@ class MainActivity : ComponentActivity() {
                                     }
 
                                     composable<PhotoSignDestination> {
-                                        PhotoSignScreen(it.toRoute()) {
+                                        PhotoSignScreen(it.toRoute(), navBack = {
                                             navController.navigateUp()
+                                        }) {
+                                            navController.navigate(OtherUserGraphDestination)
                                         }
                                     }
                                 }

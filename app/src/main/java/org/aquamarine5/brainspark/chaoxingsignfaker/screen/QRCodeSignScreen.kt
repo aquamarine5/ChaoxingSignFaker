@@ -240,7 +240,7 @@ fun QRCodeSignScreen(
                             }
                         })
                         userSelections.addAll(List(signUserList.size) { false })
-                        signStatus.addAll(Array(signUserList.size + 1) { ChaoxingSignStatus() })
+                        signStatus.addAll(Array(signUserList.size) { ChaoxingSignStatus() })
                         success = isCurrentAlreadySigned
                         userSelections[0] = isCurrentAlreadySigned != true
                     }
@@ -393,7 +393,7 @@ fun QRCodeSignScreen(
                                             signStatus[0].success()
                                             UMengHelper.onSignQRCodeEvent(
                                                 context,
-                                                ChaoxingHttpClient.instance!!.userEntity
+                                                ChaoxingHttpClient.instance!!.userEntity.name
                                             )
                                         }.onFailure {
                                             it.printStackTrace()
@@ -421,7 +421,7 @@ fun QRCodeSignScreen(
                                                 signStatus[1 + index].success()
                                                 UMengHelper.onSignQRCodeEvent(
                                                     context,
-                                                    it.userEntity,
+                                                    it.userEntity.name,
                                                     true
                                                 )
                                                 userSelections[1 + index] = false

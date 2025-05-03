@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
@@ -19,6 +20,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -45,7 +47,9 @@ fun AlreadySignedNotice(
             contentDescription = "已签到",
             tint = MaterialTheme.colorScheme.onBackground
         )
+        Spacer(modifier = Modifier.height(6.dp))
         Text("当前签到活动已经签到，不能重复签到。", color = MaterialTheme.colorScheme.onBackground)
+        Spacer(modifier = Modifier.height(6.dp))
         onSignForOtherUser?.let {
             Spacer(modifier = Modifier.width(6.dp))
             Button(onClick = {
@@ -55,13 +59,13 @@ fun AlreadySignedNotice(
             }
         }
         Spacer(modifier = Modifier.width(6.dp))
-        Button(onClick = {
+        OutlinedButton(onClick = {
             navBack()
         }, modifier = Modifier.fillMaxWidth()) {
             Text("返回")
         }
         Spacer(modifier = Modifier.width(6.dp))
-        OutlinedButton(onClick = {
+        TextButton(onClick = {
             onDismiss()
         }, modifier = Modifier.fillMaxWidth()) {
             Text("我认为这是BUG，我并没有签到。")
