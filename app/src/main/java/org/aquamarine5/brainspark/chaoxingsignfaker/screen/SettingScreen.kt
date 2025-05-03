@@ -25,6 +25,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -76,7 +77,7 @@ fun SettingScreen(
 ) {
     Column(
         modifier = Modifier
-            .padding(16.dp, 16.dp, 16.dp, 0.dp)
+            .padding(16.dp, 0.dp)
             .verticalScroll(rememberScrollState())
     ) {
         val context = LocalContext.current
@@ -202,13 +203,11 @@ fun SettingScreen(
                     fontWeight = FontWeight.Medium,
                     color = if (isSystemInDarkTheme()) Color.Black else Color.White
                 )
-                Button(
+                IconButton(
                     onClick = {
                         isShowSignoffDialog = true
-                    }, colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFFF07C82)
-                    )
-                ) { Text("登出") }
+                    }
+                ) { Icon(painterResource(R.drawable.ic_log_out), null, tint = Color.White) }
             }
         }
         Spacer(modifier = Modifier.height(8.dp))
@@ -251,7 +250,7 @@ fun SettingScreen(
                     ) {
                         append("aquamarine5forever")
                     }
-                    withStyle(SpanStyle(fontWeight = FontWeight.Bold)){
+                    withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
                         append("@")
                     }
                     withStyle(
@@ -299,7 +298,7 @@ fun SettingScreen(
                     ) {
                         append("aquamarine5")
                     }
-                    withStyle(SpanStyle(fontWeight = FontWeight.Bold)){
+                    withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
                         append("/")
                     }
                     withStyle(

@@ -6,7 +6,10 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.screen
 
+import android.content.ClipboardManager
+import android.content.Intent
 import android.graphics.Bitmap
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
@@ -38,10 +41,11 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -76,8 +80,10 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.UMengHelper
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingOtherUserHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.QRCodeScanComponent
@@ -93,156 +99,274 @@ object OtherUserGraphDestination
 
 @Composable
 fun OtherUserScreen(naviBack: () -> Unit) {
-    Scaffold { innerPadding ->
-        val context = LocalContext.current
-        val isQRCodeScanPause = remember { mutableStateOf(false) }
-        var isQRCodeScanning by remember { mutableStateOf(false) }
-        var isQRCodeIllegal by remember { mutableStateOf(false) }
-        val isQRCodeParsing = remember { mutableStateOf(false) }
-        var isQRCodeImportSuccess by remember { mutableStateOf(false) }
-        var isLocalSharedEntityReady by remember { mutableStateOf<Boolean?>(null) }
-        var currentImportData by remember { mutableStateOf("") }
-        var qrcodeIllegalText by remember { mutableStateOf("") }
-        var importSharedEntity by remember { mutableStateOf<ChaoxingOtherUserSharedEntity?>(null) }
-        val otherUserSessions = remember { mutableStateListOf<ChaoxingOtherUserSession>() }
-        var qrCode by remember { mutableStateOf<Bitmap?>(null) }
-        val coroutineScope = rememberCoroutineScope()
+    val context = LocalContext.current
+    var inputUrl by remember { mutableStateOf("") }
+    var isURLSharedDialog by remember { mutableStateOf(false) }
+    val isQRCodeScanPause = remember { mutableStateOf(false) }
+    var isQRCodeScanning by remember { mutableStateOf(false) }
+    var isQRCodeIllegal by remember { mutableStateOf(false) }
+    val isQRCodeParsing = remember { mutableStateOf(false) }
+    var isQRCodeImportSuccess by remember { mutableStateOf(false) }
+    var isLocalSharedEntityReady by remember { mutableStateOf<Boolean?>(null) }
+    var currentImportData by remember { mutableStateOf("") }
+    var qrcodeIllegalText by remember { mutableStateOf("") }
+    var importSharedEntity by remember { mutableStateOf<ChaoxingOtherUserSharedEntity?>(null) }
+    val otherUserSessions = remember { mutableStateListOf<ChaoxingOtherUserSession>() }
+    var qrCode by remember { mutableStateOf<Bitmap?>(null) }
+    val coroutineScope = rememberCoroutineScope()
+    LaunchedEffect(Unit) {
+        withContext(Dispatchers.IO) {
+            context.chaoxingDataStore.data.first().let {
+                otherUserSessions.addAll(it.otherUsersList)
+                isLocalSharedEntityReady =
+                    ChaoxingOtherUserHelper.checkSharedEntity(context.chaoxingDataStore.data.first())
+            }
+        }
+    }
+    var job: Job? = null
+    BackHandler(isQRCodeScanning) {
+        isQRCodeScanning = false
+    }
+    if (isLocalSharedEntityReady == false) {
+        RequireLoginAlertDialog(naviBack) {
+            importSharedEntity = it
+            isLocalSharedEntityReady = true
+        }
+    } else if (isLocalSharedEntityReady == true) {
         LaunchedEffect(Unit) {
-            withContext(Dispatchers.IO) {
-                context.chaoxingDataStore.data.first().let {
-                    otherUserSessions.addAll(it.otherUsersList)
-                    isLocalSharedEntityReady =
-                        ChaoxingOtherUserHelper.checkSharedEntity(context.chaoxingDataStore.data.first())
-                }
-            }
+            qrCode = ChaoxingOtherUserHelper.generateQRCode(context, importSharedEntity)
         }
-        var job: Job? = null
-        BackHandler(isQRCodeScanning) {
-            isQRCodeScanning = false
-        }
-        if (isLocalSharedEntityReady == false) {
-            RequireLoginAlertDialog(naviBack) {
-                importSharedEntity = it
-                isLocalSharedEntityReady = true
-            }
-        } else if (isLocalSharedEntityReady == true) {
-            LaunchedEffect(Unit) {
-                qrCode = ChaoxingOtherUserHelper.generateQRCode(context, importSharedEntity)
-            }
-        }
-        Box(
-            modifier = Modifier
-                .zIndex(0f)
-                .padding(innerPadding)
-                .fillMaxSize()
-        ) {
-            Column(
-                modifier = Modifier
-                    .padding(8.dp, 0.dp)
-                    .verticalScroll(rememberScrollState())
-                    .fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                val qrcodeSize = ChaoxingOtherUserHelper.getQRCodeDpSize(context)
-                Box(
-                    modifier = Modifier
-                        .border(
-                            BorderStroke(2.dp, MaterialTheme.colorScheme.primary),
-                            shape = RoundedCornerShape(9.dp)
-                        )
-                        .size(qrcodeSize + 18.dp, qrcodeSize + 18.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (qrCode != null) {
-                        Image(bitmap = qrCode!!.asImageBitmap(), contentDescription = "QR Code")
-                    }
-                }
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    buildAnnotatedString {
-                        append("使用其他设备打开 ")
-                        withStyle(
-                            SpanStyle(
-                                fontWeight = FontWeight.Bold,
-                                textDecoration = TextDecoration.Underline
-                            )
-                        ) {
-                            append("随地大小签APP")
+    }
+    if (isURLSharedDialog) {
+        AlertDialog(onDismissRequest = {
+            isURLSharedDialog = false
+        }, confirmButton = {
+            Button(onClick = {
+                isURLSharedDialog = false
+            }) { Text("关闭") }
+        }, title = {
+            Text("通过文本链接的形式分享自己的用户数据")
+        }, icon = {
+            Icon(painterResource(R.drawable.ic_link),null)
+        }, text = {
+            Column {
+                Text("对方将链接从浏览器打开即可导入你的用户数据（对方需更新到1.5版本及以上），或将链接粘贴到以下输入框中：")
+                Spacer(modifier = Modifier.height(6.dp))
+                OutlinedTextField(inputUrl, onValueChange = {
+                    inputUrl = it
+                }, label = {
+                    Text("链接")
+                }, singleLine = true)
+                Spacer(modifier = Modifier.height(6.dp))
+                Row {
+                    IconButton(onClick = {
+                        val result =
+                            context.getSystemService(ClipboardManager::class.java)?.primaryClip?.getItemAt(
+                                0
+                            )?.text
+                        if (result.isNullOrEmpty()) {
+                            Toast.makeText(context, "读取剪切板失败", Toast.LENGTH_SHORT).show()
+                        } else {
+                            inputUrl = result.toString()
                         }
-                        append(" 扫描二维码\n以将你的账号添加到其他设备中")
-                    },
-                    fontSize = 13.sp,
-                    lineHeight = 17.sp,
-                    textAlign = TextAlign.Center
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Card(
-                    shape = RoundedCornerShape(18.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = Color(0xFFF8D86A)
-                    ), modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(6.dp, 0.dp)
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(10.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Icon(
-                            painterResource(R.drawable.ic_triangle_alert),
-                            contentDescription = "Alert",
-                            tint = Color.White
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            "随意分享此二维码给他人会增加你的学习通账号风险，他人可以通过二维码登录从而控制你的账号，但这个分享行为并不会暴露你的明文密码。",
-                            color = Color.White,
-                            fontSize = 13.sp,
-                            lineHeight = 18.sp,
-                            fontWeight = FontWeight.W500
-                        )
+                    }) {
+                        Icon(painterResource(R.drawable.ic_clipboard_copy), null)
+                    }
+                    FilledTonalButton(onClick = {
+                        if (inputUrl.isNotBlank()) {
+                            val url = inputUrl.toHttpUrlOrNull()
+                            if (url == null) {
+                                Toast.makeText(context, "链接格式错误", Toast.LENGTH_SHORT).show()
+                                return@FilledTonalButton
+                            }
+                            val phone = url.queryParameter("phone")
+                            val pwd = url.queryParameter("pwd")
+                            val name = url.queryParameter("name")
+                            if (phone == null || pwd == null || name == null) {
+                                Toast.makeText(context, "链接格式错误", Toast.LENGTH_SHORT).show()
+                                return@FilledTonalButton
+                            }
+                            coroutineScope.launch {
+                                runCatching {
+                                    ChaoxingOtherUserHelper.saveOtherUser(
+                                        context,
+                                        ChaoxingOtherUserSharedEntity(phone, pwd, name)
+                                    )
+                                }.onSuccess {
+                                    Toast.makeText(context, "导入成功", Toast.LENGTH_SHORT).show()
+                                    UMengHelper.onAccountOtherUserAddEvent(context, it)
+                                }.onFailure {
+                                    it.printStackTrace()
+                                    Sentry.captureException(it)
+                                    Toast.makeText(context, "导入失败", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        } else
+                            Toast.makeText(context, "链接不能为空", Toast.LENGTH_SHORT).show()
+                    }, modifier = Modifier.weight(1f)) {
+                        Row(
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                painterResource(R.drawable.ic_user_round_plus),
+                                contentDescription = "Add User"
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("从链接导入用户", fontSize = 16.sp)
+                        }
                     }
                 }
-                Spacer(modifier = Modifier.height(8.dp))
-                Card(
-                    shape = RoundedCornerShape(18.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = Color(0xFF2486B9)
-                    ), modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(6.dp, 0.dp)
-                ) {
+                Spacer(modifier = Modifier.height(6.dp))
+                Button(onClick = {
+                    coroutineScope.launch {
+                        context.startActivity(Intent.createChooser(Intent().apply {
+                            action = Intent.ACTION_SEND
+                            type = "text/plain"
+                            putExtra(
+                                Intent.EXTRA_TEXT,
+                                ChaoxingOtherUserHelper.getSharedUrl(context, importSharedEntity)
+                            )
+                            putExtra(
+                                Intent.EXTRA_TITLE,
+                                "${ChaoxingHttpClient.instance!!.userEntity.name} 的用户数据链接"
+                            )
+                        }, "分享自己的链接给他人"))
+                    }
+                },modifier=Modifier.fillMaxWidth()) {
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(10.dp),
+                        horizontalArrangement = Arrangement.Center,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Spacer(modifier = Modifier.width(4.dp))
                         Icon(
-                            painterResource(R.drawable.ic_mailbox_flag),
-                            contentDescription = "new",
-                            tint = Color.White
+                            painterResource(R.drawable.ic_share),
+                            contentDescription = "Add User"
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            "在 1.5 版本更新后，代签功能支持了位置签到、拍照签到等所有的签到啦🥳",
-                            color = Color.White,
-                            fontSize = 13.sp,
-                            lineHeight = 18.sp,
-                            fontWeight = FontWeight.W500
-                        )
+                        Text("分享自己的链接给他人", fontSize = 16.sp)
                     }
                 }
-                Spacer(modifier = Modifier.height(20.dp))
+
+            }
+        })
+    }
+    Box(
+        modifier = Modifier
+            .zIndex(0f)
+            .fillMaxSize()
+    ) {
+        Column(
+            modifier = Modifier
+                .padding(8.dp, 0.dp)
+                .verticalScroll(rememberScrollState())
+                .fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            val qrcodeSize = ChaoxingOtherUserHelper.getQRCodeDpSize(context)
+            Box(
+                modifier = Modifier
+                    .border(
+                        BorderStroke(2.dp, MaterialTheme.colorScheme.primary),
+                        shape = RoundedCornerShape(9.dp)
+                    )
+                    .size(qrcodeSize + 18.dp, qrcodeSize + 18.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                if (qrCode != null) {
+                    Image(bitmap = qrCode!!.asImageBitmap(), contentDescription = "QR Code")
+                }
+            }
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                buildAnnotatedString {
+                    append("使用其他设备打开 ")
+                    withStyle(
+                        SpanStyle(
+                            fontWeight = FontWeight.Bold,
+                            textDecoration = TextDecoration.Underline
+                        )
+                    ) {
+                        append("随地大小签APP")
+                    }
+                    append(" 扫描二维码\n以将你的账号添加到其他设备中")
+                },
+                fontSize = 13.sp,
+                lineHeight = 17.sp,
+                textAlign = TextAlign.Center
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Card(
+                shape = RoundedCornerShape(18.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = Color(0xFFF8D86A)
+                ), modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(6.dp, 0.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Icon(
+                        painterResource(R.drawable.ic_triangle_alert),
+                        contentDescription = "Alert",
+                        tint = Color.White
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        "随意分享此二维码给他人会增加你的学习通账号风险，他人可以通过二维码登录从而控制你的账号，但这个分享行为并不会暴露你的明文密码。",
+                        color = Color.White,
+                        fontSize = 13.sp,
+                        lineHeight = 18.sp,
+                        fontWeight = FontWeight.W500
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Card(
+                shape = RoundedCornerShape(18.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = Color(0xFF2486B9)
+                ), modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(6.dp, 0.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Icon(
+                        painterResource(R.drawable.ic_mailbox_flag),
+                        contentDescription = "new",
+                        tint = Color.White
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        "在 1.5 版本更新后，代签功能支持了位置签到、拍照签到等所有的签到啦🥳",
+                        color = Color.White,
+                        fontSize = 13.sp,
+                        lineHeight = 18.sp,
+                        fontWeight = FontWeight.W500
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(20.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
                 Button(
                     onClick = {
                         isQRCodeScanning = true
                     }, shape = RoundedCornerShape(18.dp), modifier = Modifier
-                        .fillMaxWidth()
+                        .weight(1f)
                         .padding(6.dp, 0.dp)
                 ) {
                     Row(
@@ -257,242 +381,263 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                         Text("扫码添加其他用户", fontSize = 16.sp)
                     }
                 }
-                Spacer(modifier = Modifier.height(12.dp))
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(8.dp)
-                        .border(
-                            BorderStroke(2.dp, MaterialTheme.colorScheme.primary),
-                            shape = RoundedCornerShape(8.dp)
-                        ),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                IconButton(
+                    onClick = {
+                        isURLSharedDialog = true
+                    }
                 ) {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.primaryContainer
-                        )
+                    Row(
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            "已添加的用户",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier
-                                .padding(8.dp)
-                                .fillMaxWidth(),
-                            textAlign = TextAlign.Center
+                        Icon(
+                            painterResource(R.drawable.ic_share),
+                            contentDescription = "Add User",
+                            modifier = Modifier.size(28.dp),
+                            tint = MaterialTheme.colorScheme.primary
                         )
                     }
-                    if (otherUserSessions.isEmpty()) {
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            "暂无其他用户",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Medium
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                    } else
-                        otherUserSessions.forEachIndexed { index, user ->
-                            key(user.phoneNumber) {
-                                Card(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(8.dp),
-                                    shape = RoundedCornerShape(8.dp),
-                                    elevation = CardDefaults.cardElevation(4.dp)
-                                ) {
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(17.dp, 8.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.SpaceBetween
-                                    ) {
-                                        Text(
-                                            text = "${user.name} (${user.phoneNumber})",
-                                            fontSize = 14.sp,
-                                            fontWeight = FontWeight.Medium
-                                        )
-                                        IconButton(
-                                            onClick = {
-                                                coroutineScope.launch {
-                                                    context.chaoxingDataStore.updateData { datastore ->
-                                                        datastore.toBuilder()
-                                                            .apply { removeOtherUsers(index) }
-                                                            .build()
-                                                    }
-                                                }
-                                                otherUserSessions.removeIf { it.phoneNumber == user.phoneNumber }
-                                            }
-                                        ) {
-                                            Icon(
-                                                painter = painterResource(R.drawable.ic_delete),
-                                                contentDescription = "Delete",
-                                                tint = Color(0xFFF1441D)
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
                 }
             }
-        }
-        if (isQRCodeImportSuccess) {
-            AlertDialog(
-                onDismissRequest = {
-                    isQRCodeImportSuccess = false
-                },
-                title = {
-                    Text("导入成功")
-                },
-                text = {
-                    Text("$currentImportData 用户已经成功导入")
-                },
-                confirmButton = {
-                    Button(
-                        onClick = {
-                            isQRCodeImportSuccess = false
-                        }
-                    ) {
-                        Text("确定")
-                    }
-                }
-            )
-        }
-        AnimatedVisibility(
-            isQRCodeScanning, enter =
-            slideInHorizontally(
-                initialOffsetX = { it },
-                animationSpec = tween(300)
-            ) + fadeIn(
-                animationSpec = tween(300)
-            ), exit =
-            scaleOut(targetScale = 0.8f, animationSpec = tween(300)) + fadeOut(
-                animationSpec = tween(300)
-            )
-        ) {
+            Spacer(modifier = Modifier.height(12.dp))
             Column(
                 modifier = Modifier
-                    .zIndex(1f)
-                    .fillMaxSize(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
+                    .fillMaxWidth()
+                    .padding(8.dp)
+                    .border(
+                        BorderStroke(2.dp, MaterialTheme.colorScheme.primary),
+                        shape = RoundedCornerShape(8.dp)
+                    ),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                QRCodeScanComponent(isQRCodeScanPause, isQRCodeParsing, onClose = {
-                    isQRCodeScanning = false
-                }, onScanResult = {
-                    coroutineScope.launch {
-                        withContext(Dispatchers.IO) {
-                            runCatching {
-                                isQRCodeParsing.value = true
-                                isQRCodeScanPause.value = true
-                                return@runCatching ChaoxingOtherUserSharedEntity.parseFromQRCode(it)
-                            }.onSuccess { sharedEntity ->
-                                coroutineScope.launch {
-                                    runCatching {
-                                        ChaoxingOtherUserHelper.saveOtherUser(context, sharedEntity)
-                                    }.onSuccess {
-                                        isQRCodeScanning = false
-                                        isQRCodeParsing.value = false
-                                        currentImportData =
-                                            "${sharedEntity.userName}(手机号：${sharedEntity.phoneNumber})"
-                                        isQRCodeImportSuccess = true
-                                        otherUserSessions.add(it)
-                                        UMengHelper.onAccountOtherUserAddEvent(context, it)
-                                    }.onFailure {
-                                        it.printStackTrace()
-                                        Sentry.captureException(it)
-                                        isQRCodeIllegal = true
-                                        isQRCodeParsing.value = false
-                                        qrcodeIllegalText = it.message ?: "二维码解析失败，登录失败。"
-                                        job?.cancel()
-                                        job = coroutineScope.launch {
-                                            delay(3000)
-                                            isQRCodeScanPause.value = false
-                                            isQRCodeIllegal = false
+                Card(
+                    modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer
+                    )
+                ) {
+                    Text(
+                        "已添加的用户",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier
+                            .padding(8.dp)
+                            .fillMaxWidth(),
+                        textAlign = TextAlign.Center
+                    )
+                }
+                if (otherUserSessions.isEmpty()) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        "暂无其他用户",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                } else {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    otherUserSessions.forEachIndexed { index, user ->
+                        key(user.phoneNumber) {
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(8.dp, 4.dp),
+                                shape = RoundedCornerShape(8.dp),
+                                elevation = CardDefaults.cardElevation(4.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(17.dp, 2.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(
+                                        text = "${user.name} (${user.phoneNumber})",
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                    IconButton(
+                                        onClick = {
+                                            coroutineScope.launch {
+                                                context.chaoxingDataStore.updateData { datastore ->
+                                                    datastore.toBuilder()
+                                                        .apply { removeOtherUsers(index) }
+                                                        .build()
+                                                }
+                                            }
+                                            otherUserSessions.removeIf { it.phoneNumber == user.phoneNumber }
                                         }
+                                    ) {
+                                        Icon(
+                                            painter = painterResource(R.drawable.ic_delete),
+                                            contentDescription = "Delete",
+                                            tint = Color(0xFFF1441D)
+                                        )
                                     }
-                                }
-                            }.onFailure {
-                                it.printStackTrace()
-                                isQRCodeIllegal = true
-                                isQRCodeScanPause.value = true
-                                qrcodeIllegalText = it.message ?: "二维码解析失败，不是正确码。"
-                                job?.cancel()
-                                job = coroutineScope.launch {
-                                    delay(3000)
-                                    isQRCodeScanPause.value = false
-                                    isQRCodeIllegal = false
                                 }
                             }
                         }
                     }
-                }) {
-                    Column(
-                        modifier = Modifier
-                            .offset(y = Dp(context.resources.displayMetrics.run {
-                                0.75f * heightPixels / density
-                            }))
-                            .zIndex(2f)
-                            .fillMaxWidth(),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Crossfade(isQRCodeIllegal) {
-                            when (it) {
-                                true -> {
-                                    Row(
-                                        modifier = Modifier
-                                            .background(
-                                                Color(0x72F1441D),
-                                                RoundedCornerShape(8.dp)
-                                            )
-                                            .border(
-                                                BorderStroke(2.dp, Color(0xFFF1441D)),
-                                                RoundedCornerShape(8.dp)
-                                            )
-                                            .padding(10.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.Center
-                                    ) {
-                                        Icon(
-                                            painterResource(R.drawable.ic_octagon_alert),
-                                            contentDescription = "Illegal QR Code"
-                                        )
-                                        Spacer(modifier = Modifier.width(5.dp))
-                                        Text(qrcodeIllegalText)
+                    Spacer(modifier = Modifier.height(4.dp))
+                }
+            }
+        }
+    }
+    if (isQRCodeImportSuccess) {
+        AlertDialog(
+            onDismissRequest = {
+                isQRCodeImportSuccess = false
+            },
+            title = {
+                Text("导入成功")
+            },
+            text = {
+                Text("$currentImportData 用户已经成功导入")
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        isQRCodeImportSuccess = false
+                    }
+                ) {
+                    Text("确定")
+                }
+            }
+        )
+    }
+    AnimatedVisibility(
+        isQRCodeScanning, enter =
+        slideInHorizontally(
+            initialOffsetX = { it },
+            animationSpec = tween(300)
+        ) + fadeIn(
+            animationSpec = tween(300)
+        ), exit =
+        scaleOut(targetScale = 0.8f, animationSpec = tween(300)) + fadeOut(
+            animationSpec = tween(300)
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .zIndex(1f)
+                .fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            QRCodeScanComponent(isQRCodeScanPause, isQRCodeParsing, onClose = {
+                isQRCodeScanning = false
+            }, onScanResult = {
+                coroutineScope.launch {
+                    withContext(Dispatchers.IO) {
+                        runCatching {
+                            isQRCodeParsing.value = true
+                            isQRCodeScanPause.value = true
+                            return@runCatching ChaoxingOtherUserSharedEntity.parseFromQRCode(it)
+                        }.onSuccess { sharedEntity ->
+                            coroutineScope.launch {
+                                runCatching {
+                                    ChaoxingOtherUserHelper.saveOtherUser(context, sharedEntity)
+                                }.onSuccess {
+                                    isQRCodeScanning = false
+                                    isQRCodeParsing.value = false
+                                    currentImportData =
+                                        "${sharedEntity.userName}(手机号：${sharedEntity.phoneNumber})"
+                                    isQRCodeImportSuccess = true
+                                    otherUserSessions.add(it)
+                                    UMengHelper.onAccountOtherUserAddEvent(context, it)
+                                }.onFailure {
+                                    it.printStackTrace()
+                                    Sentry.captureException(it)
+                                    isQRCodeIllegal = true
+                                    isQRCodeParsing.value = false
+                                    qrcodeIllegalText = it.message ?: "二维码解析失败，登录失败。"
+                                    job?.cancel()
+                                    job = coroutineScope.launch {
+                                        delay(3000)
+                                        isQRCodeScanPause.value = false
+                                        isQRCodeIllegal = false
                                     }
                                 }
-
-                                false -> {
-                                    Row(
-                                        modifier = Modifier
-                                            .background(
-                                                Color(0x88888888),
-                                                RoundedCornerShape(8.dp)
-                                            )
-                                            .border(
-                                                BorderStroke(2.dp, Color(0xFF444444)),
-                                                RoundedCornerShape(8.dp)
-                                            )
-                                            .padding(10.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.Center
-                                    ) {
-                                        Icon(
-                                            painterResource(R.drawable.ic_scan_qr_code),
-                                            contentDescription = "Scan QR Code"
+                            }
+                        }.onFailure {
+                            it.printStackTrace()
+                            isQRCodeIllegal = true
+                            isQRCodeScanPause.value = true
+                            qrcodeIllegalText = it.message ?: "二维码解析失败，不是正确码。"
+                            job?.cancel()
+                            job = coroutineScope.launch {
+                                delay(3000)
+                                isQRCodeScanPause.value = false
+                                isQRCodeIllegal = false
+                            }
+                        }
+                    }
+                }
+            }) {
+                Column(
+                    modifier = Modifier
+                        .offset(y = Dp(context.resources.displayMetrics.run {
+                            0.75f * heightPixels / density
+                        }))
+                        .zIndex(2f)
+                        .fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Crossfade(isQRCodeIllegal) {
+                        when (it) {
+                            true -> {
+                                Row(
+                                    modifier = Modifier
+                                        .background(
+                                            Color(0x72F1441D),
+                                            RoundedCornerShape(8.dp)
                                         )
-                                        Spacer(modifier = Modifier.width(5.dp))
-                                        Text("扫描其他设备的二维码以添加用户")
-                                    }
+                                        .border(
+                                            BorderStroke(2.dp, Color(0xFFF1441D)),
+                                            RoundedCornerShape(8.dp)
+                                        )
+                                        .padding(10.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center
+                                ) {
+                                    Icon(
+                                        painterResource(R.drawable.ic_octagon_alert),
+                                        contentDescription = "Illegal QR Code"
+                                    )
+                                    Spacer(modifier = Modifier.width(5.dp))
+                                    Text(qrcodeIllegalText)
+                                }
+                            }
+
+                            false -> {
+                                Row(
+                                    modifier = Modifier
+                                        .background(
+                                            Color(0x88888888),
+                                            RoundedCornerShape(8.dp)
+                                        )
+                                        .border(
+                                            BorderStroke(2.dp, Color(0xFF444444)),
+                                            RoundedCornerShape(8.dp)
+                                        )
+                                        .padding(10.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center
+                                ) {
+                                    Icon(
+                                        painterResource(R.drawable.ic_scan_qr_code),
+                                        contentDescription = "Scan QR Code"
+                                    )
+                                    Spacer(modifier = Modifier.width(5.dp))
+                                    Text("扫描其他设备的二维码以添加用户")
                                 }
                             }
                         }
                     }
                 }
             }
+
         }
     }
 }

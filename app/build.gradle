@@ -17,7 +17,7 @@ plugins {
 stackbricksConfig {
     configJsonFilePath = "chaoxingsignfaker_stackbricks_v2_manifest.json"
     host = "cdn.aquamarine5.fun"
-    changelog = "1.5 大版本更新！强烈建议更新！\n有什么新功能？\n1. 现在代签功能支持位置签到和拍照签到啦，这下舍友不用睁眼也能签到了。\n2. 修复了获取位置速度较慢的BUG。\n3. 优化了界面显示。\n4. 修复了部分崩溃BUG。\n5. 第五人格启动。"
+    changelog = "1.5 大版本更新！强烈建议更新！\n有什么新功能？\n1. 现在代签功能支持位置签到和拍照签到啦，这下舍友不用睁眼也能签到了。\n2. 修复了获取位置速度较慢的BUG。\n3. 优化了界面显示。\n4. 修复了部分崩溃BUG。\n5. 第五人格启动。\n6. 支持了链接分享添加其他用户以代签。"
     qiniuConfig {
         accessKey = project.findProperty("qiniu.accessKey") ?: ""
         secretKey = project.findProperty("qiniu.secretKey") ?: ""
@@ -37,8 +37,8 @@ android {
         applicationId = "org.aquamarine5.brainspark.chaoxingsignfaker"
         minSdk = 26
         targetSdk = 35
-        versionCode = 105009169
-        versionName = "1.5.0-rc2-250502"
+        versionCode = 105009990
+        versionName = "1.5.0-stable-250503"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

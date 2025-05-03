@@ -1,0 +1,11 @@
+<!--
+  ~ Copyright (c) 2025, @aquamarine5 (@海蓝色的咕咕鸽). All Rights Reserved.
+  ~ Author: aquamarine5@163.com (Github: https://github.com/aquamarine5) and Brainspark (previously RenegadeCreation)
+  ~ Repository: https://github.com/aquamarine5/ChaoxingSignFaker
+  -->
+
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:height="34dp" android:viewportHeight="24" android:viewportWidth="24" android:width="34dp">
+      
+    <path android:fillColor="#00000000" android:pathData="M9,17H7A5,5 0,0 1,7 7h2m6,0h2a5,5 0,1 1,0 10h-2m-7,-5h8" android:strokeColor="#fff" android:strokeLineCap="round" android:strokeLineJoin="round" android:strokeWidth="2"/>
+    
+</vector>
