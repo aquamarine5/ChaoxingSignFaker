@@ -99,7 +99,10 @@ class ImportOtherUserActivity : ComponentActivity() {
                                             }.onSuccess {
                                                 isSuccess = true
                                                 isLoading = false
-                                                UMengHelper.onAccountOtherUserAddEvent(applicationContext,it)
+                                                UMengHelper.onAccountOtherUserAddEvent(
+                                                    applicationContext,
+                                                    it
+                                                )
                                             }.onFailure { failure ->
                                                 errorTips =
                                                     failure.message ?: failure.localizedMessage

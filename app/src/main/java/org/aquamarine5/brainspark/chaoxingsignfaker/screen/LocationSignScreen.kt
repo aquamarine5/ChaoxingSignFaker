@@ -9,6 +9,7 @@ package org.aquamarine5.brainspark.chaoxingsignfaker.screen
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -86,107 +87,110 @@ fun LocationSignScreen(
             navToCourseDetailDestination()
         }
     }
-    when (isAlreadySigned) {
-        true -> {
-            AlreadySignedNotice(onSignForOtherUser = {
-                isAlreadySigned = false
-                isSignForOther = true
-            }, onDismiss = {
-                isAlreadySigned = false
-            }) { navToCourseDetailDestination() }
-        }
-
-        false -> {
-            var isGetLocation by remember { mutableStateOf(false) }
-            val signStatus = remember { mutableListOf(ChaoxingSignStatus()) }
-            var isSelfForSign by remember { mutableStateOf(false) }
-            val otherUserSessionForSignList = remember { mutableListOf<ChaoxingOtherUserSession>() }
-
-            OtherUserSelectorComponent(
-                navToOtherUser = { navToOtherUserDestination() },
-                signStatus = signStatus,
-                isCurrentAlreadySigned = isSignForOther,
-            ) { isSelf, otherUserSessionList, _ ->
-                isSelfForSign = isSelf
-                otherUserSessionForSignList.addAll(otherUserSessionList)
-                isGetLocation = true
+    Crossfade(isAlreadySigned) { v ->
+        when (v) {
+            true -> {
+                AlreadySignedNotice(onSignForOtherUser = {
+                    isAlreadySigned = false
+                    isSignForOther = true
+                }, onDismiss = {
+                    isAlreadySigned = false
+                }) { navToCourseDetailDestination() }
             }
 
-            AnimatedVisibility(
-                isGetLocation, enter =
-                slideInHorizontally(
-                    initialOffsetX = { it },
-                    animationSpec = tween(300)
-                ) + fadeIn(
-                    animationSpec = tween(300)
-                ), exit =
-                scaleOut(targetScale = 0.8f, animationSpec = tween(300)) + fadeOut(
-                    animationSpec = tween(300)
-                ), modifier = Modifier.zIndex(1f)
-            ) {
-                BackHandler(isGetLocation) {
-                    isGetLocation = false
+            false -> {
+                var isGetLocation by remember { mutableStateOf(false) }
+                val signStatus = remember { mutableListOf(ChaoxingSignStatus()) }
+                var isSelfForSign by remember { mutableStateOf(false) }
+                val otherUserSessionForSignList =
+                    remember { mutableListOf<ChaoxingOtherUserSession>() }
+
+                OtherUserSelectorComponent(
+                    navToOtherUser = { navToOtherUserDestination() },
+                    signStatus = signStatus,
+                    isCurrentAlreadySigned = isSignForOther,
+                ) { isSelf, otherUserSessionList, _ ->
+                    isSelfForSign = isSelf
+                    otherUserSessionForSignList.addAll(otherUserSessionList)
+                    isGetLocation = true
                 }
-                GetLocationComponent(signInfo, confirmButtonText = {
-                    Text("签到")
-                }) { result ->
-                    isGetLocation = false
-                    coroutineScope.launch {
-                        if (isSelfForSign)
-                            runCatching {
-                                signStatus[0].loading()
-                                signer.sign(result)
-                            }.onSuccess {
-                                signStatus[0].success()
-                                UMengHelper.onSignLocationEvent(
-                                    context,
-                                    result,
-                                    ChaoxingHttpClient.instance!!.userEntity.name
-                                )
-                            }.onFailure {
-                                signStatus[0].failed(it)
-                                Toast.makeText(context, it.message, Toast.LENGTH_SHORT).show()
-                                if ((it is ChaoxingPredictableException).not()) {
-                                    Sentry.captureException(it)
+
+                AnimatedVisibility(
+                    isGetLocation, enter =
+                    slideInHorizontally(
+                        initialOffsetX = { it },
+                        animationSpec = tween(300)
+                    ) + fadeIn(
+                        animationSpec = tween(300)
+                    ), exit =
+                    scaleOut(targetScale = 0.8f, animationSpec = tween(300)) + fadeOut(
+                        animationSpec = tween(300)
+                    ), modifier = Modifier.zIndex(1f)
+                ) {
+                    BackHandler(isGetLocation) {
+                        isGetLocation = false
+                    }
+                    GetLocationComponent(signInfo, confirmButtonText = {
+                        Text("签到")
+                    }) { result ->
+                        isGetLocation = false
+                        coroutineScope.launch {
+                            if (isSelfForSign)
+                                runCatching {
+                                    signStatus[0].loading()
+                                    signer.sign(result)
+                                }.onSuccess {
+                                    signStatus[0].success()
+                                    UMengHelper.onSignLocationEvent(
+                                        context,
+                                        result,
+                                        ChaoxingHttpClient.instance!!.userEntity.name
+                                    )
+                                }.onFailure {
+                                    signStatus[0].failed(it)
+                                    Toast.makeText(context, it.message, Toast.LENGTH_SHORT).show()
+                                    if ((it is ChaoxingPredictableException).not()) {
+                                        Sentry.captureException(it)
+                                    }
                                 }
-                            }
-                        otherUserSessionForSignList.forEachIndexed { index, userSession ->
-                            runCatching {
-                                signStatus[index + 1].loading()
-                                delay(1500)
-                                ChaoxingHttpClient.loadFromOtherUserSession(userSession)
-                                    .also { client ->
-                                        ChaoxingLocationSigner(client, destination).apply {
-                                            if (preSign()) {
-                                                signStatus[index + 1].failed(ChaoxingSigner.AlreadySignedException())
-                                            } else {
-                                                sign(result)
+                            otherUserSessionForSignList.forEachIndexed { index, userSession ->
+                                runCatching {
+                                    signStatus[index + 1].loading()
+                                    delay(1500)
+                                    ChaoxingHttpClient.loadFromOtherUserSession(userSession)
+                                        .also { client ->
+                                            ChaoxingLocationSigner(client, destination).apply {
+                                                if (preSign()) {
+                                                    signStatus[index + 1].failed(ChaoxingSigner.AlreadySignedException())
+                                                } else {
+                                                    sign(result)
+                                                }
                                             }
                                         }
+                                }.onSuccess {
+                                    signStatus[index + 1].success()
+                                    UMengHelper.onSignLocationEvent(
+                                        context,
+                                        result,
+                                        userSession.name,
+                                        true
+                                    )
+                                }.onFailure {
+                                    it.printStackTrace()
+                                    if ((it is ChaoxingPredictableException).not()) {
+                                        Sentry.captureException(it)
                                     }
-                            }.onSuccess {
-                                signStatus[index + 1].success()
-                                UMengHelper.onSignLocationEvent(
-                                    context,
-                                    result,
-                                    userSession.name,
-                                    true
-                                )
-                            }.onFailure {
-                                it.printStackTrace()
-                                if ((it is ChaoxingPredictableException).not()) {
-                                    Sentry.captureException(it)
+                                    signStatus[index + 1].failed(it)
                                 }
-                                signStatus[index + 1].failed(it)
                             }
                         }
                     }
                 }
             }
-        }
 
-        null -> {
-            CenterCircularProgressIndicator()
+            null -> {
+                CenterCircularProgressIndicator()
+            }
         }
     }
 

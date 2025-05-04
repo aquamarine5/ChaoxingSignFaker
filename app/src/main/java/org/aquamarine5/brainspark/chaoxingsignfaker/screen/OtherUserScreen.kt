@@ -147,7 +147,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
         }, title = {
             Text("通过文本链接的形式分享自己的用户数据")
         }, icon = {
-            Icon(painterResource(R.drawable.ic_link),null)
+            Icon(painterResource(R.drawable.ic_link), null)
         }, text = {
             Column {
                 Text("对方将链接从浏览器打开即可导入你的用户数据（对方需更新到1.5版本及以上），或将链接粘贴到以下输入框中：")
@@ -233,7 +233,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                             )
                         }, "分享自己的链接给他人"))
                     }
-                },modifier=Modifier.fillMaxWidth()) {
+                }, modifier = Modifier.fillMaxWidth()) {
                     Row(
                         horizontalArrangement = Arrangement.Center,
                         verticalAlignment = Alignment.CenterVertically

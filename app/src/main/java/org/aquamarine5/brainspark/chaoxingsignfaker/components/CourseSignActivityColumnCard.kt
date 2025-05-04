@@ -21,8 +21,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingSignHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
-import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSignHelper
 
 
 @Composable
@@ -52,7 +52,6 @@ inline fun CourseSignActivityColumnCard(
             Text(activity.nameOne)
             Text("结束时间：${activity.nameFour}")
         }
-
     }
     Spacer(modifier = Modifier.height(16.dp))
 }

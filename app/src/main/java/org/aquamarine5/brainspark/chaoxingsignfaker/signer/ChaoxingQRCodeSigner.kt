@@ -54,7 +54,7 @@ class ChaoxingQRCodeSigner(
                         .addQueryParameter("uid", client.userEntity.puid.toString())
                         .addQueryParameter("name", client.userEntity.name)
                         .addQueryParameter("fid", client.userEntity.fid.toString())
-                        .addQueryParameter("deviceCode", ChaoxingHttpClient.deviceCode!!)
+                        .addQueryParameter("deviceCode", ChaoxingHttpClient.deviceCode)
                         .apply {
                             if (position != null) {
                                 addQueryParameter(

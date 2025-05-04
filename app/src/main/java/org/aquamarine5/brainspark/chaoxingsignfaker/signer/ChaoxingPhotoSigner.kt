@@ -74,7 +74,7 @@ class ChaoxingPhotoSigner(
                     .addQueryParameter("uid", client.userEntity.puid.toString())
                     .addQueryParameter("name", client.userEntity.name)
                     .addQueryParameter("fid", client.userEntity.fid.toString())
-                    .addQueryParameter("deviceCode", ChaoxingHttpClient.deviceCode!!)
+                    .addQueryParameter("deviceCode", ChaoxingHttpClient.deviceCode)
                     .build()
             ).get().build()
         ).execute().use {
@@ -95,7 +95,7 @@ class ChaoxingPhotoSigner(
                     .addQueryParameter("uid", client.userEntity.puid.toString())
                     .addQueryParameter("name", client.userEntity.name)
                     .addQueryParameter("fid", client.userEntity.fid.toString())
-                    .addQueryParameter("deviceCode", ChaoxingHttpClient.deviceCode!!)
+                    .addQueryParameter("deviceCode", ChaoxingHttpClient.deviceCode)
                     .build()
             ).get().build()
         ).execute().use {

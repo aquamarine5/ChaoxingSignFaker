@@ -126,7 +126,7 @@ fun OtherUserSelectorComponent(
                 }
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
-                    "选择要进行二维码签到的用户：",
+                    "选择要进行签到的用户：",
                     modifier = Modifier.padding(start = 3.dp)
                 )
                 Column(

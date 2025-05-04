@@ -318,6 +318,10 @@ class MainActivity : ComponentActivity() {
                                     LocationClient.setAgreePrivacy(true)
                                     SDKInitializer.setAgreePrivacy(applicationContext, true)
                                 }
+                                ChaoxingHttpClient.deviceCode =
+                                    datastore.deviceCode ?: ChaoxingHttpClient.generateDeviceCode(
+                                        applicationContext
+                                    )
                                 destination =
                                     when {
                                         !datastore.agreeTerms -> WelcomeDestination
@@ -338,10 +342,7 @@ class MainActivity : ComponentActivity() {
                                             }
                                         }
                                     }
-                                ChaoxingHttpClient.deviceCode =
-                                    datastore.deviceCode ?: ChaoxingHttpClient.generateDeviceCode(
-                                        applicationContext
-                                    )
+
                             }
                         }
                         if (destination == null) {
@@ -463,7 +464,6 @@ class MainActivity : ComponentActivity() {
                             }
                     }
                 }
-
             }
         }
     }

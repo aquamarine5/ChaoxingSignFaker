@@ -58,7 +58,6 @@ data class ChaoxingSignStatus(
 
     @Composable
     fun ResultCard() {
-
         when (isSuccess.value) {
             true -> {
                 Icon(painterResource(R.drawable.ic_check), "签到成功")

@@ -56,11 +56,18 @@ object ChaoxingOtherUserHelper {
         )
     }
 
-    suspend fun getSharedUrl(context: Context,insertSharedEntity: ChaoxingOtherUserSharedEntity?=null):String=
-        withContext(Dispatchers.IO){
+    suspend fun getSharedUrl(
+        context: Context,
+        insertSharedEntity: ChaoxingOtherUserSharedEntity? = null
+    ): String =
+        withContext(Dispatchers.IO) {
             val sharedEntity =
                 insertSharedEntity ?: getSharedUserEntity(context.chaoxingDataStore.data.first())
-            "http://cdn.aquamarine5.fun/?phone=${sharedEntity.phoneNumber}&pwd=${sharedEntity.encryptedPassword}&name=${Uri.encode(sharedEntity.userName)}"
+            "http://cdn.aquamarine5.fun/?phone=${sharedEntity.phoneNumber}&pwd=${sharedEntity.encryptedPassword}&name=${
+                Uri.encode(
+                    sharedEntity.userName
+                )
+            }"
         }
 
     suspend fun generateQRCode(
@@ -69,7 +76,11 @@ object ChaoxingOtherUserHelper {
     ): Bitmap = withContext(Dispatchers.Default) {
         val qrcodeSize = getQRCodeSize(context)
         val qrCode = QRCodeWriter().encode(
-            getSharedUrl(context, insertSharedEntity), BarcodeFormat.QR_CODE, qrcodeSize, qrcodeSize, mapOf(
+            getSharedUrl(context, insertSharedEntity),
+            BarcodeFormat.QR_CODE,
+            qrcodeSize,
+            qrcodeSize,
+            mapOf(
                 EncodeHintType.CHARACTER_SET to "utf-8",
                 EncodeHintType.MARGIN to 1,
                 EncodeHintType.ERROR_CORRECTION to ErrorCorrectionLevel.M

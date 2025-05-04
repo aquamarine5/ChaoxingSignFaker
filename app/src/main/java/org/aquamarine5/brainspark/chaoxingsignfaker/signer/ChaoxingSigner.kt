@@ -85,7 +85,7 @@ abstract class ChaoxingSigner(
         ).execute().use {
             postAfterAnalysis(
                 """code='\+'([a-f0-9]+)'""".toRegex()
-                    .find(it.body?.string() ?: throw Exception("xx"))?.groupValues?.get(1)
+                    .find(it.body?.string() ?: throw Exception("网络错误"))?.groupValues?.get(1)
                     ?: throw Exception("Cannot find code")
             )
         }

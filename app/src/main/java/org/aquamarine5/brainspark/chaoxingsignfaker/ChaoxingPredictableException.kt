@@ -8,5 +8,5 @@ package org.aquamarine5.brainspark.chaoxingsignfaker
 
 open class ChaoxingPredictableException(
     override val message: String?,
-    val throwable: Throwable? = null
+    throwable: Throwable? = null
 ) : Throwable(message, throwable)

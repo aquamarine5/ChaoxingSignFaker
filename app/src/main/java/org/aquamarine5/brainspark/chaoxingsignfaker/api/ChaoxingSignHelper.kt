@@ -4,7 +4,7 @@
  * Repository: https://github.com/aquamarine5/ChaoxingSignFaker
  */
 
-package org.aquamarine5.brainspark.chaoxingsignfaker.signer
+package org.aquamarine5.brainspark.chaoxingsignfaker.api
 
 import android.content.Context
 import android.widget.Toast
@@ -39,6 +39,4 @@ object ChaoxingSignHelper {
                 null
             }
         }
-
-
 }
