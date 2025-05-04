@@ -115,12 +115,10 @@ fun LoginPage(
                         ChaoxingHttpClient.create(phoneNumber, password, context)
                         UMengHelper.onLoginEvent(context, phoneNumber)
                     }.onFailure {
-                        if (it is ChaoxingPredictableException) {
-                            tipsText = it.message ?: "登录失败"
-                        } else {
+                        if ((it is ChaoxingPredictableException).not()) {
                             Sentry.captureException(it)
-                            tipsText = "登录失败"
                         }
+                        tipsText = it.message ?: "登录失败"
                         showSnackbar(tipsText, null, true, null)
                     }
                 }.invokeOnCompletion {

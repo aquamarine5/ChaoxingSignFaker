@@ -18,6 +18,7 @@ import okhttp3.FormBody
 import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import org.aquamarine5.brainspark.chaoxingsignfaker.ChaoxingPredictableException
 import org.aquamarine5.brainspark.chaoxingsignfaker.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingLoginSession
@@ -37,10 +38,10 @@ class ChaoxingHttpClient private constructor(
     val okHttpClient: OkHttpClient,
     val userEntity: ChaoxingUserEntity
 ) {
-    class ChaoxingLoginException(message: String) : Exception(message)
+    class ChaoxingLoginException(message: String) : ChaoxingPredictableException(message)
 
     class ChaoxingGetUserInfoException(message: String, throwable: Throwable) :
-        Exception(message, throwable)
+        ChaoxingPredictableException(message, throwable)
 
     fun newCall(request: Request): Call = okHttpClient.newCall(request)
 
