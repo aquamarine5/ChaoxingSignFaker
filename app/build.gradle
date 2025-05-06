@@ -17,7 +17,7 @@ plugins {
 stackbricksConfig {
     configJsonFilePath = "chaoxingsignfaker_stackbricks_v2_manifest.json"
     host = "cdn.aquamarine5.fun"
-    changelog = "1.5 大版本更新！强烈建议更新！\n有什么新功能？\n1. 现在代签功能支持位置签到和拍照签到啦，这下舍友不用睁眼也能签到了。\n2. 修复了获取位置速度较慢的BUG。\n3. 优化了界面显示。\n4. 修复了部分崩溃BUG。\n5. 第五人格启动。\n6. 支持了链接分享添加其他用户以代签。"
+    changelog = "大版本更新！强烈建议更新！\n【修复了老版本版本位置签到在低内存设备上可能存在的崩溃问题!】\n1.5 版本有什么新功能？\n1. 现在代签功能支持位置签到和拍照签到啦，这下舍友不用睁眼也能签到了。\n2. 修复了获取位置速度较慢的BUG。\n3. 优化了界面显示。\n4. 修复了部分崩溃BUG。\n5. 第五人格启动。\n6. 支持了链接分享添加其他用户以代签。"
     qiniuConfig {
         accessKey = project.findProperty("qiniu.accessKey") ?: ""
         secretKey = project.findProperty("qiniu.secretKey") ?: ""
@@ -37,8 +37,8 @@ android {
         applicationId = "org.aquamarine5.brainspark.chaoxingsignfaker"
         minSdk = 26
         targetSdk = 35
-        versionCode = 105019169
-        versionName = "1.5.1-stable-250505"
+        versionCode = 106009169
+        versionName = "1.6.0-stable-250507"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -98,6 +98,7 @@ protobuf {
 }
 
 dependencies {
+    implementation("io.github.TheMelody:baidu_compose:1.0.7")
     implementation libs.patternlocker
     implementation libs.androidx.material
     implementation libs.core

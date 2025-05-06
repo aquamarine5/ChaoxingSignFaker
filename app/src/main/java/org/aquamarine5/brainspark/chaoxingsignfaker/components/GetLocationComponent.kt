@@ -6,7 +6,6 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.components
 
-import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.background
@@ -33,9 +32,7 @@ import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -53,9 +50,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.zIndex
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.baidu.location.BDAbstractLocationListener
 import com.baidu.location.BDLocation
 import com.baidu.location.LocationClient
@@ -82,50 +76,9 @@ import com.baidu.mapapi.search.geocode.ReverseGeoCodeOption
 import com.baidu.mapapi.search.geocode.ReverseGeoCodeResult
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationDetailEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationSignEntity
-private fun MapView.lifecycleObserver(previousState: MutableState<Lifecycle.Event>): LifecycleEventObserver =
-    LifecycleEventObserver { _, event ->
-        when (event) {
-            Lifecycle.Event.ON_CREATE ->  {
-                // Skip calling mapView.onCreate if the lifecycle did not go through onDestroy - in
-                // this case the BDMap composable also doesn't leave the composition. So,
-                // recreating the map does not restore state properly which must be avoided.
-                if (previousState.value != Lifecycle.Event.ON_STOP) {
-                    this.onCreate(context, Bundle())
-                }
-            }
-            Lifecycle.Event.ON_RESUME -> this.onResume()
-            Lifecycle.Event.ON_PAUSE -> this.onPause()
-            else -> { /* ignore */ }
-        }
-        previousState.value = event
-    }
-@Composable
-private fun MapLifecycle(mapView: MapView) {
-    val context = LocalContext.current
-    val lifecycle = LocalLifecycleOwner.current.lifecycle
-    val previousState = remember { mutableStateOf(Lifecycle.Event.ON_CREATE) }
-    DisposableEffect(context, lifecycle, mapView) {
-        val mapLifecycleObserver = mapView.lifecycleObserver(previousState)
-
-        lifecycle.addObserver(mapLifecycleObserver)
-
-        onDispose {
-            lifecycle.removeObserver(mapLifecycleObserver)
-        }
-    }
-    DisposableEffect(mapView) {
-        onDispose {
-            // fix memory leak
-            runCatching { mapView.onDestroy() }
-            mapView.removeAllViews()
-        }
-    }
-}
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
@@ -134,400 +87,400 @@ fun GetLocationComponent(
     confirmButtonText: @Composable () -> Unit,
     onLocationResult: (ChaoxingLocationSignEntity) -> Unit
 ) {
-    LocalContext.current.let { context ->
-        val locationClient =
-            LocationClient(context.applicationContext).apply {
-                locOption = LocationClientOption().apply {
-                    setIsNeedAddress(true)
-                    setNeedNewVersionRgc(true)
-                }
+    val context = LocalContext.current
+    val locationClient = remember {
+        LocationClient(context).apply {
+            locOption = LocationClientOption().apply {
+                setFirstLocType(LocationClientOption.FirstLocType.SPEED_IN_FIRST_LOC)
+                setIsNeedAddress(true)
+                setNeedNewVersionRgc(true)
             }
+        }
+    }
 
-        var isShowDialog by remember { mutableStateOf(false) }
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
-        ) {
-            val locationPermissionsState = rememberMultiplePermissionsState(
-                listOf(
-                    android.Manifest.permission.ACCESS_FINE_LOCATION,
-                    android.Manifest.permission.ACCESS_COARSE_LOCATION
-                )
+    var isShowDialog by remember { mutableStateOf(false) }
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
+        val locationPermissionsState = rememberMultiplePermissionsState(
+            listOf(
+                android.Manifest.permission.ACCESS_FINE_LOCATION,
+                android.Manifest.permission.ACCESS_COARSE_LOCATION
             )
-            if (locationPermissionsState.allPermissionsGranted) {
-                SDKInitializer.initialize(context.applicationContext)
-                LaunchedEffect(Unit) {
-                    withContext(Dispatchers.IO) {
-                        locationClient.start()
-                    }
-                }
-                var marker by remember { mutableStateOf<Marker?>(null) }
-                var isNeedLocationDescribe by remember { mutableStateOf(false) }
-                var clickedPosition by remember { mutableStateOf(LatLng(0.0, 0.0)) }
-                var locationRange by remember { mutableStateOf<Int?>(null) }
-                var locationPosition by remember { mutableStateOf<LatLng?>(null) }
-                var clickedName by remember { mutableStateOf("未指定") }
-                var i by remember { mutableIntStateOf(0) }
-                if (isShowDialog) {
-                    AlertDialog(onDismissRequest = {
+        )
+        if (locationPermissionsState.allPermissionsGranted) {
+            SDKInitializer.initialize(context.applicationContext)
+            LaunchedEffect(Unit) {
+                locationClient.start()
+            }
+            var marker by remember { mutableStateOf<Marker?>(null) }
+            var isNeedLocationDescribe by remember { mutableStateOf(false) }
+            var clickedPosition by remember { mutableStateOf(LatLng(0.0, 0.0)) }
+            var locationRange by remember { mutableStateOf<Int?>(null) }
+            var locationPosition by remember { mutableStateOf<LatLng?>(null) }
+            var clickedName by remember { mutableStateOf("未指定") }
+
+            if (isShowDialog) {
+                AlertDialog(onDismissRequest = {
+                    isShowDialog = false
+                }, confirmButton = {
+                    Button(onClick = {
                         isShowDialog = false
-                    }, confirmButton = {
-                        Button(onClick = {
-                            isShowDialog = false
-                        }) {
-                            Text("OK")
-                        }
-                    }, text = {
-                        Column {
-                            TextField(value = clickedName, onValueChange = {
-                                clickedName = it
-                            }, label = {
-                                Text("位置描述")
-                            })
-                            Spacer(modifier = Modifier.height(3.dp))
-                            Card(
-                                shape = RoundedCornerShape(18.dp),
-                                colors = CardDefaults.cardColors(
-                                    containerColor = Color(83, 83, 83)
-                                ), modifier = Modifier
+                    }) {
+                        Text("OK")
+                    }
+                }, text = {
+                    Column {
+                        TextField(value = clickedName, onValueChange = {
+                            clickedName = it
+                        }, label = {
+                            Text("位置描述")
+                        })
+                        Spacer(modifier = Modifier.height(3.dp))
+                        Card(
+                            shape = RoundedCornerShape(18.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = Color(83, 83, 83)
+                            ), modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(3.dp, 3.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(3.dp, 3.dp)
+                                    .padding(10.dp),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(10.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Icon(
-                                        painterResource(R.drawable.ic_info),
-                                        contentDescription = "Info",
-                                        tint = Color.White
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                        buildAnnotatedString {
-                                            append("位置描述和选择的签到位置")
-                                            withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
-                                                append("无关")
-                                            }
-                                            append("，并不会影响签到范围的判断，理论上位置描述可以随便填写，但老师会直接看到你填写的位置描述。")
-                                        },
-                                        color = Color.White,
-                                        fontSize = 13.sp,
-                                        lineHeight = 18.sp,
-                                        fontWeight = FontWeight.W500
-                                    )
-                                }
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Icon(
+                                    painterResource(R.drawable.ic_info),
+                                    contentDescription = "Info",
+                                    tint = Color.White
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    buildAnnotatedString {
+                                        append("位置描述和选择的签到位置")
+                                        withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
+                                            append("无关")
+                                        }
+                                        append("，并不会影响签到范围的判断，理论上位置描述可以随便填写，但老师会直接看到你填写的位置描述。")
+                                    },
+                                    color = Color.White,
+                                    fontSize = 13.sp,
+                                    lineHeight = 18.sp,
+                                    fontWeight = FontWeight.W500
+                                )
+                            }
+                        }
+                    }
+                })
+            }
+            val geoCoder =remember {
+                GeoCoder.newInstance().apply {
+                    setOnGetGeoCodeResultListener(object : OnGetGeoCoderResultListener {
+                        override fun onGetGeoCodeResult(p0: GeoCodeResult?) {}
+
+                        override fun onGetReverseGeoCodeResult(p0: ReverseGeoCodeResult?) {
+                            if (p0 == null || p0.error != SearchResult.ERRORNO.NO_ERROR) {
+                                Log.w(
+                                    "GetLocationPage",
+                                    "ReverseGeoCodeResult error: ${p0?.error}"
+                                )
+                                return
+                            }
+                            if (isNeedLocationDescribe) {
+                                clickedName = p0.address + clickedName
+                                isNeedLocationDescribe = false
+                            } else {
+                                clickedName = p0.poiList?.get(0)?.address ?: p0.address
                             }
                         }
                     })
                 }
-                val geoCoder =
-                    GeoCoder.newInstance().apply {
-                        setOnGetGeoCodeResultListener(object : OnGetGeoCoderResultListener {
-                            override fun onGetGeoCodeResult(p0: GeoCodeResult?) {}
-
-                            override fun onGetReverseGeoCodeResult(p0: ReverseGeoCodeResult?) {
-                                if (p0 == null || p0.error != SearchResult.ERRORNO.NO_ERROR) {
-                                    Log.w(
-                                        "GetLocationPage",
-                                        "ReverseGeoCodeResult error: ${p0?.error}"
-                                    )
-                                    return
-                                }
-                                if (isNeedLocationDescribe) {
-                                    clickedName = p0.address + clickedName
-                                    isNeedLocationDescribe = false
-                                } else {
-                                    clickedName = p0.poiList?.get(0)?.address ?: p0.address
-                                }
-                            }
-                        })
-                    }
-
-                val mapView =
+            }
+            val mapView =remember{
                     MapView(context, BaiduMapOptions().apply {
                         rotateGesturesEnabled(false)
                         overlookingGesturesEnabled(false)
                         compassEnabled(false)
                         zoomControlsEnabled(false)
                     })
-                .apply {
-                    MapLifecycle(this)
-                    LaunchedEffect(Unit) {
-                        isClickable = true
-                        map.setMapStatus(
-                            MapStatusUpdateFactory.newMapStatus(
-                                MapStatus.Builder()
-                                    .zoom(18f)
-                                    .build()
+                }
+                    .apply {
+                        LaunchedEffect(Unit) {
+                            isClickable = true
+                            map.setMapStatus(
+                                MapStatusUpdateFactory.newMapStatus(
+                                    MapStatus.Builder()
+                                        .zoom(18f)
+                                        .build()
+                                )
                             )
-                        )
-                        map.isMyLocationEnabled = true
-                        i++
-                        locationClient.registerLocationListener(object :
-                            BDAbstractLocationListener() {
-                            override fun onReceiveLocation(location: BDLocation?) {
-                                Log.d("GetLocationPage", "onReceiveLocation: $location")
-                                location?.let {
-                                    locationClient.stop()
-                                    map.setMyLocationData(
-                                        MyLocationData.Builder()
-                                            .accuracy(it.radius)
-                                            .direction(it.direction)
-                                            .latitude(it.latitude)
-                                            .longitude(it.longitude)
-                                            .build()
-                                    )
+                            map.isMyLocationEnabled = true
+                            locationClient.registerLocationListener(object :
+                                BDAbstractLocationListener() {
+                                override fun onReceiveLocation(location: BDLocation?) {
+                                    Log.d("GetLocationPage", "onReceiveLocation: $location")
+                                    location?.let {
+                                        locationClient.stop()
+                                        map.setMyLocationData(
+                                            MyLocationData.Builder()
+                                                .accuracy(it.radius)
+                                                .direction(it.direction)
+                                                .latitude(it.latitude)
+                                                .longitude(it.longitude)
+                                                .build()
+                                        )
 
-                                    if (clickedName == "未指定") {
-                                        map.setMapStatus(
-                                            MapStatusUpdateFactory.newLatLng(
-                                                LatLng(
-                                                    it.latitude,
-                                                    it.longitude
+                                        if (clickedName == "未指定") {
+                                            map.setMapStatus(
+                                                MapStatusUpdateFactory.newLatLng(
+                                                    LatLng(
+                                                        it.latitude,
+                                                        it.longitude
+                                                    )
                                                 )
                                             )
+                                            clickedPosition = LatLng(it.latitude, it.longitude)
+                                            clickedName = it.addrStr?.removePrefix("中国") ?: ""
+                                        } else {
+                                            map.animateMapStatus(
+                                                MapStatusUpdateFactory.newLatLngZoom(
+                                                    LatLng(
+                                                        it.latitude,
+                                                        it.longitude
+                                                    ), 18f
+                                                ), 1000
+                                            )
+                                        }
+                                    }
+                                }
+                            })
+                            map.setOnMapClickListener(object : BaiduMap.OnMapClickListener {
+                                override fun onMapClick(p0: LatLng?) {
+                                    p0?.let {
+                                        clickedPosition = it
+                                        geoCoder.reverseGeoCode(
+                                            ReverseGeoCodeOption()
+                                                .location(it)
+                                                .newVersion(1)
+                                                .radius(500)
                                         )
-                                        clickedPosition = LatLng(it.latitude, it.longitude)
-                                        clickedName = it.addrStr?.removePrefix("中国") ?: ""
-                                    }else{
-                                        map.animateMapStatus(
-                                            MapStatusUpdateFactory.newLatLngZoom(
-                                                LatLng(
-                                                    it.latitude,
-                                                    it.longitude
-                                                ), 18f
-                                            ), 1000
+                                        if (marker == null) {
+                                            val icon =
+                                                BitmapDescriptorFactory.fromResource(R.drawable.ic_geo_alt_fill)
+                                            marker = map.addOverlay(
+                                                MarkerOptions()
+                                                    .position(it)
+                                                    .icon(icon)
+                                                    .draggable(true)
+                                            ) as Marker
+                                        } else {
+                                            marker!!.position = it
+                                        }
+                                    }
+                                }
+
+                                override fun onMapPoiClick(p0: MapPoi?) {
+                                    p0?.let {
+                                        clickedPosition = it.position
+                                        clickedName = it.name
+                                        isNeedLocationDescribe = true
+                                        geoCoder.reverseGeoCode(
+                                            ReverseGeoCodeOption()
+                                                .location(it.position)
+                                                .newVersion(1)
+                                                .pageSize(2)
+                                                .radius(500)
+                                        )
+                                        if (marker == null) {
+                                            marker = map.addOverlay(
+                                                MarkerOptions()
+                                                    .position(it.position)
+                                                    .draggable(true)
+                                                    .icon(BitmapDescriptorFactory.fromResource(R.drawable.ic_geo_alt_fill))
+                                            ) as Marker
+                                        } else {
+                                            marker!!.position = it.position
+                                        }
+                                    }
+                                }
+                            })
+
+                            map.setOnMarkerDragListener(object : BaiduMap.OnMarkerDragListener {
+                                override fun onMarkerDrag(p0: Marker?) {}
+
+                                override fun onMarkerDragEnd(p0: Marker?) {
+                                    Log.d("GetLocationPage", "onMarkerDragEnd: $p0")
+                                    p0?.let {
+                                        clickedPosition = it.position
+                                        geoCoder.reverseGeoCode(
+                                            ReverseGeoCodeOption()
+                                                .location(it.position)
+                                                .newVersion(1)
+                                                .radius(500)
                                         )
                                     }
                                 }
-                            }
-                        })
-                        map.setOnMapClickListener(object : BaiduMap.OnMapClickListener {
-                            override fun onMapClick(p0: LatLng?) {
-                                p0?.let {
-                                    clickedPosition = it
-                                    geoCoder.reverseGeoCode(
-                                        ReverseGeoCodeOption()
-                                            .location(it)
-                                            .newVersion(1)
-                                            .radius(500)
+
+                                override fun onMarkerDragStart(p0: Marker?) {}
+                            })
+                            if (locationInfo != null && locationInfo.isAvailable()) {
+                                locationRange = locationInfo.locationRange
+
+                                locationPosition =
+                                    LatLng(locationInfo.latitude!!, locationInfo.longitude!!)
+                                map.setMapStatus(
+                                    MapStatusUpdateFactory.newLatLng(
+                                        locationPosition
                                     )
-                                    if (marker == null) {
-                                        val icon =
-                                            BitmapDescriptorFactory.fromResource(R.drawable.ic_geo_alt_fill)
-                                        marker = map.addOverlay(
-                                            MarkerOptions()
-                                                .position(it)
-                                                .icon(icon)
-                                                .draggable(true)
-                                        ) as Marker
-                                    } else {
-                                        marker!!.position = it
-                                    }
-                                }
-                            }
-
-                            override fun onMapPoiClick(p0: MapPoi?) {
-                                p0?.let {
-                                    clickedPosition = it.position
-                                    clickedName = it.name
-                                    isNeedLocationDescribe = true
-                                    geoCoder.reverseGeoCode(
-                                        ReverseGeoCodeOption()
-                                            .location(it.position)
-                                            .newVersion(1)
-                                            .pageSize(2)
-                                            .radius(500)
-                                    )
-                                    if (marker == null) {
-                                        marker = map.addOverlay(
-                                            MarkerOptions()
-                                                .position(it.position)
-                                                .draggable(true)
-                                                .icon(BitmapDescriptorFactory.fromResource(R.drawable.ic_geo_alt_fill))
-                                        ) as Marker
-                                    } else {
-                                        marker!!.position = it.position
-                                    }
-                                }
-                            }
-                        })
-
-                        map.setOnMarkerDragListener(object : BaiduMap.OnMarkerDragListener {
-                            override fun onMarkerDrag(p0: Marker?) {}
-
-                            override fun onMarkerDragEnd(p0: Marker?) {
-                                Log.d("GetLocationPage", "onMarkerDragEnd: $p0")
-                                p0?.let {
-                                    clickedPosition = it.position
-                                    geoCoder.reverseGeoCode(
-                                        ReverseGeoCodeOption()
-                                            .location(it.position)
-                                            .newVersion(1)
-                                            .radius(500)
-                                    )
-                                }
-                            }
-
-                            override fun onMarkerDragStart(p0: Marker?) {}
-                        })
-                    }
-                    if (locationInfo != null && locationInfo.isAvailable()) {
-                        locationRange = locationInfo.locationRange
-
-                        locationPosition =
-                            LatLng(locationInfo.latitude!!, locationInfo.longitude!!)
-                        map.setMapStatus(
-                            MapStatusUpdateFactory.newLatLng(
-                                locationPosition
-                            )
-                        )
-                        map.addOverlay(
-                            CircleOptions()
-                                .center(locationPosition)
-                                .radius(locationInfo.locationRange!!)
-                                .fillColor(android.graphics.Color.argb(128, 255, 0, 0))
-                        )
-                    }
-                }
-                DisposableEffect(Unit) {
-                    onDispose {
-                        mapView.onDestroy()
-                        locationClient.stop()
-                        mapView.map.isMyLocationEnabled = false
-                        geoCoder.destroy()
-                    }
-                }
-                Row(
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(6.dp)
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            "经度: ${
-                                "%.5f".format(clickedPosition.longitude)
-                            },纬度: ${
-                                "%.5f".format(
-                                    clickedPosition.latitude
                                 )
-                            }",
-                            maxLines = 1
-                        )
-                        Text(
-                            "位置: $clickedName",
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
+                                map.addOverlay(
+                                    CircleOptions()
+                                        .center(locationPosition)
+                                        .radius(locationInfo.locationRange!!)
+                                        .fillColor(android.graphics.Color.argb(128, 255, 0, 0))
+                                )
+                            }
+                        }
                     }
-                    Button(onClick = {
-                        if (marker == null) {
+            DisposableEffect(Unit) {
+                onDispose {
+                    mapView.onDestroy()
+                    locationClient.stop()
+                    mapView.map.isMyLocationEnabled = false
+                    geoCoder.destroy()
+                }
+            }
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(6.dp)
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        "经度: ${
+                            "%.5f".format(clickedPosition.longitude)
+                        },纬度: ${
+                            "%.5f".format(
+                                clickedPosition.latitude
+                            )
+                        }",
+                        maxLines = 1
+                    )
+                    Text(
+                        "位置: $clickedName",
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                Button(onClick = {
+                    if (marker == null) {
+                        Toast.makeText(
+                            context,
+                            "请先点击地图选择位置",
+                            Toast.LENGTH_SHORT
+                        )
+                            .show()
+                        return@Button
+                    }
+                    if (locationRange != null && locationPosition != null) {
+                        if (CoordUtil.getDistance(
+                                CoordUtil.ll2point(clickedPosition),
+                                CoordUtil.ll2point(locationPosition)
+                            ) > locationRange!!
+                        ) {
                             Toast.makeText(
                                 context,
-                                "请先点击地图选择位置",
+                                "位置超出范围",
                                 Toast.LENGTH_SHORT
                             )
                                 .show()
                             return@Button
                         }
-                        if (locationRange != null && locationPosition != null) {
-                            if (CoordUtil.getDistance(
-                                    CoordUtil.ll2point(clickedPosition),
-                                    CoordUtil.ll2point(locationPosition)
-                                ) > locationRange!!
-                            ) {
-                                Toast.makeText(
-                                    context,
-                                    "位置超出范围",
-                                    Toast.LENGTH_SHORT
-                                )
-                                    .show()
-                                return@Button
-                            }
-                        }
-                        onLocationResult(
-                            ChaoxingLocationSignEntity(
-                                clickedPosition.latitude,
-                                clickedPosition.longitude,
-                                clickedName
-                            )
+                    }
+                    onLocationResult(
+                        ChaoxingLocationSignEntity(
+                            clickedPosition.latitude,
+                            clickedPosition.longitude,
+                            clickedName
                         )
-                    }, modifier = Modifier.width(80.dp)) {
-                        confirmButtonText()
-                    }
-                }
-                Box(modifier = Modifier.fillMaxSize()) {
-                    Column(
-                        modifier = Modifier
-                            .align(Alignment.BottomEnd)
-                            .zIndex(1f)
-                            .padding(22.dp)
-                    ) {
-                        FloatingActionButton(onClick = {
-                            isShowDialog = true
-                        }) {
-                            Icon(
-                                painterResource(R.drawable.ic_edit),
-                                contentDescription = "修改备注"
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(8.dp))
-                        FloatingActionButton(onClick = {
-                            Log.d("GetLocationPage", "onClick: ")
-                            locationClient.start()
-                        }) {
-                            Icon(
-                                painterResource(R.drawable.ic_locate_fixed),
-                                contentDescription = "定位"
-                            )
-                        }
-                    }
-                    AndroidView(
-                        factory = {
-                            mapView
-                        }, modifier = Modifier.zIndex(0f)
                     )
+                }, modifier = Modifier.width(80.dp)) {
+                    confirmButtonText()
                 }
-            } else {
-                val allPermissionsRevoked =
-                    locationPermissionsState.permissions.size ==
-                            locationPermissionsState.revokedPermissions.size
-
-                val textToShow = if (!allPermissionsRevoked) {
-                    "我们需要更加精确的位置信息。"
-                } else if (locationPermissionsState.shouldShowRationale) {
-                    "我们真的需要你的位置信息。"
-                } else {
-                    "我们需要你的位置信息。"
-                }
-
-                val buttonText = if (!allPermissionsRevoked) {
-                    "授予精准位置权限"
-                } else {
-                    "授予位置权限"
-                }
-
+            }
+            Box(modifier = Modifier.fillMaxSize()) {
                 Column(
-                    modifier = Modifier.fillMaxSize(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .zIndex(1f)
+                        .padding(22.dp)
                 ) {
-                    Text(text = textToShow)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Button(
-                        onClick = { locationPermissionsState.launchMultiplePermissionRequest() },
-                        modifier = Modifier.align(Alignment.CenterHorizontally)
-                    ) {
-                        Text(buttonText)
+                    FloatingActionButton(onClick = {
+                        isShowDialog = true
+                    }) {
+                        Icon(
+                            painterResource(R.drawable.ic_edit),
+                            contentDescription = "修改备注"
+                        )
                     }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    FloatingActionButton(onClick = {
+                        Log.d("GetLocationPage", "onClick: ")
+                        locationClient.start()
+                    }) {
+                        Icon(
+                            painterResource(R.drawable.ic_locate_fixed),
+                            contentDescription = "定位"
+                        )
+                    }
+                }
+                AndroidView(
+                    factory = {
+                        mapView
+                    }, modifier = Modifier.zIndex(0f), onRelease = {
+                        runCatching { it.onDestroy() }
+                        it.removeAllViews()
+                    }
+                )
+            }
+        } else {
+            val allPermissionsRevoked =
+                locationPermissionsState.permissions.size ==
+                        locationPermissionsState.revokedPermissions.size
+
+            val textToShow = if (!allPermissionsRevoked) {
+                "我们需要更加精确的位置信息。"
+            } else if (locationPermissionsState.shouldShowRationale) {
+                "我们真的需要你的位置信息。"
+            } else {
+                "我们需要你的位置信息。"
+            }
+
+            val buttonText = if (!allPermissionsRevoked) {
+                "授予精准位置权限"
+            } else {
+                "授予位置权限"
+            }
+
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(text = textToShow)
+                Spacer(modifier = Modifier.height(8.dp))
+                Button(
+                    onClick = { locationPermissionsState.launchMultiplePermissionRequest() },
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                ) {
+                    Text(buttonText)
                 }
             }
         }
-
     }
 }
