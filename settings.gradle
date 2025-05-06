@@ -52,6 +52,7 @@ dependencyResolutionManagement {
                 includeModule("org.aquamarine5.brainspark","stackbricks")
             }
         }
+
         mavenCentral()
         maven {
             url ="https://maven.pkg.github.com/aquamarine5/stackbricks-gradle-plugin"
