@@ -45,6 +45,7 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -141,7 +142,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
         AlertDialog(onDismissRequest = {
             isURLSharedDialog = false
         }, confirmButton = {
-            Button(onClick = {
+            OutlinedButton(onClick = {
                 isURLSharedDialog = false
             }) { Text("关闭") }
         }, title = {
