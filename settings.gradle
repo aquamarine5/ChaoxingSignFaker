@@ -31,8 +31,6 @@ pluginManagement {
                 password = System.getenv("GHP_TOKEN")
             }
         }
-        maven { url = uri("https://mirrors.tencent.com/nexus/repository/maven-public/") }
-
         gradlePluginPortal()
     }
 }
@@ -56,8 +54,6 @@ dependencyResolutionManagement {
         }
 
         mavenCentral()
-        maven { url = uri("https://mirrors.tencent.com/nexus/repository/maven-public/") }
-
         maven {
             url ="https://maven.pkg.github.com/aquamarine5/stackbricks-gradle-plugin"
             credentials {

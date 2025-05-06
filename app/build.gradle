@@ -98,7 +98,6 @@ protobuf {
 }
 
 dependencies {
-    implementation("io.github.TheMelody:baidu_compose:1.0.7")
     implementation libs.patternlocker
     implementation libs.androidx.material
     implementation libs.core
