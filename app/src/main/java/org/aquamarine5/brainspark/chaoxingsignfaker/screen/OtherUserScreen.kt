@@ -36,6 +36,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -66,6 +67,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
@@ -82,6 +85,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
+import org.aquamarine5.brainspark.chaoxingsignfaker.ChaoxingPredictableException
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
@@ -102,6 +106,7 @@ object OtherUserGraphDestination
 fun OtherUserScreen(naviBack: () -> Unit) {
     val context = LocalContext.current
     var inputUrl by remember { mutableStateOf("") }
+    var isInputDialog by remember { mutableStateOf(false) }
     var isURLSharedDialog by remember { mutableStateOf(false) }
     val isQRCodeScanPause = remember { mutableStateOf(false) }
     var isQRCodeScanning by remember { mutableStateOf(false) }
@@ -137,6 +142,103 @@ fun OtherUserScreen(naviBack: () -> Unit) {
         LaunchedEffect(Unit) {
             qrCode = ChaoxingOtherUserHelper.generateQRCode(context, importSharedEntity)
         }
+    }
+    if (isInputDialog) {
+        AlertDialog(onDismissRequest = {
+            isInputDialog = false
+        }, confirmButton = {
+            OutlinedButton(onClick = {
+                isInputDialog = false
+            }) {
+                Text("关闭")
+            }
+        },icon={
+            Icon(painterResource(R.drawable.ic_text_cursor_input),null)
+        }, title = {
+            Text("通过账号密码的形式添加他人的用户数据")
+        }, text = {
+            var phoneNumber by remember { mutableStateOf("") }
+            var password by remember { mutableStateOf("") }
+            Column{
+                Card(
+                    shape = RoundedCornerShape(18.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color(0xFFF8D86A)
+                    ), modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(6.dp, 0.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Icon(
+                            painterResource(R.drawable.ic_triangle_alert),
+                            contentDescription = "Alert",
+                            tint = Color.White
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            "在添加他人账号前请先取得对方同意。",
+                            color = Color.White,
+                            fontSize = 13.sp,
+                            lineHeight = 18.sp,
+                            fontWeight = FontWeight.W500
+                        )
+                    }
+                }
+                OutlinedTextField(
+                    value = phoneNumber,
+                    onValueChange = { phoneNumber = it },
+                    label = { Text("手机号") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = password,
+                    onValueChange = { password = it },
+                    label = { Text("密码") },
+                    visualTransformation = PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Button(onClick = {
+                    coroutineScope.launch {
+                        runCatching {
+                            ChaoxingHttpClient.checkSharedEntity(
+                                phoneNumber,
+                                password,
+                                context
+                            )
+                        }.onFailure {
+                            if((it is ChaoxingPredictableException).not()){
+                                Sentry.captureException(it)
+                            }
+                            Toast.makeText(context, it.message ?: "登录失败", Toast.LENGTH_SHORT).show()
+                        }.onSuccess {
+                            runCatching {
+                                ChaoxingOtherUserHelper.saveOtherUser(
+                                    context,
+                                    it
+                                )
+                            }.onSuccess {
+                                Toast.makeText(context, "导入成功", Toast.LENGTH_SHORT).show()
+                                UMengHelper.onAccountOtherUserAddEvent(context, it)
+                                otherUserSessions.add(it)
+                            }.onFailure {
+                                it.printStackTrace()
+                                Sentry.captureException(it)
+                                Toast.makeText(context, "导入失败", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    }
+                },modifier=Modifier.fillMaxWidth()) { Text("添加") }
+            }
+
+        })
     }
     if (isURLSharedDialog) {
         AlertDialog(onDismissRequest = {
@@ -264,6 +366,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             val qrcodeSize = ChaoxingOtherUserHelper.getQRCodeDpSize(context)
+            Spacer(modifier = Modifier.height(8.dp))
             Box(
                 modifier = Modifier
                     .border(
@@ -398,6 +501,16 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                             tint = MaterialTheme.colorScheme.primary
                         )
                     }
+                }
+                IconButton(onClick = {
+
+                }) {
+                    Icon(
+                        painterResource(R.drawable.ic_text_cursor_input),
+                        null,
+                        modifier = Modifier.size(28.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
                 }
             }
             Spacer(modifier = Modifier.height(12.dp))

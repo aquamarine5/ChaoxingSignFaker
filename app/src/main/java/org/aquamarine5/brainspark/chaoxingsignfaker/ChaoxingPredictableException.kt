@@ -9,4 +9,7 @@ package org.aquamarine5.brainspark.chaoxingsignfaker
 open class ChaoxingPredictableException(
     override val message: String?,
     throwable: Throwable? = null
-) : Throwable(message, throwable)
+) : Throwable(message, throwable){
+    class ApplicationIllegalChannelException(
+    ) : ChaoxingPredictableException("Illegal channel detected. Please check your app version and channel.")
+}

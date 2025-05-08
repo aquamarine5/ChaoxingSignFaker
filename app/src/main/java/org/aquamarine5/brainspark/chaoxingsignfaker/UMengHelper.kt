@@ -7,12 +7,15 @@
 package org.aquamarine5.brainspark.chaoxingsignfaker
 
 import android.content.Context
+import android.content.pm.PackageInfo
 import com.umeng.analytics.MobclickAgent
 import com.umeng.commonsdk.UMConfigure
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationSignEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingUserEntity
 import org.aquamarine5.brainspark.stackbricks.StackbricksVersionData
+import java.security.MessageDigest
 
 object UMengHelper {
     private const val API_KEY = "67d42c1c48ac1b4f87e7edae"
@@ -35,6 +38,11 @@ object UMengHelper {
         "stackbricks_check_on_launch_status_changed"
     private const val EVENT_TAG_STACKBRICKS_TEST_CHANNEL_CHANGED =
         "stackbricks_test_channel_status_changed"
+
+    @OptIn(ExperimentalStdlibApi::class)
+    fun md5(str:String): String {
+        return MessageDigest.getInstance("MD5").digest(str.toByteArray()).toHexString()
+    }
 
     fun preInit(context: Context) {
         UMConfigure.preInit(context, API_KEY, API_CHANNEL)
@@ -60,6 +68,19 @@ object UMengHelper {
 
     fun onLoginEvent(context: Context, phoneNumber: String) {
         onEvent(context, EVENT_TAG_ACCOUNT_LOGIN, mapOf("phone" to phoneNumber))
+    }
+
+    fun onIllegalChannelEvent(context: Context, applicationInfo: PackageInfo) {
+        onEvent(
+            context,
+            EVENT_TAG_ILLEGAL_CHANNEL,
+            mapOf(
+                "name" to applicationInfo.applicationInfo!!.name,
+                "label" to context.packageManager.getApplicationLabel(applicationInfo.applicationInfo!!),
+                "version" to applicationInfo.versionName.toString(),
+                "user" to ChaoxingHttpClient.instance!!.userEntity.name
+            )
+        )
     }
 
     suspend fun onSignLocationEvent(
