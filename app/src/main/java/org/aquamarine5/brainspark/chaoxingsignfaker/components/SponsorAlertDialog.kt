@@ -71,6 +71,7 @@ fun SponsorAlertDialog(showDialog: MutableState<Boolean>) {
         listOf("不愿透露姓名的耿先生", "8.88"),
         listOf("不愿透露姓名的景先生", "7.66"),
         listOf("G*.", "6.66"),
+        listOf("R*e","6.66"),
         listOf("不愿透露姓名的高先生", "6.66"),
         listOf("云端哥特", "6.60"),
         listOf("*.", "6.00"),

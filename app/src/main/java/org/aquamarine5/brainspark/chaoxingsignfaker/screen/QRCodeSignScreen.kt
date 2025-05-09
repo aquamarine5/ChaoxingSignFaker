@@ -78,6 +78,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.components.AlreadySignedNoti
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.GetLocationComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.QRCodeScanComponent
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.SponsorPopupDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationSignEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
@@ -151,6 +152,10 @@ fun QRCodeSignScreen(
                 var job by remember { mutableStateOf<Job?>(null) }
                 val userSelections = remember { mutableStateListOf(true) }
                 val signStatus = remember { mutableStateListOf(ChaoxingSignStatus()) }
+                var isSponsor by remember { mutableStateOf(false) }
+                if (isSponsor) {
+                    SponsorPopupDialog()
+                }
                 var success by signStatus[0].isSuccess
                 Box(
                     modifier = Modifier
@@ -398,6 +403,9 @@ fun QRCodeSignScreen(
                                                     context,
                                                     ChaoxingHttpClient.instance!!.userEntity.name
                                                 )
+                                                if(signUserList.isEmpty()){
+                                                    isSponsor=true
+                                                }
                                             }.onFailure {
                                                 it.printStackTrace()
                                                 signStatus[0].failed(it)
@@ -428,6 +436,9 @@ fun QRCodeSignScreen(
                                                         true
                                                     )
                                                     userSelections[1 + index] = false
+                                                    if(index==signUserList.size-1){
+                                                        isSponsor=true
+                                                    }
                                                 }.onFailure {
                                                     it.printStackTrace()
                                                     signStatus[1 + index].failed(it)

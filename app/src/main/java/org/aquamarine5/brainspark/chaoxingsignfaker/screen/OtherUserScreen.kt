@@ -48,6 +48,9 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -152,21 +155,21 @@ fun OtherUserScreen(naviBack: () -> Unit) {
             }) {
                 Text("关闭")
             }
-        },icon={
-            Icon(painterResource(R.drawable.ic_text_cursor_input),null)
+        }, icon = {
+            Icon(painterResource(R.drawable.ic_text_cursor_input), null, tint=MaterialTheme.colorScheme.primary)
         }, title = {
             Text("通过账号密码的形式添加他人的用户数据")
         }, text = {
             var phoneNumber by remember { mutableStateOf("") }
             var password by remember { mutableStateOf("") }
-            Column{
+            Column {
                 Card(
                     shape = RoundedCornerShape(18.dp),
                     colors = CardDefaults.cardColors(
                         containerColor = Color(0xFFF8D86A)
                     ), modifier = Modifier
                         .fillMaxWidth()
-                        .padding(6.dp, 0.dp)
+                        .padding(0.dp, 6.dp)
                 ) {
                     Row(
                         modifier = Modifier
@@ -205,6 +208,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                     modifier = Modifier.fillMaxWidth()
                 )
+                Spacer(modifier = Modifier.height(4.dp))
                 Button(onClick = {
                     coroutineScope.launch {
                         runCatching {
@@ -214,10 +218,11 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                 context
                             )
                         }.onFailure {
-                            if((it is ChaoxingPredictableException).not()){
+                            if ((it is ChaoxingPredictableException).not()) {
                                 Sentry.captureException(it)
                             }
-                            Toast.makeText(context, it.message ?: "登录失败", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, it.message ?: "登录失败", Toast.LENGTH_SHORT)
+                                .show()
                         }.onSuccess {
                             runCatching {
                                 ChaoxingOtherUserHelper.saveOtherUser(
@@ -228,14 +233,20 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                 Toast.makeText(context, "导入成功", Toast.LENGTH_SHORT).show()
                                 UMengHelper.onAccountOtherUserAddEvent(context, it)
                                 otherUserSessions.add(it)
+                                isInputDialog = false
                             }.onFailure {
                                 it.printStackTrace()
-                                Sentry.captureException(it)
-                                Toast.makeText(context, "导入失败", Toast.LENGTH_SHORT).show()
+                                val message = if ((it is ChaoxingPredictableException).not()) {
+                                    Sentry.captureException(it)
+                                    it.message
+                                } else it.message
+                                Toast.makeText(context, message ?: "导入失败", Toast.LENGTH_SHORT)
+                                    .show()
+                                isInputDialog = false
                             }
                         }
                     }
-                },modifier=Modifier.fillMaxWidth()) { Text("添加") }
+                }, modifier = Modifier.fillMaxWidth()) { Text("添加") }
             }
 
         })
@@ -250,7 +261,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
         }, title = {
             Text("通过文本链接的形式分享自己的用户数据")
         }, icon = {
-            Icon(painterResource(R.drawable.ic_link), null)
+            Icon(painterResource(R.drawable.ic_link), null, tint=MaterialTheme.colorScheme.primary)
         }, text = {
             Column {
                 Text("对方将链接从浏览器打开即可导入你的用户数据（对方需更新到1.5版本及以上），或将链接粘贴到以下输入框中：")
@@ -298,10 +309,20 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                 }.onSuccess {
                                     Toast.makeText(context, "导入成功", Toast.LENGTH_SHORT).show()
                                     UMengHelper.onAccountOtherUserAddEvent(context, it)
+                                    isURLSharedDialog = false
                                 }.onFailure {
                                     it.printStackTrace()
-                                    Sentry.captureException(it)
-                                    Toast.makeText(context, "导入失败", Toast.LENGTH_SHORT).show()
+                                    val message = if ((it is ChaoxingPredictableException).not()) {
+                                        Sentry.captureException(it)
+                                        it.message
+                                    } else it.message
+                                    Toast.makeText(
+                                        context,
+                                        message ?: "导入失败",
+                                        Toast.LENGTH_SHORT
+                                    )
+                                        .show()
+                                    isURLSharedDialog = false
                                 }
                             }
                         } else
@@ -461,34 +482,42 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                 }
             }
             Spacer(modifier = Modifier.height(20.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center
+            SingleChoiceSegmentedButtonRow(
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Button(
+                SegmentedButton(
                     onClick = {
                         isQRCodeScanning = true
-                    }, shape = RoundedCornerShape(18.dp), modifier = Modifier
-                        .weight(1f)
-                        .padding(6.dp, 0.dp)
+                    }, shape = SegmentedButtonDefaults.itemShape(
+                        index = 0,
+                        count = 3
+                    ), selected = false, colors = SegmentedButtonDefaults.colors(
+                        inactiveContainerColor = MaterialTheme.colorScheme.secondaryContainer
+                    )
                 ) {
                     Row(
                         horizontalArrangement = Arrangement.Center,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
-                            painterResource(R.drawable.ic_user_round_plus),
-                            contentDescription = "Add User"
+                            painterResource(R.drawable.ic_scan_qr_code),
+                            contentDescription = "Add User",
+                            modifier = Modifier.size(22.dp),
+                            tint = MaterialTheme.colorScheme.primary
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("扫码添加其他用户", fontSize = 16.sp)
+                        Spacer(modifier = Modifier.width(2.dp))
+                        Text("扫码添加")
                     }
                 }
-                IconButton(
+                SegmentedButton(
                     onClick = {
                         isURLSharedDialog = true
-                    }
+                    }, shape = SegmentedButtonDefaults.itemShape(
+                        index = 1,
+                        count = 3
+                    ), selected = false, colors = SegmentedButtonDefaults.colors(
+                        inactiveContainerColor = MaterialTheme.colorScheme.secondaryContainer
+                    )
                 ) {
                     Row(
                         horizontalArrangement = Arrangement.Center,
@@ -497,20 +526,36 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                         Icon(
                             painterResource(R.drawable.ic_share),
                             contentDescription = "Add User",
-                            modifier = Modifier.size(28.dp),
+                            modifier = Modifier.size(22.dp),
                             tint = MaterialTheme.colorScheme.primary
                         )
+                        Spacer(modifier = Modifier.width(2.dp))
+                        Text("链接添加")
                     }
                 }
-                IconButton(onClick = {
-
-                }) {
-                    Icon(
-                        painterResource(R.drawable.ic_text_cursor_input),
-                        null,
-                        modifier = Modifier.size(28.dp),
-                        tint = MaterialTheme.colorScheme.primary
+                SegmentedButton(
+                    onClick = {
+                        isInputDialog = true
+                    }, shape = SegmentedButtonDefaults.itemShape(
+                        index = 2,
+                        count = 3
+                    ), selected = false, colors = SegmentedButtonDefaults.colors(
+                        inactiveContainerColor = MaterialTheme.colorScheme.secondaryContainer
                     )
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            painterResource(R.drawable.ic_text_cursor_input),
+                            null,
+                            modifier = Modifier.size(22.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.width(2.dp))
+                        Text("手动添加")
+                    }
                 }
             }
             Spacer(modifier = Modifier.height(12.dp))
