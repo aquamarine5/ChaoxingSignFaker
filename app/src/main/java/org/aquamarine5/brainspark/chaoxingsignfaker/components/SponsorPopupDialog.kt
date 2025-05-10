@@ -29,7 +29,7 @@ fun SponsorPopupDialog() {
     val isShowSponsor = remember{ mutableStateOf(false)}
     if (isShowDialog)
         AlertDialog(onDismissRequest = {
-            isShowDialog = true
+            isShowDialog = false
         }, icon = {
             Icon(painterResource(R.drawable.ic_heart_handshake),null, tint=MaterialTheme.colorScheme.primary)
         },title={
