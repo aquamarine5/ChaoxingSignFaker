@@ -7,6 +7,7 @@
 package org.aquamarine5.brainspark.chaoxingsignfaker
 
 import android.content.Intent
+import android.content.pm.PackageManager.GET_META_DATA
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -44,6 +45,14 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingOtherUserShar
 class ImportOtherUserActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val versionData = packageManager.getPackageInfo(
+            packageName,
+            GET_META_DATA
+        )
+        if(UMengHelper.md5(packageManager.getApplicationLabel(versionData.applicationInfo!!).toString())!="181b23fb3bfa29181fcde41f72757e97"){
+            UMengHelper.onIllegalChannelEvent(this,versionData)
+            throw ChaoxingPredictableException.ApplicationIllegalChannelException()
+        }
         setContent {
             Scaffold { innerPadding ->
                 Column(

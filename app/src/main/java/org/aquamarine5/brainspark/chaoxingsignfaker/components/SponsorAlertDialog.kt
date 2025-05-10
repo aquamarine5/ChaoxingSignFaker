@@ -66,10 +66,12 @@ private const val SPONSOR_IMAGE_FILENAME_BASE = "ChaoxingSignFaker_sponsor"
 fun SponsorAlertDialog(showDialog: MutableState<Boolean>) {
     val context = LocalActivity.current!!.applicationContext
     val sponsorList = listOf(
+        listOf("Xcellent","18.80"),
         listOf("催什么崔", "8.88"),
         listOf("不愿透露姓名的耿先生", "8.88"),
         listOf("不愿透露姓名的景先生", "7.66"),
         listOf("G*.", "6.66"),
+        listOf("R*e","6.66"),
         listOf("不愿透露姓名的高先生", "6.66"),
         listOf("云端哥特", "6.60"),
         listOf("*.", "6.00"),
@@ -144,7 +146,7 @@ fun SponsorAlertDialog(showDialog: MutableState<Boolean>) {
                                         ?.use { outputStream ->
                                             ContextCompat.getDrawable(
                                                 context,
-                                                R.drawable.image_sponsor
+                                                R.drawable.img_sponsor
                                             )!!
                                                 .toBitmap().compress(
                                                     android.graphics.Bitmap.CompressFormat.PNG,
@@ -204,7 +206,7 @@ fun SponsorAlertDialog(showDialog: MutableState<Boolean>) {
             Column(
                 modifier = Modifier.verticalScroll(rememberScrollState())
             ) {
-                Image(painterResource(R.drawable.image_sponsor), contentDescription = "sponsor")
+                Image(painterResource(R.drawable.img_sponsor), contentDescription = "sponsor")
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     "捐赠列表：",

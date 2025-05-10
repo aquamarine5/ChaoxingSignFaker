@@ -305,15 +305,7 @@ class ChaoxingHttpClient private constructor(
                         phoneNumber,
                         encryptedPassword,
                         getInfo(tempOkHttpClient).name
-                    ).apply {
-                        context.chaoxingDataStore.updateData { datastore ->
-                            datastore.toBuilder().setLoginSession(
-                                datastore.loginSession.toBuilder()
-                                    .setPassword(encryptedPassword)
-                                    .setPhoneNumber(phoneNumber).build()
-                            ).build()
-                        }
-                    }
+                    )
                 }
             }
 

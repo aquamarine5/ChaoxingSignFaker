@@ -77,6 +77,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.components.AlreadySignedNoti
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CameraComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.OtherUserSelectorComponent
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.SponsorPopupDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignStatus
@@ -121,6 +122,10 @@ fun PhotoSignScreen(
         var isSignSuccess by remember { mutableStateOf(false) }
         var isShowPhotoPicker by remember { mutableStateOf(false) }
         var isForSelf by remember { mutableStateOf(false) }
+        var isSponsor by remember { mutableStateOf(false) }
+        if (isSponsor) {
+            SponsorPopupDialog()
+        }
         LaunchedEffect(Unit) {
             runCatching {
                 isImage = signer.ifPhotoRequiredLogin()
@@ -196,6 +201,9 @@ fun PhotoSignScreen(
                                                     ChaoxingHttpClient.instance!!.userEntity.name
                                                 )
                                                 signStatus[0].success()
+                                                if (otherUserSessionList.isEmpty()) {
+                                                    isSponsor = true
+                                                }
                                             }
                                         otherUserSessionList.forEachIndexed { index, userSession ->
                                             runCatching {
@@ -235,6 +243,7 @@ fun PhotoSignScreen(
                                                     isOtherUser = true
                                                 )
                                                 signStatus[1 + index].success()
+                                                if(index==otherUserSessionList.size-1){ isSponsor = true }
                                             }
                                         }
                                     }
@@ -447,6 +456,9 @@ fun PhotoSignScreen(
                                                                         ChaoxingHttpClient.instance!!.userEntity.name
                                                                     )
                                                                     signStatus[0].success()
+                                                                    if (otherUserSessionForSignList.isEmpty()) {
+                                                                        isSponsor = true
+                                                                    }
                                                                 }
                                                             }
                                                             otherUserSessionForSignList
@@ -493,6 +505,7 @@ fun PhotoSignScreen(
                                                                             it.userEntity.name
                                                                         )
                                                                         signStatus[1 + index].success()
+                                                                        if(index==otherUserSessionForSignList.size-1){ isSponsor = true }
                                                                     }
                                                                 }
                                                         }

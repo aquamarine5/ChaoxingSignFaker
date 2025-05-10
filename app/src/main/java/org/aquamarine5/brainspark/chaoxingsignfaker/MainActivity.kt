@@ -130,10 +130,15 @@ class MainActivity : ComponentActivity() {
             if (Debug.isDebuggerConnected()) {
                 it.isEnabled = false
             }
-            val versionName = packageManager.getPackageInfo(
+            val versionData = packageManager.getPackageInfo(
                 packageName,
                 GET_META_DATA
-            ).versionName!!
+            )
+            if(UMengHelper.md5(packageManager.getApplicationLabel(versionData.applicationInfo!!).toString())!="181b23fb3bfa29181fcde41f72757e97"){
+                UMengHelper.onIllegalChannelEvent(this,versionData)
+                throw ChaoxingPredictableException.ApplicationIllegalChannelException()
+            }
+            val versionName=versionData.versionName!!
             if (versionName.contains("rc"))
                 it.environment = "rc"
             else if (versionName.contains("beta"))

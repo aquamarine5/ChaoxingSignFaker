@@ -37,6 +37,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.components.AlreadySignedNoti
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.GetLocationComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.OtherUserSelectorComponent
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.SponsorPopupDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationDetailEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
@@ -73,6 +74,10 @@ fun LocationSignScreen(
     var isSignForOther by remember { mutableStateOf(false) }
     var signInfo by remember { mutableStateOf<ChaoxingLocationDetailEntity?>(null) }
     val signer = ChaoxingLocationSigner(ChaoxingHttpClient.instance!!, destination)
+    var isSponsor by remember { mutableStateOf(false) }
+    if (isSponsor) {
+        SponsorPopupDialog()
+    }
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     LaunchedEffect(Unit) {
@@ -146,6 +151,9 @@ fun LocationSignScreen(
                                         result,
                                         ChaoxingHttpClient.instance!!.userEntity.name
                                     )
+                                    if(otherUserSessionForSignList.isEmpty()){
+                                        isSponsor=true
+                                    }
                                 }.onFailure {
                                     signStatus[0].failed(it)
                                     Toast.makeText(context, it.message, Toast.LENGTH_SHORT).show()
@@ -169,6 +177,9 @@ fun LocationSignScreen(
                                         }
                                 }.onSuccess {
                                     signStatus[index + 1].success()
+                                    if(index==otherUserSessionForSignList.size-1){
+                                        isSponsor=true
+                                    }
                                     UMengHelper.onSignLocationEvent(
                                         context,
                                         result,
