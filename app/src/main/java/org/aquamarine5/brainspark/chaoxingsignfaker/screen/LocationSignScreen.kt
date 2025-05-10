@@ -180,7 +180,6 @@ fun LocationSignScreen(
                                     if(index==otherUserSessionForSignList.size-1){
                                         isSponsor=true
                                     }
-                                    isSponsor=true
                                     UMengHelper.onSignLocationEvent(
                                         context,
                                         result,
