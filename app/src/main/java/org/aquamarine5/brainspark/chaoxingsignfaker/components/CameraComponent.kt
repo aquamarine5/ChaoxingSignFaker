@@ -83,6 +83,7 @@ fun CameraComponent(
             var needTakePictureCount by remember { mutableIntStateOf(pictureCount) }
             future.addListener({
                 val cameraProvider = future.get()
+                cameraProvider.unbindAll()
                 preview.surfaceProvider = previewView.surfaceProvider
                 cameraProvider.bindToLifecycle(
                     lifecycleOwner,
@@ -94,6 +95,7 @@ fun CameraComponent(
             DisposableEffect(Unit) {
                 onDispose {
                     future.get().unbindAll()
+
                 }
             }
             AndroidView(

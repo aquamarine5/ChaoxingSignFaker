@@ -21,7 +21,7 @@ import androidx.compose.ui.res.painterResource
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import kotlin.random.Random
 
-private const val SPONSOR_DIALOG_SHOW_RATE = 99
+private const val SPONSOR_DIALOG_SHOW_RATE = 40
 
 @Composable
 fun SponsorPopupDialog() {
@@ -35,7 +35,7 @@ fun SponsorPopupDialog() {
         },title={
             Text("应用还好用嘛？")
         }, text = {
-            Text("随地大小签虽然每次使用不需要签到，但是用于更新的服务器资源还是需要持续付费的 :(")
+            Text("随地大小签虽然每次使用不需要付费，但是用于更新的服务器资源还是需要持续付费的 :(")
         }, confirmButton = {
             Button(onClick = {
                 isShowSponsor.value=true
