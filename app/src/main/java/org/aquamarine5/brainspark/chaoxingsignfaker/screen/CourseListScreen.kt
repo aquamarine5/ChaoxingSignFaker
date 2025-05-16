@@ -11,12 +11,15 @@ import android.widget.Toast
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.VisibilityThreshold
 import androidx.compose.animation.core.spring
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -29,8 +32,10 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.toMutableStateList
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.Font
@@ -41,12 +46,14 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.ImageLoader
+import com.alibaba.fastjson2.JSONObject
 import io.sentry.Sentry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
+import okhttp3.Request
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCourseHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
@@ -84,10 +91,14 @@ fun CourseListScreen(
     val context = LocalContext.current
     var newestVersionData by remember { mutableStateOf<StackbricksVersionData?>(null) }
     var isNewVersionDialogDisplayed = rememberSaveable { false }
+    var isForceInstall by
+        remember { mutableStateOf(stackbricksService.internalVersionData?.forceInstall ?: false) }
+    val bannedFidList = remember { mutableStateListOf<Int>() }
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
             if (stackbricksService.internalVersionData == null && !isNewVersionDialogDisplayed) {
                 newestVersionData = stackbricksService.isNeedUpdate()
+                isForceInstall = newestVersionData?.forceInstall == true
             }
             if (activitiesData.isEmpty()) {
                 runCatching {
@@ -97,6 +108,17 @@ fun CourseListScreen(
                                 reverse()
                             }
                     ChaoxingHttpClient.instance?.let { httpClient ->
+                        httpClient.okHttpClient.newCall(
+                            Request.Builder()
+                                .get()
+                                .url("http://cdn.aquamarine5.fun/chaoxingsignfaker_banlist.json")
+                                .build()
+                        ).execute().use {
+                            bannedFidList.addAll(
+                                JSONObject.parseObject(it.body?.string()).getJSONArray("banfids")
+                                    .toList(Int::class.java)
+                            )
+                        }
                         ChaoxingCourseHelper.getAllCourse(
                             httpClient,
                             context,
@@ -123,12 +145,15 @@ fun CourseListScreen(
         }
     }
     val coroutineScope = rememberCoroutineScope()
-
-    if (newestVersionData != null && !isNewVersionDialogDisplayed) {
+    if (isForceInstall || (newestVersionData != null && !isNewVersionDialogDisplayed)) {
         onNewVersionAvailable()
         isNewVersionDialogDisplayed = true
         AlertDialog(onDismissRequest = {
-            newestVersionData = null
+            if (isForceInstall) {
+                Toast.makeText(context, "必须更新应用", Toast.LENGTH_SHORT).show()
+            } else {
+                newestVersionData = null
+            }
         }, confirmButton = {
             Button(onClick = {
                 navToSettingDestination()
@@ -145,11 +170,11 @@ fun CourseListScreen(
                         )
                     )
                 ) {
-                    append(newestVersionData!!.versionName)
+                    append(newestVersionData?.versionName?:stackbricksService.internalVersionData?.versionName)
                 }
                 append("\n更新日志：\n")
                 withStyle(SpanStyle(fontSize = 11.sp)) {
-                    append(newestVersionData!!.changelog)
+                    append(newestVersionData?.changelog?:stackbricksService.internalVersionData?.changelog)
                 }
             })
         }, title = {
@@ -162,6 +187,17 @@ fun CourseListScreen(
     ) {
         if (activitiesData.isEmpty()) {
             CenterCircularProgressIndicator()
+        } else if (bannedFidList.contains(ChaoxingHttpClient.instance!!.userEntity.fid)
+        ) {
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+
+                Icon(painterResource(R.drawable.ic_user_lock), null)
+                Text("受限于应用策略，当前账号无法使用此功能")
+            }
         } else {
             LazyColumn {
                 items(activitiesData) { data ->
