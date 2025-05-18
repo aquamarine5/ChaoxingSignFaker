@@ -13,7 +13,9 @@ import androidx.compose.animation.core.VisibilityThreshold
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -145,7 +147,7 @@ fun CourseListScreen(
         }
     }
     val coroutineScope = rememberCoroutineScope()
-    if (isForceInstall || (newestVersionData != null && !isNewVersionDialogDisplayed)) {
+    if (newestVersionData != null && (isForceInstall||!isNewVersionDialogDisplayed)) {
         onNewVersionAvailable()
         isNewVersionDialogDisplayed = true
         AlertDialog(onDismissRequest = {
@@ -196,6 +198,7 @@ fun CourseListScreen(
             ) {
 
                 Icon(painterResource(R.drawable.ic_user_lock), null)
+                Spacer(modifier=Modifier.height(8.dp))
                 Text("受限于应用策略，当前账号无法使用此功能")
             }
         } else {
