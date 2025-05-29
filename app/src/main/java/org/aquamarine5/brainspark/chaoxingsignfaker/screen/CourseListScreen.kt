@@ -11,17 +11,12 @@ import android.widget.Toast
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.VisibilityThreshold
 import androidx.compose.animation.core.spring
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -34,10 +29,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.toMutableStateList
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.Font
@@ -48,18 +41,17 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.ImageLoader
-import com.alibaba.fastjson2.JSONObject
 import io.sentry.Sentry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
-import okhttp3.Request
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCourseHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.chaoxingDataStore
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.BlockedContent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CourseInfoColumnCard
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCourseEntity
@@ -95,7 +87,6 @@ fun CourseListScreen(
     var isNewVersionDialogDisplayed = rememberSaveable { false }
     var isForceInstall by
         remember { mutableStateOf(stackbricksService.internalVersionData?.forceInstall ?: false) }
-    val bannedFidList = remember { mutableStateListOf<Int>() }
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
             if (stackbricksService.internalVersionData == null && !isNewVersionDialogDisplayed) {
@@ -110,17 +101,6 @@ fun CourseListScreen(
                                 reverse()
                             }
                     ChaoxingHttpClient.instance?.let { httpClient ->
-                        httpClient.okHttpClient.newCall(
-                            Request.Builder()
-                                .get()
-                                .url("http://cdn.aquamarine5.fun/chaoxingsignfaker_banlist.json")
-                                .build()
-                        ).execute().use {
-                            bannedFidList.addAll(
-                                JSONObject.parseObject(it.body?.string()).getJSONArray("banfids")
-                                    .toList(Int::class.java)
-                            )
-                        }
                         ChaoxingCourseHelper.getAllCourse(
                             httpClient,
                             context,
@@ -183,78 +163,68 @@ fun CourseListScreen(
             Text("有新版本可用！")
         })
     }
-    Column(
-        modifier = Modifier
-            .padding(16.dp, 12.dp, 16.dp, 0.dp)
-    ) {
-        if (activitiesData.isEmpty()) {
-            CenterCircularProgressIndicator()
-        } else if (bannedFidList.contains(ChaoxingHttpClient.instance!!.userEntity.fid)
+    BlockedContent {
+        Column(
+            modifier = Modifier
+                .padding(16.dp, 12.dp, 16.dp, 0.dp)
         ) {
-            Column(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-
-                Icon(painterResource(R.drawable.ic_user_lock), null)
-                Spacer(modifier=Modifier.height(8.dp))
-                Text("受限于应用策略，当前账号无法使用此功能")
-            }
-        } else {
-            LazyColumn {
-                items(activitiesData) { data ->
-                    key(data.classId) {
-                        CourseInfoColumnCard(
-                            data,
-                            imageLoader,
-                            modifier = Modifier.animateItem(
-                                placementSpec = spring(
-                                    stiffness = Spring.StiffnessLow,
-                                    visibilityThreshold = IntOffset.VisibilityThreshold
+            if (activitiesData.isEmpty()) {
+                CenterCircularProgressIndicator()
+            } else {
+                LazyColumn {
+                    items(activitiesData) { data ->
+                        key(data.classId) {
+                            CourseInfoColumnCard(
+                                data,
+                                imageLoader,
+                                modifier = Modifier.animateItem(
+                                    placementSpec = spring(
+                                        stiffness = Spring.StiffnessLow,
+                                        visibilityThreshold = IntOffset.VisibilityThreshold
+                                    ),
+                                    fadeInSpec = spring(Spring.StiffnessLow),
+                                    fadeOutSpec = spring(Spring.StiffnessLow)
                                 ),
-                                fadeInSpec = spring(Spring.StiffnessLow),
-                                fadeOutSpec = spring(Spring.StiffnessLow)
-                            ),
-                            onPreferredResort = { isPreferred ->
-                                if (isPreferred)
-                                    coroutineScope.launch {
-                                        context.chaoxingDataStore.updateData {
-                                            it.toBuilder().addPreferClassId(data.classId)
-                                                .build()
+                                onPreferredResort = { isPreferred ->
+                                    if (isPreferred)
+                                        coroutineScope.launch {
+                                            context.chaoxingDataStore.updateData {
+                                                it.toBuilder().addPreferClassId(data.classId)
+                                                    .build()
+                                            }
+                                            preferredClassIds.add(data.classId)
+                                            activitiesData.sortByDescending {
+                                                if (it.classId == data.classId)
+                                                    return@sortByDescending SORT_TOP
+                                                if (preferredClassIds.contains(
+                                                        it.classId
+                                                    )
+                                                ) return@sortByDescending SORT_STAR
+                                                else return@sortByDescending SORT_COMMON
+                                            }
                                         }
-                                        preferredClassIds.add(data.classId)
-                                        activitiesData.sortByDescending {
-                                            if (it.classId == data.classId)
-                                                return@sortByDescending SORT_TOP
-                                            if (preferredClassIds.contains(
-                                                    it.classId
-                                                )
-                                            ) return@sortByDescending SORT_STAR
-                                            else return@sortByDescending SORT_COMMON
+                                    else {
+                                        coroutineScope.launch {
+                                            context.chaoxingDataStore.updateData { dataStore ->
+                                                dataStore.toBuilder().apply {
+                                                    val newList =
+                                                        preferClassIdList.filterNot { it == data.classId }
+                                                    clearPreferClassId()
+                                                    addAllPreferClassId(newList)
+                                                }.build()
+                                            }
+                                            preferredClassIds.remove(data.classId)
                                         }
-                                    }
-                                else {
-                                    coroutineScope.launch {
-                                        context.chaoxingDataStore.updateData { dataStore ->
-                                            dataStore.toBuilder().apply {
-                                                val newList =
-                                                    preferClassIdList.filterNot { it == data.classId }
-                                                clearPreferClassId()
-                                                addAllPreferClassId(newList)
-                                            }.build()
-                                        }
-                                        preferredClassIds.remove(data.classId)
                                     }
                                 }
+                            ) {
+                                navToDetailDestination(data)
                             }
-                        ) {
-                            navToDetailDestination(data)
                         }
                     }
                 }
-            }
 
+            }
         }
     }
 }
