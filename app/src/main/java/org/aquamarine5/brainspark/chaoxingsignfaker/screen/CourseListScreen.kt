@@ -78,7 +78,7 @@ fun CourseListScreen(
     navToSettingDestination: () -> Unit,
     navToLoginDestination: () -> Unit
 ) {
-    val activitiesData = remember { mutableStateListOf<ChaoxingCourseEntity>() }
+    val activitiesData = rememberSaveable(saver=ChaoxingCourseEntity.Saver) { mutableStateListOf() }
     var preferredClassIds = remember {
         mutableStateListOf<Int>()
     }

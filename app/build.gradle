@@ -17,7 +17,7 @@ plugins {
 stackbricksConfig {
     configJsonFilePath = "chaoxingsignfaker_stackbricks_v2_manifest.json"
     host = "cdn.aquamarine5.fun"
-    changelog = "这个版本必须更新。任何人都需要更新。"
+    changelog = "1.8版本更新：\n1. 优化了首页加载逻辑，现在会缓存课程信息\n2. 优化了屏蔽相应的逻辑和动画\n3. 改进了页面，现在更好看了\n4. 减少了应用崩溃概率（网络引起的）\nlovely lonely."
     qiniuConfig {
         accessKey = project.findProperty("qiniu.accessKey") ?: ""
         secretKey = project.findProperty("qiniu.secretKey") ?: ""
@@ -37,8 +37,8 @@ android {
         applicationId = "org.aquamarine5.brainspark.chaoxingsignfaker"
         minSdk = 26
         targetSdk = 35
-        versionCode = 107022025
-        versionName = "1.7.2-stable-250529"
+        versionCode = 108001215
+        versionName = "1.8.0-stable-250818"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

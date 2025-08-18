@@ -18,8 +18,10 @@ import okhttp3.CookieJar
 import okhttp3.FormBody
 import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
+import okhttp3.Protocol
 import okhttp3.Request
 import okhttp3.Response
+import okhttp3.ResponseBody.Companion.toResponseBody
 import org.aquamarine5.brainspark.chaoxingsignfaker.ChaoxingPredictableException
 import org.aquamarine5.brainspark.chaoxingsignfaker.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.chaoxingDataStore
@@ -56,8 +58,9 @@ class ChaoxingHttpClient private constructor(
         override fun intercept(chain: okhttp3.Interceptor.Chain): Response {
             var failureResponse: Response? = null
             for (attempt in 1..3) {
+                val request = chain.request()
                 runCatching {
-                    val response = chain.proceed(chain.request())
+                    val response = chain.proceed(request)
                     if (response.isSuccessful) {
                         return response
                     } else {
@@ -67,18 +70,27 @@ class ChaoxingHttpClient private constructor(
                     when (it) {
                         is UnknownHostException -> {
                             failureResponse =
-                                Response.Builder().code(HTTP_RESPONSE_CODE_UNKNOWN_HOST).build()
+                                Response.Builder().request(request).protocol(Protocol.HTTP_2)
+                                    .message("Unknown Host")
+                                    .body("UnknownHostException".toResponseBody())
+                                    .code(HTTP_RESPONSE_CODE_UNKNOWN_HOST).build()
                         }
 
                         is SocketTimeoutException -> {
                             failureResponse =
-                                Response.Builder().code(HTTP_RESPONSE_CODE_SOCKET_TIMEOUT).build()
+                                Response.Builder().request(request).protocol(Protocol.HTTP_2)
+                                    .message("Socket Timeout")
+                                    .body("Socket Timeout".toResponseBody())
+                                    .code(HTTP_RESPONSE_CODE_SOCKET_TIMEOUT).build()
                         }
 
                         else -> {
                             Sentry.captureException(it)
-                            failureResponse = Response.Builder()
-                                .code(HTTP_RESPONSE_CODE_UNKNOWN_ERROR).build()
+                            failureResponse =
+                                Response.Builder().request(request).protocol(Protocol.HTTP_2)
+                                    .message("Unknown Error")
+                                    .body("Unknown Error".toResponseBody())
+                                    .code(HTTP_RESPONSE_CODE_UNKNOWN_ERROR).build()
                         }
                     }
                 }

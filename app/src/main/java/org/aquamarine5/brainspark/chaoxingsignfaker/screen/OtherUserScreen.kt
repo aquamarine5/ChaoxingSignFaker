@@ -170,7 +170,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                 Card(
                     shape = RoundedCornerShape(18.dp),
                     colors = CardDefaults.cardColors(
-                        containerColor = Color(0xFFF8D86A)
+                        containerColor = Color(0xFFFCC307)
                     ), modifier = Modifier
                         .fillMaxWidth()
                         .padding(0.dp, 6.dp)
@@ -431,7 +431,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
             Card(
                 shape = RoundedCornerShape(18.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = Color(0xFFF8D86A)
+                    containerColor = Color(0xFFFCC307)
                 ), modifier = Modifier
                     .fillMaxWidth()
                     .padding(6.dp, 0.dp)
@@ -489,9 +489,9 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                     )
                 }
             }
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(8.dp))
             SingleChoiceSegmentedButtonRow(
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth().padding(5.dp,2.dp)
             ) {
                 SegmentedButton(
                     onClick = {
@@ -566,7 +566,6 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                     }
                 }
             }
-            Spacer(modifier = Modifier.height(12.dp))
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
