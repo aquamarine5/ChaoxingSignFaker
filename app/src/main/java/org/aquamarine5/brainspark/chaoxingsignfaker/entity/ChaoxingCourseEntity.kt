@@ -6,10 +6,9 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.entity
 
-import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.listSaver
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -24,9 +23,9 @@ data class ChaoxingCourseEntity(
     var isPreferred: Boolean = false
 ) {
     companion object {
-        val Saver: Saver<MutableState<List<ChaoxingCourseEntity>>, *> = listSaver(
+        val Saver: Saver<SnapshotStateList<ChaoxingCourseEntity>, *> = listSaver(
             save = { saver ->
-                saver.value.map {
+                saver.map {
                     listOf(
                         it.courseName,
                         it.teacherName,
@@ -40,20 +39,22 @@ data class ChaoxingCourseEntity(
                 }
             },
             restore = { restorer ->
-                mutableStateOf(
-                    restorer.map {
-                        ChaoxingCourseEntity(
-                            it[0] as String,
-                            it[1] as String,
-                            it[2] as Int,
-                            it[3] as Int,
-                            it[4] as String,
-                            it[5] as String,
-                            it[6] as String?,
-                            it[7] as Boolean
-                        )
-                    }
-                )
+                SnapshotStateList<ChaoxingCourseEntity>().apply {
+                    addAll(
+                        restorer.map {
+                            ChaoxingCourseEntity(
+                                it[0] as String,
+                                it[1] as String,
+                                it[2] as Int,
+                                it[3] as Int,
+                                it[4] as String,
+                                it[5] as String,
+                                it[6] as String?,
+                                it[7] as Boolean
+                            )
+                        }
+                    )
+                }
             }
         )
     }

@@ -78,7 +78,7 @@ fun CourseListScreen(
     navToSettingDestination: () -> Unit,
     navToLoginDestination: () -> Unit
 ) {
-    val activitiesData = remember { mutableStateListOf<ChaoxingCourseEntity>() }
+    val activitiesData = rememberSaveable(saver=ChaoxingCourseEntity.Saver) { mutableStateListOf() }
     var preferredClassIds = remember {
         mutableStateListOf<Int>()
     }
@@ -86,7 +86,7 @@ fun CourseListScreen(
     var newestVersionData by remember { mutableStateOf<StackbricksVersionData?>(null) }
     var isNewVersionDialogDisplayed = rememberSaveable { false }
     var isForceInstall by
-        remember { mutableStateOf(stackbricksService.internalVersionData?.forceInstall ?: false) }
+    remember { mutableStateOf(stackbricksService.internalVersionData?.forceInstall ?: false) }
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
             if (stackbricksService.internalVersionData == null && !isNewVersionDialogDisplayed) {
@@ -127,7 +127,7 @@ fun CourseListScreen(
         }
     }
     val coroutineScope = rememberCoroutineScope()
-    if (newestVersionData != null && (isForceInstall||!isNewVersionDialogDisplayed)) {
+    if (newestVersionData != null && (isForceInstall || !isNewVersionDialogDisplayed)) {
         onNewVersionAvailable()
         isNewVersionDialogDisplayed = true
         AlertDialog(onDismissRequest = {
@@ -152,11 +152,17 @@ fun CourseListScreen(
                         )
                     )
                 ) {
-                    append(newestVersionData?.versionName?:stackbricksService.internalVersionData?.versionName)
+                    append(
+                        newestVersionData?.versionName
+                            ?: stackbricksService.internalVersionData?.versionName
+                    )
                 }
                 append("\n更新日志：\n")
                 withStyle(SpanStyle(fontSize = 11.sp)) {
-                    append(newestVersionData?.changelog?:stackbricksService.internalVersionData?.changelog)
+                    append(
+                        newestVersionData?.changelog
+                            ?: stackbricksService.internalVersionData?.changelog
+                    )
                 }
             })
         }, title = {

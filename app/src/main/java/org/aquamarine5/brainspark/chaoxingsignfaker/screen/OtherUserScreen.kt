@@ -156,7 +156,11 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                 Text("关闭")
             }
         }, icon = {
-            Icon(painterResource(R.drawable.ic_text_cursor_input), null, tint=MaterialTheme.colorScheme.primary)
+            Icon(
+                painterResource(R.drawable.ic_text_cursor_input),
+                null,
+                tint = MaterialTheme.colorScheme.primary
+            )
         }, title = {
             Text("通过账号密码的形式添加他人的用户数据")
         }, text = {
@@ -166,7 +170,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                 Card(
                     shape = RoundedCornerShape(18.dp),
                     colors = CardDefaults.cardColors(
-                        containerColor = Color(0xFFF8D86A)
+                        containerColor = Color(0xFFFCC307)
                     ), modifier = Modifier
                         .fillMaxWidth()
                         .padding(0.dp, 6.dp)
@@ -261,7 +265,11 @@ fun OtherUserScreen(naviBack: () -> Unit) {
         }, title = {
             Text("通过文本链接的形式分享自己的用户数据")
         }, icon = {
-            Icon(painterResource(R.drawable.ic_link), null, tint=MaterialTheme.colorScheme.primary)
+            Icon(
+                painterResource(R.drawable.ic_link),
+                null,
+                tint = MaterialTheme.colorScheme.primary
+            )
         }, text = {
             Column {
                 Text("对方将链接从浏览器打开即可导入你的用户数据（对方需更新到1.5版本及以上），或将链接粘贴到以下输入框中：")
@@ -423,7 +431,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
             Card(
                 shape = RoundedCornerShape(18.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = Color(0xFFF8D86A)
+                    containerColor = Color(0xFFFCC307)
                 ), modifier = Modifier
                     .fillMaxWidth()
                     .padding(6.dp, 0.dp)
@@ -481,9 +489,9 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                     )
                 }
             }
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(8.dp))
             SingleChoiceSegmentedButtonRow(
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth().padding(5.dp,2.dp)
             ) {
                 SegmentedButton(
                     onClick = {
@@ -558,7 +566,6 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                     }
                 }
             }
-            Spacer(modifier = Modifier.height(12.dp))
             Column(
                 modifier = Modifier
                     .fillMaxWidth()

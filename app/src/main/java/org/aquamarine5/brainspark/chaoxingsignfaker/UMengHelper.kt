@@ -40,7 +40,7 @@ object UMengHelper {
         "stackbricks_test_channel_status_changed"
 
     @OptIn(ExperimentalStdlibApi::class)
-    fun md5(str:String): String {
+    fun md5(str: String): String {
         return MessageDigest.getInstance("MD5").digest(str.toByteArray()).toHexString()
     }
 

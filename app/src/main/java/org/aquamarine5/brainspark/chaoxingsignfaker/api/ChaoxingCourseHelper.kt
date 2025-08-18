@@ -12,6 +12,7 @@ import com.alibaba.fastjson2.JSONObject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.Request
+import org.aquamarine5.brainspark.chaoxingsignfaker.checkResponse
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCourseEntity
 
 object ChaoxingCourseHelper {
@@ -27,6 +28,14 @@ object ChaoxingCourseHelper {
             val courseList = mutableListOf<ChaoxingCourseEntity>()
             client.newCall(Request.Builder().get().url(URL_COURSE_LIST).build()).execute()
                 .use { rawResponse ->
+                    if (rawResponse.checkResponse(context)) {
+                        Toast.makeText(context, "网络异常，请重新登录", Toast.LENGTH_SHORT)
+                            .show()
+                        withContext(Dispatchers.Main) {
+                            naviToLogin()
+                        }
+                        return@withContext emptyList()
+                    }
                     var jsonResult = JSONObject.parseObject(rawResponse.body?.string())
                     if (jsonResult.getInteger("result") == 0) {
                         if (client.reLogin(context).not()) {
@@ -39,6 +48,17 @@ object ChaoxingCourseHelper {
                         } else {
                             client.newCall(Request.Builder().get().url(URL_COURSE_LIST).build())
                                 .execute().use {
+                                    if (it.checkResponse(context)) {
+                                        Toast.makeText(
+                                            context,
+                                            "网络异常，请重新登录",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                        withContext(Dispatchers.Main) {
+                                            naviToLogin()
+                                        }
+                                        return@withContext emptyList()
+                                    }
                                     jsonResult = JSONObject.parseObject(it.body?.string())
                                     if (jsonResult.getInteger("result") == 0) {
                                         Toast.makeText(

@@ -8,6 +8,7 @@ package org.aquamarine5.brainspark.chaoxingsignfaker.api
 
 import android.content.Context
 import com.alibaba.fastjson2.JSONObject
+import io.sentry.Sentry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
@@ -17,16 +18,22 @@ import okhttp3.CookieJar
 import okhttp3.FormBody
 import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
+import okhttp3.Protocol
 import okhttp3.Request
+import okhttp3.Response
+import okhttp3.ResponseBody.Companion.toResponseBody
 import org.aquamarine5.brainspark.chaoxingsignfaker.ChaoxingPredictableException
 import org.aquamarine5.brainspark.chaoxingsignfaker.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.chaoxingDataStore
+import org.aquamarine5.brainspark.chaoxingsignfaker.checkResponse
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingLoginSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingSignFakerDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.HttpCookie
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingOtherUserSharedEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingUserEntity
+import java.net.SocketTimeoutException
+import java.net.UnknownHostException
 import java.security.MessageDigest
 import java.util.Base64
 import java.util.UUID
@@ -36,12 +43,63 @@ import javax.crypto.spec.SecretKeySpec
 
 class ChaoxingHttpClient private constructor(
     val okHttpClient: OkHttpClient,
+    val context: Context,
     val userEntity: ChaoxingUserEntity
 ) {
     class ChaoxingLoginException(message: String) : ChaoxingPredictableException(message)
 
-    class ChaoxingGetUserInfoException(message: String, throwable: Throwable) :
+    class ChaoxingGetUserInfoException(message: String, throwable: Throwable? = null) :
         ChaoxingPredictableException(message, throwable)
+
+    class ChaoxingNetworkException(message: String? = null) :
+        ChaoxingPredictableException(message ?: "网络错误")
+
+    private class RetryInterceptor : okhttp3.Interceptor {
+        override fun intercept(chain: okhttp3.Interceptor.Chain): Response {
+            var failureResponse: Response? = null
+            for (attempt in 1..3) {
+                val request = chain.request()
+                runCatching {
+                    val response = chain.proceed(request)
+                    if (response.isSuccessful) {
+                        return response
+                    } else {
+                        failureResponse = response
+                    }
+                }.onFailure {
+                    when (it) {
+                        is UnknownHostException -> {
+                            failureResponse =
+                                Response.Builder().request(request).protocol(Protocol.HTTP_2)
+                                    .message("Unknown Host")
+                                    .body("UnknownHostException".toResponseBody())
+                                    .code(HTTP_RESPONSE_CODE_UNKNOWN_HOST).build()
+                        }
+
+                        is SocketTimeoutException -> {
+                            failureResponse =
+                                Response.Builder().request(request).protocol(Protocol.HTTP_2)
+                                    .message("Socket Timeout")
+                                    .body("Socket Timeout".toResponseBody())
+                                    .code(HTTP_RESPONSE_CODE_SOCKET_TIMEOUT).build()
+                        }
+
+                        else -> {
+                            Sentry.captureException(it)
+                            failureResponse =
+                                Response.Builder().request(request).protocol(Protocol.HTTP_2)
+                                    .message("Unknown Error")
+                                    .body("Unknown Error".toResponseBody())
+                                    .code(HTTP_RESPONSE_CODE_UNKNOWN_ERROR).build()
+                        }
+                    }
+                }
+                Thread.sleep(2000L)
+            }
+            return failureResponse ?: Response.Builder()
+                .code(HTTP_RESPONSE_CODE_UNKNOWN_ERROR).build()
+        }
+    }
 
     fun newCall(request: Request): Call = okHttpClient.newCall(request)
 
@@ -51,6 +109,10 @@ class ChaoxingHttpClient private constructor(
         private const val TRANSFER_KEY = "u2oh6Vu^HWe4_AES"
         private const val URL_USER_INFO = "https://sso.chaoxing.com/apis/login/userLogin4Uname.do"
         private const val URL_LOGIN = "https://passport2.chaoxing.com/fanyalogin"
+
+        const val HTTP_RESPONSE_CODE_UNKNOWN_ERROR = 990
+        const val HTTP_RESPONSE_CODE_UNKNOWN_HOST = 998
+        const val HTTP_RESPONSE_CODE_SOCKET_TIMEOUT = 999
 
         var instance: ChaoxingHttpClient? = null
 
@@ -68,7 +130,10 @@ class ChaoxingHttpClient private constructor(
             }
         }
 
-        suspend fun loadFromOtherUserSession(session: ChaoxingOtherUserSession): ChaoxingHttpClient {
+        suspend fun loadFromOtherUserSession(
+            session: ChaoxingOtherUserSession,
+            context: Context
+        ): ChaoxingHttpClient {
             val okHttpClient = instance!!.okHttpClient.newBuilder().cookieJar(object : CookieJar {
                 private val cookieStore: MutableMap<String, List<Cookie>> = mutableMapOf()
                 private var chaoxingCookieSession: List<Cookie> = listOf()
@@ -96,22 +161,23 @@ class ChaoxingHttpClient private constructor(
                     chain.request().newBuilder()
                         .header("User-Agent", CHAOXING_USER_AGENT).build()
                 )
-            }.build().apply {
-                cookieJar.saveFromResponse(
-                    HttpUrl.Builder().scheme("https").host("chaoxing.com")
-                        .encodedPath("/fanyalogin").build(),
-                    session.cookiesList.map {
-                        Cookie.Builder()
-                            .value(it.value)
-                            .name(it.name)
-                            .domain(it.host)
-                            .build()
-                    }
-                )
-            }
-            val userInfo = getInfo(okHttpClient)
+            }.addInterceptor(RetryInterceptor())
+                .build().apply {
+                    cookieJar.saveFromResponse(
+                        HttpUrl.Builder().scheme("https").host("chaoxing.com")
+                            .encodedPath("/fanyalogin").build(),
+                        session.cookiesList.map {
+                            Cookie.Builder()
+                                .value(it.value)
+                                .name(it.name)
+                                .domain(it.host)
+                                .build()
+                        }
+                    )
+                }
+            val userInfo = getInfo(okHttpClient, context)
             return ChaoxingHttpClient(
-                okHttpClient,
+                okHttpClient, context,
                 userInfo
             )
         }
@@ -146,6 +212,7 @@ class ChaoxingHttpClient private constructor(
             }
             val client = OkHttpClient.Builder()
                 .cookieJar(cookieJar)
+                .addInterceptor(RetryInterceptor())
                 .addInterceptor { chain ->
                     chain.proceed(
                         chain.request().newBuilder()
@@ -154,18 +221,21 @@ class ChaoxingHttpClient private constructor(
                 }
                 .build()
             login(client, phoneNumber, password, context)
-            val userInfo = getInfo(client).apply {
+            val userInfo = getInfo(client, context).apply {
                 UMengHelper.profileSignIn(this, phoneNumber)
             }
             return@withContext ChaoxingHttpClient(
-                client,
+                client, context,
                 userInfo
             ).apply {
                 instance = this
             }
         }
 
-        suspend fun loadFromDataStore(dataStore: ChaoxingSignFakerDataStore): ChaoxingHttpClient {
+        suspend fun loadFromDataStore(
+            dataStore: ChaoxingSignFakerDataStore,
+            context: Context
+        ): ChaoxingHttpClient {
             val okHttpClient = OkHttpClient.Builder().cookieJar(object : CookieJar {
                 private val cookieStore: MutableMap<String, List<Cookie>> = mutableMapOf()
                 private var chaoxingCookieSession: List<Cookie> = listOf()
@@ -193,7 +263,7 @@ class ChaoxingHttpClient private constructor(
                     chain.request().newBuilder()
                         .header("User-Agent", CHAOXING_USER_AGENT).build()
                 )
-            }.build().apply {
+            }.addInterceptor(RetryInterceptor()).build().apply {
                 cookieJar.saveFromResponse(
                     HttpUrl.Builder().scheme("https").host("chaoxing.com")
                         .encodedPath("/fanyalogin").build(),
@@ -207,20 +277,26 @@ class ChaoxingHttpClient private constructor(
                         }
                 )
             }
-            val userInfo = getInfo(okHttpClient)
+            val userInfo = getInfo(okHttpClient, context)
             return ChaoxingHttpClient(
-                okHttpClient,
+                okHttpClient, context,
                 userInfo
             ).apply {
                 instance = this
             }
         }
 
-        private suspend fun getInfo(client: OkHttpClient): ChaoxingUserEntity =
+        private suspend fun getInfo(client: OkHttpClient, context: Context): ChaoxingUserEntity =
             withContext(Dispatchers.IO) {
                 runCatching {
                     client.newCall(Request.Builder().get().url(URL_USER_INFO).build()).execute()
                         .use { response ->
+                            if (response.checkResponse(context)) {
+                                throw ChaoxingGetUserInfoException(
+                                    "获取用户信息失败，网络异常",
+                                    null
+                                )
+                            }
                             val jsonResult =
                                 JSONObject.parseObject(response.body?.string()).getJSONObject("msg")
                             return@withContext ChaoxingUserEntity(
@@ -285,8 +361,14 @@ class ChaoxingHttpClient private constructor(
                                     cookieStore[url.host] ?: listOf()
                                 }
                             }
-                        }).build()
+                        }).addInterceptor(RetryInterceptor())
+                        .build()
                 tempOkHttpClient.newCall(request).execute().use {
+                    if (it.checkResponse(context)) {
+                        throw ChaoxingLoginException(
+                            "网络异常，请检查网络连接或稍后再试"
+                        )
+                    }
                     val jsonResult = JSONObject.parseObject(it.body?.string())
                     if (!jsonResult.getBoolean("status")) {
                         throw ChaoxingLoginException(if (jsonResult.containsKey("msg2")) {
@@ -304,7 +386,7 @@ class ChaoxingHttpClient private constructor(
                     return@withContext ChaoxingOtherUserSharedEntity(
                         phoneNumber,
                         encryptedPassword,
-                        getInfo(tempOkHttpClient).name
+                        getInfo(tempOkHttpClient, context).name
                     )
                 }
             }
@@ -342,6 +424,11 @@ class ChaoxingHttpClient private constructor(
                     .build()
 
                 client.newCall(request).execute().use {
+                    if (it.checkResponse(context)) {
+                        throw ChaoxingLoginException(
+                            "网络异常，请检查网络连接或稍后再试"
+                        )
+                    }
                     val jsonResult = JSONObject.parseObject(it.body?.string())
                     if (!jsonResult.getBoolean("status")) {
                         throw ChaoxingLoginException(if (jsonResult.containsKey("msg2")) {

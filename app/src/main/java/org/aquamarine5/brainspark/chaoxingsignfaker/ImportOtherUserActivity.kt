@@ -49,8 +49,11 @@ class ImportOtherUserActivity : ComponentActivity() {
             packageName,
             GET_META_DATA
         )
-        if(UMengHelper.md5(packageManager.getApplicationLabel(versionData.applicationInfo!!).toString())!="181b23fb3bfa29181fcde41f72757e97"){
-            UMengHelper.onIllegalChannelEvent(this,versionData)
+        if (UMengHelper.md5(
+                packageManager.getApplicationLabel(versionData.applicationInfo!!).toString()
+            ) != "181b23fb3bfa29181fcde41f72757e97"
+        ) {
+            UMengHelper.onIllegalChannelEvent(this, versionData)
             throw ChaoxingPredictableException.ApplicationIllegalChannelException()
         }
         setContent {

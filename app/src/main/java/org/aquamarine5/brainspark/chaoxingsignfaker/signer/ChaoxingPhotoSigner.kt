@@ -26,6 +26,7 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.asRequestBody
 import org.aquamarine5.brainspark.chaoxingsignfaker.ChaoxingPredictableException
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
+import org.aquamarine5.brainspark.chaoxingsignfaker.checkResponse
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.PhotoSignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingLocationSigner.Companion.CLASSTAG
 import java.io.File
@@ -62,6 +63,9 @@ class ChaoxingPhotoSigner(
 
     suspend fun getCloudToken(): String = withContext(Dispatchers.IO) {
         client.newCall(Request.Builder().url(URL_CLOUD_TOKEN).build()).execute().use {
+            if (it.checkResponse(client.context)) {
+                throw ChaoxingHttpClient.ChaoxingNetworkException()
+            }
             return@withContext JSONObject.parseObject(it.body!!.string()).getString("_token")
         }
     }
@@ -78,6 +82,9 @@ class ChaoxingPhotoSigner(
                     .build()
             ).get().build()
         ).execute().use {
+            if (it.checkResponse(client.context)) {
+                throw ChaoxingHttpClient.ChaoxingNetworkException()
+            }
             val result = it.body?.string()
             if (result != "success") {
                 Log.w(CLASSTAG, result ?: "")
@@ -99,6 +106,9 @@ class ChaoxingPhotoSigner(
                     .build()
             ).get().build()
         ).execute().use {
+            if (it.checkResponse(client.context)) {
+                throw ChaoxingHttpClient.ChaoxingNetworkException()
+            }
             val result = it.body?.string()
             if (result != "success") {
                 Log.w(CLASSTAG, result ?: "")
@@ -144,6 +154,9 @@ class ChaoxingPhotoSigner(
                         .build()
                 ).build()
             ).execute().use {
+                if (it.checkResponse(client.context)) {
+                    throw ChaoxingHttpClient.ChaoxingNetworkException()
+                }
                 JSONObject.parseObject(it.body!!.string()).getString("objectId")
             }
         }
@@ -167,6 +180,9 @@ class ChaoxingPhotoSigner(
                         .build()
                 ).build()
             ).execute().use {
+                if (it.checkResponse(client.context)) {
+                    throw ChaoxingHttpClient.ChaoxingNetworkException()
+                }
                 JSONObject.parseObject(it.body!!.string()).getString("objectId")
             }
         }

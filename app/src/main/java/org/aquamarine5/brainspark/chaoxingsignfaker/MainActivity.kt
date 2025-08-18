@@ -22,7 +22,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -135,11 +134,14 @@ class MainActivity : ComponentActivity() {
                 packageName,
                 GET_META_DATA
             )
-            if(UMengHelper.md5(packageManager.getApplicationLabel(versionData.applicationInfo!!).toString())!="181b23fb3bfa29181fcde41f72757e97"){
-                UMengHelper.onIllegalChannelEvent(this,versionData)
+            if (UMengHelper.md5(
+                    packageManager.getApplicationLabel(versionData.applicationInfo!!).toString()
+                ) != "181b23fb3bfa29181fcde41f72757e97"
+            ) {
+                UMengHelper.onIllegalChannelEvent(this, versionData)
                 throw ChaoxingPredictableException.ApplicationIllegalChannelException()
             }
-            val versionName=versionData.versionName!!
+            val versionName = versionData.versionName!!
             if (versionName.contains("rc"))
                 it.environment = "rc"
             else if (versionName.contains("beta"))
@@ -334,7 +336,10 @@ class MainActivity : ComponentActivity() {
                                         !datastore.hasLoginSession() -> LoginDestination
                                         else -> {
                                             runCatching {
-                                                ChaoxingHttpClient.loadFromDataStore(datastore)
+                                                ChaoxingHttpClient.loadFromDataStore(
+                                                    datastore,
+                                                    applicationContext
+                                                )
                                                 return@runCatching SignGraphDestination
                                             }.getOrElse {
                                                 withContext(Dispatchers.Main) {

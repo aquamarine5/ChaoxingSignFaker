@@ -7,20 +7,15 @@
 package org.aquamarine5.brainspark.chaoxingsignfaker.api
 
 import android.content.Context
-import android.widget.Toast
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.res.painterResource
 import com.alibaba.fastjson2.JSONObject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Request
-import org.aquamarine5.brainspark.chaoxingsignfaker.R
+import org.aquamarine5.brainspark.chaoxingsignfaker.checkResponse
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCourseActivitiesEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCourseEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
-import org.aquamarine5.brainspark.chaoxingsignfaker.screen.GetLocationDestination
 
 object ChaoxingActivityHelper {
     private const val URL_ACTIVITY_LOAD =
@@ -30,7 +25,8 @@ object ChaoxingActivityHelper {
 
     suspend fun getActivities(
         client: ChaoxingHttpClient,
-        course: ChaoxingCourseEntity
+        course: ChaoxingCourseEntity,
+        context: Context
     ): ChaoxingCourseActivitiesEntity =
         withContext(Dispatchers.IO) {
             client.newCall(
@@ -41,6 +37,8 @@ object ChaoxingActivityHelper {
                         .build()
                 ).build()
             ).execute().use {
+                if (it.checkResponse(context))
+                    throw ChaoxingHttpClient.ChaoxingNetworkException()
                 val jsonResult = JSONObject.parseObject(it.body?.string()).getJSONObject("data")
                 val activeList = jsonResult.getJSONArray("activeList").map { activity ->
                     activity as JSONObject

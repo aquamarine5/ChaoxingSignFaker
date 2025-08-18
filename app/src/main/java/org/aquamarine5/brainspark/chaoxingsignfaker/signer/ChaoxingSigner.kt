@@ -14,6 +14,7 @@ import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Request
 import org.aquamarine5.brainspark.chaoxingsignfaker.ChaoxingPredictableException
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
+import org.aquamarine5.brainspark.chaoxingsignfaker.checkResponse
 
 abstract class ChaoxingSigner(
     val client: ChaoxingHttpClient,
@@ -50,6 +51,9 @@ abstract class ChaoxingSigner(
                     .build()
             ).build()
         ).execute().use {
+            if (it.checkResponse(client.context)) {
+                throw ChaoxingHttpClient.ChaoxingNetworkException()
+            }
             return@withContext JSONObject.parseObject(it.body?.string()).getJSONObject("data")
         }
     }
@@ -67,6 +71,9 @@ abstract class ChaoxingSigner(
                     .build()
             ).build()
         ).execute().use {
+            if (it.checkResponse(client.context)) {
+                throw ChaoxingHttpClient.ChaoxingNetworkException()
+            }
             val body = it.body?.string()
             if (it.code == 302 || body?.contains("校验失败，未查询到活动数据") == true) {
                 throw SignActivityNoPermissionException()
@@ -83,6 +90,9 @@ abstract class ChaoxingSigner(
                     .addQueryParameter("aid", activeId.toString()).build()
             ).build()
         ).execute().use {
+            if (it.checkResponse(client.context)) {
+                throw ChaoxingHttpClient.ChaoxingNetworkException()
+            }
             postAfterAnalysis(
                 """code='\+'([a-f0-9]+)'""".toRegex()
                     .find(it.body?.string() ?: throw Exception("网络错误"))?.groupValues?.get(1)

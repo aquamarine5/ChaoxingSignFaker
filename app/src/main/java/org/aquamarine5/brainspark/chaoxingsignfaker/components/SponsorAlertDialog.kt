@@ -75,7 +75,7 @@ fun SponsorAlertDialog(showDialog: MutableState<Boolean>) {
     val context = LocalActivity.current!!.applicationContext
     val sponsorList = remember { mutableStateListOf<List<String>>() }
     LaunchedEffect(Unit) {
-        withContext(Dispatchers.IO){
+        withContext(Dispatchers.IO) {
             ChaoxingHttpClient.instance?.okHttpClient?.newCall(
                 Request.Builder()
                     .get()
@@ -238,27 +238,33 @@ fun SponsorAlertDialog(showDialog: MutableState<Boolean>) {
                     fontSize = 12.sp
                 )
                 Spacer(modifier = Modifier.height(4.dp))
-                Text(buildAnnotatedString {
-                    sponsorList.forEachIndexed { index, it->
-                        withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
-                            append(it[0])
-                        }
-                        append(" 赞赏了 ")
-                        withStyle(
-                            SpanStyle(
-                                fontWeight = FontWeight.Bold, fontFamily = FontFamily(
-                                    Font(R.font.gilroy)
+                Text(
+                    buildAnnotatedString {
+                        sponsorList.forEachIndexed { index, it ->
+                            withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+                                append(it[0])
+                            }
+                            append(" 赞赏了 ")
+                            withStyle(
+                                SpanStyle(
+                                    fontWeight = FontWeight.Bold, fontFamily = FontFamily(
+                                        Font(R.font.gilroy)
+                                    )
                                 )
-                            )
-                        ) {
-                            append(it[1])
+                            ) {
+                                append(it[1])
+                            }
+                            append(" 元")
+                            if (index != sponsorList.size - 1)
+                                append("\n")
                         }
-                        append(" 元")
-                        if(index!=sponsorList.size-1)
-                        append("\n")
-                    }
-                },modifier=Modifier.border(1.dp, MaterialTheme.colorScheme.primary,
-                    RoundedCornerShape(4.dp)).padding(8.dp))
+                    }, modifier = Modifier
+                        .border(
+                            1.dp, MaterialTheme.colorScheme.primary,
+                            RoundedCornerShape(4.dp)
+                        )
+                        .padding(8.dp)
+                )
             }
         })
     }

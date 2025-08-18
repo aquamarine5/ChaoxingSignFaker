@@ -14,6 +14,7 @@ import kotlinx.coroutines.withContext
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Request
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
+import org.aquamarine5.brainspark.chaoxingsignfaker.checkResponse
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationSignEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingQRCodeDetailEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.QRCodeSignDestination
@@ -73,6 +74,9 @@ class ChaoxingQRCodeSigner(
                         }.build()
                 ).build()
             ).execute().use {
+                if (it.checkResponse(client.context)) {
+                    throw ChaoxingHttpClient.ChaoxingNetworkException()
+                }
                 val result = it.body?.string()
                 if (result != "success") {
                     Log.w(CLASSTAG, result ?: "")
