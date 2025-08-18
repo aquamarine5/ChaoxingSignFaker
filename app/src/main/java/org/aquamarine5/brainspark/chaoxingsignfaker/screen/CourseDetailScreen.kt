@@ -63,7 +63,7 @@ fun CourseDetailScreen(
         runCatching {
             if (activitiesData == null) {
                 ChaoxingHttpClient.instance?.let {
-                    activitiesData = ChaoxingActivityHelper.getActivities(it, courseEntity)
+                    activitiesData = ChaoxingActivityHelper.getActivities(it, courseEntity, context)
                 }
             }
         }.onFailure {
@@ -108,9 +108,14 @@ fun CourseDetailScreen(
                 onRefresh = {
                     pullToRefreshState = true
                     coroutineScope.launch {
-                        ChaoxingHttpClient.instance?.let {
-                            activitiesData =
-                                ChaoxingActivityHelper.getActivities(it, courseEntity)
+                        runCatching {
+                            ChaoxingHttpClient.instance?.let {
+                                activitiesData =
+                                    ChaoxingActivityHelper.getActivities(it, courseEntity, context)
+                            }
+                        }.onFailure {
+                            Sentry.captureException(it)
+                            Toast.makeText(context, "刷新课程活动失败", Toast.LENGTH_SHORT).show()
                         }
                         delay(1000)
                         pullToRefreshState = false

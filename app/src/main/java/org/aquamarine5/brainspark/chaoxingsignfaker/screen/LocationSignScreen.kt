@@ -151,8 +151,8 @@ fun LocationSignScreen(
                                         result,
                                         ChaoxingHttpClient.instance!!.userEntity.name
                                     )
-                                    if(otherUserSessionForSignList.isEmpty()){
-                                        isSponsor=true
+                                    if (otherUserSessionForSignList.isEmpty()) {
+                                        isSponsor = true
                                     }
                                 }.onFailure {
                                     signStatus[0].failed(it)
@@ -165,7 +165,10 @@ fun LocationSignScreen(
                                 runCatching {
                                     signStatus[index + 1].loading()
                                     delay(1500)
-                                    ChaoxingHttpClient.loadFromOtherUserSession(userSession)
+                                    ChaoxingHttpClient.loadFromOtherUserSession(
+                                        userSession,
+                                        context
+                                    )
                                         .also { client ->
                                             ChaoxingLocationSigner(client, destination).apply {
                                                 if (preSign()) {
@@ -177,8 +180,8 @@ fun LocationSignScreen(
                                         }
                                 }.onSuccess {
                                     signStatus[index + 1].success()
-                                    if(index==otherUserSessionForSignList.size-1){
-                                        isSponsor=true
+                                    if (index == otherUserSessionForSignList.size - 1) {
+                                        isSponsor = true
                                     }
                                     UMengHelper.onSignLocationEvent(
                                         context,

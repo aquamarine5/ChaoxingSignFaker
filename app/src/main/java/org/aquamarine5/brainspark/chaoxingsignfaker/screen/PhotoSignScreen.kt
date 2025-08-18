@@ -210,7 +210,7 @@ fun PhotoSignScreen(
                                                 signStatus[1 + index].loading()
                                                 delay(1500)
                                                 ChaoxingHttpClient.loadFromOtherUserSession(
-                                                    userSession
+                                                    userSession, context
                                                 )
                                                     .also { client ->
                                                         ChaoxingPhotoSigner(
@@ -243,7 +243,9 @@ fun PhotoSignScreen(
                                                     isOtherUser = true
                                                 )
                                                 signStatus[1 + index].success()
-                                                if(index==otherUserSessionList.size-1){ isSponsor = true }
+                                                if (index == otherUserSessionList.size - 1) {
+                                                    isSponsor = true
+                                                }
                                             }
                                         }
                                     }
@@ -467,7 +469,8 @@ fun PhotoSignScreen(
                                                                         signStatus[1 + index].loading()
                                                                         delay(1500)
                                                                         ChaoxingHttpClient.loadFromOtherUserSession(
-                                                                            chaoxingOtherUserSession
+                                                                            chaoxingOtherUserSession,
+                                                                            context
                                                                         ).also { client ->
                                                                             ChaoxingPhotoSigner(
                                                                                 client,
@@ -505,7 +508,9 @@ fun PhotoSignScreen(
                                                                             it.userEntity.name
                                                                         )
                                                                         signStatus[1 + index].success()
-                                                                        if(index==otherUserSessionForSignList.size-1){ isSponsor = true }
+                                                                        if (index == otherUserSessionForSignList.size - 1) {
+                                                                            isSponsor = true
+                                                                        }
                                                                     }
                                                                 }
                                                         }

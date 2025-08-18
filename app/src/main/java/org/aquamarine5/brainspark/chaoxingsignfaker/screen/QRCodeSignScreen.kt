@@ -403,8 +403,8 @@ fun QRCodeSignScreen(
                                                     context,
                                                     ChaoxingHttpClient.instance!!.userEntity.name
                                                 )
-                                                if(signUserList.isEmpty()){
-                                                    isSponsor=true
+                                                if (signUserList.isEmpty()) {
+                                                    isSponsor = true
                                                 }
                                             }.onFailure {
                                                 it.printStackTrace()
@@ -416,7 +416,7 @@ fun QRCodeSignScreen(
                                                 runCatching {
                                                     signStatus[1 + index].loading()
                                                     ChaoxingHttpClient.loadFromOtherUserSession(
-                                                        it
+                                                        it, context
                                                     ).also { client ->
                                                         ChaoxingQRCodeSigner(
                                                             client, destination
@@ -436,8 +436,8 @@ fun QRCodeSignScreen(
                                                         true
                                                     )
                                                     userSelections[1 + index] = false
-                                                    if(index==signUserList.size-1){
-                                                        isSponsor=true
+                                                    if (index == signUserList.size - 1) {
+                                                        isSponsor = true
                                                     }
                                                 }.onFailure {
                                                     it.printStackTrace()

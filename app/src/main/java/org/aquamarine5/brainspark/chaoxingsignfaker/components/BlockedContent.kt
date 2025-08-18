@@ -22,6 +22,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -39,9 +40,9 @@ private const val UNBLOCKED_BUTTON_CLICK_LIMIT = 10
 @Composable
 fun BlockedContent(content: @Composable () -> Unit) {
     val bannedFidList = remember { mutableStateListOf<Int>() }
-    var unblockedButtonClickCount by remember { mutableIntStateOf(0) }
+    var unblockedButtonClickCount by rememberSaveable { mutableIntStateOf(0) }
     LaunchedEffect(Unit) {
-        withContext(Dispatchers.IO){
+        withContext(Dispatchers.IO) {
             ChaoxingHttpClient.instance?.okHttpClient?.newCall(
                 Request.Builder()
                     .get()

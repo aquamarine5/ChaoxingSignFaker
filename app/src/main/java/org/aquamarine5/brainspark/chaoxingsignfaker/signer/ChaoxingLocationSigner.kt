@@ -13,6 +13,7 @@ import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Request
 import org.aquamarine5.brainspark.chaoxingsignfaker.ChaoxingPredictableException
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
+import org.aquamarine5.brainspark.chaoxingsignfaker.checkResponse
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationDetailEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationSignEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.GetLocationDestination
@@ -25,7 +26,7 @@ class ChaoxingLocationSigner(
     destination.activeId,
     destination.classId,
     destination.courseId,
-    destination.extContent
+    destination.extContent,
 ) {
 
     companion object {
@@ -59,6 +60,9 @@ class ChaoxingLocationSigner(
                     .build()
             ).get().build()
         ).execute().use {
+            if (it.checkResponse(client.context)) {
+                throw ChaoxingHttpClient.ChaoxingNetworkException()
+            }
             val result = it.body?.string()
             if (result != "success") {
                 Log.w(CLASSTAG, result ?: "")
