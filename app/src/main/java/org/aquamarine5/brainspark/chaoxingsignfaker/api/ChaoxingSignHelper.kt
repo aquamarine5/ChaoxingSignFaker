@@ -28,7 +28,6 @@ object ChaoxingSignHelper {
         else -> painterResource(R.drawable.ic_clipboard_pen_line)
     }
 
-
     fun getSignDestination(context: Context, activityEntity: ChaoxingSignActivityEntity): Any? =
         when (activityEntity.otherId) {
             "4" -> GetLocationDestination.parseFromSignActivityEntity(activityEntity)

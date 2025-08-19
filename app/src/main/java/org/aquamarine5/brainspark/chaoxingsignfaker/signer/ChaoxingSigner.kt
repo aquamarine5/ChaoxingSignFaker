@@ -6,8 +6,18 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.signer
 
+import android.annotation.SuppressLint
+import android.content.Context
+import android.webkit.WebResourceRequest
+import android.webkit.WebResourceResponse
+import android.webkit.WebView
+import android.webkit.WebViewClient
 import com.alibaba.fastjson2.JSONObject
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.FormBody
 import okhttp3.HttpUrl.Companion.toHttpUrl
@@ -15,6 +25,7 @@ import okhttp3.Request
 import org.aquamarine5.brainspark.chaoxingsignfaker.ChaoxingPredictableException
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.checkResponse
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCaptchaDataEntity
 
 abstract class ChaoxingSigner(
     val client: ChaoxingHttpClient,
@@ -32,7 +43,10 @@ abstract class ChaoxingSigner(
             "https://mobilelearn.chaoxing.com/pptSign/analysis?vs=1&DB_STRATEGY=RANDOM"
         const val URL_AFTER_ANALYSIS2 =
             "https://mobilelearn.chaoxing.com/pptSign/analysis2?DB_STRATEGY=RANDOM"
-
+        const val URL_CAPTCHA_CONF =
+            "https://captcha.chaoxing.com/captcha/get/conf?callback=cx_captcha_function"
+        const val URL_CAPTCHA_RESULT =
+            "https://captcha.chaoxing.com/captcha/check/verification/result?callback=cx_captcha_function"
         const val URL_SIGN =
             "https://mobilelearn.chaoxing.com/pptSign/stuSignajax?&clientip=&appType=15&ifTiJiao=1&validate=&vpProbability=-1&vpStrategy="
     }
@@ -40,6 +54,10 @@ abstract class ChaoxingSigner(
     class SignActivityNoPermissionException : ChaoxingPredictableException("无权限访问")
 
     class AlreadySignedException : ChaoxingPredictableException("已经签到过了")
+
+    class CaptchaTimeoutException : ChaoxingPredictableException("获取验证码信息超时")
+
+    class CaptchaException : ChaoxingPredictableException("验证码获取失败")
 
     abstract suspend fun checkAlreadySign(response: String): Boolean
 
@@ -109,5 +127,125 @@ abstract class ChaoxingSigner(
                     .build()
             ).build()
         ).execute().close()
+    }
+
+    open fun getCaptchaId(): String = "Qt9FIw9o4pwRjOyqM6yizZBh682qN2TU"
+
+    open suspend fun checkCaptchaResult(
+        xPosition: Float,
+        dataEntity: ChaoxingCaptchaDataEntity
+    ): String? = withContext(Dispatchers.IO) {
+        client.newCall(
+            Request.Builder().get().url(
+                URL_CAPTCHA_RESULT.toHttpUrl().newBuilder()
+                    .addQueryParameter("captchaId", dataEntity.captchaId)
+                    .addQueryParameter("type", dataEntity.type)
+                    .addQueryParameter("version", dataEntity.version)
+                    .addQueryParameter("t", "a")
+                    .addQueryParameter("runEnv", "10")
+                    .addQueryParameter("token", dataEntity.token)
+                    .addQueryParameter("textClickArr", "[{\"x\":${xPosition.toInt()}}]")
+                    .addQueryParameter("iv", dataEntity.iv)
+                    .addQueryParameter("_", System.currentTimeMillis().toString())
+                    .addQueryParameter("coordinate", "[]")
+                    .build()
+            ).build()
+        ).execute().use {
+            if (it.checkResponse(client.context)) {
+                throw ChaoxingHttpClient.ChaoxingNetworkException()
+            }
+            val jsonResult = JSONObject.parseObject(
+                it.body?.string()?.replace("cx_captcha_function(", "")?.replace(")", "")
+            )
+            if (jsonResult.getBoolean("result")) {
+                return@use JSONObject.parseObject(
+                    jsonResult.getString("extraData").replace("\\\"", "\"")
+                ).getString("validate")
+            } else {
+                return@use null
+            }
+        }
+    }
+
+    open suspend fun getCaptchaConf() = withContext(Dispatchers.IO) {
+        client.newCall(
+            Request.Builder().get().url(
+                URL_CAPTCHA_CONF.toHttpUrl().newBuilder()
+                    .addQueryParameter("captchaId", getCaptchaId())
+                    .addQueryParameter("_", System.currentTimeMillis().toString()).build()
+            ).build()
+        ).execute().close()
+    }
+
+    open suspend fun getCaptchaImage(onSuccess: (ChaoxingCaptchaDataEntity) -> Unit) {
+        getCaptchaData(client.context) {
+            client.newCall(
+                Request.Builder().get().url(it).build()
+            ).execute().use { response ->
+                val jsonResult = JSONObject.parseObject(
+                    response.body?.string()?.replace("cx_captcha_function(", "")?.replace(")", "")
+                )
+                val params = it.toHttpUrl()
+                onSuccess(
+                    ChaoxingCaptchaDataEntity(
+                        params.queryParameter("captchaId") ?: getCaptchaId(),
+                        "slide",
+                        "1.1.20",
+                        jsonResult.getString("token"),
+                        params.queryParameter("captchaKey") ?: throw CaptchaException(),
+                        jsonResult.getString("iv") ?: throw CaptchaException(),
+                        jsonResult.getJSONObject("imageVerificationVo").getString("shadeImage")
+                            ?: throw CaptchaException(),
+                        jsonResult.getJSONObject("imageVerificationVo").getString("cutoutImage")
+                            ?: throw CaptchaException()
+                    )
+                )
+            }
+        }
+    }
+
+    @SuppressLint("SetJavaScriptEnabled")
+    open suspend fun getCaptchaData(
+        context: Context,
+        onSuccess: (String) -> Unit
+    ) {
+        val webview = WebView(context).apply {
+            settings.javaScriptEnabled = true
+        }
+        coroutineScope {
+            val job =
+                launch {
+                    webview.webViewClient = object : WebViewClient() {
+                        override fun shouldInterceptRequest(
+                            view: WebView?,
+                            request: WebResourceRequest?
+                        ): WebResourceResponse? {
+                            if (request?.url?.toString()
+                                    ?.startsWith("https://captcha.chaoxing.com/captcha/get/verification/image") == true
+                            ) {
+                                onSuccess(request.url?.toString()!!)
+                                view?.destroy()
+                                cancel()
+                                return null
+                            }
+                            return super.shouldInterceptRequest(view, request)
+                        }
+                    }
+                    webview.loadUrl(
+                        URL_PERSIGN.toHttpUrl().newBuilder()
+                            .addQueryParameter("courseId", courseId.toString())
+                            .addQueryParameter("classId", classId.toString())
+                            .addQueryParameter("activePrimaryId", activeId.toString())
+                            .addQueryParameter("uid", client.userEntity.puid.toString())
+                            .build().toString()
+                    )
+                }
+            delay(10000)
+            if (job.isActive) {
+                job.cancel()
+                webview.destroy()
+                throw CaptchaTimeoutException()
+            }
+        }
     }
 }

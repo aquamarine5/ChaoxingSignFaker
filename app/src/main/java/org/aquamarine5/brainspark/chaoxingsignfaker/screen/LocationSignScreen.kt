@@ -26,6 +26,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.zIndex
+import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import io.sentry.Sentry
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -34,6 +36,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.ChaoxingPredictableException
 import org.aquamarine5.brainspark.chaoxingsignfaker.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.AlreadySignedNotice
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.GetLocationComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.OtherUserSelectorComponent
@@ -78,7 +81,15 @@ fun LocationSignScreen(
     if (isSponsor) {
         SponsorPopupDialog()
     }
+    var isCaptchaValidate by remember { mutableStateOf<ChaoxingLocationSigner?>(null) }
+    val captchaValidateValue = remember { MutableLiveData<Result<String>?>(null) }
+    if(isCaptchaValidate!=null){
+        CaptchaHandlerDialog(isCaptchaValidate!!,captchaValidateValue, onDismiss = {
+            isCaptchaValidate=null
+        })
+    }
     val context = LocalContext.current
+    val lifecycleOwner= LocalLifecycleOwner.current
     val coroutineScope = rememberCoroutineScope()
     LaunchedEffect(Unit) {
         runCatching {
@@ -143,7 +154,28 @@ fun LocationSignScreen(
                             if (isSelfForSign)
                                 runCatching {
                                     signStatus[0].loading()
-                                    signer.sign(result)
+                                    signer.sign(result){
+                                        isCaptchaValidate=signer
+                                        captchaValidateValue.observe(lifecycleOwner) {
+                                            captchaValidateValue.removeObservers(lifecycleOwner)
+                                            if (it != null) {
+                                                if (it.isSuccess) {
+                                                    signStatus[0].loading()
+                                                    coroutineScope.launch {
+                                                        signer.signWithCaptcha(
+                                                            result,
+                                                            it.getOrThrow()
+                                                        )
+                                                    }
+                                                } else {
+                                                    signStatus[0].failed(
+                                                        it.exceptionOrNull()
+                                                            ?: ChaoxingSigner.CaptchaException()
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
                                 }.onSuccess {
                                     signStatus[0].success()
                                     UMengHelper.onSignLocationEvent(
@@ -174,7 +206,28 @@ fun LocationSignScreen(
                                                 if (preSign()) {
                                                     signStatus[index + 1].failed(ChaoxingSigner.AlreadySignedException())
                                                 } else {
-                                                    sign(result)
+                                                    sign(result){
+                                                        isCaptchaValidate=this
+                                                        captchaValidateValue.observe(lifecycleOwner) {
+                                                            captchaValidateValue.removeObservers(lifecycleOwner)
+                                                            if (it != null) {
+                                                                if (it.isSuccess) {
+                                                                    signStatus[index + 1].loading()
+                                                                    coroutineScope.launch {
+                                                                        signer.signWithCaptcha(
+                                                                            result,
+                                                                            it.getOrThrow()
+                                                                        )
+                                                                    }
+                                                                } else {
+                                                                    signStatus[index + 1].failed(
+                                                                        it.exceptionOrNull()
+                                                                            ?: ChaoxingSigner.CaptchaException()
+                                                                    )
+                                                                }
+                                                            }
+                                                        }
+                                                    }
                                                 }
                                             }
                                         }
