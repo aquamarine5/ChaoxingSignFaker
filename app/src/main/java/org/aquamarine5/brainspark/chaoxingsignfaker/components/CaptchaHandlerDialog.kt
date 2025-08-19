@@ -11,6 +11,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -21,6 +22,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -112,7 +114,7 @@ fun CaptchaHandlerDialog(
                         onValueChangeFinished = {
                             coroutineScope.launch {
                                 runCatching {
-                                    val normalizedPosition = ((sliderPosition / (sliderMaxValue)) * 350f)-8
+                                    val normalizedPosition = ((sliderPosition / (sliderMaxValue)) * 320f)
 
                                     signer.checkCaptchaResult(normalizedPosition, data!!)
                                         .let { result ->
@@ -140,21 +142,26 @@ fun CaptchaHandlerDialog(
                     )
                 }
             } else {
-                CenterCircularProgressIndicator()
-                var shouldRetry by remember(data) { mutableStateOf(false) }
-                LaunchedEffect(data) {
-                    delay(5000)
-                    shouldRetry = true
-                }
-                AnimatedVisibility(shouldRetry, enter = fadeIn() + slideInVertically()) {
-                    Button(onClick = {
-                        coroutineScope.launch {
-                            data=signer.getCaptchaImageV2()
+                Column(modifier=Modifier.fillMaxWidth(), verticalArrangement = Arrangement.Center) {
+                    CircularProgressIndicator()
+
+                    var shouldRetry by remember(data) { mutableStateOf(false) }
+                    LaunchedEffect(data) {
+                        delay(5000)
+                        shouldRetry = true
+                    }
+                    AnimatedVisibility(shouldRetry, enter = fadeIn() + slideInVertically()) {
+                        Button(onClick = {
+                            coroutineScope.launch {
+                                data=signer.getCaptchaImageV2()
+                            }
+                        }) {
+                            Text("重试")
                         }
-                    }) {
-                        Text("重试")
                     }
                 }
+
+
             }
         },
         confirmButton = {

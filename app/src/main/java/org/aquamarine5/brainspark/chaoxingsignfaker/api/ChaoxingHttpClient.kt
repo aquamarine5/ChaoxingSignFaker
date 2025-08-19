@@ -7,6 +7,7 @@
 package org.aquamarine5.brainspark.chaoxingsignfaker.api
 
 import android.content.Context
+import android.os.NetworkOnMainThreadException
 import com.alibaba.fastjson2.JSONObject
 import io.sentry.Sentry
 import kotlinx.coroutines.Dispatchers
@@ -69,7 +70,6 @@ class ChaoxingHttpClient private constructor(
                 }.onFailure {
                     when (it) {
                         is UnknownHostException -> {
-
                             it.printStackTrace()
                             failureResponse =
                                 Response.Builder().request(request).protocol(Protocol.HTTP_2)
@@ -79,13 +79,21 @@ class ChaoxingHttpClient private constructor(
                         }
 
                         is SocketTimeoutException -> {
-
                             it.printStackTrace()
                             failureResponse =
                                 Response.Builder().request(request).protocol(Protocol.HTTP_2)
                                     .message("Socket Timeout")
                                     .body("Socket Timeout".toResponseBody())
                                     .code(HTTP_RESPONSE_CODE_SOCKET_TIMEOUT).build()
+                        }
+
+                        is NetworkOnMainThreadException ->{
+                            it.printStackTrace()
+                            failureResponse =
+                                Response.Builder().request(request).protocol(Protocol.HTTP_2)
+                                    .message("Network on main thread")
+                                    .body("network on main thread!".toResponseBody())
+                                    .code(HTTP_RESPONSE_CODE_NETWORK_ON_MAIN_THREAD).build()
                         }
 
                         else -> {
@@ -116,6 +124,7 @@ class ChaoxingHttpClient private constructor(
         private const val URL_LOGIN = "https://passport2.chaoxing.com/fanyalogin"
 
         const val HTTP_RESPONSE_CODE_UNKNOWN_ERROR = 990
+        const val HTTP_RESPONSE_CODE_NETWORK_ON_MAIN_THREAD=997
         const val HTTP_RESPONSE_CODE_UNKNOWN_HOST = 998
         const val HTTP_RESPONSE_CODE_SOCKET_TIMEOUT = 999
 

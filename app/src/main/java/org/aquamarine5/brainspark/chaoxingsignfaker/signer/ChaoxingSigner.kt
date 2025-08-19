@@ -193,6 +193,7 @@ abstract class ChaoxingSigner(
         }
     }
 
+    @Deprecated("Use getCaptchaImageV2 instead", ReplaceWith("getCaptchaImageV2()"))
     open suspend fun getCaptchaImage(onSuccess: (ChaoxingCaptchaDataEntity) -> Unit) {
         getCaptchaData(client.context) {
             client.newCall(
@@ -227,6 +228,7 @@ abstract class ChaoxingSigner(
         }
     }
 
+    @Deprecated("Use getCaptchaImageV2 instead", ReplaceWith("getCaptchaImageV2()"))
     @SuppressLint("SetJavaScriptEnabled")
     open suspend fun getCaptchaData(
         context: Context,
@@ -339,7 +341,6 @@ abstract class ChaoxingSigner(
                 jsonResult.getJSONObject("imageVerificationVo").getString("cutoutImage")
                     ?: throw CaptchaException()
             )
-
         }
     }
 }
