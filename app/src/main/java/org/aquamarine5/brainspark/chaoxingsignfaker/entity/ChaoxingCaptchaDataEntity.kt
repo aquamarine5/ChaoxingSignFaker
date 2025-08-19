@@ -7,12 +7,12 @@
 package org.aquamarine5.brainspark.chaoxingsignfaker.entity
 
 data class ChaoxingCaptchaDataEntity(
-    val captchaId:String,
-    val type:String,
-    val version:String,
-    val token:String,
-    val captchaKey:String,
-    val iv:String,
-    val shadeImageUrl:String,
-    val cutoutImageUrl:String
+    val captchaId: String,
+    val type: String,
+    val version: String,
+    val token: String,
+    val captchaKey: String,
+    val iv: String,
+    val shadeImageUrl: String,
+    val cutoutImageUrl: String
 )

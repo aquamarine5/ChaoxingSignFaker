@@ -17,7 +17,7 @@ suspend fun Response.checkResponse(context: Context): Boolean =
     if (isSuccessful) {
         false
     } else {
-        withContext(Dispatchers.Main){
+        withContext(Dispatchers.Main) {
             Toast.makeText(
                 context, when (code) {
                     ChaoxingHttpClient.HTTP_RESPONSE_CODE_UNKNOWN_HOST -> "网络异常，请检查网络连接和DNS服务器"

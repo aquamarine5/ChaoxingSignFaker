@@ -45,7 +45,7 @@ fun BlockedContent(content: @Composable () -> Unit) {
     val context = LocalContext.current
     var unblockedButtonClickCount by rememberSaveable { mutableIntStateOf(0) }
     LaunchedEffect(Unit) {
-        if(bannedFidList.isNotEmpty()) {
+        if (bannedFidList.isNotEmpty()) {
             return@LaunchedEffect
         }
         withContext(Dispatchers.IO) {

@@ -491,7 +491,9 @@ fun OtherUserScreen(naviBack: () -> Unit) {
             }
             Spacer(modifier = Modifier.height(8.dp))
             SingleChoiceSegmentedButtonRow(
-                modifier = Modifier.fillMaxWidth().padding(5.dp,2.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(5.dp, 2.dp)
             ) {
                 SegmentedButton(
                     onClick = {

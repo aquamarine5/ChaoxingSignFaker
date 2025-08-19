@@ -160,29 +160,41 @@ fun LocationSignScreen(
                                         isCaptchaValidate = signer
                                         coroutineScope.launch {
                                             withContext(Dispatchers.Main) {
-                                                captchaValidateValue.observe(lifecycleOwner) {
-                                                    captchaValidateValue.removeObservers(
-                                                        lifecycleOwner
-                                                    )
-                                                    if (it != null) {
-                                                        if (it.isSuccess) {
+                                                captchaValidateValue.observe(lifecycleOwner) { captchaValidate ->
+                                                    if (captchaValidate != null) {
+                                                        if (captchaValidate.isSuccess) {
                                                             signStatus[0].loading()
                                                             coroutineScope.launch {
                                                                 runCatching {
                                                                     signer.signWithCaptcha(
                                                                         result,
-                                                                        it.getOrThrow()
+                                                                        captchaValidate.getOrThrow()
                                                                     )
                                                                 }.onSuccess {
-                                                                    if(otherUserSessionForSignList.isEmpty()){
-                                                                        isSponsor=true
+                                                                    signStatus[0].success()
+                                                                    if (otherUserSessionForSignList.isEmpty()) {
+                                                                        isSponsor = true
                                                                     }
+                                                                    UMengHelper.onSignLocationEvent(
+                                                                        context,
+                                                                        result,
+                                                                        ChaoxingHttpClient.instance!!.userEntity.name
+                                                                    )
                                                                 }.onFailure {
+                                                                    signStatus[0].failed(it)
                                                                     it.printStackTrace()
+                                                                    Toast.makeText(
+                                                                        context,
+                                                                        it.message,
+                                                                        Toast.LENGTH_SHORT
+                                                                    ).show()
+                                                                    if ((it is ChaoxingPredictableException).not()) {
+                                                                        Sentry.captureException(it)
+                                                                    }
                                                                 }
                                                             }
                                                         } else {
-                                                            (it.exceptionOrNull()
+                                                            (captchaValidate.exceptionOrNull()
                                                                 ?: ChaoxingSigner.CaptchaException()).apply {
                                                                 signStatus[0].failed(this)
                                                                 Toast.makeText(
@@ -197,18 +209,23 @@ fun LocationSignScreen(
                                                             }
                                                         }
                                                     }
+                                                    captchaValidateValue.removeObservers(
+                                                        lifecycleOwner
+                                                    )
                                                 }
                                             }
                                         }
                                     }
                                 }.onSuccess {
+                                    if (isCaptchaValidate != null)
+                                        return@onSuccess
                                     signStatus[0].success()
                                     UMengHelper.onSignLocationEvent(
                                         context,
                                         result,
                                         ChaoxingHttpClient.instance!!.userEntity.name
                                     )
-                                    if (otherUserSessionForSignList.isEmpty() && isCaptchaValidate==null) {
+                                    if (otherUserSessionForSignList.isEmpty()) {
                                         isSponsor = true
                                     }
                                 }.onFailure {

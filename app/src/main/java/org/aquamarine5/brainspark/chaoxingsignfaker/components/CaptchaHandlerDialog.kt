@@ -42,8 +42,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.MutableLiveData
 import coil3.compose.AsyncImage
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCaptchaDataEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSigner
 
@@ -55,11 +57,11 @@ fun CaptchaHandlerDialog(
 ) {
     var data by remember { mutableStateOf<ChaoxingCaptchaDataEntity?>(null) }
     val shadeImageUrl by remember(data) { mutableStateOf(data?.shadeImageUrl) }
-    val cutoutImageUrl by remember(data){ mutableStateOf(data?.cutoutImageUrl) }
+    val cutoutImageUrl by remember(data) { mutableStateOf(data?.cutoutImageUrl) }
     var sliderPosition by remember(data) { mutableFloatStateOf(28f) }
     var containerWidth by remember { mutableFloatStateOf(320f) }
-    val sliderMaxValue = remember(containerWidth) { containerWidth  }
-    val density by remember { mutableFloatStateOf(sliderMaxValue/320) }
+    val sliderMaxValue = remember(containerWidth) { containerWidth }
+    val density by remember { mutableFloatStateOf(sliderMaxValue / 320) }
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
@@ -67,7 +69,7 @@ fun CaptchaHandlerDialog(
 //        signer.getCaptchaImage {
 //            data = it
 //        }
-        data=signer.getCaptchaImageV2()
+        data = signer.getCaptchaImageV2()
     }
 
     AlertDialog(
@@ -98,7 +100,7 @@ fun CaptchaHandlerDialog(
                             model = cutoutImageUrl,
                             contentDescription = "滑块",
                             modifier = Modifier
-                                .offset { IntOffset((sliderPosition-(28*density)).toInt(), 0) }
+                                .offset { IntOffset((sliderPosition - (28 * density)).toInt(), 0) }
                                 .zIndex(1f)
                                 .size(56.dp, 160.dp)
                         )
@@ -114,7 +116,8 @@ fun CaptchaHandlerDialog(
                         onValueChangeFinished = {
                             coroutineScope.launch {
                                 runCatching {
-                                    val normalizedPosition = ((sliderPosition / (sliderMaxValue)) * 320f)
+                                    val normalizedPosition =
+                                        ((sliderPosition / (sliderMaxValue)) * 320f)
 
                                     signer.checkCaptchaResult(normalizedPosition, data!!)
                                         .let { result ->
@@ -125,14 +128,18 @@ fun CaptchaHandlerDialog(
                                                     Toast.LENGTH_SHORT
                                                 ).show()
                                                 sliderPosition = 0f
-                                                data=signer.getCaptchaImageV2()
+                                                data = signer.getCaptchaImageV2()
                                             } else {
-                                                liveData.postValue(Result.success(result))
+                                                withContext(Dispatchers.Main){
+                                                    liveData.postValue(Result.success(result))
+                                                }
                                                 onDismiss()
                                             }
                                         }
                                 }.onFailure {
-                                    liveData.postValue(Result.failure(it))
+                                    withContext(Dispatchers.Main){
+                                        liveData.postValue(Result.failure(it))
+                                    }
                                     onDismiss()
                                 }
                             }
@@ -142,7 +149,10 @@ fun CaptchaHandlerDialog(
                     )
                 }
             } else {
-                Column(modifier=Modifier.fillMaxWidth(), verticalArrangement = Arrangement.Center) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.Center
+                ) {
                     CircularProgressIndicator()
 
                     var shouldRetry by remember(data) { mutableStateOf(false) }
@@ -153,7 +163,7 @@ fun CaptchaHandlerDialog(
                     AnimatedVisibility(shouldRetry, enter = fadeIn() + slideInVertically()) {
                         Button(onClick = {
                             coroutineScope.launch {
-                                data=signer.getCaptchaImageV2()
+                                data = signer.getCaptchaImageV2()
                             }
                         }) {
                             Text("重试")

@@ -87,7 +87,7 @@ class ChaoxingHttpClient private constructor(
                                     .code(HTTP_RESPONSE_CODE_SOCKET_TIMEOUT).build()
                         }
 
-                        is NetworkOnMainThreadException ->{
+                        is NetworkOnMainThreadException -> {
                             it.printStackTrace()
                             failureResponse =
                                 Response.Builder().request(request).protocol(Protocol.HTTP_2)
@@ -124,7 +124,7 @@ class ChaoxingHttpClient private constructor(
         private const val URL_LOGIN = "https://passport2.chaoxing.com/fanyalogin"
 
         const val HTTP_RESPONSE_CODE_UNKNOWN_ERROR = 990
-        const val HTTP_RESPONSE_CODE_NETWORK_ON_MAIN_THREAD=997
+        const val HTTP_RESPONSE_CODE_NETWORK_ON_MAIN_THREAD = 997
         const val HTTP_RESPONSE_CODE_UNKNOWN_HOST = 998
         const val HTTP_RESPONSE_CODE_SOCKET_TIMEOUT = 999
 

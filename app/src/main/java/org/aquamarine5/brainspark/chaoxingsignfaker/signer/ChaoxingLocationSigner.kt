@@ -45,62 +45,64 @@ class ChaoxingLocationSigner(
         }
     }
 
-    suspend fun sign(signLocation: ChaoxingLocationSignEntity,onValidate:()->Unit) = withContext(Dispatchers.IO) {
-        client.newCall(
-            Request.Builder().url(
-                URL_SIGN.toHttpUrl().newBuilder()
-                    .addQueryParameter("latitude", signLocation.latitude.toString())
-                    .addQueryParameter("longitude", signLocation.longitude.toString())
-                    .addQueryParameter("address", signLocation.address)
-                    .addQueryParameter("activeId", destination.activeId.toString())
-                    .addQueryParameter("uid", client.userEntity.puid.toString())
-                    .addQueryParameter("name", client.userEntity.name)
-                    .addQueryParameter("fid", client.userEntity.fid.toString())
-                    .addQueryParameter("deviceCode", ChaoxingHttpClient.deviceCode)
-                    .build()
-            ).get().build()
-        ).execute().use {
-            if (it.checkResponse(client.context)) {
-                throw ChaoxingHttpClient.ChaoxingNetworkException()
-            }
-            val result = it.body?.string()
-            if(result=="validate"){
-                onValidate()
-                return@use
-            }
-            if (result != "success") {
-                Log.w(CLASSTAG, result ?: "")
-                throw ChaoxingLocationSignException(result ?: "签到失败")
+    suspend fun sign(signLocation: ChaoxingLocationSignEntity, onValidate: () -> Unit) =
+        withContext(Dispatchers.IO) {
+            client.newCall(
+                Request.Builder().url(
+                    URL_SIGN.toHttpUrl().newBuilder()
+                        .addQueryParameter("latitude", signLocation.latitude.toString())
+                        .addQueryParameter("longitude", signLocation.longitude.toString())
+                        .addQueryParameter("address", signLocation.address)
+                        .addQueryParameter("activeId", destination.activeId.toString())
+                        .addQueryParameter("uid", client.userEntity.puid.toString())
+                        .addQueryParameter("name", client.userEntity.name)
+                        .addQueryParameter("fid", client.userEntity.fid.toString())
+                        .addQueryParameter("deviceCode", ChaoxingHttpClient.deviceCode)
+                        .build()
+                ).get().build()
+            ).execute().use {
+                if (it.checkResponse(client.context)) {
+                    throw ChaoxingHttpClient.ChaoxingNetworkException()
+                }
+                val result = it.body?.string()
+                if (result == "validate") {
+                    onValidate()
+                    return@use
+                }
+                if (result != "success") {
+                    Log.w(CLASSTAG, result ?: "")
+                    throw ChaoxingLocationSignException(result ?: "签到失败")
+                }
             }
         }
-    }
 
-    suspend fun signWithCaptcha(signLocation: ChaoxingLocationSignEntity,validateValue:String) = withContext(Dispatchers.IO) {
-        client.newCall(
-            Request.Builder().url(
-                URL_SIGN.toHttpUrl().newBuilder()
-                    .addQueryParameter("latitude", signLocation.latitude.toString())
-                    .addQueryParameter("longitude", signLocation.longitude.toString())
-                    .addQueryParameter("address", signLocation.address)
-                    .addQueryParameter("activeId", destination.activeId.toString())
-                    .addQueryParameter("uid", client.userEntity.puid.toString())
-                    .addQueryParameter("name", client.userEntity.name)
-                    .addQueryParameter("fid", client.userEntity.fid.toString())
-                    .addQueryParameter("deviceCode", ChaoxingHttpClient.deviceCode)
-                    .addQueryParameter("validateValue",validateValue)
-                    .build()
-            ).get().build()
-        ).execute().use {
-            if (it.checkResponse(client.context)) {
-                throw ChaoxingHttpClient.ChaoxingNetworkException()
-            }
-            val result = it.body?.string()
-            if (result != "success") {
-                Log.w(CLASSTAG, result ?: "")
-                throw ChaoxingLocationSignException(result ?: "签到失败")
+    suspend fun signWithCaptcha(signLocation: ChaoxingLocationSignEntity, validateValue: String) =
+        withContext(Dispatchers.IO) {
+            client.newCall(
+                Request.Builder().url(
+                    URL_SIGN.toHttpUrl().newBuilder()
+                        .addQueryParameter("latitude", signLocation.latitude.toString())
+                        .addQueryParameter("longitude", signLocation.longitude.toString())
+                        .addQueryParameter("address", signLocation.address)
+                        .addQueryParameter("activeId", destination.activeId.toString())
+                        .addQueryParameter("uid", client.userEntity.puid.toString())
+                        .addQueryParameter("name", client.userEntity.name)
+                        .addQueryParameter("fid", client.userEntity.fid.toString())
+                        .addQueryParameter("deviceCode", ChaoxingHttpClient.deviceCode)
+                        .addQueryParameter("validateValue", validateValue)
+                        .build()
+                ).get().build()
+            ).execute().use {
+                if (it.checkResponse(client.context)) {
+                    throw ChaoxingHttpClient.ChaoxingNetworkException()
+                }
+                val result = it.body?.string()
+                if (result != "success") {
+                    Log.w(CLASSTAG, result ?: "")
+                    throw ChaoxingLocationSignException(result ?: "签到失败")
+                }
             }
         }
-    }
 
     override suspend fun checkAlreadySign(response: String): Boolean {
         return response.contains("恭喜你已完成签到").not()
