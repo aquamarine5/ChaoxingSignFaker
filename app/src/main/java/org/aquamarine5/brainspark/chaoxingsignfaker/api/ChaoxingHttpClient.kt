@@ -69,6 +69,8 @@ class ChaoxingHttpClient private constructor(
                 }.onFailure {
                     when (it) {
                         is UnknownHostException -> {
+
+                            it.printStackTrace()
                             failureResponse =
                                 Response.Builder().request(request).protocol(Protocol.HTTP_2)
                                     .message("Unknown Host")
@@ -77,6 +79,8 @@ class ChaoxingHttpClient private constructor(
                         }
 
                         is SocketTimeoutException -> {
+
+                            it.printStackTrace()
                             failureResponse =
                                 Response.Builder().request(request).protocol(Protocol.HTTP_2)
                                     .message("Socket Timeout")
@@ -86,6 +90,7 @@ class ChaoxingHttpClient private constructor(
 
                         else -> {
                             Sentry.captureException(it)
+                            it.printStackTrace()
                             failureResponse =
                                 Response.Builder().request(request).protocol(Protocol.HTTP_2)
                                     .message("Unknown Error")

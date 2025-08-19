@@ -25,9 +25,11 @@ import okhttp3.FormBody
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Request
 import org.aquamarine5.brainspark.chaoxingsignfaker.ChaoxingPredictableException
+import org.aquamarine5.brainspark.chaoxingsignfaker.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.checkResponse
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCaptchaDataEntity
+import java.util.UUID
 
 abstract class ChaoxingSigner(
     val client: ChaoxingHttpClient,
@@ -49,6 +51,7 @@ abstract class ChaoxingSigner(
             "https://captcha.chaoxing.com/captcha/get/conf?callback=cx_captcha_function"
         const val URL_CAPTCHA_RESULT =
             "https://captcha.chaoxing.com/captcha/check/verification/result?callback=cx_captcha_function"
+        const val URL_CAPTCHA_IMAGE = "https://captcha.chaoxing.com/captcha/get/verification/image"
         const val URL_SIGN =
             "https://mobilelearn.chaoxing.com/pptSign/stuSignajax?&clientip=&appType=15&ifTiJiao=1&validate=&vpProbability=-1&vpStrategy="
     }
@@ -150,8 +153,14 @@ abstract class ChaoxingSigner(
                     .addQueryParameter("t", "a")
                     .addQueryParameter("iv", dataEntity.iv)
                     .addQueryParameter("_", System.currentTimeMillis().toString())
-
                     .build()
+            ).header(
+                "Referer", URL_PERSIGN.toHttpUrl().newBuilder()
+                    .addQueryParameter("courseId", courseId.toString())
+                    .addQueryParameter("classId", classId.toString())
+                    .addQueryParameter("activePrimaryId", activeId.toString())
+                    .addQueryParameter("uid", client.userEntity.puid.toString())
+                    .build().toString()
             ).build()
         ).execute().use {
             if (it.checkResponse(client.context)) {
@@ -170,14 +179,18 @@ abstract class ChaoxingSigner(
         }
     }
 
-    open suspend fun getCaptchaConf() = withContext(Dispatchers.IO) {
+    open suspend fun getCaptchaConf(): Long = withContext(Dispatchers.IO) {
         client.newCall(
             Request.Builder().get().url(
                 URL_CAPTCHA_CONF.toHttpUrl().newBuilder()
                     .addQueryParameter("captchaId", getCaptchaId())
                     .addQueryParameter("_", System.currentTimeMillis().toString()).build()
             ).build()
-        ).execute().close()
+        ).execute().use {
+            return@use JSONObject.parseObject(
+                it.body?.string()?.replace("cx_captcha_function(", "")?.replace(")", "")
+            ).getLong("t")
+        }
     }
 
     open suspend fun getCaptchaImage(onSuccess: (ChaoxingCaptchaDataEntity) -> Unit) {
@@ -276,6 +289,57 @@ abstract class ChaoxingSigner(
                 webview = null
                 throw CaptchaTimeoutException()
             }
+        }
+    }
+
+    open suspend fun getCaptchaImageV2(): ChaoxingCaptchaDataEntity = withContext(Dispatchers.IO) {
+        val t = getCaptchaConf()
+        val captchaKey = UMengHelper.md5("$t${UUID.randomUUID()}")
+        val iv =
+            UMengHelper.md5("${getCaptchaId()}slide${System.currentTimeMillis()}${UUID.randomUUID()}")
+        val token = UMengHelper.md5("$t${getCaptchaId()}slide$captchaKey") + ":${t + 300000L}"
+        client.newCall(
+            Request.Builder().get().url(
+                URL_CAPTCHA_IMAGE.toHttpUrl().newBuilder()
+                    .addQueryParameter("callback", "cx_captcha_function")
+                    .addQueryParameter("captchaId", getCaptchaId())
+                    .addQueryParameter("type", "slide")
+                    .addQueryParameter("version", "1.1.20")
+                    .addQueryParameter("captchaKey", captchaKey)
+                    .addQueryParameter("token", token)
+                    .addQueryParameter(
+                        "referer", URL_PERSIGN.toHttpUrl().newBuilder()
+                            .addQueryParameter("courseId", courseId.toString())
+                            .addQueryParameter("classId", classId.toString())
+                            .addQueryParameter("activePrimaryId", activeId.toString())
+                            .addQueryParameter("uid", client.userEntity.puid.toString())
+                            .build().toString()
+                    )
+                    .addQueryParameter("iv", iv)
+                    .addQueryParameter("_", System.currentTimeMillis().toString())
+                    .build()
+            ).build()
+        ).execute().use {
+            if (it.checkResponse(client.context)) {
+                throw ChaoxingHttpClient.ChaoxingNetworkException()
+            }
+            val jsonResult = JSONObject.parseObject(
+                it.body?.string()?.replace("cx_captcha_function(", "")?.replace(")", "")
+            )
+
+            return@use ChaoxingCaptchaDataEntity(
+                getCaptchaId(),
+                "slide",
+                "1.1.20",
+                jsonResult.getString("token"),
+                captchaKey,
+                iv,
+                jsonResult.getJSONObject("imageVerificationVo").getString("shadeImage")
+                    ?: throw CaptchaException(),
+                jsonResult.getJSONObject("imageVerificationVo").getString("cutoutImage")
+                    ?: throw CaptchaException()
+            )
+
         }
     }
 }

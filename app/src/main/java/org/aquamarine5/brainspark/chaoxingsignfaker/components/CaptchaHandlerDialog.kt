@@ -62,9 +62,10 @@ fun CaptchaHandlerDialog(
     val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
-        signer.getCaptchaImage {
-            data = it
-        }
+//        signer.getCaptchaImage {
+//            data = it
+//        }
+        data=signer.getCaptchaImageV2()
     }
 
     AlertDialog(
@@ -122,9 +123,7 @@ fun CaptchaHandlerDialog(
                                                     Toast.LENGTH_SHORT
                                                 ).show()
                                                 sliderPosition = 0f
-                                                signer.getCaptchaImage {
-                                                    data = it
-                                                }
+                                                data=signer.getCaptchaImageV2()
                                             } else {
                                                 liveData.postValue(Result.success(result))
                                                 onDismiss()
@@ -150,9 +149,7 @@ fun CaptchaHandlerDialog(
                 AnimatedVisibility(shouldRetry, enter = fadeIn() + slideInVertically()) {
                     Button(onClick = {
                         coroutineScope.launch {
-                            signer.getCaptchaImage {
-                                data = it
-                            }
+                            data=signer.getCaptchaImageV2()
                         }
                     }) {
                         Text("重试")
