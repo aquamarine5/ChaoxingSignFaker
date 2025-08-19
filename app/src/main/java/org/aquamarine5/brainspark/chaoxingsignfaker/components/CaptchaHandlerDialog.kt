@@ -7,6 +7,9 @@
 package org.aquamarine5.brainspark.chaoxingsignfaker.components
 
 import android.widget.Toast
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -30,12 +33,14 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.MutableLiveData
 import coil3.compose.AsyncImage
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCaptchaDataEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSigner
@@ -47,15 +52,21 @@ fun CaptchaHandlerDialog(
     onDismiss: () -> Unit,
 ) {
     var data by remember { mutableStateOf<ChaoxingCaptchaDataEntity?>(null) }
-    var sliderPosition by remember(data) { mutableFloatStateOf(10f) }
-    val maxSliderPosition = 320f - 10f
-    val coroutineScope = rememberCoroutineScope()
+    val shadeImageUrl by remember(data) { mutableStateOf(data?.shadeImageUrl) }
+    val cutoutImageUrl by remember(data){ mutableStateOf(data?.cutoutImageUrl) }
+    var sliderPosition by remember(data) { mutableFloatStateOf(28f) }
+    var containerWidth by remember { mutableFloatStateOf(320f) }
+    val sliderMaxValue = remember(containerWidth) { containerWidth  }
+    val density by remember { mutableFloatStateOf(sliderMaxValue/320) }
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+
     LaunchedEffect(Unit) {
         signer.getCaptchaImage {
             data = it
         }
     }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("请完成滑动验证") },
@@ -65,23 +76,26 @@ fun CaptchaHandlerDialog(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .onSizeChanged {
+                                containerWidth = it.width.toFloat()
+                            }
                             .size(320.dp, 160.dp)
                             .background(Color.Gray)
                     ) {
                         AsyncImage(
-                            model = data!!.shadeImageUrl,
+                            model = shadeImageUrl,
                             contentDescription = "背景图",
                             modifier = Modifier
                                 .fillMaxSize()
                                 .zIndex(0f)
-                                .size(320.dp, 160.dp),
+                                .size(320.dp, 160.dp)
                         )
 
                         AsyncImage(
-                            model = data!!.cutoutImageUrl,
+                            model = cutoutImageUrl,
                             contentDescription = "滑块",
                             modifier = Modifier
-                                .offset { IntOffset(sliderPosition.toInt(), 0) }
+                                .offset { IntOffset((sliderPosition-(28*density)).toInt(), 0) }
                                 .zIndex(1f)
                                 .size(56.dp, 160.dp)
                         )
@@ -97,7 +111,9 @@ fun CaptchaHandlerDialog(
                         onValueChangeFinished = {
                             coroutineScope.launch {
                                 runCatching {
-                                    signer.checkCaptchaResult(sliderPosition, data!!)
+                                    val normalizedPosition = ((sliderPosition / (sliderMaxValue)) * 350f)-8
+
+                                    signer.checkCaptchaResult(normalizedPosition, data!!)
                                         .let { result ->
                                             if (result == null) {
                                                 Toast.makeText(
@@ -105,6 +121,7 @@ fun CaptchaHandlerDialog(
                                                     "验证失败，请重试",
                                                     Toast.LENGTH_SHORT
                                                 ).show()
+                                                sliderPosition = 0f
                                                 signer.getCaptchaImage {
                                                     data = it
                                                 }
@@ -119,9 +136,27 @@ fun CaptchaHandlerDialog(
                                 }
                             }
                         },
-                        valueRange = 10f..maxSliderPosition,
+                        valueRange = 0f..sliderMaxValue,
                         modifier = Modifier.fillMaxWidth()
                     )
+                }
+            } else {
+                CenterCircularProgressIndicator()
+                var shouldRetry by remember(data) { mutableStateOf(false) }
+                LaunchedEffect(data) {
+                    delay(5000)
+                    shouldRetry = true
+                }
+                AnimatedVisibility(shouldRetry, enter = fadeIn() + slideInVertically()) {
+                    Button(onClick = {
+                        coroutineScope.launch {
+                            signer.getCaptchaImage {
+                                data = it
+                            }
+                        }
+                    }) {
+                        Text("重试")
+                    }
                 }
             }
         },
@@ -131,7 +166,7 @@ fun CaptchaHandlerDialog(
                     onDismiss()
                 }
             ) {
-                Text("确认")
+                Text("取消")
             }
         }
     )

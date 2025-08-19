@@ -29,8 +29,10 @@ import androidx.compose.ui.zIndex
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import io.sentry.Sentry
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import org.aquamarine5.brainspark.chaoxingsignfaker.ChaoxingPredictableException
 import org.aquamarine5.brainspark.chaoxingsignfaker.UMengHelper
@@ -83,13 +85,13 @@ fun LocationSignScreen(
     }
     var isCaptchaValidate by remember { mutableStateOf<ChaoxingLocationSigner?>(null) }
     val captchaValidateValue = remember { MutableLiveData<Result<String>?>(null) }
-    if(isCaptchaValidate!=null){
-        CaptchaHandlerDialog(isCaptchaValidate!!,captchaValidateValue, onDismiss = {
-            isCaptchaValidate=null
+    if (isCaptchaValidate != null) {
+        CaptchaHandlerDialog(isCaptchaValidate!!, captchaValidateValue, onDismiss = {
+            isCaptchaValidate = null
         })
     }
     val context = LocalContext.current
-    val lifecycleOwner= LocalLifecycleOwner.current
+    val lifecycleOwner = LocalLifecycleOwner.current
     val coroutineScope = rememberCoroutineScope()
     LaunchedEffect(Unit) {
         runCatching {
@@ -154,24 +156,47 @@ fun LocationSignScreen(
                             if (isSelfForSign)
                                 runCatching {
                                     signStatus[0].loading()
-                                    signer.sign(result){
-                                        isCaptchaValidate=signer
-                                        captchaValidateValue.observe(lifecycleOwner) {
-                                            captchaValidateValue.removeObservers(lifecycleOwner)
-                                            if (it != null) {
-                                                if (it.isSuccess) {
-                                                    signStatus[0].loading()
-                                                    coroutineScope.launch {
-                                                        signer.signWithCaptcha(
-                                                            result,
-                                                            it.getOrThrow()
-                                                        )
-                                                    }
-                                                } else {
-                                                    signStatus[0].failed(
-                                                        it.exceptionOrNull()
-                                                            ?: ChaoxingSigner.CaptchaException()
+                                    signer.sign(result) {
+                                        isCaptchaValidate = signer
+                                        coroutineScope.launch {
+                                            withContext(Dispatchers.Main) {
+                                                captchaValidateValue.observe(lifecycleOwner) {
+                                                    captchaValidateValue.removeObservers(
+                                                        lifecycleOwner
                                                     )
+                                                    if (it != null) {
+                                                        if (it.isSuccess) {
+                                                            signStatus[0].loading()
+                                                            coroutineScope.launch {
+                                                                runCatching {
+                                                                    signer.signWithCaptcha(
+                                                                        result,
+                                                                        it.getOrThrow()
+                                                                    )
+                                                                }.onSuccess {
+                                                                    if(otherUserSessionForSignList.isEmpty()){
+                                                                        isSponsor=true
+                                                                    }
+                                                                }.onFailure {
+                                                                    it.printStackTrace()
+                                                                }
+                                                            }
+                                                        } else {
+                                                            (it.exceptionOrNull()
+                                                                ?: ChaoxingSigner.CaptchaException()).apply {
+                                                                signStatus[0].failed(this)
+                                                                Toast.makeText(
+                                                                    context,
+                                                                    this.message,
+                                                                    Toast.LENGTH_SHORT
+                                                                ).show()
+                                                                this.printStackTrace()
+                                                                if ((this is ChaoxingPredictableException).not()) {
+                                                                    Sentry.captureException(this)
+                                                                }
+                                                            }
+                                                        }
+                                                    }
                                                 }
                                             }
                                         }
@@ -183,11 +208,12 @@ fun LocationSignScreen(
                                         result,
                                         ChaoxingHttpClient.instance!!.userEntity.name
                                     )
-                                    if (otherUserSessionForSignList.isEmpty()) {
+                                    if (otherUserSessionForSignList.isEmpty() && isCaptchaValidate==null) {
                                         isSponsor = true
                                     }
                                 }.onFailure {
                                     signStatus[0].failed(it)
+                                    it.printStackTrace()
                                     Toast.makeText(context, it.message, Toast.LENGTH_SHORT).show()
                                     if ((it is ChaoxingPredictableException).not()) {
                                         Sentry.captureException(it)
@@ -206,10 +232,12 @@ fun LocationSignScreen(
                                                 if (preSign()) {
                                                     signStatus[index + 1].failed(ChaoxingSigner.AlreadySignedException())
                                                 } else {
-                                                    sign(result){
-                                                        isCaptchaValidate=this
+                                                    sign(result) {
+                                                        isCaptchaValidate = this
                                                         captchaValidateValue.observe(lifecycleOwner) {
-                                                            captchaValidateValue.removeObservers(lifecycleOwner)
+                                                            captchaValidateValue.removeObservers(
+                                                                lifecycleOwner
+                                                            )
                                                             if (it != null) {
                                                                 if (it.isSuccess) {
                                                                     signStatus[index + 1].loading()

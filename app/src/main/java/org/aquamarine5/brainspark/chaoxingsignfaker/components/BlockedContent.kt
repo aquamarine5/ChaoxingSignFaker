@@ -45,6 +45,9 @@ fun BlockedContent(content: @Composable () -> Unit) {
     val context = LocalContext.current
     var unblockedButtonClickCount by rememberSaveable { mutableIntStateOf(0) }
     LaunchedEffect(Unit) {
+        if(bannedFidList.isNotEmpty()) {
+            return@LaunchedEffect
+        }
         withContext(Dispatchers.IO) {
             ChaoxingHttpClient.instance?.okHttpClient?.newCall(
                 Request.Builder()
@@ -58,7 +61,6 @@ fun BlockedContent(content: @Composable () -> Unit) {
                 bannedFidList =
                     JSONObject.parseObject(it?.body?.string()).getJSONArray("banfids")
                         .toList(Int::class.java)
-
             }
         }
     }

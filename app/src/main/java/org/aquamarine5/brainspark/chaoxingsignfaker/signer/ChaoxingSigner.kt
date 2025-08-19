@@ -8,6 +8,8 @@ package org.aquamarine5.brainspark.chaoxingsignfaker.signer
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.util.Log
+import android.webkit.CookieManager
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
@@ -140,14 +142,15 @@ abstract class ChaoxingSigner(
                 URL_CAPTCHA_RESULT.toHttpUrl().newBuilder()
                     .addQueryParameter("captchaId", dataEntity.captchaId)
                     .addQueryParameter("type", dataEntity.type)
-                    .addQueryParameter("version", dataEntity.version)
-                    .addQueryParameter("t", "a")
-                    .addQueryParameter("runEnv", "10")
                     .addQueryParameter("token", dataEntity.token)
                     .addQueryParameter("textClickArr", "[{\"x\":${xPosition.toInt()}}]")
+                    .addQueryParameter("coordinate", "[]")
+                    .addQueryParameter("runEnv", "10")
+                    .addQueryParameter("version", dataEntity.version)
+                    .addQueryParameter("t", "a")
                     .addQueryParameter("iv", dataEntity.iv)
                     .addQueryParameter("_", System.currentTimeMillis().toString())
-                    .addQueryParameter("coordinate", "[]")
+
                     .build()
             ).build()
         ).execute().use {
@@ -180,7 +183,14 @@ abstract class ChaoxingSigner(
     open suspend fun getCaptchaImage(onSuccess: (ChaoxingCaptchaDataEntity) -> Unit) {
         getCaptchaData(client.context) {
             client.newCall(
-                Request.Builder().get().url(it).build()
+                Request.Builder().get().url(it).header(
+                    "Referer", URL_PERSIGN.toHttpUrl().newBuilder()
+                        .addQueryParameter("courseId", courseId.toString())
+                        .addQueryParameter("classId", classId.toString())
+                        .addQueryParameter("activePrimaryId", activeId.toString())
+                        .addQueryParameter("uid", client.userEntity.puid.toString())
+                        .build().toString()
+                ).build()
             ).execute().use { response ->
                 val jsonResult = JSONObject.parseObject(
                     response.body?.string()?.replace("cx_captcha_function(", "")?.replace(")", "")
@@ -193,7 +203,7 @@ abstract class ChaoxingSigner(
                         "1.1.20",
                         jsonResult.getString("token"),
                         params.queryParameter("captchaKey") ?: throw CaptchaException(),
-                        jsonResult.getString("iv") ?: throw CaptchaException(),
+                        params.queryParameter("iv") ?: throw CaptchaException(),
                         jsonResult.getJSONObject("imageVerificationVo").getString("shadeImage")
                             ?: throw CaptchaException(),
                         jsonResult.getJSONObject("imageVerificationVo").getString("cutoutImage")
@@ -209,29 +219,43 @@ abstract class ChaoxingSigner(
         context: Context,
         onSuccess: (String) -> Unit
     ) {
-        val webview = WebView(context).apply {
+        getCaptchaConf()
+        var webview: WebView? = WebView(context).apply {
             settings.javaScriptEnabled = true
         }
+        CookieManager.getInstance().apply {
+            setAcceptCookie(true)
+            removeAllCookies(null)
+            client.okHttpClient.cookieJar.loadForRequest("https://chaoxing.com/get_cookies".toHttpUrl())
+                .forEach {
+                    setCookie(
+                        "chaoxing.com",
+                        "${it.name}=${it.value}; Path=/; Domain=chaoxing.com;"
+                    )
+                }
+            flush()
+        }
+
         coroutineScope {
             val job =
                 launch {
-                    webview.webViewClient = object : WebViewClient() {
+                    webview?.webViewClient = object : WebViewClient() {
                         override fun shouldInterceptRequest(
                             view: WebView?,
                             request: WebResourceRequest?
                         ): WebResourceResponse? {
                             if (request?.url?.toString()
-                                    ?.startsWith("https://captcha.chaoxing.com/captcha/get/verification/image") == true
+                                    ?.contains("captcha.chaoxing.com/captcha/get/verification/image") == true
                             ) {
+                                Log.d("ChaoxingSigner", "Captcha URL: ${request.url}")
                                 onSuccess(request.url?.toString()!!)
-                                view?.destroy()
                                 cancel()
                                 return null
                             }
                             return super.shouldInterceptRequest(view, request)
                         }
                     }
-                    webview.loadUrl(
+                    webview?.loadUrl(
                         URL_PERSIGN.toHttpUrl().newBuilder()
                             .addQueryParameter("courseId", courseId.toString())
                             .addQueryParameter("classId", classId.toString())
@@ -240,10 +264,16 @@ abstract class ChaoxingSigner(
                             .build().toString()
                     )
                 }
+            job.invokeOnCompletion {
+                if (job.isCancelled)
+                    webview?.destroy()
+                webview = null
+            }
             delay(10000)
             if (job.isActive) {
                 job.cancel()
-                webview.destroy()
+                webview?.destroy()
+                webview = null
                 throw CaptchaTimeoutException()
             }
         }
