@@ -301,7 +301,11 @@ class ChaoxingHttpClient private constructor(
             }
         }
 
-        private suspend fun getInfo(client: OkHttpClient, context: Context): ChaoxingUserEntity =
+        private suspend fun getInfo(
+            client: OkHttpClient,
+            context: Context,
+            otherUserSession: ChaoxingOtherUserSession? = null
+        ): ChaoxingUserEntity =
             withContext(Dispatchers.IO) {
                 runCatching {
                     client.newCall(Request.Builder().get().url(URL_USER_INFO).build()).execute()
@@ -324,10 +328,54 @@ class ChaoxingHttpClient private constructor(
                                 jsonResult.getInteger("puid")
                             )
                         }
-                }.getOrElse {
-                    throw ChaoxingGetUserInfoException("获取用户信息失败", it)
+                }.getOrElse { throwable ->
+                    if (otherUserSession != null)
+                        runCatching {
+                            reLoginFromOtherSession(client, context, otherUserSession)
+                        }.onSuccess {
+                            return@withContext getInfo(client, context, otherUserSession)
+                        }
+                    throw ChaoxingGetUserInfoException("获取用户信息失败", throwable)
                 }
             }
+
+        private suspend fun reLoginFromOtherSession(
+            client: OkHttpClient,
+            context: Context,
+            otherUserSession: ChaoxingOtherUserSession
+        ) {
+            login(
+                client,
+                otherUserSession.phoneNumber,
+                otherUserSession.password,
+                context,
+                isSaveToDataStore = false,
+                isEncryptedPassword = true
+            )
+            context.chaoxingDataStore.updateData { dataStore ->
+                dataStore.toBuilder().apply {
+                    otherUsersList.indexOfFirst {
+                        it.phoneNumber == otherUserSession.phoneNumber
+                    }.takeIf { it >= 0 }?.let { index ->
+                        setOtherUsers(index, otherUserSession.toBuilder()
+                            .clearCookies()
+                            .addAllCookies(
+                                client.cookieJar.loadForRequest(
+                                    HttpUrl.Builder()
+                                        .scheme("https")
+                                        .host("chaoxing.com").build()
+                                ).map { cookie ->
+                                    HttpCookie.newBuilder()
+                                        .setValue(cookie.value)
+                                        .setName(cookie.name)
+                                        .setHost(cookie.domain).build()
+                                }
+                            )
+                            .build())
+                    }
+                }.build()
+            }
+        }
 
         suspend fun checkSharedEntity(
             phoneNumber: String,

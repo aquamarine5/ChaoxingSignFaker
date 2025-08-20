@@ -46,7 +46,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -244,6 +243,7 @@ fun PhotoSignScreen(
                                             }
                                         }
                                         otherUserSessionList.forEachIndexed { index, userSession ->
+                                            if (userSession == null) return@forEachIndexed
                                             runCatching {
                                                 signStatus[1 + index].loading()
                                                 delay(1500)
@@ -365,10 +365,22 @@ fun PhotoSignScreen(
                                         remember { mutableListOf(ChaoxingSignStatus()) }
                                     var isCamera by remember { mutableStateOf(false) }
                                     var isSelfForSign by remember { mutableStateOf(false) }
-                                    val bitmapList = remember { mutableStateListOf<Bitmap>() }
-                                    val otherUserSessionForSignList =
-                                        remember { mutableListOf<ChaoxingOtherUserSession>() }
-                                    val bitmapIndexList = remember { mutableListOf<Int>() }
+                                    var bitmapList by remember {
+                                        mutableStateOf<List<Bitmap>>(
+                                            emptyList()
+                                        )
+                                    }
+                                    var otherUserSessionForSignList by
+                                    remember {
+                                        mutableStateOf<List<ChaoxingOtherUserSession?>>(
+                                            emptyList()
+                                        )
+                                    }
+                                    var bitmapIndexList by remember {
+                                        mutableStateOf<List<Int>>(
+                                            emptyList()
+                                        )
+                                    }
                                     BackHandler(isSignForOther == true && !isCamera) {
                                         isSignForOther = null
                                     }
@@ -422,12 +434,8 @@ fun PhotoSignScreen(
                                                 }
                                             }) { isSelf, otherUserSessionList, indexList ->
                                                 isSelfForSign = isSelf
-                                                otherUserSessionForSignList.clear()
-                                                otherUserSessionForSignList.addAll(
-                                                    otherUserSessionList
-                                                )
-                                                bitmapIndexList.clear()
-                                                bitmapIndexList.addAll(indexList)
+                                                otherUserSessionForSignList = otherUserSessionList
+                                                bitmapIndexList = indexList
                                                 isCamera = true
                                             }
                                         }
@@ -456,9 +464,11 @@ fun PhotoSignScreen(
                                                 val combinedUserList = if (isSelfForSign) {
                                                     listOf(
                                                         ChaoxingHttpClient.instance!!.userEntity.name,
-                                                    ) + otherUserSessionForSignList.map { it.name }
+                                                    ) + otherUserSessionForSignList.filterNotNull()
+                                                        .map { it.name }
                                                 } else {
-                                                    otherUserSessionForSignList.map { it.name }
+                                                    otherUserSessionForSignList.filterNotNull()
+                                                        .map { it.name }
                                                 }
                                                 var index by remember { mutableIntStateOf(0) }
                                                 Column(
@@ -497,13 +507,7 @@ fun PhotoSignScreen(
                                                         }) {
                                                         coroutineScope.launch {
                                                             isCamera = false
-                                                            it.forEachIndexed { index, bitmap ->
-                                                                if (bitmapList.size <= index) {
-                                                                    bitmapList.add(bitmap)
-                                                                } else {
-                                                                    bitmapList[index] = bitmap
-                                                                }
-                                                            }
+                                                            bitmapList = it
                                                             if (isSelfForSign) {
                                                                 runCatching {
                                                                     signStatus[0].loading()
@@ -584,6 +588,7 @@ fun PhotoSignScreen(
                                                                 }
                                                             }
                                                             otherUserSessionForSignList.forEachIndexed { index, chaoxingOtherUserSession ->
+                                                                if (chaoxingOtherUserSession == null) return@forEachIndexed
                                                                 runCatching {
                                                                     signStatus[1 + index].loading()
                                                                     delay(1500)

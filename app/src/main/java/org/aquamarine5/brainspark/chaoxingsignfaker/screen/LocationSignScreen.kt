@@ -43,6 +43,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserS
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationDetailEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignStatus
+import org.aquamarine5.brainspark.chaoxingsignfaker.handleReport
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingLocationSigner
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSigner
 
@@ -121,8 +122,8 @@ fun LocationSignScreen(
                 var isGetLocation by remember { mutableStateOf(false) }
                 val signStatus = remember { mutableListOf(ChaoxingSignStatus()) }
                 var isSelfForSign by remember { mutableStateOf(false) }
-                val otherUserSessionForSignList =
-                    remember { mutableListOf<ChaoxingOtherUserSession>() }
+                var otherUserSessionForSignList by
+                    remember { mutableStateOf<List<ChaoxingOtherUserSession?>>(emptyList()) }
 
                 OtherUserSelectorComponent(
                     navToOtherUser = { navToOtherUserDestination() },
@@ -130,7 +131,7 @@ fun LocationSignScreen(
                     isCurrentAlreadySigned = isSignForOther,
                 ) { isSelf, otherUserSessionList, _ ->
                     isSelfForSign = isSelf
-                    otherUserSessionForSignList.addAll(otherUserSessionList)
+                    otherUserSessionForSignList=otherUserSessionList
                     isGetLocation = true
                 }
                 AnimatedVisibility(
@@ -227,6 +228,7 @@ fun LocationSignScreen(
 
 
                             otherUserSessionForSignList.forEachIndexed { index, userSession ->
+                                if(userSession == null) return@forEachIndexed
                                 runCatching {
                                     signStatus[index + 1].loading()
                                     delay(1500)
@@ -260,15 +262,8 @@ fun LocationSignScreen(
                                                                             true
                                                                         )
                                                                     }.onFailure {
-                                                                        it.printStackTrace()
-                                                                        if ((it is ChaoxingPredictableException).not()) {
-                                                                            Sentry.captureException(
-                                                                                it
-                                                                            )
-                                                                        }
-                                                                        signStatus[index + 1].failed(
-                                                                            it
-                                                                        )
+                                                                        it.handleReport()
+                                                                        signStatus[index + 1].failed(it)
                                                                     }
                                                                 }
                                                             } else {
@@ -282,10 +277,7 @@ fun LocationSignScreen(
                                                                         this.message,
                                                                         Toast.LENGTH_SHORT
                                                                     ).show()
-                                                                    this.printStackTrace()
-                                                                    if ((this is ChaoxingPredictableException).not()) {
-                                                                        Sentry.captureException(this)
-                                                                    }
+                                                                    this.handleReport()
                                                                 }
                                                             }
                                                         }

@@ -120,6 +120,7 @@ class ImportOtherUserActivity : ComponentActivity() {
                                                     failure.message ?: failure.localizedMessage
                                                             ?: "导入失败，请重试"
                                                 isLoading = false
+                                                failure.handleReport()
                                             }
                                         }
                                     }

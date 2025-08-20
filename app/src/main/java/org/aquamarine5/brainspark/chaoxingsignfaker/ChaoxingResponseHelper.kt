@@ -8,6 +8,7 @@ package org.aquamarine5.brainspark.chaoxingsignfaker
 
 import android.content.Context
 import android.widget.Toast
+import io.sentry.Sentry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.Response
@@ -32,3 +33,18 @@ suspend fun Response.checkResponse(context: Context): Boolean =
         }
         true
     }
+
+fun Throwable.handleReport(context: Context?=null, prefixTips:String?=null){
+    this.cause?.printStackTrace()
+    this.printStackTrace()
+    if((this is ChaoxingPredictableException).not()){
+        Sentry.captureException(this)
+        if(context!=null){
+            Toast.makeText(context, "${prefixTips?.plus(" ")?:""}预期外错误:${this.message?:this::class.simpleName}", Toast.LENGTH_LONG).show()
+        }
+    }else{
+        if(context!=null){
+            Toast.makeText(context, "${prefixTips?.plus(" ")?:""}${this.message?:this::class.simpleName}", Toast.LENGTH_LONG).show()
+        }
+    }
+}

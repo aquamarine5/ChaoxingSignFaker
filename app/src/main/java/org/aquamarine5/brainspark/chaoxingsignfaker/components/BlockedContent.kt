@@ -6,6 +6,7 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.components
 
+import android.os.Debug
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -65,9 +66,13 @@ fun BlockedContent(content: @Composable () -> Unit) {
         }
     }
     Crossfade(
-        unblockedButtonClickCount < UNBLOCKED_BUTTON_CLICK_LIMIT && bannedFidList.contains(
-            ChaoxingHttpClient.instance!!.userEntity.fid
-        )
+        if (Debug.isDebuggerConnected()) {
+            false
+        } else {
+            unblockedButtonClickCount < UNBLOCKED_BUTTON_CLICK_LIMIT && bannedFidList.contains(
+                ChaoxingHttpClient.instance!!.userEntity.fid
+            )
+        }
     ) {
         if (it) {
             Column(

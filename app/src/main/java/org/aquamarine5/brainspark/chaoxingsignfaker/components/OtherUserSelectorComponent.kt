@@ -57,7 +57,7 @@ fun OtherUserSelectorComponent(
     signStatus: MutableList<ChaoxingSignStatus>,
     isCurrentAlreadySigned: Boolean,
     userContent: @Composable ((index: Int) -> Unit)? = null,
-    onSignAction: (isSelf: Boolean, otherUserSessionList: List<ChaoxingOtherUserSession>, indexList: List<Int>) -> Unit
+    onSignAction: (isSelf: Boolean, otherUserSessionList: List<ChaoxingOtherUserSession?>, indexList: List<Int>) -> Unit
 ) {
     LocalContext.current.let { context ->
         val signUserList = remember { mutableStateListOf<ChaoxingOtherUserSession>() }
@@ -116,13 +116,14 @@ fun OtherUserSelectorComponent(
                                 it.phoneNumber != data.loginSession.phoneNumber
                             }
                         })
-                        signStatus.addAll(Array(signUserList.size) {
-                            ChaoxingSignStatus()
-                        })
-                        userSelections.addAll(List(signUserList.size) { false })
-                        success = isCurrentAlreadySigned
-                        userSelections[0] = isCurrentAlreadySigned != true
                     }
+                    signStatus.addAll(Array(signUserList.size) {
+                        ChaoxingSignStatus()
+                    })
+                    userSelections.addAll(List(signUserList.size) { false })
+                    success = isCurrentAlreadySigned
+                    userSelections[0] = isCurrentAlreadySigned != true
+
                 }
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
@@ -220,13 +221,15 @@ fun OtherUserSelectorComponent(
                     // 2 3 5
                     if (userSelections[0] && signStatus[0].isSuccess.value != true)
                         indexList.add(0)
+
                     onSignAction(
                         userSelections[0] && signStatus[0].isSuccess.value != true,
-                        signUserList.filterIndexed { index, _ ->
-                            (userSelections[index + 1] && signStatus[1 + index].isSuccess.value != true).apply {
-                                if (this) {
-                                    indexList.add(index + 1)
-                                }
+                        signUserList.mapIndexed { index, chaoxingOtherUserSession ->
+                            if (userSelections[index + 1] && signStatus[1 + index].isSuccess.value != true) {
+                                indexList.add(index + 1)
+                                chaoxingOtherUserSession
+                            } else {
+                                null
                             }
                         }, indexList
                     )
