@@ -64,7 +64,8 @@ abstract class ChaoxingSigner(
 
     class CaptchaException : ChaoxingPredictableException("验证码获取失败")
 
-    class CaptchaCheckException(message:String) :ChaoxingPredictableException("$message, 验证码校验失败")
+    class CaptchaCheckException(message: String) :
+        ChaoxingPredictableException("$message, 验证码校验失败")
 
     abstract suspend fun checkAlreadySign(response: String): Boolean
 
@@ -171,7 +172,7 @@ abstract class ChaoxingSigner(
             val jsonResult = JSONObject.parseObject(
                 it.body?.string()?.replace("cx_captcha_function(", "")?.replace(")", "")
             )
-            if(jsonResult.getInteger("error")==1){
+            if (jsonResult.getInteger("error") == 1) {
                 throw CaptchaCheckException(jsonResult.getString("msg"))
             }
             if (jsonResult.getBoolean("result")) {
@@ -301,7 +302,7 @@ abstract class ChaoxingSigner(
 
     open suspend fun getCaptchaImageV2(): ChaoxingCaptchaDataEntity = withContext(Dispatchers.IO) {
         val t = getCaptchaConf()
-        val type="slide"
+        val type = "slide"
         val captchaKey = UMengHelper.md5("$t${UUID.randomUUID()}")
         val iv =
             UMengHelper.md5("${getCaptchaId()}$type${System.currentTimeMillis()}${UUID.randomUUID()}")

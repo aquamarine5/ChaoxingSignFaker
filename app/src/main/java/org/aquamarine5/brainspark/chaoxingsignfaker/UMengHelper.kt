@@ -29,7 +29,7 @@ object UMengHelper {
     private const val EVENT_TAG_ADD_OTHER_USER = "account_add_other_user"
     private const val EVENT_TAG_GOTO_SPONSOR_WECHAT = "sponsor_wechat_goto"
     private const val EVENT_TAG_ILLEGAL_CHANNEL = "illegal_channel"
-    private const val EVENT_TAG_CAPTCHA_SUCCESS="captcha_success"
+    private const val EVENT_TAG_CAPTCHA_SUCCESS = "captcha_success"
 
     private const val EVENT_TAG_STACKBRICKS_CHECK_UPDATE = "stackbricks_check_update"
     private const val EVENT_TAG_STACKBRICKS_INSTALL_NEWEST = "stackbricks_install_newest"

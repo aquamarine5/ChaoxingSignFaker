@@ -48,7 +48,7 @@ class ChaoxingPhotoSigner(
 
     class ChaoxingPhotoSignException(message: String) : ChaoxingPredictableException(message)
 
-    class ChaoxingIncorrectSignTypeException() :
+    class ChaoxingIncorrectSignTypeException :
         ChaoxingPredictableException("签到类型不匹配，应是图片签到")
 
     companion object {
@@ -70,7 +70,7 @@ class ChaoxingPhotoSigner(
         }
     }
 
-    suspend fun signByClick() = withContext(Dispatchers.IO) {
+    suspend fun signByClick(onValidate:()->Unit) = withContext(Dispatchers.IO) {
         client.newCall(
             Request.Builder().url(
                 URL_SIGN.toHttpUrl().newBuilder()
@@ -86,6 +86,10 @@ class ChaoxingPhotoSigner(
                 throw ChaoxingHttpClient.ChaoxingNetworkException()
             }
             val result = it.body?.string()
+            if (result == "validate") {
+                onValidate()
+                return@use
+            }
             if (result != "success") {
                 Log.w(CLASSTAG, result ?: "")
                 throw ChaoxingPhotoSignException(result ?: "签到失败")
@@ -93,7 +97,7 @@ class ChaoxingPhotoSigner(
         }
     }
 
-    suspend fun signByImage(objectId: String) = withContext(Dispatchers.IO) {
+    suspend fun signByImage(objectId: String,onValidate: () -> Unit) = withContext(Dispatchers.IO) {
         client.newCall(
             Request.Builder().url(
                 URL_SIGN.toHttpUrl().newBuilder()
@@ -103,6 +107,59 @@ class ChaoxingPhotoSigner(
                     .addQueryParameter("name", client.userEntity.name)
                     .addQueryParameter("fid", client.userEntity.fid.toString())
                     .addQueryParameter("deviceCode", ChaoxingHttpClient.deviceCode)
+                    .build()
+            ).get().build()
+        ).execute().use {
+            if (it.checkResponse(client.context)) {
+                throw ChaoxingHttpClient.ChaoxingNetworkException()
+            }
+            val result = it.body?.string()
+            if (result == "validate") {
+                onValidate()
+                return@use
+            }
+            if (result != "success") {
+                Log.w(CLASSTAG, result ?: "")
+                throw ChaoxingPhotoSignException(result ?: "签到失败")
+            }
+        }
+    }
+
+    suspend fun signByClickWithCaptcha(validateValue:String) = withContext(Dispatchers.IO) {
+        client.newCall(
+            Request.Builder().url(
+                URL_SIGN.toHttpUrl().newBuilder()
+                    .addQueryParameter("activeId", photoActivityEntity.activeId.toString())
+                    .addQueryParameter("uid", client.userEntity.puid.toString())
+                    .addQueryParameter("name", client.userEntity.name)
+                    .addQueryParameter("fid", client.userEntity.fid.toString())
+                    .addQueryParameter("deviceCode", ChaoxingHttpClient.deviceCode)
+                    .addQueryParameter("validate",validateValue)
+                    .build()
+            ).get().build()
+        ).execute().use {
+            if (it.checkResponse(client.context)) {
+                throw ChaoxingHttpClient.ChaoxingNetworkException()
+            }
+            val result = it.body?.string()
+            if (result != "success") {
+                Log.w(CLASSTAG, result ?: "")
+                throw ChaoxingPhotoSignException(result ?: "签到失败")
+            }
+        }
+    }
+
+    suspend fun signByImageWithCaptcha(objectId: String,validateValue: String) = withContext(Dispatchers.IO) {
+        client.newCall(
+            Request.Builder().url(
+                URL_SIGN.toHttpUrl().newBuilder()
+                    .addQueryParameter("objectId", objectId)
+                    .addQueryParameter("activeId", photoActivityEntity.activeId.toString())
+                    .addQueryParameter("uid", client.userEntity.puid.toString())
+                    .addQueryParameter("name", client.userEntity.name)
+                    .addQueryParameter("fid", client.userEntity.fid.toString())
+                    .addQueryParameter("deviceCode", ChaoxingHttpClient.deviceCode)
+                    .addQueryParameter("validate", validateValue)
                     .build()
             ).get().build()
         ).execute().use {

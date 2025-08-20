@@ -233,7 +233,7 @@ fun SponsorAlertDialog(showDialog: MutableState<Boolean>) {
                     color = MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    "如需在列表内显示完整名称，请添加备注。",
+                    "如需在列表内显示完整名称，请添加备注，微信支付不会显示完整名称。捐赠列表并非实时更新。",
                     fontStyle = FontStyle.Italic,
                     fontSize = 12.sp
                 )

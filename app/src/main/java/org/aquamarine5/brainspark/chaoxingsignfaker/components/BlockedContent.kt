@@ -6,7 +6,7 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.components
 
-import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -64,7 +64,7 @@ fun BlockedContent(content: @Composable () -> Unit) {
             }
         }
     }
-    AnimatedContent(
+    Crossfade(
         unblockedButtonClickCount < UNBLOCKED_BUTTON_CLICK_LIMIT && bannedFidList.contains(
             ChaoxingHttpClient.instance!!.userEntity.fid
         )

@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -169,8 +170,17 @@ fun CaptchaHandlerDialog(
 
             }
         },
+        dismissButton = {
+            Button(onClick = {
+                coroutineScope.launch {
+                    data= signer.getCaptchaImageV2()
+                }
+            }){
+                Text("刷新验证码")
+            }
+        },
         confirmButton = {
-            Button(
+            OutlinedButton(
                 onClick = {
                     onDismiss()
                 }

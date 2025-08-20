@@ -43,7 +43,50 @@ class ChaoxingQRCodeSigner(
         }
     }
 
-    suspend fun sign(enc: String, position: ChaoxingLocationSignEntity?) =
+    suspend fun signWithCaptcha(enc: String, position: ChaoxingLocationSignEntity?,captchaValidate:String) =
+        withContext(Dispatchers.IO) {
+            client.newCall(
+                Request.Builder().url(
+                    URL_SIGN.toHttpUrl().newBuilder()
+                        .addQueryParameter("enc", enc)
+                        .addQueryParameter("latitude", "-1")
+                        .addQueryParameter("longitude", "-1")
+                        .addQueryParameter("activeId", activeId.toString())
+                        .addQueryParameter("uid", client.userEntity.puid.toString())
+                        .addQueryParameter("name", client.userEntity.name)
+                        .addQueryParameter("fid", client.userEntity.fid.toString())
+                        .addQueryParameter("deviceCode", ChaoxingHttpClient.deviceCode)
+                        .addQueryParameter("validate",captchaValidate)
+                        .apply {
+                            if (position != null) {
+                                addQueryParameter(
+                                    "location", JSONObject()
+                                        .fluentPut("result", 1)
+                                        .fluentPut("latitude", "%.6f".format(position.latitude))
+                                        .fluentPut("longitude", "%.6f".format(position.longitude))
+                                        .fluentPut("address", position.address)
+                                        .fluentPut(
+                                            "mockData",
+                                            "{\"strategy\":0,\"probability\":-1}"
+                                        )
+                                        .toString()
+                                )
+                            }
+                        }.build()
+                ).build()
+            ).execute().use {
+                if (it.checkResponse(client.context)) {
+                    throw ChaoxingHttpClient.ChaoxingNetworkException()
+                }
+                val result = it.body?.string()
+                if (result != "success") {
+                    Log.w(CLASSTAG, result ?: "")
+                    throw ChaoxingLocationSignException(result ?: "签到失败")
+                }
+            }
+        }
+
+    suspend fun sign(enc: String, position: ChaoxingLocationSignEntity?,onValidate:()->Unit) =
         withContext(Dispatchers.IO) {
             client.newCall(
                 Request.Builder().url(
@@ -78,6 +121,10 @@ class ChaoxingQRCodeSigner(
                     throw ChaoxingHttpClient.ChaoxingNetworkException()
                 }
                 val result = it.body?.string()
+                if (result == "validate") {
+                    onValidate()
+                    return@use
+                }
                 if (result != "success") {
                     Log.w(CLASSTAG, result ?: "")
                     throw ChaoxingLocationSignException(result ?: "签到失败")

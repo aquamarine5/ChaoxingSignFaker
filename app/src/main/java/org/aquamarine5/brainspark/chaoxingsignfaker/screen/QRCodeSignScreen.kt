@@ -75,6 +75,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.AlreadySignedNotice
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.GetLocationComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.QRCodeScanComponent
@@ -117,6 +118,19 @@ fun QRCodeSignScreen(
     val signer = ChaoxingQRCodeSigner(ChaoxingHttpClient.instance!!, destination)
     val context = LocalContext.current
     var isMapRequired by remember { mutableStateOf(false) }
+    var captchaValidateParams by remember {
+        mutableStateOf<Pair<ChaoxingQRCodeSigner, (Result<String>) -> Unit>?>(
+            null
+        )
+    }
+    if (captchaValidateParams != null) {
+        CaptchaHandlerDialog(
+            captchaValidateParams!!.first,
+            captchaValidateParams!!.second,
+            onDismiss = {
+                captchaValidateParams = null
+            })
+    }
     LaunchedEffect(Unit) {
         runCatching {
             isAlreadySigned = signer.preSign()
@@ -395,28 +409,68 @@ fun QRCodeSignScreen(
                                             isQRCodeScanning = false
                                             runCatching {
                                                 signStatus[0].loading()
-                                                signer.sign(enc, locationData)
+                                                signer.sign(enc, locationData) {
+                                                    captchaValidateParams =
+                                                        signer to { validateValue ->
+                                                            validateValue.onSuccess {
+                                                                coroutineScope.launch {
+                                                                    runCatching {
+                                                                        signer.signWithCaptcha(
+                                                                            enc,
+                                                                            locationData,
+                                                                            validateValue.getOrThrow()
+                                                                        )
+                                                                    }.onSuccess {
+                                                                        signStatus[0].success()
+                                                                        UMengHelper.onSignQRCodeEvent(
+                                                                            context,
+                                                                            ChaoxingHttpClient.instance!!.userEntity.name
+                                                                        )
+                                                                        if (signUserList.isEmpty()) {
+                                                                            isSponsor = true
+                                                                        }
+                                                                    }.onFailure {
+                                                                        it.printStackTrace()
+                                                                        signStatus[0].failed(it)
+                                                                        if ((it is ChaoxingPredictableException).not())
+                                                                            Sentry.captureException(
+                                                                                it
+                                                                            )
+                                                                    }
+                                                                }
+                                                            }.onFailure {
+                                                                it.printStackTrace()
+                                                                signStatus[0].failed(it)
+                                                                if ((it is ChaoxingPredictableException).not())
+                                                                    Sentry.captureException(it)
+                                                            }
+                                                        }
+                                                }
                                                 userSelections[0] = false
                                             }.onSuccess {
-                                                signStatus[0].success()
-                                                UMengHelper.onSignQRCodeEvent(
-                                                    context,
-                                                    ChaoxingHttpClient.instance!!.userEntity.name
-                                                )
-                                                if (signUserList.isEmpty()) {
-                                                    isSponsor = true
+                                                if (captchaValidateParams == null) {
+                                                    signStatus[0].success()
+                                                    UMengHelper.onSignQRCodeEvent(
+                                                        context,
+                                                        ChaoxingHttpClient.instance!!.userEntity.name
+                                                    )
+                                                    if (signUserList.isEmpty()) {
+                                                        isSponsor = true
+                                                    }
                                                 }
                                             }.onFailure {
                                                 it.printStackTrace()
                                                 signStatus[0].failed(it)
+                                                if ((it is ChaoxingPredictableException).not())
+                                                    Sentry.captureException(it)
                                             }
                                             signUserList.filterIndexed { index, _ ->
                                                 userSelections[1 + index]
-                                            }.forEachIndexed { index, it ->
+                                            }.forEachIndexed { index, session ->
                                                 runCatching {
                                                     signStatus[1 + index].loading()
                                                     ChaoxingHttpClient.loadFromOtherUserSession(
-                                                        it, context
+                                                        session, context
                                                     ).also { client ->
                                                         ChaoxingQRCodeSigner(
                                                             client, destination
@@ -424,24 +478,74 @@ fun QRCodeSignScreen(
                                                             if (preSign()) {
                                                                 throw ChaoxingSigner.AlreadySignedException()
                                                             } else {
-                                                                sign(enc, locationData)
+                                                                sign(enc, locationData) {
+                                                                    captchaValidateParams =
+                                                                        this to { validateValue ->
+                                                                            validateValue.onSuccess {
+                                                                                coroutineScope.launch {
+                                                                                    runCatching {
+                                                                                        signWithCaptcha(
+                                                                                            enc,
+                                                                                            locationData,
+                                                                                            validateValue.getOrThrow()
+                                                                                        )
+                                                                                    }.onSuccess {
+                                                                                        signStatus[1 + index].success()
+                                                                                        UMengHelper.onSignQRCodeEvent(
+                                                                                            context,
+                                                                                            session.name,
+                                                                                            true
+                                                                                        )
+                                                                                        userSelections[1 + index] =
+                                                                                            false
+                                                                                        if (index == signUserList.size - 1) {
+                                                                                            isSponsor =
+                                                                                                true
+                                                                                        }
+                                                                                    }.onFailure {
+                                                                                        it.printStackTrace()
+                                                                                        signStatus[1 + index].failed(
+                                                                                            it
+                                                                                        )
+                                                                                        if ((it is ChaoxingPredictableException).not())
+                                                                                            Sentry.captureException(
+                                                                                                it
+                                                                                            )
+                                                                                    }
+                                                                                }
+                                                                            }.onFailure {
+                                                                                it.printStackTrace()
+                                                                                signStatus[1 + index].failed(
+                                                                                    it
+                                                                                )
+                                                                                if ((it is ChaoxingPredictableException).not())
+                                                                                    Sentry.captureException(
+                                                                                        it
+                                                                                    )
+                                                                            }
+                                                                        }
+                                                                }
                                                             }
                                                         }
                                                     }
                                                 }.onSuccess {
-                                                    signStatus[1 + index].success()
-                                                    UMengHelper.onSignQRCodeEvent(
-                                                        context,
-                                                        it.userEntity.name,
-                                                        true
-                                                    )
-                                                    userSelections[1 + index] = false
-                                                    if (index == signUserList.size - 1) {
-                                                        isSponsor = true
+                                                    if (captchaValidateParams == null) {
+                                                        signStatus[1 + index].success()
+                                                        UMengHelper.onSignQRCodeEvent(
+                                                            context,
+                                                            session.name,
+                                                            true
+                                                        )
+                                                        userSelections[1 + index] = false
+                                                        if (index == signUserList.size - 1) {
+                                                            isSponsor = true
+                                                        }
                                                     }
                                                 }.onFailure {
                                                     it.printStackTrace()
                                                     signStatus[1 + index].failed(it)
+                                                    if ((it is ChaoxingPredictableException).not())
+                                                        Sentry.captureException(it)
                                                 }
                                             }
                                         }.onFailure {

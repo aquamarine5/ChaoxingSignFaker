@@ -141,7 +141,7 @@ fun LocationSignScreen(
                     ) + fadeIn(
                         animationSpec = tween(300)
                     ), exit =
-                    slideOutHorizontally(animationSpec = tween(300), targetOffsetX = {it}) +
+                    slideOutHorizontally(animationSpec = tween(300), targetOffsetX = { it }) +
                             fadeOut(animationSpec = tween(300)), modifier = Modifier.zIndex(1f)
                 ) {
                     BackHandler(isGetLocation) {
