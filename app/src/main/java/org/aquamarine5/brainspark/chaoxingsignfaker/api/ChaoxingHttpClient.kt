@@ -191,7 +191,8 @@ class ChaoxingHttpClient private constructor(
                 }
             val userInfo = getInfo(okHttpClient, context)
             return ChaoxingHttpClient(
-                okHttpClient, context,
+                okHttpClient,
+                context,
                 userInfo
             )
         }

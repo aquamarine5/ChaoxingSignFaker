@@ -53,7 +53,7 @@ abstract class ChaoxingSigner(
             "https://captcha.chaoxing.com/captcha/check/verification/result?callback=cx_captcha_function"
         const val URL_CAPTCHA_IMAGE = "https://captcha.chaoxing.com/captcha/get/verification/image"
         const val URL_SIGN =
-            "https://mobilelearn.chaoxing.com/pptSign/stuSignajax?&clientip=&appType=15&ifTiJiao=1&validate=&vpProbability=-1&vpStrategy="
+            "https://mobilelearn.chaoxing.com/pptSign/stuSignajax?&clientip=&appType=15&ifTiJiao=1&vpProbability=-1&vpStrategy="
     }
 
     class SignActivityNoPermissionException : ChaoxingPredictableException("无权限访问")
@@ -63,6 +63,8 @@ abstract class ChaoxingSigner(
     class CaptchaTimeoutException : ChaoxingPredictableException("获取验证码信息超时")
 
     class CaptchaException : ChaoxingPredictableException("验证码获取失败")
+
+    class CaptchaCheckException(message:String) :ChaoxingPredictableException("$message, 验证码校验失败")
 
     abstract suspend fun checkAlreadySign(response: String): Boolean
 
@@ -169,6 +171,9 @@ abstract class ChaoxingSigner(
             val jsonResult = JSONObject.parseObject(
                 it.body?.string()?.replace("cx_captcha_function(", "")?.replace(")", "")
             )
+            if(jsonResult.getInteger("error")==1){
+                throw CaptchaCheckException(jsonResult.getString("msg"))
+            }
             if (jsonResult.getBoolean("result")) {
                 return@use JSONObject.parseObject(
                     jsonResult.getString("extraData").replace("\\\"", "\"")
@@ -296,10 +301,11 @@ abstract class ChaoxingSigner(
 
     open suspend fun getCaptchaImageV2(): ChaoxingCaptchaDataEntity = withContext(Dispatchers.IO) {
         val t = getCaptchaConf()
+        val type="slide"
         val captchaKey = UMengHelper.md5("$t${UUID.randomUUID()}")
         val iv =
-            UMengHelper.md5("${getCaptchaId()}slide${System.currentTimeMillis()}${UUID.randomUUID()}")
-        val token = UMengHelper.md5("$t${getCaptchaId()}slide$captchaKey") + ":${t + 300000L}"
+            UMengHelper.md5("${getCaptchaId()}$type${System.currentTimeMillis()}${UUID.randomUUID()}")
+        val token = UMengHelper.md5("$t${getCaptchaId()}$type$captchaKey") + ":${t + 300000L}"
         client.newCall(
             Request.Builder().get().url(
                 URL_CAPTCHA_IMAGE.toHttpUrl().newBuilder()

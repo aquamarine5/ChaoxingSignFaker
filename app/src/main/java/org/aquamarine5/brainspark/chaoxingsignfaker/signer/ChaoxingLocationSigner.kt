@@ -89,7 +89,7 @@ class ChaoxingLocationSigner(
                         .addQueryParameter("name", client.userEntity.name)
                         .addQueryParameter("fid", client.userEntity.fid.toString())
                         .addQueryParameter("deviceCode", ChaoxingHttpClient.deviceCode)
-                        .addQueryParameter("validateValue", validateValue)
+                        .addQueryParameter("validate", validateValue)
                         .build()
                 ).get().build()
             ).execute().use {

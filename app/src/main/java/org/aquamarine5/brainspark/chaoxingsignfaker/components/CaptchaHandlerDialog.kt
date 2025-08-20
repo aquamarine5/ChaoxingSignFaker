@@ -40,19 +40,16 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
-import androidx.lifecycle.MutableLiveData
 import coil3.compose.AsyncImage
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCaptchaDataEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSigner
 
 @Composable
 fun CaptchaHandlerDialog(
     signer: ChaoxingSigner,
-    liveData: MutableLiveData<Result<String>?>,
+    onResult: (Result<String>) -> Unit,
     onDismiss: () -> Unit,
 ) {
     var data by remember { mutableStateOf<ChaoxingCaptchaDataEntity?>(null) }
@@ -65,7 +62,7 @@ fun CaptchaHandlerDialog(
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(signer) {
 //        signer.getCaptchaImage {
 //            data = it
 //        }
@@ -130,16 +127,12 @@ fun CaptchaHandlerDialog(
                                                 sliderPosition = 0f
                                                 data = signer.getCaptchaImageV2()
                                             } else {
-                                                withContext(Dispatchers.Main){
-                                                    liveData.postValue(Result.success(result))
-                                                }
+                                                onResult(Result.success(result))
                                                 onDismiss()
                                             }
                                         }
                                 }.onFailure {
-                                    withContext(Dispatchers.Main){
-                                        liveData.postValue(Result.failure(it))
-                                    }
+                                    onResult(Result.failure(it))
                                     onDismiss()
                                 }
                             }
