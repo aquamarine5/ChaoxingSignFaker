@@ -84,10 +84,9 @@
         <meta-data
             android:name="io.sentry.send-default-pii"
             android:value="true" />
-
         <meta-data
             android:name="io.sentry.traces.user-interaction.enable"
-            android:value="true" />
+            android:value="false" />
         <meta-data
             android:name="io.sentry.attach-screenshot"
             android:value="true" />
@@ -96,13 +95,13 @@
             android:value="true" />
         <meta-data
             android:name="io.sentry.traces.sample-rate"
-            android:value="1.0" />
+            android:value="0.0" />
         <meta-data
             android:name="io.sentry.traces.profiling.sample-rate"
-            android:value="1.0" />
+            android:value="0.0" />
         <meta-data
             android:name="io.sentry.traces.profiling.enable-app-start"
-            android:value="true" />
+            android:value="false" />
     </application>
 
 </manifest>
