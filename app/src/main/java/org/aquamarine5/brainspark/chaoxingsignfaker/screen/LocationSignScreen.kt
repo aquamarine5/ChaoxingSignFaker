@@ -13,8 +13,8 @@ import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -26,7 +26,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.zIndex
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import io.sentry.Sentry
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -94,7 +93,6 @@ fun LocationSignScreen(
             })
     }
     val context = LocalContext.current
-    val lifecycleOwner = LocalLifecycleOwner.current
     val coroutineScope = rememberCoroutineScope()
     LaunchedEffect(Unit) {
         runCatching {
@@ -143,9 +141,8 @@ fun LocationSignScreen(
                     ) + fadeIn(
                         animationSpec = tween(300)
                     ), exit =
-                    scaleOut(targetScale = 0.8f, animationSpec = tween(300)) + fadeOut(
-                        animationSpec = tween(300)
-                    ), modifier = Modifier.zIndex(1f)
+                    slideOutHorizontally(animationSpec = tween(300), targetOffsetX = {it}) +
+                            fadeOut(animationSpec = tween(300)), modifier = Modifier.zIndex(1f)
                 ) {
                     BackHandler(isGetLocation) {
                         isGetLocation = false
