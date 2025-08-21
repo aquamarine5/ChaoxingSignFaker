@@ -75,6 +75,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingOtherUserHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.AlreadySignedNotice
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CameraComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerDialog
@@ -300,7 +301,13 @@ fun PhotoSignScreen(
                                                                                                 userSession.name,
                                                                                                 isOtherUser = true
                                                                                             )
-                                                                                        }.onFailure {
+                                                                                            signStatus[1 + index].success()
+                                                                                            if (index == otherUserSessionList.size - 1) {
+                                                                                                isSponsor =
+                                                                                                    true
+                                                                                            }
+                                                                                        }
+                                                                                            .onFailure {
                                                                                                 it.snackbarReport(
                                                                                                     snackbarHost,
                                                                                                     coroutineScope,
@@ -343,14 +350,17 @@ fun PhotoSignScreen(
                                                 signStatus[1 + index].failed(it)
                                             }.onSuccess {
                                                 if (captchaValidateParams != null) return@onSuccess
+                                                UMengHelper.onSignClickEvent(
+                                                    context, userSession.name, isOtherUser = true
+                                                )
                                                 signStatus[1 + index].success()
                                                 if (index == otherUserSessionList.size - 1) {
                                                     isSponsor = true
                                                 }
                                             }
                                             if (index != otherUserSessionList.size - 1) {
-                                                signStatus[2 + index].loading()
-                                                delay(500)
+                                                signStatus[2+index].loading()
+                                                delay(ChaoxingOtherUserHelper.TIMEOUT_NEXT_SIGN)
                                             }
                                         }
                                     }
@@ -724,6 +734,7 @@ fun PhotoSignScreen(
                                                                             it
                                                                         )
                                                                     }.onSuccess {
+                                                                        if (captchaValidateParams != null) return@onSuccess
                                                                         UMengHelper.onSignPhotoEvent(
                                                                             context,
                                                                             chaoxingOtherUserSession.name,
@@ -739,7 +750,7 @@ fun PhotoSignScreen(
                                                                     }
                                                                     if (index != otherUserSessionForSignList.size - 1) {
                                                                         signStatus[2 + index].loading()
-                                                                        delay(500)
+                                                                        delay(ChaoxingOtherUserHelper.TIMEOUT_NEXT_SIGN)
                                                                     }
                                                                 }
                                                             isSigning = false

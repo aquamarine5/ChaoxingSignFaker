@@ -52,7 +52,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSigner
 @Composable
 fun CaptchaHandlerDialog(
     signer: ChaoxingSigner,
-    onResult: (Result<String>) -> Unit,
+    onResult: suspend (Result<String>) -> Unit,
     onDismiss: () -> Unit,
 ) {
     var data by remember { mutableStateOf<ChaoxingCaptchaDataEntity?>(null) }

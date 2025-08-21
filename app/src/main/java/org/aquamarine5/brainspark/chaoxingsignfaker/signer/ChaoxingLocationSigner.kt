@@ -45,7 +45,9 @@ class ChaoxingLocationSigner(
         }
     }
 
-    suspend fun sign(signLocation: ChaoxingLocationSignEntity, onValidate: () -> Unit) =
+    suspend fun sign(
+        signLocation: ChaoxingLocationSignEntity,
+    ):Boolean =
         withContext(Dispatchers.IO) {
             client.newCall(
                 Request.Builder().url(
@@ -66,12 +68,13 @@ class ChaoxingLocationSigner(
                 }
                 val result = it.body?.string()
                 if (result == "validate") {
-                    onValidate()
-                    return@use
+                    return@use true
                 }
                 if (result != "success") {
                     Log.w(CLASSTAG, result ?: "")
                     throw ChaoxingLocationSignException(result ?: "签到失败")
+                } else {
+                    return@use false
                 }
             }
         }

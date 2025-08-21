@@ -102,8 +102,6 @@ fun GetLocationComponent(
             if (!SDKInitializer.isInitialized()) {
                 SDKInitializer.initialize(context.applicationContext)
             }
-
-            val key = remember { System.currentTimeMillis() }
             val locationClient = remember {
                 LocationClient(context).apply {
                     locOption = LocationClientOption().apply {
@@ -114,12 +112,12 @@ fun GetLocationComponent(
                     }
                 }
             }
-            var marker by remember(key) { mutableStateOf<Marker?>(null) }
+            var marker by remember { mutableStateOf<Marker?>(null) }
             var isNeedLocationDescribe by remember { mutableStateOf(false) }
-            var clickedPosition by remember(key) { mutableStateOf(LatLng(0.0, 0.0)) }
-            var locationRange by remember(key) { mutableStateOf<Int?>(null) }
-            var locationPosition by remember(key) { mutableStateOf<LatLng?>(null) }
-            var clickedName by remember(key) { mutableStateOf("未指定") }
+            var clickedPosition by remember { mutableStateOf(LatLng(0.0, 0.0)) }
+            var locationRange by remember { mutableStateOf<Int?>(null) }
+            var locationPosition by remember { mutableStateOf<LatLng?>(null) }
+            var clickedName by remember { mutableStateOf("未指定") }
 
             if (isShowDialog) {
                 AlertDialog(onDismissRequest = {
@@ -177,7 +175,7 @@ fun GetLocationComponent(
                     }
                 })
             }
-            val geoCoder = remember(key) {
+            val geoCoder = remember {
                 GeoCoder.newInstance().apply {
                     setOnGetGeoCodeResultListener(object : OnGetGeoCoderResultListener {
                         override fun onGetGeoCodeResult(p0: GeoCodeResult?) {}

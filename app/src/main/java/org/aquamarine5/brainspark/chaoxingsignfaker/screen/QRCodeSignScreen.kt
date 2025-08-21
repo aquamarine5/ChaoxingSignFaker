@@ -75,6 +75,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingOtherUserHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.AlreadySignedNotice
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerDialog
@@ -576,7 +577,8 @@ fun QRCodeSignScreen(
                                                     signStatus[1 + index].failed(it)
                                                 }
                                                 if (index != signUserList.size - 1) {
-                                                    delay(500)
+                                                    signStatus[2+index].loading()
+                                                    delay(ChaoxingOtherUserHelper.TIMEOUT_NEXT_SIGN)
                                                 }
                                             }
                                         }.onFailure {
