@@ -43,7 +43,11 @@ class ChaoxingQRCodeSigner(
         }
     }
 
-    suspend fun signWithCaptcha(enc: String, position: ChaoxingLocationSignEntity?,captchaValidate:String) =
+    suspend fun signWithCaptcha(
+        enc: String,
+        position: ChaoxingLocationSignEntity?,
+        captchaValidate: String
+    ) =
         withContext(Dispatchers.IO) {
             client.newCall(
                 Request.Builder().url(
@@ -56,7 +60,7 @@ class ChaoxingQRCodeSigner(
                         .addQueryParameter("name", client.userEntity.name)
                         .addQueryParameter("fid", client.userEntity.fid.toString())
                         .addQueryParameter("deviceCode", ChaoxingHttpClient.deviceCode)
-                        .addQueryParameter("validate",captchaValidate)
+                        .addQueryParameter("validate", captchaValidate)
                         .apply {
                             if (position != null) {
                                 addQueryParameter(
@@ -86,7 +90,7 @@ class ChaoxingQRCodeSigner(
             }
         }
 
-    suspend fun sign(enc: String, position: ChaoxingLocationSignEntity?,onValidate:()->Unit) =
+    suspend fun sign(enc: String, position: ChaoxingLocationSignEntity?, onValidate: () -> Unit) =
         withContext(Dispatchers.IO) {
             client.newCall(
                 Request.Builder().url(

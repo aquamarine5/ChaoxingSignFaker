@@ -46,6 +46,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -66,6 +67,7 @@ import io.sentry.Sentry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import org.aquamarine5.brainspark.chaoxingsignfaker.ChaoxingPredictableException
@@ -81,8 +83,11 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.components.SponsorPopupDialo
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignStatus
+import org.aquamarine5.brainspark.chaoxingsignfaker.handleReport
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingPhotoSigner
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSigner
+import kotlin.coroutines.resume
+import kotlin.coroutines.suspendCoroutine
 
 @Serializable
 data class PhotoSignDestination(
@@ -189,39 +194,48 @@ fun PhotoSignScreen(
                                     withContext(Dispatchers.IO) {
                                         if (isSelf) runCatching {
                                             signStatus[0].loading()
-                                            signer.signByClick {
-                                                captchaValidateParams = signer to { validateValue ->
-                                                    coroutineScope.launch {
-                                                        validateValue.onSuccess {
-                                                            runCatching {
-                                                                signer.signByClickWithCaptcha(
-                                                                    validateValue.getOrThrow()
-                                                                )
-                                                            }.onSuccess {
-                                                                UMengHelper.onSignClickEvent(
-                                                                    context,
-                                                                    ChaoxingHttpClient.instance!!.userEntity.name
-                                                                )
-                                                                signStatus[0].success()
-                                                                if (otherUserSessionList.isEmpty()) {
-                                                                    isSponsor = true
+                                            suspendCoroutine { continuation ->
+                                                runBlocking {
+                                                    signer.signByClick {
+                                                        captchaValidateParams =
+                                                            signer to { validateValue ->
+                                                                runBlocking {
+                                                                    validateValue.onSuccess {
+                                                                        runCatching {
+                                                                            signer.signByClickWithCaptcha(
+                                                                                validateValue.getOrThrow()
+                                                                            )
+                                                                        }.onSuccess {
+                                                                            UMengHelper.onSignClickEvent(
+                                                                                context,
+                                                                                ChaoxingHttpClient.instance!!.userEntity.name
+                                                                            )
+                                                                            signStatus[0].success()
+                                                                            if (otherUserSessionList.isEmpty()) {
+                                                                                isSponsor = true
+                                                                            }
+                                                                        }.onFailure {
+                                                                            if ((it is ChaoxingPredictableException).not()) {
+                                                                                Sentry.captureException(
+                                                                                    it
+                                                                                )
+                                                                            }
+                                                                            it.printStackTrace()
+                                                                            signStatus[0].failed(it)
+                                                                        }
+                                                                        continuation.resume(Unit)
+                                                                    }.onFailure {
+                                                                        if ((it is ChaoxingPredictableException).not()) {
+                                                                            Sentry.captureException(
+                                                                                it
+                                                                            )
+                                                                        }
+                                                                        it.printStackTrace()
+                                                                        signStatus[0].failed(it)
+                                                                        continuation.resume(Unit)
+                                                                    }
                                                                 }
-                                                            }.onFailure {
-                                                                if ((it is ChaoxingPredictableException).not()) {
-                                                                    Sentry.captureException(
-                                                                        it
-                                                                    )
-                                                                }
-                                                                it.printStackTrace()
-                                                                signStatus[0].failed(it)
                                                             }
-                                                        }.onFailure {
-                                                            if ((it is ChaoxingPredictableException).not()) {
-                                                                Sentry.captureException(it)
-                                                            }
-                                                            it.printStackTrace()
-                                                            signStatus[0].failed(it)
-                                                        }
                                                     }
                                                 }
                                             }
@@ -246,7 +260,6 @@ fun PhotoSignScreen(
                                             if (userSession == null) return@forEachIndexed
                                             runCatching {
                                                 signStatus[1 + index].loading()
-                                                delay(1500)
                                                 ChaoxingHttpClient.loadFromOtherUserSession(
                                                     userSession, context
                                                 ).also { client ->
@@ -262,50 +275,57 @@ fun PhotoSignScreen(
                                                                 ChaoxingPhotoSigner.ChaoxingIncorrectSignTypeException()
                                                             )
                                                         } else {
-                                                            signByClick {
-                                                                captchaValidateParams =
-                                                                    this to { validateValue ->
-                                                                        validateValue.onSuccess {
-                                                                            coroutineScope.launch {
-                                                                                runCatching {
-                                                                                    this@apply.signByClickWithCaptcha(
-                                                                                        validateValue.getOrThrow()
-                                                                                    )
-                                                                                }.onSuccess {
-                                                                                    UMengHelper.onSignClickEvent(
-                                                                                        context,
-                                                                                        userSession.name,
-                                                                                        isOtherUser = true
-                                                                                    )
-                                                                                    signStatus[1 + index].success()
-                                                                                    if (index == otherUserSessionList.size - 1) {
-                                                                                        isSponsor =
-                                                                                            true
-                                                                                    }
-                                                                                }.onFailure {
-                                                                                    if ((it is ChaoxingPredictableException).not()) {
-                                                                                        Sentry.captureException(
-                                                                                            it
+                                                            suspendCoroutine { continuation ->
+                                                                runBlocking {
+                                                                    signByClick {
+                                                                        captchaValidateParams =
+                                                                            this@apply to { validateValue ->
+                                                                                validateValue.onSuccess {
+                                                                                    runBlocking {
+                                                                                        runCatching {
+                                                                                            this@apply.signByClickWithCaptcha(
+                                                                                                validateValue.getOrThrow()
+                                                                                            )
+                                                                                        }.onSuccess {
+                                                                                            UMengHelper.onSignClickEvent(
+                                                                                                context,
+                                                                                                userSession.name,
+                                                                                                isOtherUser = true
+                                                                                            )
+                                                                                            signStatus[1 + index].success()
+                                                                                            if (index == otherUserSessionList.size - 1) {
+                                                                                                isSponsor =
+                                                                                                    true
+                                                                                            }
+                                                                                        }
+                                                                                            .onFailure {
+                                                                                                it.handleReport(
+                                                                                                    context,
+                                                                                                    "签到失败"
+                                                                                                )
+                                                                                                signStatus[1 + index].failed(
+                                                                                                    it
+                                                                                                )
+                                                                                            }
+                                                                                        continuation.resume(
+                                                                                            Unit
                                                                                         )
                                                                                     }
-                                                                                    it.printStackTrace()
+                                                                                }.onFailure {
+                                                                                    it.handleReport(
+                                                                                        context,
+                                                                                        "签到失败"
+                                                                                    )
                                                                                     signStatus[1 + index].failed(
                                                                                         it
                                                                                     )
+                                                                                    continuation.resume(
+                                                                                        Unit
+                                                                                    )
                                                                                 }
                                                                             }
-                                                                        }.onFailure {
-                                                                            if ((it is ChaoxingPredictableException).not()) {
-                                                                                Sentry.captureException(
-                                                                                    it
-                                                                                )
-                                                                            }
-                                                                            it.printStackTrace()
-                                                                            signStatus[1 + index].failed(
-                                                                                it
-                                                                            )
-                                                                        }
                                                                     }
+                                                                }
                                                             }
                                                         }
                                                     }
@@ -326,6 +346,8 @@ fun PhotoSignScreen(
                                                     isSponsor = true
                                                 }
                                             }
+                                            if (index != otherUserSessionList.size - 1)
+                                                delay(1000)
                                         }
                                     }
                                 }
@@ -370,12 +392,10 @@ fun PhotoSignScreen(
                                             emptyList()
                                         )
                                     }
-                                    var otherUserSessionForSignList by
-                                    remember {
-                                        mutableStateOf<List<ChaoxingOtherUserSession?>>(
-                                            emptyList()
-                                        )
-                                    }
+                                    val otherUserSessionForSignList =
+                                        remember {
+                                            mutableStateListOf<ChaoxingOtherUserSession?>()
+                                        }
                                     var bitmapIndexList by remember {
                                         mutableStateOf<List<Int>>(
                                             emptyList()
@@ -434,7 +454,10 @@ fun PhotoSignScreen(
                                                 }
                                             }) { isSelf, otherUserSessionList, indexList ->
                                                 isSelfForSign = isSelf
-                                                otherUserSessionForSignList = otherUserSessionList
+                                                otherUserSessionForSignList.clear()
+                                                otherUserSessionForSignList.addAll(
+                                                    otherUserSessionList
+                                                )
                                                 bitmapIndexList = indexList
                                                 isCamera = true
                                             }
@@ -591,7 +614,6 @@ fun PhotoSignScreen(
                                                                 if (chaoxingOtherUserSession == null) return@forEachIndexed
                                                                 runCatching {
                                                                     signStatus[1 + index].loading()
-                                                                    delay(1500)
                                                                     ChaoxingHttpClient.loadFromOtherUserSession(
                                                                         chaoxingOtherUserSession,
                                                                         context
@@ -631,7 +653,10 @@ fun PhotoSignScreen(
                                                                                                             true
                                                                                                         )
                                                                                                         signStatus[index + 1].success()
-                                                                                                        if (index == otherUserSessionForSignList.size - 1) {
+                                                                                                        otherUserSessionForSignList.remove(
+                                                                                                            chaoxingOtherUserSession
+                                                                                                        )
+                                                                                                        if (otherUserSessionForSignList.isEmpty()) {
                                                                                                             isSponsor =
                                                                                                                 true
                                                                                                         }
@@ -682,10 +707,15 @@ fun PhotoSignScreen(
                                                                         true
                                                                     )
                                                                     signStatus[1 + index].success()
-                                                                    if (index == otherUserSessionForSignList.size - 1) {
+                                                                    otherUserSessionForSignList.remove(
+                                                                        chaoxingOtherUserSession
+                                                                    )
+                                                                    if (otherUserSessionForSignList.isEmpty()) {
                                                                         isSponsor = true
                                                                     }
                                                                 }
+                                                                if (index != otherUserSessionForSignList.size - 1)
+                                                                    delay(1000)
                                                             }
                                                         }
                                                     }

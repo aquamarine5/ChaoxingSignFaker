@@ -123,7 +123,7 @@ fun LocationSignScreen(
                 val signStatus = remember { mutableListOf(ChaoxingSignStatus()) }
                 var isSelfForSign by remember { mutableStateOf(false) }
                 var otherUserSessionForSignList by
-                    remember { mutableStateOf<List<ChaoxingOtherUserSession?>>(emptyList()) }
+                remember { mutableStateOf<List<ChaoxingOtherUserSession?>>(emptyList()) }
 
                 OtherUserSelectorComponent(
                     navToOtherUser = { navToOtherUserDestination() },
@@ -131,7 +131,7 @@ fun LocationSignScreen(
                     isCurrentAlreadySigned = isSignForOther,
                 ) { isSelf, otherUserSessionList, _ ->
                     isSelfForSign = isSelf
-                    otherUserSessionForSignList=otherUserSessionList
+                    otherUserSessionForSignList = otherUserSessionList
                     isGetLocation = true
                 }
                 AnimatedVisibility(
@@ -228,7 +228,7 @@ fun LocationSignScreen(
 
 
                             otherUserSessionForSignList.forEachIndexed { index, userSession ->
-                                if(userSession == null) return@forEachIndexed
+                                if (userSession == null) return@forEachIndexed
                                 runCatching {
                                     signStatus[index + 1].loading()
                                     delay(1500)
@@ -263,7 +263,9 @@ fun LocationSignScreen(
                                                                         )
                                                                     }.onFailure {
                                                                         it.handleReport()
-                                                                        signStatus[index + 1].failed(it)
+                                                                        signStatus[index + 1].failed(
+                                                                            it
+                                                                        )
                                                                     }
                                                                 }
                                                             } else {

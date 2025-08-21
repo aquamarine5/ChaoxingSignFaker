@@ -34,17 +34,25 @@ suspend fun Response.checkResponse(context: Context): Boolean =
         true
     }
 
-fun Throwable.handleReport(context: Context?=null, prefixTips:String?=null){
+fun Throwable.handleReport(context: Context? = null, prefixTips: String? = null) {
     this.cause?.printStackTrace()
     this.printStackTrace()
-    if((this is ChaoxingPredictableException).not()){
+    if ((this is ChaoxingPredictableException).not()) {
         Sentry.captureException(this)
-        if(context!=null){
-            Toast.makeText(context, "${prefixTips?.plus(" ")?:""}预期外错误:${this.message?:this::class.simpleName}", Toast.LENGTH_LONG).show()
+        if (context != null) {
+            Toast.makeText(
+                context,
+                "${prefixTips?.plus(" ") ?: ""}预期外错误:${this.message ?: this::class.simpleName}",
+                Toast.LENGTH_LONG
+            ).show()
         }
-    }else{
-        if(context!=null){
-            Toast.makeText(context, "${prefixTips?.plus(" ")?:""}${this.message?:this::class.simpleName}", Toast.LENGTH_LONG).show()
+    } else {
+        if (context != null) {
+            Toast.makeText(
+                context,
+                "${prefixTips?.plus(" ") ?: ""}${this.message ?: this::class.simpleName}",
+                Toast.LENGTH_LONG
+            ).show()
         }
     }
 }

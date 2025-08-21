@@ -28,7 +28,6 @@ data class ChaoxingSignStatus(
     val error: MutableState<String> = mutableStateOf(""),
     val isLoading: MutableState<Boolean> = mutableStateOf(false)
 ) {
-
     fun loading() {
         var obj by isLoading
         obj = true

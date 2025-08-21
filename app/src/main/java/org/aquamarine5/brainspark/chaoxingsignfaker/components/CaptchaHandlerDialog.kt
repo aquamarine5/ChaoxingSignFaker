@@ -45,6 +45,7 @@ import androidx.compose.ui.zIndex
 import coil3.compose.AsyncImage
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCaptchaDataEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSigner
 
@@ -113,7 +114,7 @@ fun CaptchaHandlerDialog(
                             sliderPosition = it
                         },
                         onValueChangeFinished = {
-                            coroutineScope.launch {
+                            runBlocking {
                                 runCatching {
                                     val normalizedPosition =
                                         ((sliderPosition / (sliderMaxValue)) * 320f)
@@ -173,9 +174,9 @@ fun CaptchaHandlerDialog(
         dismissButton = {
             Button(onClick = {
                 coroutineScope.launch {
-                    data= signer.getCaptchaImageV2()
+                    data = signer.getCaptchaImageV2()
                 }
-            }){
+            }) {
                 Text("刷新验证码")
             }
         },
