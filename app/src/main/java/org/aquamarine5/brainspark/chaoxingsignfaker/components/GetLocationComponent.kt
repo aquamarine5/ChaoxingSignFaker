@@ -104,7 +104,7 @@ fun GetLocationComponent(
             }
 
             val key = remember { System.currentTimeMillis() }
-            val locationClient = remember(key) {
+            val locationClient = remember {
                 LocationClient(context).apply {
                     locOption = LocationClientOption().apply {
                         setCoorType("bd09ll")
