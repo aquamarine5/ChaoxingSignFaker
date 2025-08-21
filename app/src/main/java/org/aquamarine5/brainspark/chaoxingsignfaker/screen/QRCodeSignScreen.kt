@@ -353,7 +353,7 @@ fun QRCodeSignScreen(
                                 isQRCodeScanPause.value = false
                                 isQRCodeParsing.value = false
                             }
-                        }, modifier = Modifier.fillMaxWidth(), enabled = isSigning) {
+                        }, modifier = Modifier.fillMaxWidth(), enabled = !isSigning) {
                             Text("签到")
                         }
                     }
