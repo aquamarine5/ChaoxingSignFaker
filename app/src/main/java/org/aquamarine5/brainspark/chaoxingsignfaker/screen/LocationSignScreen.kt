@@ -19,6 +19,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -46,6 +47,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserS
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationDetailEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignStatus
+import org.aquamarine5.brainspark.chaoxingsignfaker.ifAlreadySigned
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingLocationSigner
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSigner
 import org.aquamarine5.brainspark.chaoxingsignfaker.snackbarReport
@@ -131,12 +133,13 @@ fun LocationSignScreen(
                 var isSigning by remember { mutableStateOf(false) }
                 var otherUserSessionForSignList by
                 remember { mutableStateOf<List<ChaoxingOtherUserSession?>>(emptyList()) }
-
+                val userSelections = remember { mutableStateListOf(isSignForOther.not()) }
                 OtherUserSelectorComponent(
                     navToOtherUser = { navToOtherUserDestination() },
                     signStatus = signStatus,
                     isCurrentAlreadySigned = isSignForOther,
-                    isSigning = isSigning
+                    isSigning = isSigning,
+                    userSelections = userSelections
                 ) { isSelf, otherUserSessionList, _ ->
                     isSigning = true
                     isSelfForSign = isSelf
@@ -215,6 +218,9 @@ fun LocationSignScreen(
                                 }
                             }.onFailure {
                                 signStatus[0].failed(it)
+                                it.ifAlreadySigned {
+                                    userSelections[0]=false
+                                }
                                 it.snackbarReport(
                                     snackbarHost,
                                     coroutineScope,
@@ -287,14 +293,19 @@ fun LocationSignScreen(
                                             }
                                         }
                                     }
-                                }.onFailure {
-                                    it.snackbarReport(
+                                }.onFailure { err ->
+                                    err.snackbarReport(
                                         snackbarHost,
                                         coroutineScope,
                                         "为${userSession.name}签到失败"
                                     )
+                                    err.ifAlreadySigned {
+                                        userSelections.takeIf { it.size > index + 1 }?.let{
+                                            userSelections[index + 1] = false
+                                        }
+                                    }
                                     signStatus[index + 1].failed(
-                                        it
+                                        err
                                     )
                                 }
                                 if (index != otherUserSessionForSignList.size - 1) {

@@ -9,6 +9,7 @@ package org.aquamarine5.brainspark.chaoxingsignfaker.entity
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
@@ -19,9 +20,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import io.sentry.Sentry
 import org.aquamarine5.brainspark.chaoxingsignfaker.ChaoxingPredictableException
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
+import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSigner
 
 data class ChaoxingSignStatus(
     val isSuccess: MutableState<Boolean?> = mutableStateOf(null),
@@ -47,10 +48,10 @@ data class ChaoxingSignStatus(
         obj1 = false
         obj3 = false
         obj2 = when (e) {
+            is ChaoxingSigner.AlreadySignedException -> "您已签到过了"
             is ChaoxingPredictableException -> e.message ?: "签到失败"
             else -> {
-                Sentry.captureException(e)
-                e.message ?: "签到失败"
+                e.message ?: "预期外错误签到失败"
             }
         }
     }
@@ -63,7 +64,8 @@ data class ChaoxingSignStatus(
             }
 
             false -> {
-                Text(error.value, color = Color(0xFFF43E06))
+                Text(error.value, color = if(error.value=="您已签到过了"){
+                    LocalContentColor.current}else{ Color(0xFFF43E06) })
             }
 
             null -> {

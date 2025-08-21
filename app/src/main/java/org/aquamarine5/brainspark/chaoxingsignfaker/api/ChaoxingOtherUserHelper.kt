@@ -28,7 +28,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.HttpCookie
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingOtherUserSharedEntity
 
 object ChaoxingOtherUserHelper {
-    const val TIMEOUT_NEXT_SIGN = 500L
+    const val TIMEOUT_NEXT_SIGN = 200L
 
     class NotAvailableQRCodeException(message: String) : Exception(message)
 

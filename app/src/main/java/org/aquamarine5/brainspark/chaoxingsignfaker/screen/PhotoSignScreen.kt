@@ -83,6 +83,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.components.SponsorPopupDialo
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignStatus
+import org.aquamarine5.brainspark.chaoxingsignfaker.ifAlreadySigned
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingPhotoSigner
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSigner
 import org.aquamarine5.brainspark.chaoxingsignfaker.snackbarReport
@@ -189,12 +190,14 @@ fun PhotoSignScreen(
                             }
                             var isSigning by remember { mutableStateOf(false) }
                             val signStatus = remember { mutableListOf(ChaoxingSignStatus()) }
+                            val userSelections = remember { mutableStateListOf(isForSelf.not()) }
                             OtherUserSelectorComponent(
                                 navToOtherUser = {
                                     navToOtherUserDestination()
                                 },
                                 signStatus,
                                 isForSelf,
+                                userSelections,
                                 isSigning
                             ) { isSelf, otherUserSessionList, _ ->
                                 isSigning = true
@@ -367,6 +370,7 @@ fun PhotoSignScreen(
                                 }
 
                                 true -> {
+                                    val userSelections = remember { mutableStateListOf(isForSelf.not()) }
                                     val signStatus =
                                         remember { mutableListOf(ChaoxingSignStatus()) }
                                     var isCamera by remember { mutableStateOf(false) }
@@ -401,6 +405,7 @@ fun PhotoSignScreen(
                                                 },
                                                 signStatus,
                                                 isForSelf,
+                                                userSelections,
                                                 isSigning,
                                                 userContent = { index ->
                                                     var isShowDialog by remember {
@@ -598,6 +603,9 @@ fun PhotoSignScreen(
                                                                         coroutineScope,
                                                                         "签到失败"
                                                                     )
+                                                                    it.ifAlreadySigned {
+                                                                        userSelections[0]=false
+                                                                    }
                                                                     signStatus[0].failed(it)
                                                                 }
                                                             }
@@ -701,6 +709,10 @@ fun PhotoSignScreen(
                                                                             coroutineScope,
                                                                             "签到失败"
                                                                         )
+                                                                        it.ifAlreadySigned {
+                                                                            userSelections.takeIf { it.size > index + 1 }
+                                                                                ?.set(index + 1, false)
+                                                                        }
                                                                         signStatus[1 + index].failed(
                                                                             it
                                                                         )

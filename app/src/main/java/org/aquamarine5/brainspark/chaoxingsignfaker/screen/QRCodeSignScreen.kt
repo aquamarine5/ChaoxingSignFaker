@@ -88,6 +88,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserS
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationSignEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignStatus
+import org.aquamarine5.brainspark.chaoxingsignfaker.ifAlreadySigned
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingQRCodeSigner
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSigner
 import org.aquamarine5.brainspark.chaoxingsignfaker.snackbarReport
@@ -276,6 +277,7 @@ fun QRCodeSignScreen(
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
                             "选择要进行二维码签到的用户：",
+                            fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(start = 3.dp)
                         )
                         Column(
@@ -352,6 +354,13 @@ fun QRCodeSignScreen(
                                 isQRCodeScanning = true
                                 isQRCodeScanPause.value = false
                                 isQRCodeParsing.value = false
+                            }
+                            signStatus.forEach { status ->
+                                status.takeIf { it.isSuccess.value == false }?.let {
+                                    it.isSuccess.value = null
+                                    it.isLoading.value = false
+                                    it.error.value = ""
+                                }
                             }
                         }, modifier = Modifier.fillMaxWidth(), enabled = !isSigning) {
                             Text("签到")
@@ -469,18 +478,29 @@ fun QRCodeSignScreen(
                                                             isSponsor = true
                                                         }
                                                     }
-                                                }.onFailure {
-                                                    it.snackbarReport(
+                                                }.onFailure { err ->
+                                                    err.snackbarReport(
                                                         snackbarHost,
                                                         coroutineScope,
                                                         "签到失败"
                                                     )
-                                                    signStatus[0].failed(it)
+                                                    err.ifAlreadySigned {
+                                                        userSelections[0] = false
+                                                        if (signUserList.isEmpty() && userSelections.all{ !it }) {
+                                                            isSigning = false
+                                                            coroutineScope.launch {
+                                                                delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)
+                                                                isSponsor = true
+                                                            }
+                                                        }
+                                                    }
+                                                    signStatus[0].failed(err)
                                                 }
                                             }
-                                            signUserList.filterIndexed { index, _ ->
-                                                userSelections[1 + index]
+                                            signUserList.mapIndexed { index, value ->
+                                                if (userSelections[1 + index]) value else null
                                             }.forEachIndexed { index, session ->
+                                                if (session == null) return@forEachIndexed
                                                 runCatching {
                                                     signStatus[1 + index].loading()
                                                     ChaoxingHttpClient.loadFromOtherUserSession(
@@ -490,9 +510,7 @@ fun QRCodeSignScreen(
                                                             client, destination
                                                         ).apply {
                                                             if (preSign()) {
-                                                                signStatus[1 + index].failed(
-                                                                    ChaoxingSigner.AlreadySignedException()
-                                                                )
+                                                                throw ChaoxingSigner.AlreadySignedException()
                                                             } else {
                                                                 if (sign(enc, locationData)) {
                                                                     suspendCoroutine { continuation ->
@@ -555,19 +573,30 @@ fun QRCodeSignScreen(
                                                             }
                                                         }
                                                     }
-                                                }.onFailure {
-                                                    it.snackbarReport(
+                                                }.onFailure { err ->
+                                                    err.snackbarReport(
                                                         snackbarHost,
                                                         coroutineScope,
                                                         "签到失败"
                                                     )
-                                                    signStatus[1 + index].failed(it)
+                                                    err.ifAlreadySigned {
+                                                        userSelections[1 + index] = false
+                                                        if (index == signUserList.size - 1 && userSelections.all{ !it }) {
+                                                            coroutineScope.launch{
+                                                                delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)
+                                                                isSponsor =
+                                                                    true
+                                                            }
+                                                        }
+                                                    }
+                                                    signStatus[1 + index].failed(err)
                                                 }
                                                 if (index != signUserList.size - 1) {
                                                     signStatus[2 + index].loading()
                                                     delay(ChaoxingOtherUserHelper.TIMEOUT_NEXT_SIGN)
                                                 }
                                             }
+                                            isSigning = false
                                         }.onFailure {
                                             it.printStackTrace()
                                             isQRCodeIllegal = true

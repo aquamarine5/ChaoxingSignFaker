@@ -18,6 +18,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.Response
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
+import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSigner
 
 suspend fun Response.checkResponse(context: Context): Boolean =
     if (isSuccessful) {
@@ -66,7 +67,7 @@ fun Throwable.snackbarReport(
     snackbarHostState: SnackbarHostState?,
     coroutineScope: CoroutineScope,
     prefixTips: String? = null,
-    duration: SnackbarDuration = SnackbarDuration.Long,
+    duration: SnackbarDuration = SnackbarDuration.Short,
     actionLabel: String? = null,
     onSnackbarResult: ((SnackbarResult) -> Unit)? = null
 ) {
@@ -79,7 +80,7 @@ fun Throwable.snackbarReport(
             snackbarHostState?.showSnackbar(
                 "${prefixTips?.plus(" ") ?: ""}预期外错误:${this@snackbarReport.message ?: this@snackbarReport::class.simpleName}",
                 actionLabel,
-                false,
+                true,
                 duration
             )?.apply {
                 onSnackbarResult?.invoke(this)
@@ -91,11 +92,17 @@ fun Throwable.snackbarReport(
             snackbarHostState?.showSnackbar(
                 "${prefixTips?.plus(" ") ?: ""}${this@snackbarReport.message ?: this@snackbarReport::class.simpleName}",
                 actionLabel,
-                false,
+                true,
                 duration
             )?.apply {
                 onSnackbarResult?.invoke(this)
             }
         }
+    }
+}
+
+fun Throwable.ifAlreadySigned(action:()->Unit){
+    if (this is ChaoxingSigner.AlreadySignedException) {
+        action()
     }
 }

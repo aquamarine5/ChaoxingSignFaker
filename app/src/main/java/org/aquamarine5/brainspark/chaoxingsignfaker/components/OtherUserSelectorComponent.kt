@@ -33,6 +33,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -56,13 +57,14 @@ fun OtherUserSelectorComponent(
     navToOtherUser: () -> Unit,
     signStatus: MutableList<ChaoxingSignStatus>,
     isCurrentAlreadySigned: Boolean,
+    userSelections:SnapshotStateList<Boolean>,
     isSigning: Boolean = false,
     userContent: @Composable ((index: Int) -> Unit)? = null,
     onSignAction: (isSelf: Boolean, otherUserSessionList: List<ChaoxingOtherUserSession?>, indexList: List<Int>) -> Unit
 ) {
     LocalContext.current.let { context ->
         val signUserList = remember { mutableStateListOf<ChaoxingOtherUserSession>() }
-        val userSelections = remember { mutableStateListOf(true) }
+
         var success by signStatus[0].isSuccess
         Box(
             modifier = Modifier
@@ -124,7 +126,6 @@ fun OtherUserSelectorComponent(
                     userSelections.addAll(List(signUserList.size) { false })
                     success = isCurrentAlreadySigned
                     userSelections[0] = isCurrentAlreadySigned != true
-
                 }
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(

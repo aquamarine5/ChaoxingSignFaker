@@ -142,6 +142,9 @@ class ChaoxingPhotoSigner(
                 throw ChaoxingHttpClient.ChaoxingNetworkException()
             }
             val result = it.body?.string()
+            if(result=="您已签到过了"){
+                throw AlreadySignedException()
+            }
             if (result != "success") {
                 Log.w(CLASSTAG, result ?: "")
                 throw ChaoxingPhotoSignException(result ?: "签到失败")
@@ -168,6 +171,9 @@ class ChaoxingPhotoSigner(
                     throw ChaoxingHttpClient.ChaoxingNetworkException()
                 }
                 val result = it.body?.string()
+                if(result=="您已签到过了"){
+                    throw AlreadySignedException()
+                }
                 if (result != "success") {
                     Log.w(CLASSTAG, result ?: "")
                     throw ChaoxingPhotoSignException(result ?: "签到失败")
