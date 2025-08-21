@@ -47,7 +47,7 @@ class ChaoxingLocationSigner(
 
     suspend fun sign(
         signLocation: ChaoxingLocationSignEntity,
-    ):Boolean =
+    ): Boolean =
         withContext(Dispatchers.IO) {
             client.newCall(
                 Request.Builder().url(

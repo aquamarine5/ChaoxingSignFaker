@@ -15,6 +15,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -67,7 +68,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import org.aquamarine5.brainspark.chaoxingsignfaker.ChaoxingPredictableException
@@ -76,6 +76,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingOtherUserHelper
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingSignHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.AlreadySignedNotice
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerDialog
@@ -119,14 +120,14 @@ fun QRCodeSignScreen(
     navBack: () -> Unit
 ) {
     var isAlreadySigned by remember { mutableStateOf<Boolean?>(null) }
-    var isCurrentAlreadySigned by remember { mutableStateOf<Boolean?>(null) }
+    var isCurrentAlreadySigned by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
     val signer = ChaoxingQRCodeSigner(ChaoxingHttpClient.instance!!, destination)
     val context = LocalContext.current
     val snackbarHost = LocalSnackbarHostState.current
     var isMapRequired by remember { mutableStateOf(false) }
     var captchaValidateParams by remember {
-        mutableStateOf<Pair<ChaoxingQRCodeSigner, (Result<String>) -> Unit>?>(
+        mutableStateOf<Pair<ChaoxingQRCodeSigner, suspend (Result<String>) -> Unit>?>(
             null
         )
     }
@@ -173,6 +174,7 @@ fun QRCodeSignScreen(
                 var job by remember { mutableStateOf<Job?>(null) }
                 val userSelections = remember { mutableStateListOf(true) }
                 val signStatus = remember { mutableStateListOf(ChaoxingSignStatus()) }
+                var isSigning by remember { mutableStateOf(false) }
                 var isSponsor by remember { mutableStateOf(false) }
                 if (isSponsor) {
                     SponsorPopupDialog()
@@ -269,7 +271,7 @@ fun QRCodeSignScreen(
                             userSelections.addAll(List(signUserList.size) { false })
                             signStatus.addAll(Array(signUserList.size) { ChaoxingSignStatus() })
                             success = isCurrentAlreadySigned
-                            userSelections[0] = isCurrentAlreadySigned != true
+                            userSelections[0] = isCurrentAlreadySigned.not()
                         }
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
@@ -351,7 +353,7 @@ fun QRCodeSignScreen(
                                 isQRCodeScanPause.value = false
                                 isQRCodeParsing.value = false
                             }
-                        }, modifier = Modifier.fillMaxWidth()) {
+                        }, modifier = Modifier.fillMaxWidth(), enabled = isSigning) {
                             Text("签到")
                         }
                     }
@@ -361,16 +363,20 @@ fun QRCodeSignScreen(
                             .zIndex(1f)
                     ) {
                         AnimatedVisibility(
-                            visible = isMapGetting, enter =
+                            isMapGetting,
+                            enter =
                             slideInHorizontally(
                                 initialOffsetX = { it },
                                 animationSpec = tween(300)
                             ) + fadeIn(
                                 animationSpec = tween(300)
-                            ), exit =
-                            scaleOut(targetScale = 0.8f, animationSpec = tween(300)) + fadeOut(
-                                animationSpec = tween(300)
-                            )
+                            ),
+                            exit =
+                            slideOutHorizontally(
+                                animationSpec = tween(300),
+                                targetOffsetX = { it }) +
+                                    fadeOut(animationSpec = tween(300)),
+                            modifier = Modifier.zIndex(1f)
                         ) {
                             GetLocationComponent(confirmButtonText = {
                                 Text("设置")
@@ -406,6 +412,7 @@ fun QRCodeSignScreen(
                             QRCodeScanComponent(isQRCodeScanPause, isQRCodeParsing, onClose = {
                                 isQRCodeScanning = false
                             }, onScanResult = {
+                                isSigning = true
                                 isQRCodeScanPause.value = true
                                 isQRCodeParsing.value = true
                                 coroutineScope.launch {
@@ -414,41 +421,29 @@ fun QRCodeSignScreen(
                                             return@runCatching signer.parseQRCode(it)
                                         }.onSuccess { enc ->
                                             isQRCodeScanning = false
-                                            runCatching {
-                                                signStatus[0].loading()
-                                                userSelections[0] = false
-                                                suspendCoroutine { continuation ->
-                                                    runBlocking {
-                                                        signer.sign(enc, locationData) {
+                                            if (!isCurrentAlreadySigned) {
+                                                runCatching {
+                                                    signStatus[0].loading()
+                                                    if (signer.sign(enc, locationData)) {
+                                                        suspendCoroutine { continuation ->
                                                             captchaValidateParams =
                                                                 signer to { validateValue ->
                                                                     validateValue.onSuccess {
-                                                                        runBlocking {
-                                                                            runCatching {
-                                                                                signer.signWithCaptcha(
-                                                                                    enc,
-                                                                                    locationData,
-                                                                                    validateValue.getOrThrow()
-                                                                                )
-                                                                            }.onSuccess {
-                                                                                signStatus[0].success()
-                                                                                UMengHelper.onSignQRCodeEvent(
-                                                                                    context,
-                                                                                    ChaoxingHttpClient.instance!!.userEntity.name
-                                                                                )
-                                                                                if (signUserList.isEmpty()) {
-                                                                                    isSponsor = true
-                                                                                }
-                                                                            }.onFailure {
-                                                                                it.snackbarReport(
-                                                                                    snackbarHost,
-                                                                                    coroutineScope,
-                                                                                    "签到失败"
-                                                                                )
-                                                                                signStatus[0].failed(
-                                                                                    it
-                                                                                )
-                                                                            }
+                                                                        signer.signWithCaptcha(
+                                                                            enc,
+                                                                            locationData,
+                                                                            validateValue.getOrThrow()
+                                                                        )
+                                                                        signStatus[0].success()
+                                                                        userSelections[0] = false
+                                                                        UMengHelper.onSignQRCodeEvent(
+                                                                            context,
+                                                                            ChaoxingHttpClient.instance!!.userEntity.name
+                                                                        )
+                                                                        if (signUserList.isEmpty()) {
+                                                                            isSigning = false
+                                                                            delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)
+                                                                            isSponsor = true
                                                                         }
                                                                     }.onFailure {
                                                                         it.snackbarReport(
@@ -461,27 +456,27 @@ fun QRCodeSignScreen(
                                                                     continuation.resume(Unit)
                                                                 }
                                                         }
+                                                    } else {
+                                                        signStatus[0].success()
+                                                        userSelections[0] = false
+                                                        UMengHelper.onSignQRCodeEvent(
+                                                            context,
+                                                            ChaoxingHttpClient.instance!!.userEntity.name
+                                                        )
+                                                        if (signUserList.isEmpty()) {
+                                                            isSigning = false
+                                                            delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)
+                                                            isSponsor = true
+                                                        }
                                                     }
-                                                }
-
-                                            }.onSuccess {
-                                                if (captchaValidateParams == null) {
-                                                    signStatus[0].success()
-                                                    UMengHelper.onSignQRCodeEvent(
-                                                        context,
-                                                        ChaoxingHttpClient.instance!!.userEntity.name
+                                                }.onFailure {
+                                                    it.snackbarReport(
+                                                        snackbarHost,
+                                                        coroutineScope,
+                                                        "签到失败"
                                                     )
-                                                    if (signUserList.isEmpty()) {
-                                                        isSponsor = true
-                                                    }
+                                                    signStatus[0].failed(it)
                                                 }
-                                            }.onFailure {
-                                                it.snackbarReport(
-                                                    snackbarHost,
-                                                    coroutineScope,
-                                                    "签到失败"
-                                                )
-                                                signStatus[0].failed(it)
                                             }
                                             signUserList.filterIndexed { index, _ ->
                                                 userSelections[1 + index]
@@ -495,77 +490,69 @@ fun QRCodeSignScreen(
                                                             client, destination
                                                         ).apply {
                                                             if (preSign()) {
-                                                                throw ChaoxingSigner.AlreadySignedException()
+                                                                signStatus[1 + index].failed(
+                                                                    ChaoxingSigner.AlreadySignedException()
+                                                                )
                                                             } else {
-                                                                suspendCoroutine { continuation ->
-                                                                    runBlocking {
-                                                                        sign(enc, locationData) {
-                                                                            captchaValidateParams =
-                                                                                this@apply to { validateValue ->
-                                                                                    validateValue.onSuccess {
-                                                                                        runBlocking {
-                                                                                            runCatching {
-                                                                                                signWithCaptcha(
-                                                                                                    enc,
-                                                                                                    locationData,
-                                                                                                    validateValue.getOrThrow()
-                                                                                                )
-                                                                                            }.onSuccess {
-                                                                                                signStatus[1 + index].success()
-                                                                                                UMengHelper.onSignQRCodeEvent(
-                                                                                                    context,
-                                                                                                    session.name,
-                                                                                                    true
-                                                                                                )
-                                                                                                userSelections[1 + index] =
-                                                                                                    false
-                                                                                                if (index == signUserList.size - 1) {
-                                                                                                    isSponsor =
-                                                                                                        true
-                                                                                                }
-                                                                                            }
-                                                                                                .onFailure {
-                                                                                                    it.snackbarReport(
-                                                                                                        snackbarHost,
-                                                                                                        coroutineScope,
-                                                                                                        "签到失败"
-                                                                                                    )
-                                                                                                    signStatus[1 + index].failed(
-                                                                                                        it
-                                                                                                    )
-                                                                                                }
-                                                                                        }
-                                                                                    }.onFailure {
-                                                                                        it.snackbarReport(
-                                                                                            snackbarHost,
-                                                                                            coroutineScope,
-                                                                                            "验证码校验失败"
+                                                                if (sign(enc, locationData)) {
+                                                                    suspendCoroutine { continuation ->
+                                                                        captchaValidateParams =
+                                                                            this@apply to { validateValue ->
+                                                                                validateValue.onSuccess {
+                                                                                    signWithCaptcha(
+                                                                                        enc,
+                                                                                        locationData,
+                                                                                        validateValue.getOrThrow()
+                                                                                    )
+                                                                                    signStatus[1 + index].success()
+                                                                                    UMengHelper.onSignQRCodeEvent(
+                                                                                        context,
+                                                                                        session.name,
+                                                                                        true
+                                                                                    )
+                                                                                    userSelections[1 + index] =
+                                                                                        false
+                                                                                    if (index == signUserList.size - 1) {
+                                                                                        isSigning =
+                                                                                            false
+                                                                                        delay(
+                                                                                            ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED
                                                                                         )
-                                                                                        signStatus[1 + index].failed(
-                                                                                            it
-                                                                                        )
+                                                                                        isSponsor =
+                                                                                            true
                                                                                     }
-                                                                                    continuation.resume(
-                                                                                        Unit
+                                                                                }.onFailure {
+                                                                                    it.snackbarReport(
+                                                                                        snackbarHost,
+                                                                                        coroutineScope,
+                                                                                        "验证码校验失败"
+                                                                                    )
+                                                                                    signStatus[1 + index].failed(
+                                                                                        it
                                                                                     )
                                                                                 }
-                                                                        }
+                                                                                continuation.resume(
+                                                                                    Unit
+                                                                                )
+                                                                            }
+                                                                    }
+                                                                } else {
+                                                                    signStatus[1 + index].success()
+                                                                    UMengHelper.onSignQRCodeEvent(
+                                                                        context,
+                                                                        session.name,
+                                                                        true
+                                                                    )
+                                                                    userSelections[1 + index] =
+                                                                        false
+                                                                    if (index == signUserList.size - 1) {
+                                                                        isSigning = false
+                                                                        delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)
+                                                                        isSponsor =
+                                                                            true
                                                                     }
                                                                 }
                                                             }
-                                                        }
-                                                    }
-                                                }.onSuccess {
-                                                    if (captchaValidateParams == null) {
-                                                        signStatus[1 + index].success()
-                                                        UMengHelper.onSignQRCodeEvent(
-                                                            context,
-                                                            session.name,
-                                                            true
-                                                        )
-                                                        userSelections[1 + index] = false
-                                                        if (index == signUserList.size - 1) {
-                                                            isSponsor = true
                                                         }
                                                     }
                                                 }.onFailure {
@@ -577,7 +564,7 @@ fun QRCodeSignScreen(
                                                     signStatus[1 + index].failed(it)
                                                 }
                                                 if (index != signUserList.size - 1) {
-                                                    signStatus[2+index].loading()
+                                                    signStatus[2 + index].loading()
                                                     delay(ChaoxingOtherUserHelper.TIMEOUT_NEXT_SIGN)
                                                 }
                                             }
@@ -659,7 +646,6 @@ fun QRCodeSignScreen(
                                         }
                                     }
                                 }
-
                             }
                         }
                     }

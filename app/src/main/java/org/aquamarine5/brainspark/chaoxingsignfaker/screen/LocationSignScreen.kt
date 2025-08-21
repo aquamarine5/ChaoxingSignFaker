@@ -35,6 +35,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingOtherUserHelper
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingSignHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.AlreadySignedNotice
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
@@ -127,6 +128,7 @@ fun LocationSignScreen(
                 var isGetLocation by remember { mutableStateOf(false) }
                 val signStatus = remember { mutableListOf(ChaoxingSignStatus()) }
                 var isSelfForSign by remember { mutableStateOf(false) }
+                var isSigning by remember { mutableStateOf(false) }
                 var otherUserSessionForSignList by
                 remember { mutableStateOf<List<ChaoxingOtherUserSession?>>(emptyList()) }
 
@@ -134,7 +136,9 @@ fun LocationSignScreen(
                     navToOtherUser = { navToOtherUserDestination() },
                     signStatus = signStatus,
                     isCurrentAlreadySigned = isSignForOther,
+                    isSigning = isSigning
                 ) { isSelf, otherUserSessionList, _ ->
+                    isSigning = true
                     isSelfForSign = isSelf
                     otherUserSessionForSignList = otherUserSessionList
                     isGetLocation = true
@@ -172,6 +176,8 @@ fun LocationSignScreen(
                                                         )
                                                         signStatus[0].success()
                                                         if (otherUserSessionForSignList.isEmpty()) {
+                                                            isSigning = false
+                                                            delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)
                                                             isSponsor = true
                                                         }
                                                         UMengHelper.onSignLocationEvent(
@@ -196,6 +202,8 @@ fun LocationSignScreen(
                                     } else {
                                         signStatus[0].success()
                                         if (otherUserSessionForSignList.isEmpty()) {
+                                            isSigning = false
+                                            delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)
                                             isSponsor = true
                                         }
                                         UMengHelper.onSignLocationEvent(
@@ -236,6 +244,8 @@ fun LocationSignScreen(
                                                                     )
                                                                     signStatus[index + 1].success()
                                                                     if (index == otherUserSessionForSignList.size - 1) {
+                                                                        isSigning = false
+                                                                        delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)
                                                                         isSponsor = true
                                                                     }
                                                                     UMengHelper.onSignLocationEvent(
@@ -263,6 +273,8 @@ fun LocationSignScreen(
                                                 } else {
                                                     signStatus[index + 1].success()
                                                     if (index == otherUserSessionForSignList.size - 1) {
+                                                        isSigning = false
+                                                        delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)
                                                         isSponsor = true
                                                     }
                                                     UMengHelper.onSignLocationEvent(

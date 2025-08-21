@@ -23,14 +23,15 @@ import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartBody
 import okhttp3.Request
+import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.asRequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import org.aquamarine5.brainspark.chaoxingsignfaker.ChaoxingPredictableException
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.checkResponse
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.PhotoSignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingLocationSigner.Companion.CLASSTAG
-import java.io.File
-import java.io.FileOutputStream
+import java.io.ByteArrayOutputStream
 import java.util.UUID
 
 typealias ChaoxingPhotoActivityEntity = PhotoSignDestination
@@ -70,7 +71,7 @@ class ChaoxingPhotoSigner(
         }
     }
 
-    suspend fun signByClick(onValidate: () -> Unit) = withContext(Dispatchers.IO) {
+    suspend fun signByClick(): Boolean = withContext(Dispatchers.IO) {
         client.newCall(
             Request.Builder().url(
                 URL_SIGN.toHttpUrl().newBuilder()
@@ -87,17 +88,16 @@ class ChaoxingPhotoSigner(
             }
             val result = it.body?.string()
             if (result == "validate") {
-                onValidate()
-                return@use
+                return@use true
             }
             if (result != "success") {
                 Log.w(CLASSTAG, result ?: "")
                 throw ChaoxingPhotoSignException(result ?: "签到失败")
-            }
+            } else return@use false
         }
     }
 
-    suspend fun signByImage(objectId: String, onValidate: () -> Unit) =
+    suspend fun signByImage(objectId: String): Boolean =
         withContext(Dispatchers.IO) {
             client.newCall(
                 Request.Builder().url(
@@ -116,13 +116,12 @@ class ChaoxingPhotoSigner(
                 }
                 val result = it.body?.string()
                 if (result == "validate") {
-                    onValidate()
-                    return@use
+                    return@use true
                 }
                 if (result != "success") {
                     Log.w(CLASSTAG, result ?: "")
                     throw ChaoxingPhotoSignException(result ?: "签到失败")
-                }
+                } else return@use false
             }
         }
 
@@ -176,47 +175,44 @@ class ChaoxingPhotoSigner(
             }
         }
 
-    private fun uriToFile(context: Context, uri: Uri, fileName: String): File {
+    private fun uriToFile(context: Context, uri: Uri): RequestBody {
         val contentResolver = context.contentResolver
-        val file = File(context.cacheDir, fileName)
         return runCatching {
-            contentResolver.openInputStream(uri)?.use {
+            contentResolver.openInputStream(uri).use {
                 val bitmap = BitmapFactory.decodeStream(it)
-                FileOutputStream(file).use { output ->
+                ByteArrayOutputStream().use { out ->
                     bitmap.compress(
                         Bitmap.CompressFormat.JPEG,
-                        50,
-                        output
+                        50, out
                     )
+                    return@runCatching out.toByteArray().toRequestBody("image/jpeg".toMediaType())
                 }
             }
-            return@runCatching file
         }.getOrElse { throw ChaoxingPhotoSignException("文件转换失败") }
     }
 
-    suspend fun uploadImage(context: Context, image: Bitmap, token: String): String =
+    suspend fun uploadImage(image: Bitmap, token: String): String =
         withContext(Dispatchers.IO) {
             val filename = "${UUID.randomUUID()}.jpg"
-            val file = File(context.cacheDir, filename)
-            file.outputStream().use { out ->
+            ByteArrayOutputStream().use { out ->
                 image.compress(Bitmap.CompressFormat.JPEG, 50, out)
-            }
-            client.newCall(
-                Request.Builder().url(URL_CLOUD_UPLOAD + token).post(
-                    MultipartBody.Builder().setType(MultipartBody.FORM)
-                        .addFormDataPart("puid", client.userEntity.puid.toString())
-                        .addFormDataPart(
-                            "file",
-                            filename,
-                            file.asRequestBody("image/jpeg".toMediaType())
-                        )
-                        .build()
-                ).build()
-            ).execute().use {
-                if (it.checkResponse(client.context)) {
-                    throw ChaoxingHttpClient.ChaoxingNetworkException()
+                client.newCall(
+                    Request.Builder().url(URL_CLOUD_UPLOAD + token).post(
+                        MultipartBody.Builder().setType(MultipartBody.FORM)
+                            .addFormDataPart("puid", client.userEntity.puid.toString())
+                            .addFormDataPart(
+                                "file",
+                                filename,
+                                out.toByteArray().toRequestBody("image/jpeg".toMediaType())
+                            )
+                            .build()
+                    ).build()
+                ).execute().use {
+                    if (it.checkResponse(client.context)) {
+                        throw ChaoxingHttpClient.ChaoxingNetworkException()
+                    }
+                    JSONObject.parseObject(it.body!!.string()).getString("objectId")
                 }
-                JSONObject.parseObject(it.body!!.string()).getString("objectId")
             }
         }
 
@@ -232,9 +228,8 @@ class ChaoxingPhotoSigner(
                             filename,
                             uriToFile(
                                 context,
-                                uri,
-                                filename
-                            ).asRequestBody("image/jpeg".toMediaType())
+                                uri
+                            )
                         )
                         .build()
                 ).build()

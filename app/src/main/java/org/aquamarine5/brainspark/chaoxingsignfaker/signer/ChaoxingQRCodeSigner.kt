@@ -90,7 +90,7 @@ class ChaoxingQRCodeSigner(
             }
         }
 
-    suspend fun sign(enc: String, position: ChaoxingLocationSignEntity?, onValidate: () -> Unit) =
+    suspend fun sign(enc: String, position: ChaoxingLocationSignEntity?): Boolean =
         withContext(Dispatchers.IO) {
             client.newCall(
                 Request.Builder().url(
@@ -126,12 +126,13 @@ class ChaoxingQRCodeSigner(
                 }
                 val result = it.body?.string()
                 if (result == "validate") {
-                    onValidate()
-                    return@use
+                    return@use true
                 }
                 if (result != "success") {
                     Log.w(CLASSTAG, result ?: "")
                     throw ChaoxingLocationSignException(result ?: "签到失败")
+                } else {
+                    return@use false
                 }
             }
         }

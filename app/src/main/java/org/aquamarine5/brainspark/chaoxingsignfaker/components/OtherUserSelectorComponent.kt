@@ -56,7 +56,7 @@ fun OtherUserSelectorComponent(
     navToOtherUser: () -> Unit,
     signStatus: MutableList<ChaoxingSignStatus>,
     isCurrentAlreadySigned: Boolean,
-    isSigning:Boolean=false,
+    isSigning: Boolean = false,
     userContent: @Composable ((index: Int) -> Unit)? = null,
     onSignAction: (isSelf: Boolean, otherUserSessionList: List<ChaoxingOtherUserSession?>, indexList: List<Int>) -> Unit
 ) {
@@ -206,36 +206,38 @@ fun OtherUserSelectorComponent(
                     }
                 }
 
-                Button(onClick = {
-                    if (!userSelections.any { it }) {
-                        Toast.makeText(context, "请选择要签到的用户", Toast.LENGTH_SHORT)
-                            .show()
-                        return@Button
-                    }
-                    if (signStatus.all { it.isSuccess.value == true }) {
-                        Toast.makeText(context, "所有用户均已签到", Toast.LENGTH_SHORT)
-                            .show()
-                        return@Button
-                    }
-                    val indexList = mutableListOf<Int>()
-                    // 0 1 2 3 4 5 6
-                    // 2 3 5
-                    if (userSelections[0] && signStatus[0].isSuccess.value != true)
-                        indexList.add(0)
+                Button(
+                    onClick = {
+                        if (!userSelections.any { it }) {
+                            Toast.makeText(context, "请选择要签到的用户", Toast.LENGTH_SHORT)
+                                .show()
+                            return@Button
+                        }
+                        if (signStatus.all { it.isSuccess.value == true }) {
+                            Toast.makeText(context, "所有用户均已签到", Toast.LENGTH_SHORT)
+                                .show()
+                            return@Button
+                        }
+                        val indexList = mutableListOf<Int>()
+                        // 0 1 2 3 4 5 6
+                        // 2 3 5
+                        if (userSelections[0] && signStatus[0].isSuccess.value != true)
+                            indexList.add(0)
 
-                    onSignAction(
-                        userSelections[0] && signStatus[0].isSuccess.value != true,
-                        signUserList.mapIndexed { index, chaoxingOtherUserSession ->
-                            if (userSelections[index + 1] && signStatus[1 + index].isSuccess.value != true) {
-                                indexList.add(index + 1)
-                                chaoxingOtherUserSession
-                            } else {
-                                null
-                            }
-                        }, indexList
-                    )
-                }, modifier = Modifier.fillMaxWidth(),
-                    enabled = isSigning.not()) {
+                        onSignAction(
+                            userSelections[0] && signStatus[0].isSuccess.value != true,
+                            signUserList.mapIndexed { index, chaoxingOtherUserSession ->
+                                if (userSelections[index + 1] && signStatus[1 + index].isSuccess.value != true) {
+                                    indexList.add(index + 1)
+                                    chaoxingOtherUserSession
+                                } else {
+                                    null
+                                }
+                            }, indexList
+                        )
+                    }, modifier = Modifier.fillMaxWidth(),
+                    enabled = isSigning.not()
+                ) {
                     Text("签到")
                 }
             }
