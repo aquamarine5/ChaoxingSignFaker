@@ -67,9 +67,11 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import org.aquamarine5.brainspark.chaoxingsignfaker.ChaoxingPredictableException
+import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
@@ -86,6 +88,9 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityE
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignStatus
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingQRCodeSigner
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSigner
+import org.aquamarine5.brainspark.chaoxingsignfaker.snackbarReport
+import kotlin.coroutines.resume
+import kotlin.coroutines.suspendCoroutine
 
 @Serializable
 data class QRCodeSignDestination(
@@ -117,6 +122,7 @@ fun QRCodeSignScreen(
     val coroutineScope = rememberCoroutineScope()
     val signer = ChaoxingQRCodeSigner(ChaoxingHttpClient.instance!!, destination)
     val context = LocalContext.current
+    val snackbarHost = LocalSnackbarHostState.current
     var isMapRequired by remember { mutableStateOf(false) }
     var captchaValidateParams by remember {
         mutableStateOf<Pair<ChaoxingQRCodeSigner, (Result<String>) -> Unit>?>(
@@ -409,44 +415,54 @@ fun QRCodeSignScreen(
                                             isQRCodeScanning = false
                                             runCatching {
                                                 signStatus[0].loading()
-                                                signer.sign(enc, locationData) {
-                                                    captchaValidateParams =
-                                                        signer to { validateValue ->
-                                                            validateValue.onSuccess {
-                                                                coroutineScope.launch {
-                                                                    runCatching {
-                                                                        signer.signWithCaptcha(
-                                                                            enc,
-                                                                            locationData,
-                                                                            validateValue.getOrThrow()
-                                                                        )
-                                                                    }.onSuccess {
-                                                                        signStatus[0].success()
-                                                                        UMengHelper.onSignQRCodeEvent(
-                                                                            context,
-                                                                            ChaoxingHttpClient.instance!!.userEntity.name
-                                                                        )
-                                                                        if (signUserList.isEmpty()) {
-                                                                            isSponsor = true
+                                                userSelections[0] = false
+                                                suspendCoroutine { continuation ->
+                                                    runBlocking {
+                                                        signer.sign(enc, locationData) {
+                                                            captchaValidateParams =
+                                                                signer to { validateValue ->
+                                                                    validateValue.onSuccess {
+                                                                        runBlocking {
+                                                                            runCatching {
+                                                                                signer.signWithCaptcha(
+                                                                                    enc,
+                                                                                    locationData,
+                                                                                    validateValue.getOrThrow()
+                                                                                )
+                                                                            }.onSuccess {
+                                                                                signStatus[0].success()
+                                                                                UMengHelper.onSignQRCodeEvent(
+                                                                                    context,
+                                                                                    ChaoxingHttpClient.instance!!.userEntity.name
+                                                                                )
+                                                                                if (signUserList.isEmpty()) {
+                                                                                    isSponsor = true
+                                                                                }
+                                                                            }.onFailure {
+                                                                                it.snackbarReport(
+                                                                                    snackbarHost,
+                                                                                    coroutineScope,
+                                                                                    "签到失败"
+                                                                                )
+                                                                                signStatus[0].failed(
+                                                                                    it
+                                                                                )
+                                                                            }
                                                                         }
                                                                     }.onFailure {
-                                                                        it.printStackTrace()
+                                                                        it.snackbarReport(
+                                                                            snackbarHost,
+                                                                            coroutineScope,
+                                                                            "验证码校验失败"
+                                                                        )
                                                                         signStatus[0].failed(it)
-                                                                        if ((it is ChaoxingPredictableException).not())
-                                                                            Sentry.captureException(
-                                                                                it
-                                                                            )
                                                                     }
+                                                                    continuation.resume(Unit)
                                                                 }
-                                                            }.onFailure {
-                                                                it.printStackTrace()
-                                                                signStatus[0].failed(it)
-                                                                if ((it is ChaoxingPredictableException).not())
-                                                                    Sentry.captureException(it)
-                                                            }
                                                         }
+                                                    }
                                                 }
-                                                userSelections[0] = false
+
                                             }.onSuccess {
                                                 if (captchaValidateParams == null) {
                                                     signStatus[0].success()
@@ -459,10 +475,12 @@ fun QRCodeSignScreen(
                                                     }
                                                 }
                                             }.onFailure {
-                                                it.printStackTrace()
+                                                it.snackbarReport(
+                                                    snackbarHost,
+                                                    coroutineScope,
+                                                    "签到失败"
+                                                )
                                                 signStatus[0].failed(it)
-                                                if ((it is ChaoxingPredictableException).not())
-                                                    Sentry.captureException(it)
                                             }
                                             signUserList.filterIndexed { index, _ ->
                                                 userSelections[1 + index]
@@ -478,52 +496,60 @@ fun QRCodeSignScreen(
                                                             if (preSign()) {
                                                                 throw ChaoxingSigner.AlreadySignedException()
                                                             } else {
-                                                                sign(enc, locationData) {
-                                                                    captchaValidateParams =
-                                                                        this to { validateValue ->
-                                                                            validateValue.onSuccess {
-                                                                                coroutineScope.launch {
-                                                                                    runCatching {
-                                                                                        signWithCaptcha(
-                                                                                            enc,
-                                                                                            locationData,
-                                                                                            validateValue.getOrThrow()
-                                                                                        )
-                                                                                    }.onSuccess {
-                                                                                        signStatus[1 + index].success()
-                                                                                        UMengHelper.onSignQRCodeEvent(
-                                                                                            context,
-                                                                                            session.name,
-                                                                                            true
-                                                                                        )
-                                                                                        userSelections[1 + index] =
-                                                                                            false
-                                                                                        if (index == signUserList.size - 1) {
-                                                                                            isSponsor =
-                                                                                                true
+                                                                suspendCoroutine { continuation ->
+                                                                    runBlocking {
+                                                                        sign(enc, locationData) {
+                                                                            captchaValidateParams =
+                                                                                this@apply to { validateValue ->
+                                                                                    validateValue.onSuccess {
+                                                                                        runBlocking {
+                                                                                            runCatching {
+                                                                                                signWithCaptcha(
+                                                                                                    enc,
+                                                                                                    locationData,
+                                                                                                    validateValue.getOrThrow()
+                                                                                                )
+                                                                                            }.onSuccess {
+                                                                                                signStatus[1 + index].success()
+                                                                                                UMengHelper.onSignQRCodeEvent(
+                                                                                                    context,
+                                                                                                    session.name,
+                                                                                                    true
+                                                                                                )
+                                                                                                userSelections[1 + index] =
+                                                                                                    false
+                                                                                                if (index == signUserList.size - 1) {
+                                                                                                    isSponsor =
+                                                                                                        true
+                                                                                                }
+                                                                                            }
+                                                                                                .onFailure {
+                                                                                                    it.snackbarReport(
+                                                                                                        snackbarHost,
+                                                                                                        coroutineScope,
+                                                                                                        "签到失败"
+                                                                                                    )
+                                                                                                    signStatus[1 + index].failed(
+                                                                                                        it
+                                                                                                    )
+                                                                                                }
                                                                                         }
                                                                                     }.onFailure {
-                                                                                        it.printStackTrace()
+                                                                                        it.snackbarReport(
+                                                                                            snackbarHost,
+                                                                                            coroutineScope,
+                                                                                            "验证码校验失败"
+                                                                                        )
                                                                                         signStatus[1 + index].failed(
                                                                                             it
                                                                                         )
-                                                                                        if ((it is ChaoxingPredictableException).not())
-                                                                                            Sentry.captureException(
-                                                                                                it
-                                                                                            )
                                                                                     }
-                                                                                }
-                                                                            }.onFailure {
-                                                                                it.printStackTrace()
-                                                                                signStatus[1 + index].failed(
-                                                                                    it
-                                                                                )
-                                                                                if ((it is ChaoxingPredictableException).not())
-                                                                                    Sentry.captureException(
-                                                                                        it
+                                                                                    continuation.resume(
+                                                                                        Unit
                                                                                     )
-                                                                            }
+                                                                                }
                                                                         }
+                                                                    }
                                                                 }
                                                             }
                                                         }
@@ -542,10 +568,15 @@ fun QRCodeSignScreen(
                                                         }
                                                     }
                                                 }.onFailure {
-                                                    it.printStackTrace()
+                                                    it.snackbarReport(
+                                                        snackbarHost,
+                                                        coroutineScope,
+                                                        "签到失败"
+                                                    )
                                                     signStatus[1 + index].failed(it)
-                                                    if ((it is ChaoxingPredictableException).not())
-                                                        Sentry.captureException(it)
+                                                }
+                                                if (index != signUserList.size - 1) {
+                                                    delay(500)
                                                 }
                                             }
                                         }.onFailure {

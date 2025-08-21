@@ -29,8 +29,10 @@ import androidx.compose.ui.zIndex
 import io.sentry.Sentry
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.Serializable
 import org.aquamarine5.brainspark.chaoxingsignfaker.ChaoxingPredictableException
+import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.AlreadySignedNotice
@@ -43,9 +45,11 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserS
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationDetailEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignStatus
-import org.aquamarine5.brainspark.chaoxingsignfaker.handleReport
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingLocationSigner
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSigner
+import org.aquamarine5.brainspark.chaoxingsignfaker.snackbarReport
+import kotlin.coroutines.resume
+import kotlin.coroutines.suspendCoroutine
 
 @Serializable
 data class GetLocationDestination(
@@ -93,6 +97,7 @@ fun LocationSignScreen(
                 captchaValidateParams = null
             })
     }
+    val snackbarHost = LocalSnackbarHostState.current
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     LaunchedEffect(Unit) {
@@ -156,55 +161,54 @@ fun LocationSignScreen(
                             if (isSelfForSign)
                                 runCatching {
                                     signStatus[0].loading()
-                                    signer.sign(result) {
-                                        captchaValidateParams = signer to { captchaValidate ->
-                                            if (captchaValidate.isSuccess) {
-                                                coroutineScope.launch {
-                                                    runCatching {
-                                                        signer.signWithCaptcha(
-                                                            result,
-                                                            captchaValidate.getOrThrow()
-                                                        )
-                                                    }.onSuccess {
-                                                        signStatus[0].success()
-                                                        if (otherUserSessionForSignList.isEmpty()) {
-                                                            isSponsor = true
+                                    suspendCoroutine { continuation ->
+                                        runBlocking {
+                                            signer.sign(result) {
+                                                captchaValidateParams =
+                                                    signer to { captchaValidate ->
+                                                        if (captchaValidate.isSuccess) {
+                                                            runBlocking {
+                                                                runCatching {
+                                                                    signer.signWithCaptcha(
+                                                                        result,
+                                                                        captchaValidate.getOrThrow()
+                                                                    )
+                                                                }.onSuccess {
+                                                                    signStatus[0].success()
+                                                                    if (otherUserSessionForSignList.isEmpty()) {
+                                                                        isSponsor = true
+                                                                    }
+                                                                    UMengHelper.onSignLocationEvent(
+                                                                        context,
+                                                                        result,
+                                                                        ChaoxingHttpClient.instance!!.userEntity.name
+                                                                    )
+                                                                }.onFailure {
+                                                                    signStatus[0].failed(it)
+                                                                    it.snackbarReport(
+                                                                        snackbarHost,
+                                                                        coroutineScope,
+                                                                        "签到失败"
+                                                                    )
+                                                                }
+                                                            }
+                                                        } else {
+                                                            (captchaValidate.exceptionOrNull()
+                                                                ?: ChaoxingSigner.CaptchaException()).apply {
+                                                                signStatus[0].failed(this)
+                                                                this.snackbarReport(
+                                                                    snackbarHost,
+                                                                    coroutineScope,
+                                                                    "验证码校验失败"
+                                                                )
+                                                            }
                                                         }
-                                                        UMengHelper.onSignLocationEvent(
-                                                            context,
-                                                            result,
-                                                            ChaoxingHttpClient.instance!!.userEntity.name
-                                                        )
-                                                    }.onFailure {
-                                                        signStatus[0].failed(it)
-                                                        it.printStackTrace()
-                                                        Toast.makeText(
-                                                            context,
-                                                            it.message,
-                                                            Toast.LENGTH_SHORT
-                                                        ).show()
-                                                        if ((it is ChaoxingPredictableException).not()) {
-                                                            Sentry.captureException(it)
-                                                        }
+                                                        continuation.resume(Unit)
                                                     }
-                                                }
-                                            } else {
-                                                (captchaValidate.exceptionOrNull()
-                                                    ?: ChaoxingSigner.CaptchaException()).apply {
-                                                    signStatus[0].failed(this)
-                                                    Toast.makeText(
-                                                        context,
-                                                        this.message,
-                                                        Toast.LENGTH_SHORT
-                                                    ).show()
-                                                    this.printStackTrace()
-                                                    if ((this is ChaoxingPredictableException).not()) {
-                                                        Sentry.captureException(this)
-                                                    }
-                                                }
                                             }
                                         }
                                     }
+
                                 }.onSuccess {
                                     if (captchaValidateParams != null)
                                         return@onSuccess
@@ -219,11 +223,11 @@ fun LocationSignScreen(
                                     }
                                 }.onFailure {
                                     signStatus[0].failed(it)
-                                    it.printStackTrace()
-                                    Toast.makeText(context, it.message, Toast.LENGTH_SHORT).show()
-                                    if ((it is ChaoxingPredictableException).not()) {
-                                        Sentry.captureException(it)
-                                    }
+                                    it.snackbarReport(
+                                        snackbarHost,
+                                        coroutineScope,
+                                        "签到失败"
+                                    )
                                 }
 
 
@@ -231,7 +235,6 @@ fun LocationSignScreen(
                                 if (userSession == null) return@forEachIndexed
                                 runCatching {
                                     signStatus[index + 1].loading()
-                                    delay(1500)
                                     ChaoxingHttpClient.loadFromOtherUserSession(
                                         userSession,
                                         context
@@ -240,52 +243,63 @@ fun LocationSignScreen(
                                             if (preSign()) {
                                                 signStatus[index + 1].failed(ChaoxingSigner.AlreadySignedException())
                                             } else {
-                                                sign(result) {
-                                                    captchaValidateParams =
-                                                        this to { captchaValidate ->
-                                                            if (captchaValidate.isSuccess) {
-                                                                coroutineScope.launch {
-                                                                    runCatching {
-                                                                        signer.signWithCaptcha(
-                                                                            result,
-                                                                            captchaValidate.getOrThrow()
-                                                                        )
-                                                                    }.onSuccess {
-                                                                        signStatus[index + 1].success()
-                                                                        if (index == otherUserSessionForSignList.size - 1) {
-                                                                            isSponsor = true
+                                                suspendCoroutine { continuation ->
+                                                    runBlocking {
+                                                        sign(result) {
+                                                            captchaValidateParams =
+                                                                this@apply to { captchaValidate ->
+                                                                    if (captchaValidate.isSuccess) {
+                                                                        runBlocking {
+                                                                            runCatching {
+                                                                                signer.signWithCaptcha(
+                                                                                    result,
+                                                                                    captchaValidate.getOrThrow()
+                                                                                )
+                                                                            }.onSuccess {
+                                                                                signStatus[index + 1].success()
+                                                                                if (index == otherUserSessionForSignList.size - 1) {
+                                                                                    isSponsor = true
+                                                                                }
+                                                                                UMengHelper.onSignLocationEvent(
+                                                                                    context,
+                                                                                    result,
+                                                                                    userSession.name,
+                                                                                    true
+                                                                                )
+                                                                            }.onFailure {
+                                                                                it.snackbarReport(
+                                                                                    snackbarHost,
+                                                                                    coroutineScope,
+                                                                                    "为${userSession.name}签到失败"
+                                                                                )
+                                                                                signStatus[index + 1].failed(
+                                                                                    it
+                                                                                )
+                                                                            }
                                                                         }
-                                                                        UMengHelper.onSignLocationEvent(
-                                                                            context,
-                                                                            result,
-                                                                            userSession.name,
-                                                                            true
-                                                                        )
-                                                                    }.onFailure {
-                                                                        it.handleReport()
-                                                                        signStatus[index + 1].failed(
-                                                                            it
-                                                                        )
+                                                                    } else {
+                                                                        (captchaValidate.exceptionOrNull()
+                                                                            ?: ChaoxingSigner.CaptchaException()).apply {
+                                                                            signStatus[index + 1].failed(
+                                                                                this
+                                                                            )
+                                                                            this.snackbarReport(
+                                                                                snackbarHost,
+                                                                                coroutineScope,
+                                                                                "为${userSession.name}签到时验证码校验失败"
+                                                                            )
+                                                                        }
                                                                     }
+                                                                    continuation.resume(Unit)
                                                                 }
-                                                            } else {
-                                                                (captchaValidate.exceptionOrNull()
-                                                                    ?: ChaoxingSigner.CaptchaException()).apply {
-                                                                    signStatus[index + 1].failed(
-                                                                        this
-                                                                    )
-                                                                    Toast.makeText(
-                                                                        context,
-                                                                        this.message,
-                                                                        Toast.LENGTH_SHORT
-                                                                    ).show()
-                                                                    this.handleReport()
-                                                                }
-                                                            }
                                                         }
+                                                    }
                                                 }
                                             }
                                         }
+                                    }
+                                    if (index != otherUserSessionForSignList.size - 1) {
+                                        delay(1000)
                                     }
                                 }.onSuccess {
                                     if (captchaValidateParams != null) return@onSuccess
@@ -300,10 +314,11 @@ fun LocationSignScreen(
                                         true
                                     )
                                 }.onFailure {
-                                    it.printStackTrace()
-                                    if ((it is ChaoxingPredictableException).not()) {
-                                        Sentry.captureException(it)
-                                    }
+                                    it.snackbarReport(
+                                        snackbarHost,
+                                        coroutineScope,
+                                        "为${userSession.name}签到失败"
+                                    )
                                     signStatus[index + 1].failed(it)
                                 }
                             }

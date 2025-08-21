@@ -8,8 +8,13 @@ package org.aquamarine5.brainspark.chaoxingsignfaker
 
 import android.content.Context
 import android.widget.Toast
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import io.sentry.Sentry
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.Response
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
@@ -53,6 +58,44 @@ fun Throwable.handleReport(context: Context? = null, prefixTips: String? = null)
                 "${prefixTips?.plus(" ") ?: ""}${this.message ?: this::class.simpleName}",
                 Toast.LENGTH_LONG
             ).show()
+        }
+    }
+}
+
+fun Throwable.snackbarReport(
+    snackbarHostState: SnackbarHostState?,
+    coroutineScope: CoroutineScope,
+    prefixTips: String? = null,
+    duration: SnackbarDuration = SnackbarDuration.Long,
+    actionLabel: String? = null,
+    onSnackbarResult: ((SnackbarResult) -> Unit)? = null
+) {
+    this.cause?.printStackTrace()
+    this.printStackTrace()
+    if ((this is ChaoxingPredictableException).not()) {
+        Sentry.captureException(this)
+        snackbarHostState?.currentSnackbarData?.dismiss()
+        coroutineScope.launch {
+            snackbarHostState?.showSnackbar(
+                "${prefixTips?.plus(" ") ?: ""}预期外错误:${this@snackbarReport.message ?: this@snackbarReport::class.simpleName}",
+                actionLabel,
+                false,
+                duration
+            )?.apply {
+                onSnackbarResult?.invoke(this)
+            }
+        }
+    } else {
+        snackbarHostState?.currentSnackbarData?.dismiss()
+        coroutineScope.launch {
+            snackbarHostState?.showSnackbar(
+                "${prefixTips?.plus(" ") ?: ""}${this@snackbarReport.message ?: this@snackbarReport::class.simpleName}",
+                actionLabel,
+                false,
+                duration
+            )?.apply {
+                onSnackbarResult?.invoke(this)
+            }
         }
     }
 }

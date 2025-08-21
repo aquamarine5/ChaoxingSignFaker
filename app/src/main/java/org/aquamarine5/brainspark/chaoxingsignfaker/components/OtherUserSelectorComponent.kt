@@ -56,6 +56,7 @@ fun OtherUserSelectorComponent(
     navToOtherUser: () -> Unit,
     signStatus: MutableList<ChaoxingSignStatus>,
     isCurrentAlreadySigned: Boolean,
+    isSigning:Boolean=false,
     userContent: @Composable ((index: Int) -> Unit)? = null,
     onSignAction: (isSelf: Boolean, otherUserSessionList: List<ChaoxingOtherUserSession?>, indexList: List<Int>) -> Unit
 ) {
@@ -233,7 +234,8 @@ fun OtherUserSelectorComponent(
                             }
                         }, indexList
                     )
-                }, modifier = Modifier.fillMaxWidth()) {
+                }, modifier = Modifier.fillMaxWidth(),
+                    enabled = isSigning.not()) {
                     Text("签到")
                 }
             }

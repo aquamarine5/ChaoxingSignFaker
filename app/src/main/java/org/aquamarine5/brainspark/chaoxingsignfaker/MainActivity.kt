@@ -359,116 +359,120 @@ class MainActivity : ComponentActivity() {
                         if (destination == null) {
                             CenterCircularProgressIndicator(isDelay = false)
                         } else
-                            NavHost(
-                                navController,
-                                destination!!,
-                                enterTransition = {
-                                    fadeIn(
-                                        animationSpec = tween(300)
-                                    )
-                                },
-                                exitTransition = {
-                                    fadeOut(
-                                        animationSpec = tween(300)
-                                    )
-                                },
-                            ) {
-                                navigation<SignGraphDestination>(startDestination = CourseListDestination) {
-                                    composable<CourseListDestination> {
-                                        CourseListScreen(
-                                            stackbricksService,
-                                            imageLoader,
-                                            navToDetailDestination = {
-                                                navController.navigate(it)
-                                            },
-                                            onNewVersionAvailable = {
-                                                isNewVersionAvailable = true
-                                            },
-                                            navToSettingDestination = {
-                                                navController.navigate(SettingDestination) {
+                            CompositionLocalProvider(LocalSnackbarHostState provides snackbarHostState) {
+                                NavHost(
+                                    navController,
+                                    destination!!,
+                                    enterTransition = {
+                                        fadeIn(
+                                            animationSpec = tween(300)
+                                        )
+                                    },
+                                    exitTransition = {
+                                        fadeOut(
+                                            animationSpec = tween(300)
+                                        )
+                                    },
+                                ) {
+                                    navigation<SignGraphDestination>(startDestination = CourseListDestination) {
+                                        composable<CourseListDestination> {
+                                            CourseListScreen(
+                                                stackbricksService,
+                                                imageLoader,
+                                                navToDetailDestination = {
+                                                    navController.navigate(it)
+                                                },
+                                                onNewVersionAvailable = {
+                                                    isNewVersionAvailable = true
+                                                },
+                                                navToSettingDestination = {
+                                                    navController.navigate(SettingDestination) {
+                                                        popUpTo<CourseListDestination> {
+                                                            inclusive = true
+                                                        }
+                                                    }
+                                                }) {
+                                                navController.navigate(LoginDestination) {
                                                     popUpTo<CourseListDestination> {
                                                         inclusive = true
                                                     }
                                                 }
-                                            }) {
-                                            navController.navigate(LoginDestination) {
-                                                popUpTo<CourseListDestination> { inclusive = true }
                                             }
                                         }
-                                    }
 
-                                    composable<QRCodeSignDestination> {
-                                        QRCodeSignScreen(it.toRoute(), navToOtherUser = {
-                                            navController.navigate(OtherUserGraphDestination)
-                                        }) {
-                                            navController.navigateUp()
+                                        composable<QRCodeSignDestination> {
+                                            QRCodeSignScreen(it.toRoute(), navToOtherUser = {
+                                                navController.navigate(OtherUserGraphDestination)
+                                            }) {
+                                                navController.navigateUp()
+                                            }
                                         }
-                                    }
 
-                                    composable<GetLocationDestination>(
-                                        typeMap = mapOf(
-                                            typeOf<ChaoxingSignActivityEntity>() to ChaoxingSignActivityEntity.SignActivityNavType
-                                        )
-                                    ) {
-                                        LocationSignScreen(
-                                            it.toRoute(),
-                                            navToCourseDetailDestination = {
+                                        composable<GetLocationDestination>(
+                                            typeMap = mapOf(
+                                                typeOf<ChaoxingSignActivityEntity>() to ChaoxingSignActivityEntity.SignActivityNavType
+                                            )
+                                        ) {
+                                            LocationSignScreen(
+                                                it.toRoute(),
+                                                navToCourseDetailDestination = {
+                                                    navController.navigateUp()
+                                                }) {
+                                                navController.navigate(OtherUserGraphDestination)
+                                            }
+                                        }
+
+                                        composable<CourseDetailDestination> {
+                                            CourseDetailScreen(
+                                                it.toRoute(),
+                                                navToSignerDestination = { destination ->
+                                                    navController.navigate(destination)
+                                                }) {
+                                                navController.navigateUp()
+                                            }
+                                        }
+
+                                        composable<PhotoSignDestination> {
+                                            PhotoSignScreen(it.toRoute(), navBack = {
                                                 navController.navigateUp()
                                             }) {
-                                            navController.navigate(OtherUserGraphDestination)
-                                        }
-                                    }
-
-                                    composable<CourseDetailDestination> {
-                                        CourseDetailScreen(
-                                            it.toRoute(),
-                                            navToSignerDestination = { destination ->
-                                                navController.navigate(destination)
-                                            }) {
-                                            navController.navigateUp()
-                                        }
-                                    }
-
-                                    composable<PhotoSignDestination> {
-                                        PhotoSignScreen(it.toRoute(), navBack = {
-                                            navController.navigateUp()
-                                        }) {
-                                            navController.navigate(OtherUserGraphDestination)
-                                        }
-                                    }
-                                }
-
-                                navigation<OtherUserGraphDestination>(startDestination = OtherUserDestination) {
-                                    composable<OtherUserDestination> {
-                                        OtherUserScreen {
-                                            navController.navigateUp()
-                                        }
-                                    }
-                                }
-
-                                navigation<SettingGraphDestination>(startDestination = SettingDestination) {
-                                    composable<SettingDestination> {
-                                        SettingScreen(stackbricksService, imageLoader) {
-                                            navController.navigate(LoginDestination) {
-                                                popUpTo<SettingDestination> { inclusive = true }
+                                                navController.navigate(OtherUserGraphDestination)
                                             }
                                         }
                                     }
-                                }
 
-
-                                composable<WelcomeDestination> {
-                                    WelcomeScreen {
-                                        navController.navigate(LoginDestination) {
-                                            popUpTo<WelcomeDestination> { inclusive = true }
+                                    navigation<OtherUserGraphDestination>(startDestination = OtherUserDestination) {
+                                        composable<OtherUserDestination> {
+                                            OtherUserScreen {
+                                                navController.navigateUp()
+                                            }
                                         }
                                     }
-                                }
 
-                                composable<LoginDestination> {
-                                    LoginPage(showSnackbar) {
-                                        navController.navigate(CourseListDestination) {
-                                            popUpTo<LoginDestination> { inclusive = true }
+                                    navigation<SettingGraphDestination>(startDestination = SettingDestination) {
+                                        composable<SettingDestination> {
+                                            SettingScreen(stackbricksService, imageLoader) {
+                                                navController.navigate(LoginDestination) {
+                                                    popUpTo<SettingDestination> { inclusive = true }
+                                                }
+                                            }
+                                        }
+                                    }
+
+
+                                    composable<WelcomeDestination> {
+                                        WelcomeScreen {
+                                            navController.navigate(LoginDestination) {
+                                                popUpTo<WelcomeDestination> { inclusive = true }
+                                            }
+                                        }
+                                    }
+
+                                    composable<LoginDestination> {
+                                        LoginPage(showSnackbar) {
+                                            navController.navigate(CourseListDestination) {
+                                                popUpTo<LoginDestination> { inclusive = true }
+                                            }
                                         }
                                     }
                                 }
