@@ -88,7 +88,7 @@ fun CourseListScreen(
     var isNewVersionDialogDisplayed = rememberSaveable { false }
     var isForceInstall by
     remember { mutableStateOf(stackbricksService.internalVersionData?.forceInstall ?: false) }
-    val snackbarHost= LocalSnackbarHostState.current
+    val snackbarHost = LocalSnackbarHostState.current
     val coroutineScope = rememberCoroutineScope()
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
@@ -119,7 +119,7 @@ fun CourseListScreen(
 
                     }
                 }.onFailure {
-                    it.snackbarReport(snackbarHost,coroutineScope,"获取课程列表失败")
+                    it.snackbarReport(snackbarHost, coroutineScope, "获取课程列表失败")
                 }
             }
         }

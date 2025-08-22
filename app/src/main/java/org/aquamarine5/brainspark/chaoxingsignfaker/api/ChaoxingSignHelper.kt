@@ -67,11 +67,13 @@ object ChaoxingSignHelper {
                 when (result.getInteger("otherId")) {
                     0 -> PhotoSignDestination(
                         activeId,
-                        classId, courseId, "")
+                        classId, courseId, ""
+                    )
 
                     2 -> QRCodeSignDestination(
                         activeId,
-                        classId, courseId, "")
+                        classId, courseId, ""
+                    )
 
                     4 -> GetLocationDestination(
                         activeId,

@@ -236,7 +236,7 @@ fun PhotoSignScreen(
                                                                 ChaoxingHttpClient.instance!!.userEntity.name
                                                             )
                                                             signStatus[0].success()
-                                                            userSelections[0]=false
+                                                            userSelections[0] = false
                                                             if (otherUserSessionList.isEmpty()) {
                                                                 isSigning = false
                                                                 delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)
@@ -249,7 +249,7 @@ fun PhotoSignScreen(
                                                                 "验证码校验失败"
                                                             )
                                                             it.ifAlreadySigned {
-                                                                userSelections[0]=false
+                                                                userSelections[0] = false
                                                             }
                                                             signStatus[0].failed(it)
                                                         }
@@ -261,7 +261,7 @@ fun PhotoSignScreen(
                                                 context,
                                                 ChaoxingHttpClient.instance!!.userEntity.name
                                             )
-                                            userSelections[0]=false
+                                            userSelections[0] = false
                                             signStatus[0].success()
                                             if (otherUserSessionList.isEmpty()) {
                                                 isSigning = false
@@ -275,8 +275,8 @@ fun PhotoSignScreen(
                                             coroutineScope,
                                             "签到失败"
                                         )
-                                        it.ifAlreadySigned{
-                                            userSelections[0]=false
+                                        it.ifAlreadySigned {
+                                            userSelections[0] = false
                                         }
                                         signStatus[0].failed(it)
                                     }
@@ -313,7 +313,8 @@ fun PhotoSignScreen(
                                                                                 userSession.name,
                                                                                 isOtherUser = true
                                                                             )
-                                                                            userSelections[1 + index] = false
+                                                                            userSelections[1 + index] =
+                                                                                false
                                                                             signStatus[1 + index].success()
                                                                             if (index == otherUserSessionList.size - 1) {
                                                                                 isSigning = false
@@ -328,7 +329,7 @@ fun PhotoSignScreen(
                                                                                 coroutineScope,
                                                                                 "验证码校验失败"
                                                                             )
-                                                                            err.ifAlreadySigned{
+                                                                            err.ifAlreadySigned {
                                                                                 userSelections.takeIf { it.size > index + 1 }
                                                                                     ?.set(
                                                                                         index + 1,
@@ -350,7 +351,7 @@ fun PhotoSignScreen(
                                                                 userSession.name,
                                                                 isOtherUser = true
                                                             )
-                                                            userSelections[1+index]=false
+                                                            userSelections[1 + index] = false
                                                             signStatus[1 + index].success()
                                                             if (index == otherUserSessionList.size - 1) {
                                                                 delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)
@@ -607,7 +608,8 @@ fun PhotoSignScreen(
                                                                                                 }
                                                                                                     .onFailure {
                                                                                                         it.ifAlreadySigned {
-                                                                                                            userSelections[0] = false
+                                                                                                            userSelections[0] =
+                                                                                                                false
                                                                                                         }
                                                                                                         it.snackbarReport(
                                                                                                             snackbarHost,
@@ -658,7 +660,9 @@ fun PhotoSignScreen(
                                                                     if (chaoxingOtherUserSession == null) return@forEachIndexed
                                                                     runCatching {
                                                                         signStatus[1 + index].loading()
-                                                                        delay(ChaoxingOtherUserHelper.TIMEOUT_NEXT_SIGN)
+                                                                        delay(
+                                                                            ChaoxingOtherUserHelper.TIMEOUT_NEXT_SIGN
+                                                                        )
                                                                         ChaoxingHttpClient.loadFromOtherUserSession(
                                                                             chaoxingOtherUserSession,
                                                                             context
@@ -696,7 +700,8 @@ fun PhotoSignScreen(
                                                                                                             ChaoxingHttpClient.instance!!.userEntity.name,
                                                                                                             true
                                                                                                         )
-                                                                                                        userSelections[1+index]=false
+                                                                                                        userSelections[1 + index] =
+                                                                                                            false
                                                                                                         signStatus[index + 1].success()
                                                                                                         otherUserSessionForSignList.remove(
                                                                                                             chaoxingOtherUserSession
@@ -732,7 +737,8 @@ fun PhotoSignScreen(
                                                                                             chaoxingOtherUserSession.name,
                                                                                             true
                                                                                         )
-                                                                                        userSelections[1+index]=false
+                                                                                        userSelections[1 + index] =
+                                                                                            false
                                                                                         signStatus[1 + index].success()
                                                                                         otherUserSessionForSignList.remove(
                                                                                             chaoxingOtherUserSession

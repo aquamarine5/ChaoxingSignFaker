@@ -63,7 +63,8 @@ fun SignOutRedirectTips(
                             )
                         )
                     }
-                },enabled = status != ChaoxingActivityHelper.SIGN_REDIRECT_STATUS.SIGN_IN_UNPUBLISHED,
+                },
+                enabled = status != ChaoxingActivityHelper.SIGN_REDIRECT_STATUS.SIGN_IN_UNPUBLISHED,
                 shape = RoundedCornerShape(18.dp),
                 colors = CardDefaults.cardColors(
                     containerColor = Color(0xFFFECC11), disabledContainerColor = Color(0xFFFECC11)
@@ -74,7 +75,7 @@ fun SignOutRedirectTips(
             ) {
                 Row(
                     modifier = Modifier
-                        .padding(10.dp,12.dp)
+                        .padding(10.dp, 12.dp)
                         .fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {

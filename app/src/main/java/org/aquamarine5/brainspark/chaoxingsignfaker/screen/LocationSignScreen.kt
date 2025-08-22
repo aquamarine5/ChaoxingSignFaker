@@ -122,7 +122,7 @@ fun LocationSignScreen(
             navToCourseDetailDestination()
         }
     }
-    Column(modifier=Modifier.padding(8.dp, 0.dp)) {
+    Column(modifier = Modifier.padding(8.dp, 0.dp)) {
         Crossfade(isAlreadySigned) { v ->
             when (v) {
                 true -> {
@@ -264,7 +264,8 @@ fun LocationSignScreen(
                                                                             captchaValidate.getOrThrow()
                                                                         )
                                                                         signStatus[index + 1].success()
-                                                                        userSelections[index + 1] = false
+                                                                        userSelections[index + 1] =
+                                                                            false
                                                                         if (index == otherUserSessionForSignList.size - 1) {
                                                                             isSigning = false
                                                                             delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)

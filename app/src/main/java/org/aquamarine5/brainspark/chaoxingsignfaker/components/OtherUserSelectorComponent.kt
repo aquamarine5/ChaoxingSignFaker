@@ -90,7 +90,7 @@ fun OtherUserSelectorComponent(
                 ) {
                     Row(
                         modifier = Modifier
-                            .padding(10.dp,12.dp)
+                            .padding(10.dp, 12.dp)
                             .fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -109,7 +109,7 @@ fun OtherUserSelectorComponent(
                             fontWeight = FontWeight.W500,
                             modifier = Modifier.fillMaxWidth()
                         )
-                        Spacer(modifier=Modifier.width(12.dp))
+                        Spacer(modifier = Modifier.width(12.dp))
                     }
                 }
                 LaunchedEffect(Unit) {

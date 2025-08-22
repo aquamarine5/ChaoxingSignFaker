@@ -253,7 +253,7 @@ fun QRCodeSignScreen(
                         ) {
                             Row(
                                 modifier = Modifier
-                                    .padding(10.dp,12.dp)
+                                    .padding(10.dp, 12.dp)
                                     .fillMaxWidth(),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
