@@ -331,7 +331,7 @@ fun PhotoSignScreen(
                                             )
                                             signStatus[1 + index].failed(it)
                                         }
-                                        if (index != otherUserSessionList.size - 1) {
+                                        if (signStatus.size > 2 + index) {
                                             signStatus[2 + index].loading()
                                             delay(ChaoxingOtherUserHelper.TIMEOUT_NEXT_SIGN)
                                         }
@@ -370,7 +370,8 @@ fun PhotoSignScreen(
                                 }
 
                                 true -> {
-                                    val userSelections = remember { mutableStateListOf(isForSelf.not()) }
+                                    val userSelections =
+                                        remember { mutableStateListOf(isForSelf.not()) }
                                     val signStatus =
                                         remember { mutableListOf(ChaoxingSignStatus()) }
                                     var isCamera by remember { mutableStateOf(false) }
@@ -560,11 +561,7 @@ fun PhotoSignScreen(
                                                                                                         isSponsor =
                                                                                                             true
                                                                                                     }
-                                                                                                    continuation.resume(
-                                                                                                        Unit
-                                                                                                    )
-                                                                                                }
-                                                                                                    .onFailure {
+                                                                                                }.onFailure {
                                                                                                         it.snackbarReport(
                                                                                                             snackbarHost,
                                                                                                             coroutineScope,
@@ -604,7 +601,7 @@ fun PhotoSignScreen(
                                                                         "签到失败"
                                                                     )
                                                                     it.ifAlreadySigned {
-                                                                        userSelections[0]=false
+                                                                        userSelections[0] = false
                                                                     }
                                                                     signStatus[0].failed(it)
                                                                 }
@@ -711,13 +708,16 @@ fun PhotoSignScreen(
                                                                         )
                                                                         it.ifAlreadySigned {
                                                                             userSelections.takeIf { it.size > index + 1 }
-                                                                                ?.set(index + 1, false)
+                                                                                ?.set(
+                                                                                    index + 1,
+                                                                                    false
+                                                                                )
                                                                         }
                                                                         signStatus[1 + index].failed(
                                                                             it
                                                                         )
                                                                     }
-                                                                    if (index != otherUserSessionForSignList.size - 1) {
+                                                                    if (signStatus.size > 2 + index){
                                                                         signStatus[2 + index].loading()
                                                                         delay(
                                                                             ChaoxingOtherUserHelper.TIMEOUT_NEXT_SIGN

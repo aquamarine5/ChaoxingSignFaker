@@ -486,7 +486,7 @@ fun QRCodeSignScreen(
                                                     )
                                                     err.ifAlreadySigned {
                                                         userSelections[0] = false
-                                                        if (signUserList.isEmpty() && userSelections.all{ !it }) {
+                                                        if (signUserList.isEmpty() && userSelections.all { !it }) {
                                                             isSigning = false
                                                             coroutineScope.launch {
                                                                 delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)
@@ -581,8 +581,8 @@ fun QRCodeSignScreen(
                                                     )
                                                     err.ifAlreadySigned {
                                                         userSelections[1 + index] = false
-                                                        if (index == signUserList.size - 1 && userSelections.all{ !it }) {
-                                                            coroutineScope.launch{
+                                                        if (index == signUserList.size - 1 && userSelections.all { !it }) {
+                                                            coroutineScope.launch {
                                                                 delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)
                                                                 isSponsor =
                                                                     true
@@ -591,7 +591,7 @@ fun QRCodeSignScreen(
                                                     }
                                                     signStatus[1 + index].failed(err)
                                                 }
-                                                if (index != signUserList.size - 1) {
+                                                if (signStatus.size > 2 + index) {
                                                     signStatus[2 + index].loading()
                                                     delay(ChaoxingOtherUserHelper.TIMEOUT_NEXT_SIGN)
                                                 }

@@ -219,7 +219,7 @@ fun LocationSignScreen(
                             }.onFailure {
                                 signStatus[0].failed(it)
                                 it.ifAlreadySigned {
-                                    userSelections[0]=false
+                                    userSelections[0] = false
                                 }
                                 it.snackbarReport(
                                     snackbarHost,
@@ -300,7 +300,7 @@ fun LocationSignScreen(
                                         "为${userSession.name}签到失败"
                                     )
                                     err.ifAlreadySigned {
-                                        userSelections.takeIf { it.size > index + 1 }?.let{
+                                        userSelections.takeIf { it.size > index + 1 }?.let {
                                             userSelections[index + 1] = false
                                         }
                                     }
@@ -308,7 +308,7 @@ fun LocationSignScreen(
                                         err
                                     )
                                 }
-                                if (index != otherUserSessionForSignList.size - 1) {
+                                if (signStatus.size > 2 + index) {
                                     signStatus[index + 2].loading()
                                     delay(ChaoxingOtherUserHelper.TIMEOUT_NEXT_SIGN)
                                 }

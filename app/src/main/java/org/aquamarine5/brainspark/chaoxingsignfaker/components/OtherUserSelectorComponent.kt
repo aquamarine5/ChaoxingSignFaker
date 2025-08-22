@@ -57,7 +57,7 @@ fun OtherUserSelectorComponent(
     navToOtherUser: () -> Unit,
     signStatus: MutableList<ChaoxingSignStatus>,
     isCurrentAlreadySigned: Boolean,
-    userSelections:SnapshotStateList<Boolean>,
+    userSelections: SnapshotStateList<Boolean>,
     isSigning: Boolean = false,
     userContent: @Composable ((index: Int) -> Unit)? = null,
     onSignAction: (isSelf: Boolean, otherUserSessionList: List<ChaoxingOtherUserSession?>, indexList: List<Int>) -> Unit

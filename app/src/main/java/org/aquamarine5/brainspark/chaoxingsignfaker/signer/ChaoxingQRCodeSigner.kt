@@ -83,7 +83,7 @@ class ChaoxingQRCodeSigner(
                     throw ChaoxingHttpClient.ChaoxingNetworkException()
                 }
                 val result = it.body?.string()
-                if(result=="您已签到过了"){
+                if (result == "您已签到过了") {
                     throw AlreadySignedException()
                 }
                 if (result != "success") {
@@ -131,7 +131,7 @@ class ChaoxingQRCodeSigner(
                 if (result?.startsWith("validate") == true) {
                     return@use true
                 }
-                if(result=="您已签到过了"){
+                if (result == "您已签到过了") {
                     throw AlreadySignedException()
                 }
                 if (result != "success") {

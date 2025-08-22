@@ -101,7 +101,7 @@ fun Throwable.snackbarReport(
     }
 }
 
-fun Throwable.ifAlreadySigned(action:()->Unit){
+fun Throwable.ifAlreadySigned(action: () -> Unit) {
     if (this is ChaoxingSigner.AlreadySignedException) {
         action()
     }
