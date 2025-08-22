@@ -6,7 +6,8 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.components
 
-import androidx.compose.animation.AnimatedContent
+import android.os.Debug
+import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -45,6 +46,9 @@ fun BlockedContent(content: @Composable () -> Unit) {
     val context = LocalContext.current
     var unblockedButtonClickCount by rememberSaveable { mutableIntStateOf(0) }
     LaunchedEffect(Unit) {
+        if (bannedFidList.isNotEmpty()) {
+            return@LaunchedEffect
+        }
         withContext(Dispatchers.IO) {
             ChaoxingHttpClient.instance?.okHttpClient?.newCall(
                 Request.Builder()
@@ -58,14 +62,17 @@ fun BlockedContent(content: @Composable () -> Unit) {
                 bannedFidList =
                     JSONObject.parseObject(it?.body?.string()).getJSONArray("banfids")
                         .toList(Int::class.java)
-
             }
         }
     }
-    AnimatedContent(
-        unblockedButtonClickCount < UNBLOCKED_BUTTON_CLICK_LIMIT && bannedFidList.contains(
-            ChaoxingHttpClient.instance!!.userEntity.fid
-        )
+    Crossfade(
+        if (Debug.isDebuggerConnected()) {
+            false
+        } else {
+            unblockedButtonClickCount < UNBLOCKED_BUTTON_CLICK_LIMIT && bannedFidList.contains(
+                ChaoxingHttpClient.instance!!.userEntity.fid
+            )
+        }
     ) {
         if (it) {
             Column(

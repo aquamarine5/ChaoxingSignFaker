@@ -54,19 +54,16 @@ object ChaoxingActivityHelper {
                             activity.getLong("startTime"),
                             activity.getLong("endTime") ?: NO_LIMIT_END_TIME,
                             activity.getInteger("userStatus"),
-                            activity.getString("nameTwo"),
                             activity.getString("otherId"),
-                            activity.getInteger("source"),
                             activity.getInteger("isLook") == 1,
                             activity.getInteger("type"),
-                            activity.getInteger("releaseNum"),
-                            activity.getInteger("attendNum"),
                             activity.getInteger("activeType"),
                             activity.getString("nameOne"),
                             activity.getLong("id"),
                             activity.getInteger("status"),
                             activity.getString("nameFour"),
                             course,
+                            activity.getInteger("openPreventCheatFlag") == 1,
                             jsonResult.getJSONObject("ext").toString()
                         )
                     }

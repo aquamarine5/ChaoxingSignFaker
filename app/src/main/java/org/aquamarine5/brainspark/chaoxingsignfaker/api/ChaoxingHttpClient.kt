@@ -7,6 +7,7 @@
 package org.aquamarine5.brainspark.chaoxingsignfaker.api
 
 import android.content.Context
+import android.os.NetworkOnMainThreadException
 import com.alibaba.fastjson2.JSONObject
 import io.sentry.Sentry
 import kotlinx.coroutines.Dispatchers
@@ -69,6 +70,7 @@ class ChaoxingHttpClient private constructor(
                 }.onFailure {
                     when (it) {
                         is UnknownHostException -> {
+                            it.printStackTrace()
                             failureResponse =
                                 Response.Builder().request(request).protocol(Protocol.HTTP_2)
                                     .message("Unknown Host")
@@ -77,6 +79,7 @@ class ChaoxingHttpClient private constructor(
                         }
 
                         is SocketTimeoutException -> {
+                            it.printStackTrace()
                             failureResponse =
                                 Response.Builder().request(request).protocol(Protocol.HTTP_2)
                                     .message("Socket Timeout")
@@ -84,8 +87,18 @@ class ChaoxingHttpClient private constructor(
                                     .code(HTTP_RESPONSE_CODE_SOCKET_TIMEOUT).build()
                         }
 
+                        is NetworkOnMainThreadException -> {
+                            it.printStackTrace()
+                            failureResponse =
+                                Response.Builder().request(request).protocol(Protocol.HTTP_2)
+                                    .message("Network on main thread")
+                                    .body("network on main thread!".toResponseBody())
+                                    .code(HTTP_RESPONSE_CODE_NETWORK_ON_MAIN_THREAD).build()
+                        }
+
                         else -> {
                             Sentry.captureException(it)
+                            it.printStackTrace()
                             failureResponse =
                                 Response.Builder().request(request).protocol(Protocol.HTTP_2)
                                     .message("Unknown Error")
@@ -111,6 +124,7 @@ class ChaoxingHttpClient private constructor(
         private const val URL_LOGIN = "https://passport2.chaoxing.com/fanyalogin"
 
         const val HTTP_RESPONSE_CODE_UNKNOWN_ERROR = 990
+        const val HTTP_RESPONSE_CODE_NETWORK_ON_MAIN_THREAD = 997
         const val HTTP_RESPONSE_CODE_UNKNOWN_HOST = 998
         const val HTTP_RESPONSE_CODE_SOCKET_TIMEOUT = 999
 
@@ -175,9 +189,10 @@ class ChaoxingHttpClient private constructor(
                         }
                     )
                 }
-            val userInfo = getInfo(okHttpClient, context)
+            val userInfo = getInfo(okHttpClient, context, session)
             return ChaoxingHttpClient(
-                okHttpClient, context,
+                okHttpClient,
+                context,
                 userInfo
             )
         }
@@ -286,7 +301,11 @@ class ChaoxingHttpClient private constructor(
             }
         }
 
-        private suspend fun getInfo(client: OkHttpClient, context: Context): ChaoxingUserEntity =
+        private suspend fun getInfo(
+            client: OkHttpClient,
+            context: Context,
+            otherUserSession: ChaoxingOtherUserSession? = null
+        ): ChaoxingUserEntity =
             withContext(Dispatchers.IO) {
                 runCatching {
                     client.newCall(Request.Builder().get().url(URL_USER_INFO).build()).execute()
@@ -309,10 +328,54 @@ class ChaoxingHttpClient private constructor(
                                 jsonResult.getInteger("puid")
                             )
                         }
-                }.getOrElse {
-                    throw ChaoxingGetUserInfoException("获取用户信息失败", it)
+                }.getOrElse { throwable ->
+                    if (otherUserSession != null)
+                        runCatching {
+                            reLoginFromOtherSession(client, context, otherUserSession)
+                        }.onSuccess {
+                            return@withContext getInfo(client, context, otherUserSession)
+                        }
+                    throw ChaoxingGetUserInfoException("获取用户信息失败", throwable)
                 }
             }
+
+        private suspend fun reLoginFromOtherSession(
+            client: OkHttpClient,
+            context: Context,
+            otherUserSession: ChaoxingOtherUserSession
+        ) {
+            login(
+                client,
+                otherUserSession.phoneNumber,
+                otherUserSession.password,
+                context,
+                isSaveToDataStore = false,
+                isEncryptedPassword = true
+            )
+            context.chaoxingDataStore.updateData { dataStore ->
+                dataStore.toBuilder().apply {
+                    otherUsersList.indexOfFirst {
+                        it.phoneNumber == otherUserSession.phoneNumber
+                    }.takeIf { it >= 0 }?.let { index ->
+                        setOtherUsers(index, otherUserSession.toBuilder()
+                            .clearCookies()
+                            .addAllCookies(
+                                client.cookieJar.loadForRequest(
+                                    HttpUrl.Builder()
+                                        .scheme("https")
+                                        .host("chaoxing.com").build()
+                                ).map { cookie ->
+                                    HttpCookie.newBuilder()
+                                        .setValue(cookie.value)
+                                        .setName(cookie.name)
+                                        .setHost(cookie.domain).build()
+                                }
+                            )
+                            .build())
+                    }
+                }.build()
+            }
+        }
 
         suspend fun checkSharedEntity(
             phoneNumber: String,

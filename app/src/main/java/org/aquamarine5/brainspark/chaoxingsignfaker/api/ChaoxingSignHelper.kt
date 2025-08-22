@@ -18,6 +18,8 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.screen.PhotoSignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.QRCodeSignDestination
 
 object ChaoxingSignHelper {
+    const val TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED = 250L
+
     @Composable
     fun getSignIcon(activity: ChaoxingSignActivityEntity): Painter = when (activity.otherId) {
         "0" -> painterResource(R.drawable.ic_square_mouse_pointer)
@@ -27,7 +29,6 @@ object ChaoxingSignHelper {
         "5" -> painterResource(R.drawable.ic_binary)
         else -> painterResource(R.drawable.ic_clipboard_pen_line)
     }
-
 
     fun getSignDestination(context: Context, activityEntity: ChaoxingSignActivityEntity): Any? =
         when (activityEntity.otherId) {

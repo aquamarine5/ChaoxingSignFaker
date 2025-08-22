@@ -8,16 +8,23 @@ package org.aquamarine5.brainspark.chaoxingsignfaker
 
 import android.content.Context
 import android.widget.Toast
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
+import io.sentry.Sentry
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.Response
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
+import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSigner
 
 suspend fun Response.checkResponse(context: Context): Boolean =
     if (isSuccessful) {
         false
     } else {
-        withContext(Dispatchers.Main){
+        withContext(Dispatchers.Main) {
             Toast.makeText(
                 context, when (code) {
                     ChaoxingHttpClient.HTTP_RESPONSE_CODE_UNKNOWN_HOST -> "网络异常，请检查网络连接和DNS服务器"
@@ -32,3 +39,70 @@ suspend fun Response.checkResponse(context: Context): Boolean =
         }
         true
     }
+
+fun Throwable.handleReport(context: Context? = null, prefixTips: String? = null) {
+    this.cause?.printStackTrace()
+    this.printStackTrace()
+    if ((this is ChaoxingPredictableException).not()) {
+        Sentry.captureException(this)
+        if (context != null) {
+            Toast.makeText(
+                context,
+                "${prefixTips?.plus(" ") ?: ""}预期外错误:${this.message ?: this::class.simpleName}",
+                Toast.LENGTH_LONG
+            ).show()
+        }
+    } else {
+        if (context != null) {
+            Toast.makeText(
+                context,
+                "${prefixTips?.plus(" ") ?: ""}${this.message ?: this::class.simpleName}",
+                Toast.LENGTH_LONG
+            ).show()
+        }
+    }
+}
+
+fun Throwable.snackbarReport(
+    snackbarHostState: SnackbarHostState?,
+    coroutineScope: CoroutineScope,
+    prefixTips: String? = null,
+    duration: SnackbarDuration = SnackbarDuration.Short,
+    actionLabel: String? = null,
+    onSnackbarResult: ((SnackbarResult) -> Unit)? = null
+) {
+    this.cause?.printStackTrace()
+    this.printStackTrace()
+    if ((this is ChaoxingPredictableException).not()) {
+        Sentry.captureException(this)
+        snackbarHostState?.currentSnackbarData?.dismiss()
+        coroutineScope.launch {
+            snackbarHostState?.showSnackbar(
+                "${prefixTips?.plus(" ") ?: ""}预期外错误:${this@snackbarReport.message ?: this@snackbarReport::class.simpleName}",
+                actionLabel,
+                true,
+                duration
+            )?.apply {
+                onSnackbarResult?.invoke(this)
+            }
+        }
+    } else {
+        snackbarHostState?.currentSnackbarData?.dismiss()
+        coroutineScope.launch {
+            snackbarHostState?.showSnackbar(
+                "${prefixTips?.plus(" ") ?: ""}${this@snackbarReport.message ?: this@snackbarReport::class.simpleName}",
+                actionLabel,
+                true,
+                duration
+            )?.apply {
+                onSnackbarResult?.invoke(this)
+            }
+        }
+    }
+}
+
+fun Throwable.ifAlreadySigned(action: () -> Unit) {
+    if (this is ChaoxingSigner.AlreadySignedException) {
+        action()
+    }
+}
