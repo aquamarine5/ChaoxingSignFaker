@@ -17,6 +17,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -86,15 +87,16 @@ fun SignOutRedirectTips(
                         tint = Color.Black
                     )
                     Spacer(modifier = Modifier.width(9.dp))
+                    val dateFormatter= remember { SimpleDateFormat(
+                        "yyyy-MM-dd HH:mm:ss",
+                        Locale.getDefault()
+                    ) }
                     Text(
                         when (status) {
                             ChaoxingActivityHelper.SIGN_REDIRECT_STATUS.SIGN_OUT -> "这是一个签退活动，请确保已经签到了本签退活动的主签到活动。\n点击跳转到主签到活动进行签到。"
                             ChaoxingActivityHelper.SIGN_REDIRECT_STATUS.SIGN_IN_PUBLISHED -> "此签到已发布签退活动。\n点击跳转到签退活动进行签退。"
                             ChaoxingActivityHelper.SIGN_REDIRECT_STATUS.SIGN_IN_UNPUBLISHED -> "此签到活动设置了签退活动，将在${
-                                SimpleDateFormat(
-                                    "yyyy-MM-dd HH:mm:ss",
-                                    Locale.getDefault()
-                                ).format(Date(signOffPublishTime!!))
+                                dateFormatter.format(Date(signOffPublishTime!!))
                             }发布，请发布后及时签退。"
 
                             else -> ""

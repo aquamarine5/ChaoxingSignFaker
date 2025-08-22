@@ -102,7 +102,7 @@ fun OtherUserSelectorComponent(
                         )
                         Spacer(modifier = Modifier.width(10.5.dp))
                         Text(
-                            "如果你还没有添加其他用户，可以点击跳转添加至用户向导。",
+                            "如果你还没有添加其他用户，可以点击跳转至添加用户向导。",
                             color = Color.White,
                             fontSize = 14.sp,
                             lineHeight = 19.sp,
