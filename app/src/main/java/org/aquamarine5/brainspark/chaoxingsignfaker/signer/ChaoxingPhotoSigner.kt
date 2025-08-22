@@ -24,11 +24,12 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartBody
 import okhttp3.Request
 import okhttp3.RequestBody
-import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.aquamarine5.brainspark.chaoxingsignfaker.ChaoxingPredictableException
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingActivityHelper.NO_SIGN_OFF_EVENT
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.checkResponse
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignOutEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.PhotoSignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingLocationSigner.Companion.CLASSTAG
 import java.io.ByteArrayOutputStream
@@ -61,6 +62,19 @@ class ChaoxingPhotoSigner(
         return response.contains("请先拍照").not() &&
                 response.contains("<div class=\"zactives-btn\" onclick=\"send()\">").not()
     }
+
+    suspend fun getSignoffEntity(jsonResult: JSONObject): ChaoxingSignOutEntity =
+        withContext(Dispatchers.IO) {
+            ChaoxingSignOutEntity(
+                jsonResult.getLong("signInId"),
+                jsonResult.getLong("signOutId"),
+                jsonResult.getLong("signOutPublishTimeStamp").let { time ->
+                    if (time == NO_SIGN_OFF_EVENT) null else time
+                },
+                photoActivityEntity.classId,
+                photoActivityEntity.courseId
+            )
+        }
 
     suspend fun getCloudToken(): String = withContext(Dispatchers.IO) {
         client.newCall(Request.Builder().url(URL_CLOUD_TOKEN).build()).execute().use {
@@ -184,14 +198,14 @@ class ChaoxingPhotoSigner(
     private fun uriToFile(context: Context, uri: Uri): RequestBody {
         val contentResolver = context.contentResolver
         return runCatching {
-            contentResolver.openInputStream(uri).use {
+            contentResolver.openInputStream(uri).use result@{
                 val bitmap = BitmapFactory.decodeStream(it)
                 ByteArrayOutputStream().use { out ->
                     bitmap.compress(
                         Bitmap.CompressFormat.JPEG,
                         50, out
                     )
-                    return@runCatching out.toByteArray().toRequestBody("image/jpeg".toMediaType())
+                    return@use out.toByteArray().toRequestBody("image/jpeg".toMediaType())
                 }
             }
         }.getOrElse { throw ChaoxingPhotoSignException("文件转换失败") }
@@ -247,7 +261,10 @@ class ChaoxingPhotoSigner(
             }
         }
 
-    suspend fun ifPhotoRequiredLogin(): Boolean = getSignInfo().getInteger("ifphoto") == 1
+    suspend fun ifPhotoRequiredLogin(): Pair<Boolean, ChaoxingSignOutEntity> {
+        val json = getSignInfo()
+        return Pair(json.getInteger("ifphoto") == 1, getSignoffEntity(json))
+    }
 
     @Composable
     fun GetPhotoFromMediaStore(onResult: (Uri?) -> Unit) {

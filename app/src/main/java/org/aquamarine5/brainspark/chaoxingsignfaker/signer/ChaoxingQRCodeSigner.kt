@@ -13,10 +13,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Request
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingActivityHelper.NO_SIGN_OFF_EVENT
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.checkResponse
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationSignEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingQRCodeDetailEntity
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignOutEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.QRCodeSignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingLocationSigner.ChaoxingLocationSignException
 
@@ -34,11 +36,19 @@ class ChaoxingQRCodeSigner(
         const val CLASSTAG = "ChaoxingQRCodeSigner"
     }
 
-    suspend fun getQRCodeSignInfo(): ChaoxingQRCodeDetailEntity {
+    suspend fun getQRCodeSignInfo(): Pair<ChaoxingQRCodeDetailEntity, ChaoxingSignOutEntity> {
         return getSignInfo().run {
             ChaoxingQRCodeDetailEntity(
                 getInteger("ifopenAddress") == 1,
                 getInteger("ifrefreshewm") == 1
+            ) to ChaoxingSignOutEntity(
+                getLong("signInId"),
+                getLong("signOutId"),
+                getLong("signOutPublishTimeStamp").let { time ->
+                    if (time == NO_SIGN_OFF_EVENT) null else time
+                },
+                classId,
+                courseId
             )
         }
     }

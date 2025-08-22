@@ -6,7 +6,6 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.screen
 
-import android.util.Log
 import android.widget.Toast
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.VisibilityThreshold
@@ -41,12 +40,12 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.ImageLoader
-import io.sentry.Sentry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
+import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCourseHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
@@ -55,6 +54,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.components.BlockedContent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CourseInfoColumnCard
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCourseEntity
+import org.aquamarine5.brainspark.chaoxingsignfaker.snackbarReport
 import org.aquamarine5.brainspark.stackbricks.StackbricksService
 import org.aquamarine5.brainspark.stackbricks.StackbricksVersionData
 
@@ -88,6 +88,8 @@ fun CourseListScreen(
     var isNewVersionDialogDisplayed = rememberSaveable { false }
     var isForceInstall by
     remember { mutableStateOf(stackbricksService.internalVersionData?.forceInstall ?: false) }
+    val snackbarHost= LocalSnackbarHostState.current
+    val coroutineScope = rememberCoroutineScope()
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
             if (stackbricksService.internalVersionData == null && !isNewVersionDialogDisplayed) {
@@ -117,17 +119,11 @@ fun CourseListScreen(
 
                     }
                 }.onFailure {
-                    Log.d("CourseListScreen", "获取课程列表失败")
-                    Sentry.captureException(it)
-                    withContext(Dispatchers.Main) {
-                        Toast.makeText(context, "获取课程列表失败", Toast.LENGTH_SHORT).show()
-                    }
-                    it.printStackTrace()
+                    it.snackbarReport(snackbarHost,coroutineScope,"获取课程列表失败")
                 }
             }
         }
     }
-    val coroutineScope = rememberCoroutineScope()
     if (newestVersionData != null && (isForceInstall || !isNewVersionDialogDisplayed)) {
         onNewVersionAvailable()
         isNewVersionDialogDisplayed = true

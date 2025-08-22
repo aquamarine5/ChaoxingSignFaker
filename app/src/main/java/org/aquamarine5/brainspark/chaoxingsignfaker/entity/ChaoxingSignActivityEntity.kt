@@ -25,7 +25,6 @@ data class ChaoxingSignActivityEntity(
     val status: Int,
     val nameFour: String,
     val course: ChaoxingCourseEntity,
-    val isCaptcha: Boolean,
     val ext: String
 ) {
     object SignActivityNavType : NavType<ChaoxingSignActivityEntity>(false) {

@@ -10,7 +10,6 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Build
-import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
@@ -38,9 +37,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -63,11 +63,9 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
-import io.sentry.Sentry
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
-import org.aquamarine5.brainspark.chaoxingsignfaker.ChaoxingPredictableException
 import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.UMengHelper
@@ -79,10 +77,12 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.components.CameraComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.OtherUserSelectorComponent
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.SignOutRedirectTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SponsorPopupDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignStatus
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignOutEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.ifAlreadySigned
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingPhotoSigner
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSigner
@@ -109,7 +109,10 @@ data class PhotoSignDestination(
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun PhotoSignScreen(
-    destination: PhotoSignDestination, navBack: () -> Unit, navToOtherUserDestination: () -> Unit
+    destination: PhotoSignDestination,
+    navBack: () -> Unit,
+    navToOtherSign: (Any) -> Unit,
+    navToOtherUserDestination: () -> Unit
 ) {
     Column(
         modifier = Modifier.padding(8.dp, 0.dp)
@@ -124,6 +127,7 @@ fun PhotoSignScreen(
         var isShowPhotoPicker by remember { mutableStateOf(false) }
         var isForSelf by remember { mutableStateOf(false) }
         var isSponsor by remember { mutableStateOf(false) }
+        var signoffEntity by remember { mutableStateOf<ChaoxingSignOutEntity?>(null) }
         if (isSponsor) {
             SponsorPopupDialog()
         }
@@ -139,13 +143,16 @@ fun PhotoSignScreen(
         }
         LaunchedEffect(Unit) {
             runCatching {
-                isImage = signer.ifPhotoRequiredLogin()
+                val data = signer.ifPhotoRequiredLogin()
+                isImage = data.first
+                signoffEntity = data.second
                 isAlreadySigned = signer.preSign()
             }.onFailure {
-                if ((it is ChaoxingPredictableException).not()) {
-                    Sentry.captureException(it)
-                }
-                Toast.makeText(context, "获取签到事件详情失败", Toast.LENGTH_SHORT).show()
+                it.snackbarReport(
+                    snackbarHost,
+                    coroutineScope,
+                    "获取签到信息失败"
+                )
                 navBack()
             }
         }
@@ -155,37 +162,49 @@ fun PhotoSignScreen(
                     if (isImage == false) {
                         Column {
                             Column(modifier = Modifier.padding(16.dp, 0.dp)) {
-                                Row(
+                                if (signoffEntity != null)
+                                    SignOutRedirectTips(
+                                        signoffEntity!!
+                                    ) {
+                                        navToOtherSign(it)
+                                    }
+                                Card(
+                                    onClick = {
+                                        context.startActivity(Intent(
+                                            Intent.ACTION_VIEW, Uri.parse("cxstudy://")
+                                        ).apply {
+                                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                        })
+                                    },
+                                    shape = RoundedCornerShape(18.dp),
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = Color.DarkGray
+                                    ),
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(0.dp, 10.dp)
-                                        .background(Color.DarkGray, RoundedCornerShape(18.dp))
-                                        .padding(10.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
+                                        .padding(0.dp, 6.dp)
                                 ) {
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Icon(
-                                        painterResource(R.drawable.ic_info),
-                                        contentDescription = "Info",
-                                        tint = Color.White
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                        "这是一个普通的点击签到，不会收集任何其他的信息，所以我们推荐对于这种签到使用学习通APP而不是随地大小签。",
-                                        color = Color.White,
-                                        fontSize = 13.sp,
-                                        lineHeight = 18.sp,
-                                        fontWeight = FontWeight.W500
-                                    )
-                                }
-                                OutlinedButton(onClick = {
-                                    context.startActivity(Intent(
-                                        Intent.ACTION_VIEW, Uri.parse("cxstudy://")
-                                    ).apply {
-                                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                    })
-                                }, modifier = Modifier.fillMaxWidth()) {
-                                    Text("跳转到学习通")
+                                    Row(
+                                        modifier = Modifier
+                                            .padding(10.dp)
+                                            .fillMaxWidth(),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Icon(
+                                            painterResource(R.drawable.ic_info),
+                                            contentDescription = "Info",
+                                            tint = Color.White
+                                        )
+                                        Spacer(modifier = Modifier.width(9.dp))
+                                        Text(
+                                            "这是一个普通的点击签到，不会收集任何其他的信息，推荐对于这种签到使用学习通APP而不是随地大小签。\n点击跳转到学习通。",
+                                            color = Color.White,
+                                            fontSize = 13.sp,
+                                            lineHeight = 18.sp,
+                                            fontWeight = FontWeight.W500
+                                        )
+                                    }
                                 }
                             }
                             var isSigning by remember { mutableStateOf(false) }
@@ -217,6 +236,7 @@ fun PhotoSignScreen(
                                                                 ChaoxingHttpClient.instance!!.userEntity.name
                                                             )
                                                             signStatus[0].success()
+                                                            userSelections[0]=false
                                                             if (otherUserSessionList.isEmpty()) {
                                                                 isSigning = false
                                                                 delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)
@@ -228,6 +248,9 @@ fun PhotoSignScreen(
                                                                 coroutineScope,
                                                                 "验证码校验失败"
                                                             )
+                                                            it.ifAlreadySigned {
+                                                                userSelections[0]=false
+                                                            }
                                                             signStatus[0].failed(it)
                                                         }
                                                         continuation.resume(Unit)
@@ -238,6 +261,7 @@ fun PhotoSignScreen(
                                                 context,
                                                 ChaoxingHttpClient.instance!!.userEntity.name
                                             )
+                                            userSelections[0]=false
                                             signStatus[0].success()
                                             if (otherUserSessionList.isEmpty()) {
                                                 isSigning = false
@@ -251,12 +275,16 @@ fun PhotoSignScreen(
                                             coroutineScope,
                                             "签到失败"
                                         )
+                                        it.ifAlreadySigned{
+                                            userSelections[0]=false
+                                        }
                                         signStatus[0].failed(it)
                                     }
                                     otherUserSessionList.forEachIndexed { index, userSession ->
                                         if (userSession == null) return@forEachIndexed
                                         runCatching {
                                             signStatus[1 + index].loading()
+                                            delay(ChaoxingOtherUserHelper.TIMEOUT_NEXT_SIGN)
                                             ChaoxingHttpClient.loadFromOtherUserSession(
                                                 userSession, context
                                             ).also { client ->
@@ -267,7 +295,7 @@ fun PhotoSignScreen(
                                                         signStatus[index + 1].failed(
                                                             ChaoxingSigner.AlreadySignedException()
                                                         )
-                                                    } else if (ifPhotoRequiredLogin()) {
+                                                    } else if (ifPhotoRequiredLogin().first) {
                                                         signStatus[index + 1].failed(
                                                             ChaoxingPhotoSigner.ChaoxingIncorrectSignTypeException()
                                                         )
@@ -285,6 +313,7 @@ fun PhotoSignScreen(
                                                                                 userSession.name,
                                                                                 isOtherUser = true
                                                                             )
+                                                                            userSelections[1 + index] = false
                                                                             signStatus[1 + index].success()
                                                                             if (index == otherUserSessionList.size - 1) {
                                                                                 isSigning = false
@@ -293,14 +322,21 @@ fun PhotoSignScreen(
                                                                                 )
                                                                                 isSponsor = true
                                                                             }
-                                                                        }.onFailure {
-                                                                            it.snackbarReport(
+                                                                        }.onFailure { err ->
+                                                                            err.snackbarReport(
                                                                                 snackbarHost,
                                                                                 coroutineScope,
                                                                                 "验证码校验失败"
                                                                             )
+                                                                            err.ifAlreadySigned{
+                                                                                userSelections.takeIf { it.size > index + 1 }
+                                                                                    ?.set(
+                                                                                        index + 1,
+                                                                                        false
+                                                                                    )
+                                                                            }
                                                                             signStatus[1 + index].failed(
-                                                                                it
+                                                                                err
                                                                             )
                                                                         }
                                                                         continuation.resume(
@@ -314,6 +350,7 @@ fun PhotoSignScreen(
                                                                 userSession.name,
                                                                 isOtherUser = true
                                                             )
+                                                            userSelections[1+index]=false
                                                             signStatus[1 + index].success()
                                                             if (index == otherUserSessionList.size - 1) {
                                                                 delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)
@@ -323,17 +360,17 @@ fun PhotoSignScreen(
                                                     }
                                                 }
                                             }
-                                        }.onFailure {
-                                            it.snackbarReport(
+                                        }.onFailure { err ->
+                                            err.snackbarReport(
                                                 snackbarHost,
                                                 coroutineScope,
                                                 "签到失败"
                                             )
-                                            signStatus[1 + index].failed(it)
-                                        }
-                                        if (signStatus.size > 2 + index) {
-                                            signStatus[2 + index].loading()
-                                            delay(ChaoxingOtherUserHelper.TIMEOUT_NEXT_SIGN)
+                                            err.ifAlreadySigned {
+                                                userSelections.takeIf { it.size > 1 + index }
+                                                    ?.set(1 + index, false)
+                                            }
+                                            signStatus[1 + index].failed(err)
                                         }
                                     }
 
@@ -400,6 +437,12 @@ fun PhotoSignScreen(
                                             .fillMaxSize()
                                     ) {
                                         Column {
+                                            if (signoffEntity != null)
+                                                SignOutRedirectTips(
+                                                    signoffEntity!!
+                                                ) {
+                                                    navToOtherSign(it)
+                                                }
                                             OtherUserSelectorComponent(
                                                 navToOtherUser = {
                                                     navToOtherUserDestination()
@@ -499,7 +542,7 @@ fun PhotoSignScreen(
                                                     verticalArrangement = Arrangement.Center
                                                 ) {
                                                     CameraComponent(pictureCount =
-                                                    otherUserSessionForSignList.size,
+                                                    combinedUserList.size,
                                                         onNextPhoto = {
                                                             index++
                                                         },
@@ -561,7 +604,11 @@ fun PhotoSignScreen(
                                                                                                         isSponsor =
                                                                                                             true
                                                                                                     }
-                                                                                                }.onFailure {
+                                                                                                }
+                                                                                                    .onFailure {
+                                                                                                        it.ifAlreadySigned {
+                                                                                                            userSelections[0] = false
+                                                                                                        }
                                                                                                         it.snackbarReport(
                                                                                                             snackbarHost,
                                                                                                             coroutineScope,
@@ -611,6 +658,7 @@ fun PhotoSignScreen(
                                                                     if (chaoxingOtherUserSession == null) return@forEachIndexed
                                                                     runCatching {
                                                                         signStatus[1 + index].loading()
+                                                                        delay(ChaoxingOtherUserHelper.TIMEOUT_NEXT_SIGN)
                                                                         ChaoxingHttpClient.loadFromOtherUserSession(
                                                                             chaoxingOtherUserSession,
                                                                             context
@@ -648,6 +696,7 @@ fun PhotoSignScreen(
                                                                                                             ChaoxingHttpClient.instance!!.userEntity.name,
                                                                                                             true
                                                                                                         )
+                                                                                                        userSelections[1+index]=false
                                                                                                         signStatus[index + 1].success()
                                                                                                         otherUserSessionForSignList.remove(
                                                                                                             chaoxingOtherUserSession
@@ -683,6 +732,7 @@ fun PhotoSignScreen(
                                                                                             chaoxingOtherUserSession.name,
                                                                                             true
                                                                                         )
+                                                                                        userSelections[1+index]=false
                                                                                         signStatus[1 + index].success()
                                                                                         otherUserSessionForSignList.remove(
                                                                                             chaoxingOtherUserSession
@@ -715,12 +765,6 @@ fun PhotoSignScreen(
                                                                         }
                                                                         signStatus[1 + index].failed(
                                                                             it
-                                                                        )
-                                                                    }
-                                                                    if (signStatus.size > 2 + index){
-                                                                        signStatus[2 + index].loading()
-                                                                        delay(
-                                                                            ChaoxingOtherUserHelper.TIMEOUT_NEXT_SIGN
                                                                         )
                                                                     }
                                                                 }
@@ -814,6 +858,12 @@ fun PhotoSignScreen(
                                                     verticalArrangement = Arrangement.Center,
                                                     horizontalAlignment = Alignment.CenterHorizontally
                                                 ) {
+                                                    if (signoffEntity != null)
+                                                        SignOutRedirectTips(
+                                                            signoffEntity!!
+                                                        ) {
+                                                            navToOtherSign(it)
+                                                        }
                                                     Button(onClick = {
                                                         isShowPhotoPicker = true
                                                     }) {

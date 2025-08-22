@@ -18,10 +18,19 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCourseEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
 
 object ChaoxingActivityHelper {
+    enum class SIGN_REDIRECT_STATUS {
+        COMMON,
+        SIGN_IN_PUBLISHED,
+        SIGN_OUT,
+        SIGN_IN_UNPUBLISHED
+    }
+
     private const val URL_ACTIVITY_LOAD =
         "https://mobilelearn.chaoxing.com/v2/apis/active/student/activelist?fid=0&showNotStartedActive=0"
 
-    const val NO_LIMIT_END_TIME = -1000L
+    private const val NO_LIMIT_END_TIME = -1000L
+
+    const val NO_SIGN_OFF_EVENT = 4999L
 
     suspend fun getActivities(
         client: ChaoxingHttpClient,
@@ -43,7 +52,7 @@ object ChaoxingActivityHelper {
                 val activeList = jsonResult.getJSONArray("activeList").map { activity ->
                     activity as JSONObject
                 }.filter { activity ->
-                    activity.getInteger("type") == 2
+                    activity.getInteger("type") == 2 || activity.getInteger("type") == 74
                 }
                 return@withContext ChaoxingCourseActivitiesEntity(
                     jsonResult.getJSONObject("ext").toString(),
@@ -63,7 +72,6 @@ object ChaoxingActivityHelper {
                             activity.getInteger("status"),
                             activity.getString("nameFour"),
                             course,
-                            activity.getInteger("openPreventCheatFlag") == 1,
                             jsonResult.getJSONObject("ext").toString()
                         )
                     }

@@ -62,7 +62,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
-import io.sentry.Sentry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -70,7 +69,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
-import org.aquamarine5.brainspark.chaoxingsignfaker.ChaoxingPredictableException
 import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.UMengHelper
@@ -83,10 +81,12 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerDia
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.GetLocationComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.QRCodeScanComponent
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.SignOutRedirectTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SponsorPopupDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationSignEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignOutEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignStatus
 import org.aquamarine5.brainspark.chaoxingsignfaker.ifAlreadySigned
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingQRCodeSigner
@@ -100,7 +100,7 @@ data class QRCodeSignDestination(
     val activeId: Long,
     val classId: Int,
     val courseId: Int,
-    val extContent: String
+    val extContent: String,
 ) {
     companion object {
         fun parseFromSignActivityEntity(activityEntity: ChaoxingSignActivityEntity): QRCodeSignDestination {
@@ -118,6 +118,7 @@ data class QRCodeSignDestination(
 fun QRCodeSignScreen(
     destination: QRCodeSignDestination,
     navToOtherUser: () -> Unit,
+    navToOtherSign: (Any) -> Unit,
     navBack: () -> Unit
 ) {
     var isAlreadySigned by remember { mutableStateOf<Boolean?>(null) }
@@ -127,6 +128,7 @@ fun QRCodeSignScreen(
     val context = LocalContext.current
     val snackbarHost = LocalSnackbarHostState.current
     var isMapRequired by remember { mutableStateOf(false) }
+    var signoffData by remember { mutableStateOf<ChaoxingSignOutEntity?>(null) }
     var captchaValidateParams by remember {
         mutableStateOf<Pair<ChaoxingQRCodeSigner, suspend (Result<String>) -> Unit>?>(
             null
@@ -143,12 +145,15 @@ fun QRCodeSignScreen(
     LaunchedEffect(Unit) {
         runCatching {
             isAlreadySigned = signer.preSign()
-            isMapRequired = signer.getQRCodeSignInfo().isPositionRequired
+            val data = signer.getQRCodeSignInfo()
+            isMapRequired = data.first.isPositionRequired
+            signoffData = data.second
         }.onFailure {
-            if ((it is ChaoxingPredictableException).not()) {
-                Sentry.captureException(it)
-            }
-            Toast.makeText(context, "获取签到事件详情失败", Toast.LENGTH_SHORT).show()
+            it.snackbarReport(
+                snackbarHost,
+                coroutineScope,
+                "获取签到信息失败"
+            )
             navBack()
         }
     }
@@ -199,6 +204,12 @@ fun QRCodeSignScreen(
                                 .fillMaxWidth()
                                 .padding(3.dp, 3.dp)
                         ) {
+                            if (signoffData != null)
+                                SignOutRedirectTips(
+                                    signoffData!!
+                                ) {
+                                    navToOtherSign(it)
+                                }
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -242,7 +253,7 @@ fun QRCodeSignScreen(
                         ) {
                             Row(
                                 modifier = Modifier
-                                    .padding(10.dp)
+                                    .padding(10.dp,12.dp)
                                     .fillMaxWidth(),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
@@ -503,6 +514,7 @@ fun QRCodeSignScreen(
                                                 if (session == null) return@forEachIndexed
                                                 runCatching {
                                                     signStatus[1 + index].loading()
+                                                    delay(ChaoxingOtherUserHelper.TIMEOUT_NEXT_SIGN)
                                                     ChaoxingHttpClient.loadFromOtherUserSession(
                                                         session, context
                                                     ).also { client ->
@@ -590,10 +602,6 @@ fun QRCodeSignScreen(
                                                         }
                                                     }
                                                     signStatus[1 + index].failed(err)
-                                                }
-                                                if (signStatus.size > 2 + index) {
-                                                    signStatus[2 + index].loading()
-                                                    delay(ChaoxingOtherUserHelper.TIMEOUT_NEXT_SIGN)
                                                 }
                                             }
                                             isSigning = false

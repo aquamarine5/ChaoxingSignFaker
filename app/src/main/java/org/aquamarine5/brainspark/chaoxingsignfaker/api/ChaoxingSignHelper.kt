@@ -11,14 +11,24 @@ import android.widget.Toast
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.res.painterResource
+import com.alibaba.fastjson2.JSONObject
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import okhttp3.HttpUrl.Companion.toHttpUrl
+import okhttp3.Request
+import org.aquamarine5.brainspark.chaoxingsignfaker.ChaoxingPredictableException
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
+import org.aquamarine5.brainspark.chaoxingsignfaker.checkResponse
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.GetLocationDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.PhotoSignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.QRCodeSignDestination
+import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSigner
 
 object ChaoxingSignHelper {
     const val TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED = 250L
+
+    class ChaoxingUnsupportedSignTypeException : ChaoxingPredictableException("不支持此签到类型")
 
     @Composable
     fun getSignIcon(activity: ChaoxingSignActivityEntity): Painter = when (activity.otherId) {
@@ -38,6 +48,40 @@ object ChaoxingSignHelper {
             else -> {
                 Toast.makeText(context, "暂不支持该活动类型", Toast.LENGTH_SHORT).show()
                 null
+            }
+        }
+
+    suspend fun getRedirectDestination(activeId: Long, classId: Int, courseId: Int): Any =
+        withContext(Dispatchers.IO) {
+            ChaoxingHttpClient.instance!!.newCall(
+                Request.Builder().get().url(
+                    ChaoxingSigner.URL_SIGN_INFO.toHttpUrl().newBuilder()
+                        .addQueryParameter("activeId", activeId.toString())
+                        .build()
+                ).build()
+            ).execute().use {
+                if (it.checkResponse(ChaoxingHttpClient.instance!!.context)) {
+                    throw ChaoxingHttpClient.ChaoxingNetworkException()
+                }
+                val result = JSONObject.parseObject(it.body?.string()).getJSONObject("data")
+                when (result.getInteger("otherId")) {
+                    0 -> PhotoSignDestination(
+                        activeId,
+                        classId, courseId, "")
+
+                    2 -> QRCodeSignDestination(
+                        activeId,
+                        classId, courseId, "")
+
+                    4 -> GetLocationDestination(
+                        activeId,
+                        classId, courseId, ""
+                    )
+
+                    else -> {
+                        throw ChaoxingUnsupportedSignTypeException()
+                    }
+                }
             }
         }
 }
