@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import io.sentry.Sentry
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingActivityHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
@@ -47,6 +48,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularPro
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CourseSignActivityColumnCard
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCourseActivitiesEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCourseEntity
+import org.aquamarine5.brainspark.chaoxingsignfaker.snackbarReport
 
 typealias CourseDetailDestination = ChaoxingCourseEntity
 
@@ -59,6 +61,8 @@ fun CourseDetailScreen(
 ) {
     var activitiesData by remember { mutableStateOf<ChaoxingCourseActivitiesEntity?>(null) }
     val context = LocalContext.current
+    val snackbarHost = LocalSnackbarHostState.current
+    val coroutineScope = rememberCoroutineScope()
     LaunchedEffect(Unit) {
         runCatching {
             if (activitiesData == null) {
@@ -67,11 +71,13 @@ fun CourseDetailScreen(
                 }
             }
         }.onFailure {
-            Sentry.captureException(it)
-            Toast.makeText(context, "获取课程活动失败", Toast.LENGTH_SHORT).show()
+            it.snackbarReport(
+                snackbarHost,
+                coroutineScope,
+                "获取签到信息失败"
+            )
         }
     }
-    val coroutineScope = rememberCoroutineScope()
     Column(
         modifier = Modifier
             .padding(16.dp)

@@ -73,43 +73,43 @@ fun OtherUserSelectorComponent(
         ) {
             Column(
                 modifier = Modifier
-                    .padding(16.dp, 2.dp)
+                    .padding(14.dp, 2.dp)
                     .verticalScroll(rememberScrollState())
             ) {
-                Spacer(modifier = Modifier.height(6.dp))
                 Card(
                     onClick = {
                         navToOtherUser()
                     },
                     shape = RoundedCornerShape(18.dp),
                     colors = CardDefaults.cardColors(
-                        containerColor = Color(0xFFFCD337)
+                        containerColor = Color(0xFF10AEC2)
                     ),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(3.dp, 6.dp)
+                        .padding(2.dp, 6.dp)
                 ) {
                     Row(
                         modifier = Modifier
-                            .padding(10.dp)
+                            .padding(10.dp, 12.dp)
                             .fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(10.5.dp))
                         Icon(
                             painterResource(R.drawable.ic_lightbulb),
                             contentDescription = "Help",
                             tint = Color.White
                         )
-                        Spacer(modifier = Modifier.width(9.dp))
+                        Spacer(modifier = Modifier.width(10.5.dp))
                         Text(
-                            "如果你还没有添加其他用户，可以点击跳转添加用户向导。",
+                            "如果你还没有添加其他用户，可以点击跳转至添加用户向导。",
                             color = Color.White,
                             fontSize = 14.sp,
                             lineHeight = 19.sp,
                             fontWeight = FontWeight.W500,
                             modifier = Modifier.fillMaxWidth()
                         )
+                        Spacer(modifier = Modifier.width(12.dp))
                     }
                 }
                 LaunchedEffect(Unit) {
@@ -130,7 +130,8 @@ fun OtherUserSelectorComponent(
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
                     "选择要进行签到的用户：",
-                    modifier = Modifier.padding(start = 3.dp)
+                    modifier = Modifier.padding(start = 3.dp),
+                    fontWeight = FontWeight.Bold
                 )
                 Column(
                     modifier = Modifier

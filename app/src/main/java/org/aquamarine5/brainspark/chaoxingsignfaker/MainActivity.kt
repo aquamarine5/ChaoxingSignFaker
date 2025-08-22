@@ -400,8 +400,10 @@ class MainActivity : ComponentActivity() {
                                             }
                                         }
 
-                                        composable<QRCodeSignDestination> {
-                                            QRCodeSignScreen(it.toRoute(), navToOtherUser = {
+                                        composable<QRCodeSignDestination> { entry ->
+                                            QRCodeSignScreen(entry.toRoute(), navToOtherSign = {
+                                                navController.navigate(it)
+                                            }, navToOtherUser = {
                                                 navController.navigate(OtherUserGraphDestination)
                                             }) {
                                                 navController.navigateUp()
@@ -414,7 +416,9 @@ class MainActivity : ComponentActivity() {
                                             )
                                         ) {
                                             LocationSignScreen(
-                                                it.toRoute(),
+                                                it.toRoute(), navToOtherSign = {
+                                                    navController.navigate(it)
+                                                },
                                                 navToCourseDetailDestination = {
                                                     navController.navigateUp()
                                                 }) {
@@ -433,7 +437,9 @@ class MainActivity : ComponentActivity() {
                                         }
 
                                         composable<PhotoSignDestination> {
-                                            PhotoSignScreen(it.toRoute(), navBack = {
+                                            PhotoSignScreen(it.toRoute(), navToOtherSign = {
+                                                navController.navigate(it)
+                                            }, navBack = {
                                                 navController.navigateUp()
                                             }) {
                                                 navController.navigate(OtherUserGraphDestination)

@@ -12,10 +12,12 @@ import kotlinx.coroutines.withContext
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Request
 import org.aquamarine5.brainspark.chaoxingsignfaker.ChaoxingPredictableException
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingActivityHelper.NO_SIGN_OFF_EVENT
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.checkResponse
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationDetailEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationSignEntity
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignOutEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.GetLocationDestination
 
 class ChaoxingLocationSigner(
@@ -35,12 +37,20 @@ class ChaoxingLocationSigner(
 
     class ChaoxingLocationSignException(message: String) : ChaoxingPredictableException(message)
 
-    suspend fun getLocationSignInfo(): ChaoxingLocationDetailEntity {
+    suspend fun getLocationSignInfo(): Pair<ChaoxingLocationDetailEntity, ChaoxingSignOutEntity> {
         getSignInfo().let { jsonResult ->
             return ChaoxingLocationDetailEntity(
                 jsonResult.getDouble("locationLatitude"),
                 jsonResult.getDouble("locationLongitude"),
                 jsonResult.getInteger("locationRange")
+            ) to ChaoxingSignOutEntity(
+                jsonResult.getLong("signInId"),
+                jsonResult.getLong("signOutId"),
+                jsonResult.getLong("signOutPublishTimeStamp").let { time ->
+                    if (time == NO_SIGN_OFF_EVENT) null else time
+                },
+                destination.classId,
+                destination.courseId
             )
         }
     }
@@ -114,6 +124,6 @@ class ChaoxingLocationSigner(
         }
 
     override suspend fun checkAlreadySign(response: String): Boolean {
-        return response.contains("恭喜你已完成签到").not()
+        return response.contains("恭喜你已完成签").not()
     }
 }
