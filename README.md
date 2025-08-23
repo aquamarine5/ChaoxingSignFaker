@@ -9,7 +9,7 @@
 
 ## 使用
 
-- 前往[cdn.aquamarine5.fun](http://cdn.aquamarine5.fun) 下载最新版本。
+- 前往 [cdn.aquamarine5.fun](http://cdn.aquamarine5.fun) 下载最新版本。
 - 或前往 [Releases](https://github.com/aquamarine5/ChaoxingSignFaker) 的附件下载最新版本。
 
 > [!NOTE]
@@ -20,8 +20,9 @@
 - 自定义位置签到
 - 自选择拍照签到
 - 二维码签到（需要一台设备在现场扫码，理论上可为任意多的用户签到）
-- 一台设备登录多账号以签到
-- 有验证码的签到（需要随地大小签版本在1.8+）
+- 一台设备登录多账号以签到（需要随地大小签版本在1.5+）
+- 有验证码的签到（需要随地大小签版本在1.9+）
+- 签退操作（需要随地大小签版本在1.10+）
 
 > [!TIP]
 > ChaoxingSignFaker（随地大小签） 使用 [Stackbricks](https://github.com/aquamarine5/Stackbricks) 来实现更新逻辑，同样由作者维护。
