@@ -157,7 +157,7 @@ class MainActivity : ComponentActivity() {
         UMengHelper.preInit(this)
         enableEdgeToEdge()
         setContent {
-            val hapticFeedback= LocalHapticFeedback.current
+            val hapticFeedback = LocalHapticFeedback.current
             val navController = rememberNavController()
             var isNewVersionAvailable by remember {
                 mutableStateOf(false)
@@ -240,9 +240,10 @@ class MainActivity : ComponentActivity() {
                                         BottomNavigationItem(
                                             isSelected,
                                             onClick = {
-                                                if (destination != null){
+                                                if (destination != null) {
                                                     hapticFeedback.performHapticFeedback(
-                                                        HapticFeedbackType.ContextClick)
+                                                        HapticFeedbackType.ContextClick
+                                                    )
                                                     navController.navigate(item.destination) {
                                                         popUpTo(navController.graph.findStartDestination().id) {
                                                             saveState = true

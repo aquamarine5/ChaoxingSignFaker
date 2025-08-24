@@ -108,7 +108,7 @@ fun LocationSignScreen(
     val snackbarHost = LocalSnackbarHostState.current
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
-    val hapticFeedback= LocalHapticFeedback.current
+    val hapticFeedback = LocalHapticFeedback.current
     LaunchedEffect(Unit) {
         runCatching {
             val data = signer.getLocationSignInfo()
@@ -164,15 +164,20 @@ fun LocationSignScreen(
                         isGetLocation = true
                     }
                     AnimatedVisibility(
-                        isGetLocation, enter =
-                        slideInHorizontally(
-                            initialOffsetX = { it },
-                            animationSpec = tween(300)
-                        ) + fadeIn(
-                            animationSpec = tween(300)
-                        ), exit =
-                        slideOutHorizontally(animationSpec = tween(300), targetOffsetX = { it }) +
-                                fadeOut(animationSpec = tween(300)), modifier = Modifier.zIndex(1f)
+                        isGetLocation,
+                        enter =
+                            slideInHorizontally(
+                                initialOffsetX = { it },
+                                animationSpec = tween(300)
+                            ) + fadeIn(
+                                animationSpec = tween(300)
+                            ),
+                        exit =
+                            slideOutHorizontally(
+                                animationSpec = tween(300),
+                                targetOffsetX = { it }) +
+                                    fadeOut(animationSpec = tween(300)),
+                        modifier = Modifier.zIndex(1f)
                     ) {
                         BackHandler(isGetLocation) {
                             isGetLocation = false

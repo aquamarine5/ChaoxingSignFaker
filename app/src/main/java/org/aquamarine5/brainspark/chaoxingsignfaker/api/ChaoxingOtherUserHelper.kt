@@ -144,16 +144,17 @@ object ChaoxingOtherUserHelper {
                 .setPassword(sharedEntity.encryptedPassword.replace(" ", "+"))
                 .setName(sharedEntity.userName)
                 .setPhoneNumber(sharedEntity.phoneNumber)
-                .addAllCookies(tempOkHttpClient.cookieJar.loadForRequest(
-                    HttpUrl.Builder()
-                        .scheme("https")
-                        .host("chaoxing.com").build()
-                ).map { cookie ->
-                    HttpCookie.newBuilder()
-                        .setValue(cookie.value)
-                        .setName(cookie.name)
-                        .setHost(cookie.domain).build()
-                })
+                .addAllCookies(
+                    tempOkHttpClient.cookieJar.loadForRequest(
+                        HttpUrl.Builder()
+                            .scheme("https")
+                            .host("chaoxing.com").build()
+                    ).map { cookie ->
+                        HttpCookie.newBuilder()
+                            .setValue(cookie.value)
+                            .setName(cookie.name)
+                            .setHost(cookie.domain).build()
+                    })
                 .build()
             context.chaoxingDataStore.updateData { datastore ->
                 datastore.toBuilder().addOtherUsers(session).build()

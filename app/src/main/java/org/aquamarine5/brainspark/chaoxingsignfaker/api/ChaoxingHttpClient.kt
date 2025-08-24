@@ -357,7 +357,8 @@ class ChaoxingHttpClient private constructor(
                     otherUsersList.indexOfFirst {
                         it.phoneNumber == otherUserSession.phoneNumber
                     }.takeIf { it >= 0 }?.let { index ->
-                        setOtherUsers(index, otherUserSession.toBuilder()
+                        setOtherUsers(
+                            index, otherUserSession.toBuilder()
                             .clearCookies()
                             .addAllCookies(
                                 client.cookieJar.loadForRequest(
@@ -434,7 +435,8 @@ class ChaoxingHttpClient private constructor(
                     }
                     val jsonResult = JSONObject.parseObject(it.body?.string())
                     if (!jsonResult.getBoolean("status")) {
-                        throw ChaoxingLoginException(if (jsonResult.containsKey("msg2")) {
+                        throw ChaoxingLoginException(
+                            if (jsonResult.containsKey("msg2")) {
                             jsonResult.getString("msg2").ifEmpty {
                                 "登录错误"
                             }
@@ -494,7 +496,8 @@ class ChaoxingHttpClient private constructor(
                     }
                     val jsonResult = JSONObject.parseObject(it.body?.string())
                     if (!jsonResult.getBoolean("status")) {
-                        throw ChaoxingLoginException(if (jsonResult.containsKey("msg2")) {
+                        throw ChaoxingLoginException(
+                            if (jsonResult.containsKey("msg2")) {
                             jsonResult.getString("msg2").ifEmpty {
                                 "登录错误"
                             }

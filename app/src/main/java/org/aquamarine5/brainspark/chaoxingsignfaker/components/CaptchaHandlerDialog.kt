@@ -67,7 +67,7 @@ fun CaptchaHandlerDialog(
     val density by remember { mutableFloatStateOf(sliderMaxValue / 320) }
     val context = LocalContext.current
     val snackbar = LocalSnackbarHostState.current
-    val hapticFeedback= LocalHapticFeedback.current
+    val hapticFeedback = LocalHapticFeedback.current
     val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(signer) {
@@ -129,7 +129,8 @@ fun CaptchaHandlerDialog(
                                             if (result == null) {
                                                 snackbar?.showSnackbar("验证失败，请重试")
                                                 hapticFeedback.performHapticFeedback(
-                                                    HapticFeedbackType.Reject)
+                                                    HapticFeedbackType.Reject
+                                                )
                                                 sliderPosition = 0f
                                                 data = signer.getCaptchaImageV2()
                                             } else {
@@ -138,7 +139,12 @@ fun CaptchaHandlerDialog(
                                             }
                                         }
                                 }.onFailure {
-                                    it.snackbarReport(snackbar,coroutineScope,"验证码校验失败",hapticFeedback)
+                                    it.snackbarReport(
+                                        snackbar,
+                                        coroutineScope,
+                                        "验证码校验失败",
+                                        hapticFeedback
+                                    )
                                     onResult(Result.failure(it))
                                     onDismiss()
                                 }

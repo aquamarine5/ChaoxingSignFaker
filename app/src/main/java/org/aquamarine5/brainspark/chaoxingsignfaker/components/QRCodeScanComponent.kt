@@ -66,7 +66,7 @@ inline fun QRCodeScanComponent(
     content: @Composable BoxScope.() -> Unit
 ) {
     val cameraPermission = rememberPermissionState(android.Manifest.permission.CAMERA)
-    val hapticFeedback= LocalHapticFeedback.current
+    val hapticFeedback = LocalHapticFeedback.current
     if (cameraPermission.status == PermissionStatus.Granted) {
         val application = LocalActivity.current!!
         val lifecycleOwner = LocalLifecycleOwner.current

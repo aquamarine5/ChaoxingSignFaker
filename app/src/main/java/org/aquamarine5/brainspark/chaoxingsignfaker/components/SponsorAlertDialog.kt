@@ -99,9 +99,9 @@ fun SponsorAlertDialog(showDialog: MutableState<Boolean>) {
             }
         }
     }
-    val snackbarHost= LocalSnackbarHostState.current
+    val snackbarHost = LocalSnackbarHostState.current
     val coroutineScope = rememberCoroutineScope()
-    val hapticFeedback= LocalHapticFeedback.current
+    val hapticFeedback = LocalHapticFeedback.current
     val permissionCheck =
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) rememberPermissionState(
             android.Manifest.permission.WRITE_EXTERNAL_STORAGE

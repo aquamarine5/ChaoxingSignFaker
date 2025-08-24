@@ -111,7 +111,7 @@ object OtherUserGraphDestination
 @Composable
 fun OtherUserScreen(naviBack: () -> Unit) {
     val context = LocalContext.current
-    val snackbarHost= LocalSnackbarHostState.current
+    val snackbarHost = LocalSnackbarHostState.current
     var inputUrl by remember { mutableStateOf("") }
     var isInputDialog by remember { mutableStateOf(false) }
     var isURLSharedDialog by remember { mutableStateOf(false) }
@@ -137,7 +137,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
         }
     }
     var job: Job? = null
-    val hapticFeedback= LocalHapticFeedback.current
+    val hapticFeedback = LocalHapticFeedback.current
     BackHandler(isQRCodeScanning) {
         isQRCodeScanning = false
     }
@@ -227,7 +227,12 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                 context
                             )
                         }.onFailure {
-                            it.snackbarReport(snackbarHost,coroutineScope,"检查登录失败",hapticFeedback)
+                            it.snackbarReport(
+                                snackbarHost,
+                                coroutineScope,
+                                "检查登录失败",
+                                hapticFeedback
+                            )
                         }.onSuccess { entity ->
                             runCatching {
                                 ChaoxingOtherUserHelper.saveOtherUser(
@@ -241,7 +246,12 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                 otherUserSessions.add(it)
                                 isInputDialog = false
                             }.onFailure {
-                                it.snackbarReport(snackbarHost,coroutineScope,"保存用户失败",hapticFeedback)
+                                it.snackbarReport(
+                                    snackbarHost,
+                                    coroutineScope,
+                                    "保存用户失败",
+                                    hapticFeedback
+                                )
                                 isInputDialog = false
                             }
                         }
@@ -325,7 +335,12 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                     UMengHelper.onAccountOtherUserAddEvent(context, it)
                                     isURLSharedDialog = false
                                 }.onFailure {
-                                    it.snackbarReport(snackbarHost,coroutineScope,"导入失败",hapticFeedback)
+                                    it.snackbarReport(
+                                        snackbarHost,
+                                        coroutineScope,
+                                        "导入失败",
+                                        hapticFeedback
+                                    )
                                     isURLSharedDialog = false
                                 }
                             }
@@ -675,15 +690,15 @@ fun OtherUserScreen(naviBack: () -> Unit) {
     }
     AnimatedVisibility(
         isQRCodeScanning, enter =
-        slideInHorizontally(
-            initialOffsetX = { it },
-            animationSpec = tween(300)
-        ) + fadeIn(
-            animationSpec = tween(300)
-        ), exit =
-        scaleOut(targetScale = 0.8f, animationSpec = tween(300)) + fadeOut(
-            animationSpec = tween(300)
-        )
+            slideInHorizontally(
+                initialOffsetX = { it },
+                animationSpec = tween(300)
+            ) + fadeIn(
+                animationSpec = tween(300)
+            ), exit =
+            scaleOut(targetScale = 0.8f, animationSpec = tween(300)) + fadeOut(
+                animationSpec = tween(300)
+            )
     ) {
         Column(
             modifier = Modifier
@@ -716,7 +731,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                     UMengHelper.onAccountOtherUserAddEvent(context, it)
                                 }.onFailure {
                                     it.printStackTrace()
-                                    if(it !is ChaoxingPredictableException)
+                                    if (it !is ChaoxingPredictableException)
                                         Sentry.captureException(it)
                                     isQRCodeIllegal = true
                                     isQRCodeParsing.value = false
@@ -732,7 +747,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                             }
                         }.onFailure {
                             it.printStackTrace()
-                            if(it !is ChaoxingPredictableException)
+                            if (it !is ChaoxingPredictableException)
                                 Sentry.captureException(it)
                             isQRCodeIllegal = true
                             isQRCodeScanPause.value = true

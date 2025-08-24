@@ -29,7 +29,7 @@ private const val SPONSOR_DIALOG_SHOW_RATE = 99
 fun SponsorPopupDialog() {
     var isShowDialog by remember { mutableStateOf(Random.nextInt(100) < SPONSOR_DIALOG_SHOW_RATE) }
     val isShowSponsor = remember { mutableStateOf(false) }
-    val hapticFeedback= LocalHapticFeedback.current
+    val hapticFeedback = LocalHapticFeedback.current
     if (isShowDialog)
         AlertDialog(onDismissRequest = {
             isShowDialog = false

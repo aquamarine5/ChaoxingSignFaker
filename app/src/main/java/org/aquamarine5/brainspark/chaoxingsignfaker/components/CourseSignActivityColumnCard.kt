@@ -32,17 +32,18 @@ inline fun CourseSignActivityColumnCard(
 ) {
     val isAvailable = activity.status == 1
     val context = LocalContext.current
-    Row(modifier = Modifier
-        .fillMaxWidth()
-        .clickable {
-            if (isAvailable) {
-                ChaoxingSignHelper.getSignDestination(context, activity)?.let {
-                    onSignAction(it)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable {
+                if (isAvailable) {
+                    ChaoxingSignHelper.getSignDestination(context, activity)?.let {
+                        onSignAction(it)
+                    }
+                } else {
+                    Toast.makeText(context, "活动未开始或已结束", Toast.LENGTH_SHORT).show()
                 }
-            } else {
-                Toast.makeText(context, "活动未开始或已结束", Toast.LENGTH_SHORT).show()
-            }
-        }) {
+            }) {
         Icon(
             painter = ChaoxingSignHelper.getSignIcon(activity),
             contentDescription = null,

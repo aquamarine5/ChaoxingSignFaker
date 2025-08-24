@@ -59,8 +59,8 @@ fun LoginPage(
     var password by remember { mutableStateOf("") }
     val coroutineContext = rememberCoroutineScope()
     val context = LocalContext.current
-    val hapticFeedback= LocalHapticFeedback.current
-    val snackbarHost= LocalSnackbarHostState.current
+    val hapticFeedback = LocalHapticFeedback.current
+    val snackbarHost = LocalSnackbarHostState.current
     val focusManager = LocalFocusManager.current
     Column(
         modifier = Modifier
@@ -116,7 +116,12 @@ fun LoginPage(
                         ChaoxingHttpClient.create(phoneNumber, password, context)
                         UMengHelper.onLoginEvent(context, phoneNumber)
                     }.onFailure {
-                        it.snackbarReport(snackbarHost,coroutineContext,"登录失败",hapticFeedback)
+                        it.snackbarReport(
+                            snackbarHost,
+                            coroutineContext,
+                            "登录失败",
+                            hapticFeedback
+                        )
                     }.onSuccess {
                         if (ChaoxingHttpClient.instance != null) {
                             snackbarHost?.showSnackbar("登录成功")

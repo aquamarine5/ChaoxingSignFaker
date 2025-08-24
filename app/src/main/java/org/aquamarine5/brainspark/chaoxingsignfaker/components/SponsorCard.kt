@@ -38,7 +38,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.R
 @Composable
 fun SponsorCard() {
     val isShowDialog = remember { mutableStateOf(false) }
-    val hapticFeedback= LocalHapticFeedback.current
+    val hapticFeedback = LocalHapticFeedback.current
     Button(
         onClick = {
             hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)

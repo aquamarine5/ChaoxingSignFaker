@@ -89,10 +89,10 @@ fun GetLocationComponent(
     confirmButtonText: @Composable () -> Unit,
     onLocationResult: (ChaoxingLocationSignEntity) -> Unit
 ) {
-    val hapticFeedback= LocalHapticFeedback.current
-    val snackbarHost= LocalSnackbarHostState.current
+    val hapticFeedback = LocalHapticFeedback.current
+    val snackbarHost = LocalSnackbarHostState.current
     val context = LocalContext.current
-    val coroutineScope= rememberCoroutineScope()
+    val coroutineScope = rememberCoroutineScope()
     var isShowDialog by remember { mutableStateOf(false) }
     Column(
         modifier = Modifier
@@ -480,7 +480,7 @@ fun GetLocationComponent(
                     onClick = {
                         hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                         locationPermissionsState.launchMultiplePermissionRequest()
-                              },
+                    },
                     modifier = Modifier.align(Alignment.CenterHorizontally)
                 ) {
                     Text(buttonText)

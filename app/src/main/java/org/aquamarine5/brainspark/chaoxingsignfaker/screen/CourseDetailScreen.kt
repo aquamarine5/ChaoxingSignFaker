@@ -64,7 +64,7 @@ fun CourseDetailScreen(
     var activitiesData by remember { mutableStateOf<ChaoxingCourseActivitiesEntity?>(null) }
     val context = LocalContext.current
     val snackbarHost = LocalSnackbarHostState.current
-    val hapticFeedback= LocalHapticFeedback.current
+    val hapticFeedback = LocalHapticFeedback.current
     val coroutineScope = rememberCoroutineScope()
     LaunchedEffect(Unit) {
         runCatching {

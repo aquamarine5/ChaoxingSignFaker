@@ -49,7 +49,7 @@ fun WelcomeScreen(
     navToLoginDestination: () -> Unit
 ) {
     val context = LocalContext.current.applicationContext
-    val hapticFeedback= LocalHapticFeedback.current
+    val hapticFeedback = LocalHapticFeedback.current
     val coroutineContext = rememberCoroutineScope()
     Column(
         modifier = Modifier

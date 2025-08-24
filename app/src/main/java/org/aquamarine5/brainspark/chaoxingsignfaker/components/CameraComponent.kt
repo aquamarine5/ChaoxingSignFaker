@@ -138,7 +138,8 @@ fun CameraComponent(
                                     animationSpec = tween(220, delayMillis = 90),
                                     initialOffsetX = { -it / 4 })
                                 )
-                            .togetherWith(fadeOut(animationSpec = tween(90))+ slideOutHorizontally(
+                            .togetherWith(
+                                fadeOut(animationSpec = tween(90)) + slideOutHorizontally(
                                 animationSpec = tween(90),
                                 targetOffsetX = { it / 4 }
                             ))
@@ -253,7 +254,7 @@ fun CameraComponent(
                     onClick = {
                         hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                         cameraPermission.launchPermissionRequest()
-                              },
+                    },
                     modifier = Modifier.align(Alignment.CenterHorizontally)
                 ) {
                     Text("授予")

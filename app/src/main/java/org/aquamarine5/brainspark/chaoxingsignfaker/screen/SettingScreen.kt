@@ -86,7 +86,7 @@ fun SettingScreen(
         val fontGilroy = FontFamily(
             Font(R.font.gilroy)
         )
-        val hapticFeedback= LocalHapticFeedback.current
+        val hapticFeedback = LocalHapticFeedback.current
         val coroutineScope = rememberCoroutineScope()
         val userEntity = ChaoxingHttpClient.instance!!.userEntity
         var isShowSignoffDialog by remember { mutableStateOf(false) }

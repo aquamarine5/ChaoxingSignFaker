@@ -42,7 +42,7 @@ inline fun SignOutRedirectTips(
     signoffData: ChaoxingSignOutEntity,
     crossinline onRedirect: (Any) -> Unit
 ) {
-    val hapticFeedback= LocalHapticFeedback.current
+    val hapticFeedback = LocalHapticFeedback.current
     with(signoffData) {
         val status = if (signInId != null) {
             ChaoxingActivityHelper.SIGN_REDIRECT_STATUS.SIGN_OUT
@@ -91,10 +91,12 @@ inline fun SignOutRedirectTips(
                         tint = Color.Black
                     )
                     Spacer(modifier = Modifier.width(9.dp))
-                    val dateFormatter= remember { SimpleDateFormat(
-                        "yyyy-MM-dd HH:mm:ss",
-                        Locale.getDefault()
-                    ) }
+                    val dateFormatter = remember {
+                        SimpleDateFormat(
+                            "yyyy-MM-dd HH:mm:ss",
+                            Locale.getDefault()
+                        )
+                    }
                     Text(
                         when (status) {
                             ChaoxingActivityHelper.SIGN_REDIRECT_STATUS.SIGN_OUT -> "这是一个签退活动，请确保已经签到了本签退活动的主签到活动。\n点击跳转到主签到活动进行签到。"
@@ -102,6 +104,7 @@ inline fun SignOutRedirectTips(
                             ChaoxingActivityHelper.SIGN_REDIRECT_STATUS.SIGN_IN_UNPUBLISHED -> "此签到活动设置了签退活动，将在${
                                 dateFormatter.format(Date(signOffPublishTime!!))
                             }发布，请发布后及时签退。"
+
                             else -> ""
                         }, color = Color.Black,
                         fontSize = 13.sp,

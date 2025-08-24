@@ -36,7 +36,7 @@ fun AlreadySignedNotice(
     onDismiss: () -> Unit,
     navBack: () -> Unit,
 ) {
-    val hapticFeedback= LocalHapticFeedback.current
+    val hapticFeedback = LocalHapticFeedback.current
     Column(
         modifier = Modifier
             .fillMaxSize()

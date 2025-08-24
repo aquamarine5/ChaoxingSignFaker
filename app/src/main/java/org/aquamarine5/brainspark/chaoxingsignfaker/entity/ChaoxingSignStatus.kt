@@ -31,19 +31,19 @@ data class ChaoxingSignStatus(
     val isLoading: MutableState<Boolean> = mutableStateOf(false)
 ) {
     fun loading() {
-        isLoading.value= true
+        isLoading.value = true
     }
 
     fun success() {
-        isSuccess.value=true
-        isLoading.value=false
+        isSuccess.value = true
+        isLoading.value = false
         hapticFeedback.performHapticFeedback(HapticFeedbackType.Confirm)
     }
 
     fun failed(e: Throwable) {
-        isSuccess.value=false
-        isLoading.value=false
-        error.value= when (e) {
+        isSuccess.value = false
+        isLoading.value = false
+        error.value = when (e) {
             is ChaoxingSigner.AlreadySignedException -> "您已签到过了"
             is ChaoxingPredictableException -> e.message ?: "签到失败"
             else -> {

@@ -85,7 +85,7 @@ fun CourseListScreen(
     var preferredClassIds = remember {
         mutableStateListOf<Int>()
     }
-    val hapticFeedback= LocalHapticFeedback.current
+    val hapticFeedback = LocalHapticFeedback.current
     val context = LocalContext.current
     var newestVersionData by remember { mutableStateOf<StackbricksVersionData?>(null) }
     var isNewVersionDialogDisplayed = rememberSaveable { false }
@@ -122,7 +122,12 @@ fun CourseListScreen(
 
                     }
                 }.onFailure {
-                    it.snackbarReport(snackbarHost, coroutineScope, "获取课程列表失败",hapticFeedback)
+                    it.snackbarReport(
+                        snackbarHost,
+                        coroutineScope,
+                        "获取课程列表失败",
+                        hapticFeedback
+                    )
                 }
             }
         }

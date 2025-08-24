@@ -135,7 +135,7 @@ fun QRCodeSignScreen(
             null
         )
     }
-    val hapticFeedback= LocalHapticFeedback.current
+    val hapticFeedback = LocalHapticFeedback.current
     if (captchaValidateParams != null) {
         CaptchaHandlerDialog(
             captchaValidateParams!!.first,
@@ -154,7 +154,7 @@ fun QRCodeSignScreen(
             it.snackbarReport(
                 snackbarHost,
                 coroutineScope,
-                "获取签到信息失败",hapticFeedback
+                "获取签到信息失败", hapticFeedback
             )
             navBack()
         }
@@ -284,7 +284,11 @@ fun QRCodeSignScreen(
                                 }
                             })
                             userSelections.addAll(List(signUserList.size) { false })
-                            signStatus.addAll(Array(signUserList.size) { ChaoxingSignStatus(hapticFeedback) })
+                            signStatus.addAll(Array(signUserList.size) {
+                                ChaoxingSignStatus(
+                                    hapticFeedback
+                                )
+                            })
                             success = isCurrentAlreadySigned
                             userSelections[0] = isCurrentAlreadySigned.not()
                         }
@@ -392,17 +396,17 @@ fun QRCodeSignScreen(
                         AnimatedVisibility(
                             isMapGetting,
                             enter =
-                            slideInHorizontally(
-                                initialOffsetX = { it },
-                                animationSpec = tween(300)
-                            ) + fadeIn(
-                                animationSpec = tween(300)
-                            ),
+                                slideInHorizontally(
+                                    initialOffsetX = { it },
+                                    animationSpec = tween(300)
+                                ) + fadeIn(
+                                    animationSpec = tween(300)
+                                ),
                             exit =
-                            slideOutHorizontally(
-                                animationSpec = tween(300),
-                                targetOffsetX = { it }) +
-                                    fadeOut(animationSpec = tween(300)),
+                                slideOutHorizontally(
+                                    animationSpec = tween(300),
+                                    targetOffsetX = { it }) +
+                                        fadeOut(animationSpec = tween(300)),
                             modifier = Modifier.zIndex(1f)
                         ) {
                             GetLocationComponent(confirmButtonText = {
@@ -420,15 +424,15 @@ fun QRCodeSignScreen(
                         }
                         AnimatedVisibility(
                             isQRCodeScanning, enter =
-                            slideInHorizontally(
-                                initialOffsetX = { it },
-                                animationSpec = tween(300)
-                            ) + fadeIn(
-                                animationSpec = tween(300)
-                            ), exit =
-                            scaleOut(targetScale = 0.8f, animationSpec = tween(300)) + fadeOut(
-                                animationSpec = tween(300)
-                            )
+                                slideInHorizontally(
+                                    initialOffsetX = { it },
+                                    animationSpec = tween(300)
+                                ) + fadeIn(
+                                    animationSpec = tween(300)
+                                ), exit =
+                                scaleOut(targetScale = 0.8f, animationSpec = tween(300)) + fadeOut(
+                                    animationSpec = tween(300)
+                                )
                         ) {
                             BackHandler(isQRCodeScanning) {
                                 isQRCodeScanning = false
@@ -476,7 +480,8 @@ fun QRCodeSignScreen(
                                                                         it.snackbarReport(
                                                                             snackbarHost,
                                                                             coroutineScope,
-                                                                            "验证码校验失败",hapticFeedback
+                                                                            "验证码校验失败",
+                                                                            hapticFeedback
                                                                         )
                                                                         signStatus[0].failed(it)
                                                                     }
@@ -500,7 +505,7 @@ fun QRCodeSignScreen(
                                                     err.snackbarReport(
                                                         snackbarHost,
                                                         coroutineScope,
-                                                        "签到失败",hapticFeedback
+                                                        "签到失败", hapticFeedback
                                                     )
                                                     err.ifAlreadySigned {
                                                         userSelections[0] = false
@@ -562,7 +567,8 @@ fun QRCodeSignScreen(
                                                                                     it.snackbarReport(
                                                                                         snackbarHost,
                                                                                         coroutineScope,
-                                                                                        "验证码校验失败",hapticFeedback
+                                                                                        "验证码校验失败",
+                                                                                        hapticFeedback
                                                                                     )
                                                                                     signStatus[1 + index].failed(
                                                                                         it
@@ -596,7 +602,7 @@ fun QRCodeSignScreen(
                                                     err.snackbarReport(
                                                         snackbarHost,
                                                         coroutineScope,
-                                                        "签到失败",hapticFeedback
+                                                        "签到失败", hapticFeedback
                                                     )
                                                     err.ifAlreadySigned {
                                                         userSelections[1 + index] = false

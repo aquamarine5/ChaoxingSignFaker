@@ -68,9 +68,9 @@ fun OtherUserSelectorComponent(
 ) {
     LocalContext.current.let { context ->
         val signUserList = remember { mutableStateListOf<ChaoxingOtherUserSession>() }
-        val hapticFeedback= LocalHapticFeedback.current
-        val snackbarHost= LocalSnackbarHostState.current
-        val coroutineScope= rememberCoroutineScope()
+        val hapticFeedback = LocalHapticFeedback.current
+        val snackbarHost = LocalSnackbarHostState.current
+        val coroutineScope = rememberCoroutineScope()
         var success by signStatus[0].isSuccess
         Box(
             modifier = Modifier
@@ -85,7 +85,8 @@ fun OtherUserSelectorComponent(
                 Card(
                     onClick = {
                         hapticFeedback.performHapticFeedback(
-                            HapticFeedbackType.ContextClick)
+                            HapticFeedbackType.ContextClick
+                        )
                         navToOtherUser()
                     },
                     shape = RoundedCornerShape(18.dp),
