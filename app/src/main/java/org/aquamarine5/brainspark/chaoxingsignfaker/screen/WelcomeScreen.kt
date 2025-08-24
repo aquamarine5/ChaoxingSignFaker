@@ -23,7 +23,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -47,6 +49,7 @@ fun WelcomeScreen(
     navToLoginDestination: () -> Unit
 ) {
     val context = LocalContext.current.applicationContext
+    val hapticFeedback= LocalHapticFeedback.current
     val coroutineContext = rememberCoroutineScope()
     Column(
         modifier = Modifier
@@ -115,6 +118,7 @@ fun WelcomeScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             OutlinedButton(onClick = {
+                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                 coroutineContext.launch {
                     context.chaoxingDataStore.updateData {
                         it.toBuilder().setAgreeTerms(true).build()
@@ -132,6 +136,7 @@ fun WelcomeScreen(
             }
             Button(
                 onClick = {
+                    hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
                     context.startActivity(Intent().apply {
                         setClass(context, MainActivity::class.java)
                         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)

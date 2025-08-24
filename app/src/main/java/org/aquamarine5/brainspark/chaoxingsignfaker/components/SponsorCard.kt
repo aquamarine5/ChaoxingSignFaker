@@ -23,6 +23,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -36,8 +38,10 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.R
 @Composable
 fun SponsorCard() {
     val isShowDialog = remember { mutableStateOf(false) }
+    val hapticFeedback= LocalHapticFeedback.current
     Button(
         onClick = {
+            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
             isShowDialog.value = true
         },
         shape = RoundedCornerShape(18.dp),

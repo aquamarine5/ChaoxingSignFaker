@@ -22,6 +22,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -36,10 +38,11 @@ import java.util.Date
 import java.util.Locale
 
 @Composable
-fun SignOutRedirectTips(
+inline fun SignOutRedirectTips(
     signoffData: ChaoxingSignOutEntity,
-    onRedirect: (Any) -> Unit
+    crossinline onRedirect: (Any) -> Unit
 ) {
+    val hapticFeedback= LocalHapticFeedback.current
     with(signoffData) {
         val status = if (signInId != null) {
             ChaoxingActivityHelper.SIGN_REDIRECT_STATUS.SIGN_OUT
@@ -55,6 +58,7 @@ fun SignOutRedirectTips(
         if (status != ChaoxingActivityHelper.SIGN_REDIRECT_STATUS.COMMON)
             Card(
                 onClick = {
+                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                     coroutineScope.launch {
                         onRedirect(
                             ChaoxingSignHelper.getRedirectDestination(
@@ -98,7 +102,6 @@ fun SignOutRedirectTips(
                             ChaoxingActivityHelper.SIGN_REDIRECT_STATUS.SIGN_IN_UNPUBLISHED -> "此签到活动设置了签退活动，将在${
                                 dateFormatter.format(Date(signOffPublishTime!!))
                             }发布，请发布后及时签退。"
-
                             else -> ""
                         }, color = Color.Black,
                         fontSize = 13.sp,

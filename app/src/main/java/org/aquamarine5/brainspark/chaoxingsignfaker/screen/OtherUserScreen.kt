@@ -9,7 +9,6 @@ package org.aquamarine5.brainspark.chaoxingsignfaker.screen
 import android.content.ClipboardManager
 import android.content.Intent
 import android.graphics.Bitmap
-import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
@@ -65,7 +64,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -89,6 +90,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import org.aquamarine5.brainspark.chaoxingsignfaker.ChaoxingPredictableException
+import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
@@ -98,6 +100,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.components.QRCodeScanCompone
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.RequireLoginAlertDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingOtherUserSharedEntity
+import org.aquamarine5.brainspark.chaoxingsignfaker.snackbarReport
 
 @Serializable
 object OtherUserDestination
@@ -108,6 +111,7 @@ object OtherUserGraphDestination
 @Composable
 fun OtherUserScreen(naviBack: () -> Unit) {
     val context = LocalContext.current
+    val snackbarHost= LocalSnackbarHostState.current
     var inputUrl by remember { mutableStateOf("") }
     var isInputDialog by remember { mutableStateOf(false) }
     var isURLSharedDialog by remember { mutableStateOf(false) }
@@ -133,6 +137,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
         }
     }
     var job: Job? = null
+    val hapticFeedback= LocalHapticFeedback.current
     BackHandler(isQRCodeScanning) {
         isQRCodeScanning = false
     }
@@ -222,30 +227,21 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                 context
                             )
                         }.onFailure {
-                            if ((it is ChaoxingPredictableException).not()) {
-                                Sentry.captureException(it)
-                            }
-                            Toast.makeText(context, it.message ?: "登录失败", Toast.LENGTH_SHORT)
-                                .show()
-                        }.onSuccess {
+                            it.snackbarReport(snackbarHost,coroutineScope,"检查登录失败",hapticFeedback)
+                        }.onSuccess { entity ->
                             runCatching {
                                 ChaoxingOtherUserHelper.saveOtherUser(
                                     context,
-                                    it
+                                    entity
                                 )
                             }.onSuccess {
-                                Toast.makeText(context, "导入成功", Toast.LENGTH_SHORT).show()
+                                snackbarHost?.showSnackbar("导入成功")
+                                hapticFeedback.performHapticFeedback(HapticFeedbackType.Confirm)
                                 UMengHelper.onAccountOtherUserAddEvent(context, it)
                                 otherUserSessions.add(it)
                                 isInputDialog = false
                             }.onFailure {
-                                it.printStackTrace()
-                                val message = if ((it is ChaoxingPredictableException).not()) {
-                                    Sentry.captureException(it)
-                                    it.message
-                                } else it.message
-                                Toast.makeText(context, message ?: "导入失败", Toast.LENGTH_SHORT)
-                                    .show()
+                                it.snackbarReport(snackbarHost,coroutineScope,"保存用户失败",hapticFeedback)
                                 isInputDialog = false
                             }
                         }
@@ -287,7 +283,10 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                 0
                             )?.text
                         if (result.isNullOrEmpty()) {
-                            Toast.makeText(context, "读取剪切板失败", Toast.LENGTH_SHORT).show()
+                            coroutineScope.launch {
+                                snackbarHost?.showSnackbar("读取剪切板失败")
+                                hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
+                            }
                         } else {
                             inputUrl = result.toString()
                         }
@@ -298,14 +297,20 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                         if (inputUrl.isNotBlank()) {
                             val url = inputUrl.toHttpUrlOrNull()
                             if (url == null) {
-                                Toast.makeText(context, "链接格式错误", Toast.LENGTH_SHORT).show()
+                                coroutineScope.launch {
+                                    snackbarHost?.showSnackbar("链接格式错误")
+                                    hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
+                                }
                                 return@FilledTonalButton
                             }
                             val phone = url.queryParameter("phone")
                             val pwd = url.queryParameter("pwd")
                             val name = url.queryParameter("name")
                             if (phone == null || pwd == null || name == null) {
-                                Toast.makeText(context, "链接格式错误", Toast.LENGTH_SHORT).show()
+                                coroutineScope.launch {
+                                    snackbarHost?.showSnackbar("链接格式错误")
+                                    hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
+                                }
                                 return@FilledTonalButton
                             }
                             coroutineScope.launch {
@@ -315,26 +320,20 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                         ChaoxingOtherUserSharedEntity(phone, pwd, name)
                                     )
                                 }.onSuccess {
-                                    Toast.makeText(context, "导入成功", Toast.LENGTH_SHORT).show()
+                                    snackbarHost?.showSnackbar("导入成功")
+                                    hapticFeedback.performHapticFeedback(HapticFeedbackType.Confirm)
                                     UMengHelper.onAccountOtherUserAddEvent(context, it)
                                     isURLSharedDialog = false
                                 }.onFailure {
-                                    it.printStackTrace()
-                                    val message = if ((it is ChaoxingPredictableException).not()) {
-                                        Sentry.captureException(it)
-                                        it.message
-                                    } else it.message
-                                    Toast.makeText(
-                                        context,
-                                        message ?: "导入失败",
-                                        Toast.LENGTH_SHORT
-                                    )
-                                        .show()
+                                    it.snackbarReport(snackbarHost,coroutineScope,"导入失败",hapticFeedback)
                                     isURLSharedDialog = false
                                 }
                             }
                         } else
-                            Toast.makeText(context, "链接不能为空", Toast.LENGTH_SHORT).show()
+                            coroutineScope.launch {
+                                snackbarHost?.showSnackbar("链接不能为空")
+                                hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
+                            }
                     }, modifier = Modifier.weight(1f)) {
                         Row(
                             horizontalArrangement = Arrangement.Center,
@@ -450,7 +449,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        "随意分享此二维码给他人会增加你的学习通账号风险，他人可以通过二维码登录从而控制你的账号，但这个分享行为并不会暴露你的明文密码。",
+                        "随意分享此二维码给他人会增加你的学习通账号风险，他人可以通过此二维码来控制你的账号，但这个分享行为只针对于学习通，并不会暴露你的实际密码。",
                         color = Color.White,
                         fontSize = 13.sp,
                         lineHeight = 18.sp,
@@ -633,6 +632,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                                         .build()
                                                 }
                                             }
+                                            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                                             otherUserSessions.removeIf { it.phoneNumber == user.phoneNumber }
                                         }
                                     ) {
@@ -694,13 +694,13 @@ fun OtherUserScreen(naviBack: () -> Unit) {
         ) {
             QRCodeScanComponent(isQRCodeScanPause, isQRCodeParsing, onClose = {
                 isQRCodeScanning = false
-            }, onScanResult = {
+            }, onScanResult = { qr ->
                 coroutineScope.launch {
                     withContext(Dispatchers.IO) {
                         runCatching {
                             isQRCodeParsing.value = true
                             isQRCodeScanPause.value = true
-                            return@runCatching ChaoxingOtherUserSharedEntity.parseFromQRCode(it)
+                            return@runCatching ChaoxingOtherUserSharedEntity.parseFromQRCode(qr)
                         }.onSuccess { sharedEntity ->
                             coroutineScope.launch {
                                 runCatching {
@@ -711,13 +711,16 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                     currentImportData =
                                         "${sharedEntity.userName}(手机号：${sharedEntity.phoneNumber})"
                                     isQRCodeImportSuccess = true
+                                    hapticFeedback.performHapticFeedback(HapticFeedbackType.Confirm)
                                     otherUserSessions.add(it)
                                     UMengHelper.onAccountOtherUserAddEvent(context, it)
                                 }.onFailure {
                                     it.printStackTrace()
-                                    Sentry.captureException(it)
+                                    if(it !is ChaoxingPredictableException)
+                                        Sentry.captureException(it)
                                     isQRCodeIllegal = true
                                     isQRCodeParsing.value = false
+                                    hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
                                     qrcodeIllegalText = it.message ?: "二维码解析失败，登录失败。"
                                     job?.cancel()
                                     job = coroutineScope.launch {
@@ -729,8 +732,11 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                             }
                         }.onFailure {
                             it.printStackTrace()
+                            if(it !is ChaoxingPredictableException)
+                                Sentry.captureException(it)
                             isQRCodeIllegal = true
                             isQRCodeScanPause.value = true
+                            hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
                             qrcodeIllegalText = it.message ?: "二维码解析失败，不是正确码。"
                             job?.cancel()
                             job = coroutineScope.launch {
@@ -805,7 +811,6 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                     }
                 }
             }
-
         }
     }
 }

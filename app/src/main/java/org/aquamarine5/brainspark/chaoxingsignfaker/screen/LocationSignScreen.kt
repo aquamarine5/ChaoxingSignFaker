@@ -27,6 +27,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import kotlinx.coroutines.delay
@@ -47,8 +48,8 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.components.SponsorPopupDialo
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationDetailEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
-import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignStatus
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignOutEntity
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignStatus
 import org.aquamarine5.brainspark.chaoxingsignfaker.ifAlreadySigned
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingLocationSigner
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSigner
@@ -107,6 +108,7 @@ fun LocationSignScreen(
     val snackbarHost = LocalSnackbarHostState.current
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
+    val hapticFeedback= LocalHapticFeedback.current
     LaunchedEffect(Unit) {
         runCatching {
             val data = signer.getLocationSignInfo()
@@ -117,7 +119,8 @@ fun LocationSignScreen(
             it.snackbarReport(
                 snackbarHost,
                 coroutineScope,
-                "获取签到信息失败"
+                "获取签到信息失败",
+                hapticFeedback
             )
             navToCourseDetailDestination()
         }
@@ -136,7 +139,7 @@ fun LocationSignScreen(
 
                 false -> {
                     var isGetLocation by remember { mutableStateOf(false) }
-                    val signStatus = remember { mutableListOf(ChaoxingSignStatus()) }
+                    val signStatus = remember { mutableListOf(ChaoxingSignStatus(hapticFeedback)) }
                     var isSelfForSign by remember { mutableStateOf(false) }
                     var isSigning by remember { mutableStateOf(false) }
                     var otherUserSessionForSignList by
@@ -191,6 +194,7 @@ fun LocationSignScreen(
                                                                 result,
                                                                 captchaValidate.getOrThrow()
                                                             )
+
                                                             signStatus[0].success()
                                                             if (otherUserSessionForSignList.isEmpty()) {
                                                                 isSigning = false
@@ -209,7 +213,8 @@ fun LocationSignScreen(
                                                                 this.snackbarReport(
                                                                     snackbarHost,
                                                                     coroutineScope,
-                                                                    "验证码校验失败"
+                                                                    "验证码校验失败",
+                                                                    hapticFeedback
                                                                 )
                                                             }
                                                         }
@@ -238,7 +243,8 @@ fun LocationSignScreen(
                                     it.snackbarReport(
                                         snackbarHost,
                                         coroutineScope,
-                                        "签到失败"
+                                        "签到失败",
+                                        hapticFeedback
                                     )
                                 }
                                 otherUserSessionForSignList.forEachIndexed { index, userSession ->
@@ -286,7 +292,8 @@ fun LocationSignScreen(
                                                                             this.snackbarReport(
                                                                                 snackbarHost,
                                                                                 coroutineScope,
-                                                                                "为${userSession.name}签到时验证码校验失败"
+                                                                                "为${userSession.name}签到时验证码校验失败",
+                                                                                hapticFeedback
                                                                             )
                                                                         }
                                                                     }
@@ -315,7 +322,8 @@ fun LocationSignScreen(
                                         err.snackbarReport(
                                             snackbarHost,
                                             coroutineScope,
-                                            "为${userSession.name}签到失败"
+                                            "为${userSession.name}签到失败",
+                                            hapticFeedback
                                         )
                                         err.ifAlreadySigned {
                                             userSelections.takeIf { it.size > index + 1 }?.let {

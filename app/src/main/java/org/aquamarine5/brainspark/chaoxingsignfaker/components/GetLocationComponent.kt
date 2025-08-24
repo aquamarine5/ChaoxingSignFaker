@@ -7,7 +7,6 @@
 package org.aquamarine5.brainspark.chaoxingsignfaker.components
 
 import android.util.Log
-import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -33,11 +32,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -74,6 +76,8 @@ import com.baidu.mapapi.search.geocode.ReverseGeoCodeOption
 import com.baidu.mapapi.search.geocode.ReverseGeoCodeResult
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
+import kotlinx.coroutines.launch
+import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationDetailEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationSignEntity
@@ -85,7 +89,10 @@ fun GetLocationComponent(
     confirmButtonText: @Composable () -> Unit,
     onLocationResult: (ChaoxingLocationSignEntity) -> Unit
 ) {
+    val hapticFeedback= LocalHapticFeedback.current
+    val snackbarHost= LocalSnackbarHostState.current
     val context = LocalContext.current
+    val coroutineScope= rememberCoroutineScope()
     var isShowDialog by remember { mutableStateOf(false) }
     Column(
         modifier = Modifier
@@ -223,12 +230,10 @@ fun GetLocationComponent(
                 }
                 Button(onClick = {
                     if (marker == null) {
-                        Toast.makeText(
-                            context,
-                            "请先点击地图选择位置",
-                            Toast.LENGTH_SHORT
-                        )
-                            .show()
+                        coroutineScope.launch {
+                            snackbarHost?.showSnackbar("请先点击地图选择位置")
+                        }
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
                         return@Button
                     }
                     if (locationRange != null && locationPosition != null) {
@@ -237,15 +242,14 @@ fun GetLocationComponent(
                                 CoordUtil.ll2point(locationPosition)
                             ) > locationRange!!
                         ) {
-                            Toast.makeText(
-                                context,
-                                "位置超出范围",
-                                Toast.LENGTH_SHORT
-                            )
-                                .show()
+                            coroutineScope.launch {
+                                snackbarHost?.showSnackbar("位置超出范围")
+                            }
+                            hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
                             return@Button
                         }
                     }
+                    hapticFeedback.performHapticFeedback(HapticFeedbackType.Confirm)
                     onLocationResult(
                         ChaoxingLocationSignEntity(
                             clickedPosition.latitude,
@@ -275,6 +279,7 @@ fun GetLocationComponent(
                     Spacer(modifier = Modifier.height(8.dp))
                     FloatingActionButton(onClick = {
                         Log.d("GetLocationPage", "onClick: ")
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                         locationClient.start()
                     }) {
                         Icon(
@@ -344,6 +349,7 @@ fun GetLocationComponent(
                                 map.setOnMapClickListener(object : BaiduMap.OnMapClickListener {
                                     override fun onMapClick(p0: LatLng?) {
                                         p0?.let {
+                                            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                                             clickedPosition = it
                                             geoCoder.reverseGeoCode(
                                                 ReverseGeoCodeOption()
@@ -368,6 +374,7 @@ fun GetLocationComponent(
 
                                     override fun onMapPoiClick(p0: MapPoi?) {
                                         p0?.let {
+                                            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                                             clickedPosition = it.position
                                             clickedName = it.name
                                             isNeedLocationDescribe = true
@@ -397,6 +404,7 @@ fun GetLocationComponent(
 
                                     override fun onMarkerDragEnd(p0: Marker?) {
                                         Log.d("GetLocationPage", "onMarkerDragEnd: $p0")
+                                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                                         p0?.let {
                                             clickedPosition = it.position
                                             geoCoder.reverseGeoCode(
@@ -469,7 +477,10 @@ fun GetLocationComponent(
                 Text(text = textToShow)
                 Spacer(modifier = Modifier.height(8.dp))
                 Button(
-                    onClick = { locationPermissionsState.launchMultiplePermissionRequest() },
+                    onClick = {
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                        locationPermissionsState.launchMultiplePermissionRequest()
+                              },
                     modifier = Modifier.align(Alignment.CenterHorizontally)
                 ) {
                     Text(buttonText)

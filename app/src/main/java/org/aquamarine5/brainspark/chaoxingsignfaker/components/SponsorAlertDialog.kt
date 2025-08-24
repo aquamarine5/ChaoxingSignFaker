@@ -9,7 +9,6 @@ package org.aquamarine5.brainspark.chaoxingsignfaker.components
 import android.annotation.SuppressLint
 import android.content.ContentValues
 import android.content.Intent
-import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
@@ -40,6 +39,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -52,6 +53,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.toBitmap
+import androidx.core.net.toUri
 import com.alibaba.fastjson2.JSONObject
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
@@ -60,6 +62,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.Request
+import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
@@ -96,7 +99,9 @@ fun SponsorAlertDialog(showDialog: MutableState<Boolean>) {
             }
         }
     }
+    val snackbarHost= LocalSnackbarHostState.current
     val coroutineScope = rememberCoroutineScope()
+    val hapticFeedback= LocalHapticFeedback.current
     val permissionCheck =
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) rememberPermissionState(
             android.Manifest.permission.WRITE_EXTERNAL_STORAGE
@@ -202,12 +207,13 @@ fun SponsorAlertDialog(showDialog: MutableState<Boolean>) {
                                     }
                                 }
                             }
+                            snackbarHost?.showSnackbar("图片已保存到相册")
                         }.invokeOnCompletion {
-                            Toast.makeText(context, "图片已保存到相册", Toast.LENGTH_SHORT).show()
+                            hapticFeedback.performHapticFeedback(HapticFeedbackType.Confirm)
                             context.startActivity(
                                 Intent(
                                     Intent.ACTION_VIEW,
-                                    Uri.parse("weixin://")
+                                    "weixin://".toUri()
                                 ).apply {
                                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                                 })

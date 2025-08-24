@@ -7,6 +7,6 @@
 package org.aquamarine5.brainspark.chaoxingsignfaker
 
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.staticCompositionLocalOf
 
-val LocalSnackbarHostState = compositionLocalOf<SnackbarHostState?> { null }
+val LocalSnackbarHostState = staticCompositionLocalOf<SnackbarHostState?> { null }

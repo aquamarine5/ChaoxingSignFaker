@@ -8,7 +8,6 @@ package org.aquamarine5.brainspark.chaoxingsignfaker.screen
 
 import android.content.Intent
 import android.graphics.Bitmap
-import android.net.Uri
 import android.os.Build
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
@@ -55,12 +54,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
+import androidx.core.net.toUri
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import kotlinx.coroutines.delay
@@ -81,8 +83,8 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.components.SignOutRedirectTi
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SponsorPopupDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
-import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignStatus
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignOutEntity
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignStatus
 import org.aquamarine5.brainspark.chaoxingsignfaker.ifAlreadySigned
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingPhotoSigner
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSigner
@@ -141,6 +143,7 @@ fun PhotoSignScreen(
                     captchaValidateParams = null
                 })
         }
+        val hapticFeedback= LocalHapticFeedback.current
         LaunchedEffect(Unit) {
             runCatching {
                 val data = signer.ifPhotoRequiredLogin()
@@ -151,7 +154,7 @@ fun PhotoSignScreen(
                 it.snackbarReport(
                     snackbarHost,
                     coroutineScope,
-                    "获取签到信息失败"
+                    "获取签到信息失败",hapticFeedback
                 )
                 navBack()
             }
@@ -171,7 +174,7 @@ fun PhotoSignScreen(
                                 Card(
                                     onClick = {
                                         context.startActivity(Intent(
-                                            Intent.ACTION_VIEW, Uri.parse("cxstudy://")
+                                            Intent.ACTION_VIEW, "cxstudy://".toUri()
                                         ).apply {
                                             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                                         })
@@ -208,7 +211,7 @@ fun PhotoSignScreen(
                                 }
                             }
                             var isSigning by remember { mutableStateOf(false) }
-                            val signStatus = remember { mutableListOf(ChaoxingSignStatus()) }
+                            val signStatus = remember { mutableListOf(ChaoxingSignStatus(hapticFeedback)) }
                             val userSelections = remember { mutableStateListOf(isForSelf.not()) }
                             OtherUserSelectorComponent(
                                 navToOtherUser = {
@@ -246,7 +249,7 @@ fun PhotoSignScreen(
                                                             it.snackbarReport(
                                                                 snackbarHost,
                                                                 coroutineScope,
-                                                                "验证码校验失败"
+                                                                "验证码校验失败",hapticFeedback
                                                             )
                                                             it.ifAlreadySigned {
                                                                 userSelections[0] = false
@@ -273,7 +276,7 @@ fun PhotoSignScreen(
                                         it.snackbarReport(
                                             snackbarHost,
                                             coroutineScope,
-                                            "签到失败"
+                                            "签到失败",hapticFeedback
                                         )
                                         it.ifAlreadySigned {
                                             userSelections[0] = false
@@ -327,7 +330,7 @@ fun PhotoSignScreen(
                                                                             err.snackbarReport(
                                                                                 snackbarHost,
                                                                                 coroutineScope,
-                                                                                "验证码校验失败"
+                                                                                "验证码校验失败",hapticFeedback
                                                                             )
                                                                             err.ifAlreadySigned {
                                                                                 userSelections.takeIf { it.size > index + 1 }
@@ -365,7 +368,7 @@ fun PhotoSignScreen(
                                             err.snackbarReport(
                                                 snackbarHost,
                                                 coroutineScope,
-                                                "签到失败"
+                                                "签到失败",hapticFeedback
                                             )
                                             err.ifAlreadySigned {
                                                 userSelections.takeIf { it.size > 1 + index }
@@ -411,7 +414,7 @@ fun PhotoSignScreen(
                                     val userSelections =
                                         remember { mutableStateListOf(isForSelf.not()) }
                                     val signStatus =
-                                        remember { mutableListOf(ChaoxingSignStatus()) }
+                                        remember { mutableListOf(ChaoxingSignStatus(hapticFeedback)) }
                                     var isCamera by remember { mutableStateOf(false) }
                                     var isSigning by remember { mutableStateOf(false) }
                                     var isSelfForSign by remember { mutableStateOf(false) }
@@ -614,7 +617,7 @@ fun PhotoSignScreen(
                                                                                                         it.snackbarReport(
                                                                                                             snackbarHost,
                                                                                                             coroutineScope,
-                                                                                                            "验证码校验失败"
+                                                                                                            "验证码校验失败",hapticFeedback
                                                                                                         )
                                                                                                         signStatus[0].failed(
                                                                                                             it
@@ -647,7 +650,7 @@ fun PhotoSignScreen(
                                                                     it.snackbarReport(
                                                                         snackbarHost,
                                                                         coroutineScope,
-                                                                        "签到失败"
+                                                                        "签到失败",hapticFeedback
                                                                     )
                                                                     it.ifAlreadySigned {
                                                                         userSelections[0] = false
@@ -720,7 +723,7 @@ fun PhotoSignScreen(
                                                                                                             it.snackbarReport(
                                                                                                                 snackbarHost,
                                                                                                                 coroutineScope,
-                                                                                                                "验证码校验失败"
+                                                                                                                "验证码校验失败",hapticFeedback
                                                                                                             )
                                                                                                             signStatus[index + 1].failed(
                                                                                                                 it
@@ -760,7 +763,7 @@ fun PhotoSignScreen(
                                                                         it.snackbarReport(
                                                                             snackbarHost,
                                                                             coroutineScope,
-                                                                            "签到失败"
+                                                                            "签到失败",hapticFeedback
                                                                         )
                                                                         it.ifAlreadySigned {
                                                                             userSelections.takeIf { it.size > index + 1 }
@@ -817,11 +820,13 @@ fun PhotoSignScreen(
                                                                                 )
                                                                                 isSignSuccess =
                                                                                     true
+                                                                                hapticFeedback.performHapticFeedback(
+                                                                                    HapticFeedbackType.Confirm)
                                                                             }.onFailure {
                                                                                 it.snackbarReport(
                                                                                     snackbarHost,
                                                                                     coroutineScope,
-                                                                                    "验证码校验错误"
+                                                                                    "验证码校验错误",hapticFeedback
                                                                                 )
                                                                             }
                                                                         }
@@ -836,7 +841,7 @@ fun PhotoSignScreen(
                                                     it.snackbarReport(
                                                         snackbarHost,
                                                         coroutineScope,
-                                                        "签到失败"
+                                                        "签到失败",hapticFeedback
                                                     )
                                                 }
                                                 isShowPhotoPicker = false
@@ -871,6 +876,8 @@ fun PhotoSignScreen(
                                                             navToOtherSign(it)
                                                         }
                                                     Button(onClick = {
+                                                        hapticFeedback.performHapticFeedback(
+                                                            HapticFeedbackType.ContextClick)
                                                         isShowPhotoPicker = true
                                                     }) {
                                                         Text("选择图片")
@@ -887,7 +894,10 @@ fun PhotoSignScreen(
                                             Text("请授予应用读取图片权限")
                                             Spacer(modifier = Modifier.height(8.dp))
                                             Button(
-                                                onClick = { photoPermissionsState.launchMultiplePermissionRequest() },
+                                                onClick = {
+                                                    hapticFeedback.performHapticFeedback(
+                                                        HapticFeedbackType.ContextClick)
+                                                    photoPermissionsState.launchMultiplePermissionRequest() },
                                                 modifier = Modifier.align(Alignment.CenterHorizontally)
                                             ) {
                                                 Text("授予")

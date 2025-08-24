@@ -6,7 +6,6 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.screen
 
-import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
@@ -51,7 +50,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -134,6 +135,7 @@ fun QRCodeSignScreen(
             null
         )
     }
+    val hapticFeedback= LocalHapticFeedback.current
     if (captchaValidateParams != null) {
         CaptchaHandlerDialog(
             captchaValidateParams!!.first,
@@ -152,7 +154,7 @@ fun QRCodeSignScreen(
             it.snackbarReport(
                 snackbarHost,
                 coroutineScope,
-                "获取签到信息失败"
+                "获取签到信息失败",hapticFeedback
             )
             navBack()
         }
@@ -179,7 +181,7 @@ fun QRCodeSignScreen(
                 var locationData by remember { mutableStateOf<ChaoxingLocationSignEntity?>(null) }
                 var job by remember { mutableStateOf<Job?>(null) }
                 val userSelections = remember { mutableStateListOf(true) }
-                val signStatus = remember { mutableStateListOf(ChaoxingSignStatus()) }
+                val signStatus = remember { mutableStateListOf(ChaoxingSignStatus(hapticFeedback)) }
                 var isSigning by remember { mutableStateOf(false) }
                 var isSponsor by remember { mutableStateOf(false) }
                 if (isSponsor) {
@@ -241,6 +243,7 @@ fun QRCodeSignScreen(
                         Spacer(modifier = Modifier.height(6.dp))
                         Card(
                             onClick = {
+                                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                                 navToOtherUser()
                             },
                             shape = RoundedCornerShape(18.dp),
@@ -281,7 +284,7 @@ fun QRCodeSignScreen(
                                 }
                             })
                             userSelections.addAll(List(signUserList.size) { false })
-                            signStatus.addAll(Array(signUserList.size) { ChaoxingSignStatus() })
+                            signStatus.addAll(Array(signUserList.size) { ChaoxingSignStatus(hapticFeedback) })
                             success = isCurrentAlreadySigned
                             userSelections[0] = isCurrentAlreadySigned.not()
                         }
@@ -305,6 +308,7 @@ fun QRCodeSignScreen(
                                 Checkbox(
                                     checked = userSelections[0],
                                     onCheckedChange = { isChecked ->
+                                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                                         userSelections[0] = isChecked
                                     },
                                     enabled = (success == true).not()
@@ -333,6 +337,7 @@ fun QRCodeSignScreen(
                                     Checkbox(
                                         checked = userSelections[1 + index],
                                         onCheckedChange = { isChecked ->
+                                            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                                             userSelections[1 + index] = isChecked
                                         },
                                         enabled = (successForOtherUser == true).not()
@@ -355,8 +360,10 @@ fun QRCodeSignScreen(
 
                         Button(onClick = {
                             if (!userSelections.any { it }) {
-                                Toast.makeText(context, "请选择要签到的用户", Toast.LENGTH_SHORT)
-                                    .show()
+                                hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
+                                coroutineScope.launch {
+                                    snackbarHost?.showSnackbar("请选择签到的用户")
+                                }
                                 return@Button
                             }
                             if (isMapRequired) {
@@ -469,7 +476,7 @@ fun QRCodeSignScreen(
                                                                         it.snackbarReport(
                                                                             snackbarHost,
                                                                             coroutineScope,
-                                                                            "验证码校验失败"
+                                                                            "验证码校验失败",hapticFeedback
                                                                         )
                                                                         signStatus[0].failed(it)
                                                                     }
@@ -493,7 +500,7 @@ fun QRCodeSignScreen(
                                                     err.snackbarReport(
                                                         snackbarHost,
                                                         coroutineScope,
-                                                        "签到失败"
+                                                        "签到失败",hapticFeedback
                                                     )
                                                     err.ifAlreadySigned {
                                                         userSelections[0] = false
@@ -555,7 +562,7 @@ fun QRCodeSignScreen(
                                                                                     it.snackbarReport(
                                                                                         snackbarHost,
                                                                                         coroutineScope,
-                                                                                        "验证码校验失败"
+                                                                                        "验证码校验失败",hapticFeedback
                                                                                     )
                                                                                     signStatus[1 + index].failed(
                                                                                         it
@@ -589,7 +596,7 @@ fun QRCodeSignScreen(
                                                     err.snackbarReport(
                                                         snackbarHost,
                                                         coroutineScope,
-                                                        "签到失败"
+                                                        "签到失败",hapticFeedback
                                                     )
                                                     err.ifAlreadySigned {
                                                         userSelections[1 + index] = false

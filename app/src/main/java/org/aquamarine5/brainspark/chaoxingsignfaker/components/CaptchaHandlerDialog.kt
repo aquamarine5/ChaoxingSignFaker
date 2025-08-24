@@ -6,7 +6,6 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.components
 
-import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
@@ -37,8 +36,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
@@ -46,8 +47,10 @@ import coil3.compose.AsyncImage
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCaptchaDataEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSigner
+import org.aquamarine5.brainspark.chaoxingsignfaker.snackbarReport
 
 @Composable
 fun CaptchaHandlerDialog(
@@ -63,6 +66,8 @@ fun CaptchaHandlerDialog(
     val sliderMaxValue = remember(containerWidth) { containerWidth }
     val density by remember { mutableFloatStateOf(sliderMaxValue / 320) }
     val context = LocalContext.current
+    val snackbar = LocalSnackbarHostState.current
+    val hapticFeedback= LocalHapticFeedback.current
     val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(signer) {
@@ -122,11 +127,9 @@ fun CaptchaHandlerDialog(
                                     signer.checkCaptchaResult(normalizedPosition, data!!)
                                         .let { result ->
                                             if (result == null) {
-                                                Toast.makeText(
-                                                    context,
-                                                    "验证失败，请重试",
-                                                    Toast.LENGTH_SHORT
-                                                ).show()
+                                                snackbar?.showSnackbar("验证失败，请重试")
+                                                hapticFeedback.performHapticFeedback(
+                                                    HapticFeedbackType.Reject)
                                                 sliderPosition = 0f
                                                 data = signer.getCaptchaImageV2()
                                             } else {
@@ -135,6 +138,7 @@ fun CaptchaHandlerDialog(
                                             }
                                         }
                                 }.onFailure {
+                                    it.snackbarReport(snackbar,coroutineScope,"验证码校验失败",hapticFeedback)
                                     onResult(Result.failure(it))
                                     onDismiss()
                                 }
@@ -160,6 +164,7 @@ fun CaptchaHandlerDialog(
                     AnimatedVisibility(shouldRetry, enter = fadeIn() + slideInVertically()) {
                         Button(onClick = {
                             coroutineScope.launch {
+                                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                                 data = signer.getCaptchaImageV2()
                             }
                         }) {
@@ -174,6 +179,7 @@ fun CaptchaHandlerDialog(
         dismissButton = {
             Button(onClick = {
                 coroutineScope.launch {
+                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                     data = signer.getCaptchaImageV2()
                 }
             }) {
