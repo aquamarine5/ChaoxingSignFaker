@@ -298,13 +298,9 @@ fun PhotoSignScreen(
                                                     client, destination
                                                 ).apply {
                                                     if (preSign()) {
-                                                        signStatus[index + 1].failed(
-                                                            ChaoxingSigner.AlreadySignedException()
-                                                        )
+                                                        throw ChaoxingSigner.AlreadySignedException()
                                                     } else if (ifPhotoRequiredLogin().first) {
-                                                        signStatus[index + 1].failed(
-                                                            ChaoxingPhotoSigner.ChaoxingIncorrectSignTypeException()
-                                                        )
+                                                        throw ChaoxingPhotoSigner.ChaoxingIncorrectSignTypeException()
                                                     } else {
                                                         if (signByClick()) {
                                                             suspendCoroutine { continuation ->
@@ -681,9 +677,7 @@ fun PhotoSignScreen(
                                                                                 destination
                                                                             ).apply {
                                                                                 if (preSign()) {
-                                                                                    signStatus[1 + index].failed(
-                                                                                        ChaoxingSigner.AlreadySignedException()
-                                                                                    )
+                                                                                    throw ChaoxingSigner.AlreadySignedException()
                                                                                 } else {
                                                                                     val objectId =
                                                                                         uploadImage(

@@ -27,9 +27,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.alibaba.fastjson2.JSONObject
@@ -93,7 +91,6 @@ fun BlockedContent(content: @Composable () -> Unit) {
                 Text("受限于应用策略，当前账号无法使用此功能")
             }
         } else {
-            LocalHapticFeedback.current.performHapticFeedback(HapticFeedbackType.Confirm)
             content()
         }
     }

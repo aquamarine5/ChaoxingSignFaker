@@ -94,6 +94,7 @@ fun CourseDetailScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable {
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                         navToListDestination()
                     }
             ) {
@@ -136,7 +137,6 @@ fun CourseDetailScreen(
                     items(activitiesData!!.signActivities) {
                         key(it.id) {
                             CourseSignActivityColumnCard(it) { destination ->
-                                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                                 navToSignerDestination(destination)
                             }
                         }

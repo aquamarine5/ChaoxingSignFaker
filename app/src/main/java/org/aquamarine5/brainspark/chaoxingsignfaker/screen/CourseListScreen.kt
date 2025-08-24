@@ -197,6 +197,7 @@ fun CourseListScreen(
                                     fadeOutSpec = spring(Spring.StiffnessLow)
                                 ),
                                 onPreferredResort = { isPreferred ->
+                                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                                     if (isPreferred)
                                         coroutineScope.launch {
                                             context.chaoxingDataStore.updateData {

@@ -263,7 +263,7 @@ fun LocationSignScreen(
                                         ).also { client ->
                                             ChaoxingLocationSigner(client, destination).apply {
                                                 if (preSign()) {
-                                                    signStatus[index + 1].failed(ChaoxingSigner.AlreadySignedException())
+                                                    throw ChaoxingSigner.AlreadySignedException()
                                                 } else {
                                                     if (sign(result)) {
                                                         suspendCoroutine { continuation ->
@@ -331,9 +331,7 @@ fun LocationSignScreen(
                                             hapticFeedback
                                         )
                                         err.ifAlreadySigned {
-                                            userSelections.takeIf { it.size > index + 1 }?.let {
-                                                userSelections[index + 1] = false
-                                            }
+                                            userSelections[index + 1] = false
                                         }
                                         signStatus[index + 1].failed(
                                             err
