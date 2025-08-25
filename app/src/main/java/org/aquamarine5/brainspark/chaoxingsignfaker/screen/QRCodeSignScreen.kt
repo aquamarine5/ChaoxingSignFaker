@@ -85,6 +85,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.components.QRCodeScanCompone
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SignOutRedirectTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SponsorPopupDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
+import org.aquamarine5.brainspark.chaoxingsignfaker.displaySnackbar
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationSignEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignOutEntity
@@ -318,6 +319,9 @@ fun QRCodeSignScreen(
                                     enabled = (success == true).not()
                                 )
                                 Row(modifier = Modifier.clickable((success == true).not()) {
+                                    hapticFeedback.performHapticFeedback(
+                                        HapticFeedbackType.ContextClick
+                                    )
                                     userSelections[0] = userSelections[0].not()
                                 }) {
                                     Spacer(modifier = Modifier.width(8.dp))
@@ -347,6 +351,9 @@ fun QRCodeSignScreen(
                                         enabled = (successForOtherUser == true).not()
                                     )
                                     Row(modifier = Modifier.clickable((successForOtherUser == true).not()) {
+                                        hapticFeedback.performHapticFeedback(
+                                            HapticFeedbackType.ContextClick
+                                        )
                                         userSelections[1 + index] =
                                             userSelections[1 + index].not()
                                     }) {
@@ -365,9 +372,7 @@ fun QRCodeSignScreen(
                         Button(onClick = {
                             if (!userSelections.any { it }) {
                                 hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
-                                coroutineScope.launch {
-                                    snackbarHost?.showSnackbar("请选择签到的用户")
-                                }
+                                snackbarHost?.displaySnackbar("请选择签到的用户", coroutineScope)
                                 return@Button
                             }
                             if (isMapRequired) {

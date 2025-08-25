@@ -46,8 +46,8 @@ import androidx.compose.ui.zIndex
 import coil3.compose.AsyncImage
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
+import org.aquamarine5.brainspark.chaoxingsignfaker.displaySnackbar
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCaptchaDataEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSigner
 import org.aquamarine5.brainspark.chaoxingsignfaker.snackbarReport
@@ -119,7 +119,7 @@ fun CaptchaHandlerDialog(
                             sliderPosition = it
                         },
                         onValueChangeFinished = {
-                            runBlocking {
+                            coroutineScope.launch {
                                 runCatching {
                                     val normalizedPosition =
                                         ((sliderPosition / (sliderMaxValue)) * 320f)
@@ -127,11 +127,14 @@ fun CaptchaHandlerDialog(
                                     signer.checkCaptchaResult(normalizedPosition, data!!)
                                         .let { result ->
                                             if (result == null) {
-                                                snackbar?.showSnackbar("验证失败，请重试")
                                                 hapticFeedback.performHapticFeedback(
                                                     HapticFeedbackType.Reject
                                                 )
                                                 sliderPosition = 0f
+                                                snackbar?.displaySnackbar(
+                                                    "验证失败，请重试",
+                                                    coroutineScope
+                                                )
                                                 data = signer.getCaptchaImageV2()
                                             } else {
                                                 onResult(Result.success(result))

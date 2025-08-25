@@ -76,9 +76,9 @@ import com.baidu.mapapi.search.geocode.ReverseGeoCodeOption
 import com.baidu.mapapi.search.geocode.ReverseGeoCodeResult
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
-import kotlinx.coroutines.launch
 import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
+import org.aquamarine5.brainspark.chaoxingsignfaker.displaySnackbar
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationDetailEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationSignEntity
 
@@ -230,9 +230,8 @@ fun GetLocationComponent(
                 }
                 Button(onClick = {
                     if (marker == null) {
-                        coroutineScope.launch {
-                            snackbarHost?.showSnackbar("请先点击地图选择位置")
-                        }
+                        snackbarHost?.displaySnackbar("请先点击地图选择位置", coroutineScope)
+
                         hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
                         return@Button
                     }
@@ -242,9 +241,8 @@ fun GetLocationComponent(
                                 CoordUtil.ll2point(locationPosition)
                             ) > locationRange!!
                         ) {
-                            coroutineScope.launch {
-                                snackbarHost?.showSnackbar("位置超出范围")
-                            }
+                            snackbarHost?.displaySnackbar("位置超出范围", coroutineScope)
+
                             hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
                             return@Button
                         }

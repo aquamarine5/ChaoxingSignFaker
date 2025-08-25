@@ -99,6 +99,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.QRCodeScanComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.RequireLoginAlertDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
+import org.aquamarine5.brainspark.chaoxingsignfaker.displaySnackbar
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingOtherUserSharedEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.snackbarReport
 
@@ -240,8 +241,8 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                     entity
                                 )
                             }.onSuccess {
-                                snackbarHost?.showSnackbar("导入成功")
                                 hapticFeedback.performHapticFeedback(HapticFeedbackType.Confirm)
+                                snackbarHost?.displaySnackbar("导入成功", coroutineScope)
                                 UMengHelper.onAccountOtherUserAddEvent(context, it)
                                 otherUserSessions.add(it)
                                 isInputDialog = false
@@ -293,12 +294,13 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                 0
                             )?.text
                         if (result.isNullOrEmpty()) {
-                            coroutineScope.launch {
-                                snackbarHost?.showSnackbar("读取剪切板失败")
-                                hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
-                            }
+                            hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
+                            snackbarHost?.displaySnackbar("读取剪切板失败", coroutineScope)
                         } else {
-                            inputUrl = result.toString()
+                            {
+                                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                                inputUrl = result.toString()
+                            }
                         }
                     }) {
                         Icon(painterResource(R.drawable.ic_clipboard_copy), null)
@@ -307,20 +309,17 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                         if (inputUrl.isNotBlank()) {
                             val url = inputUrl.toHttpUrlOrNull()
                             if (url == null) {
-                                coroutineScope.launch {
-                                    snackbarHost?.showSnackbar("链接格式错误")
-                                    hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
-                                }
+                                hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
+                                snackbarHost?.displaySnackbar("链接格式错误", coroutineScope)
                                 return@FilledTonalButton
                             }
                             val phone = url.queryParameter("phone")
                             val pwd = url.queryParameter("pwd")
                             val name = url.queryParameter("name")
                             if (phone == null || pwd == null || name == null) {
-                                coroutineScope.launch {
-                                    snackbarHost?.showSnackbar("链接格式错误")
-                                    hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
-                                }
+                                hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
+                                snackbarHost?.displaySnackbar("链接格式错误", coroutineScope)
+
                                 return@FilledTonalButton
                             }
                             coroutineScope.launch {
@@ -330,8 +329,8 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                         ChaoxingOtherUserSharedEntity(phone, pwd, name)
                                     )
                                 }.onSuccess {
-                                    snackbarHost?.showSnackbar("导入成功")
                                     hapticFeedback.performHapticFeedback(HapticFeedbackType.Confirm)
+                                    snackbarHost?.displaySnackbar("导入成功", coroutineScope)
                                     UMengHelper.onAccountOtherUserAddEvent(context, it)
                                     isURLSharedDialog = false
                                 }.onFailure {
@@ -344,11 +343,10 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                     isURLSharedDialog = false
                                 }
                             }
-                        } else
-                            coroutineScope.launch {
-                                snackbarHost?.showSnackbar("链接不能为空")
-                                hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
-                            }
+                        } else {
+                            hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
+                            snackbarHost?.displaySnackbar("链接不能为空", coroutineScope)
+                        }
                     }, modifier = Modifier.weight(1f)) {
                         Row(
                             horizontalArrangement = Arrangement.Center,
@@ -366,6 +364,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                 Spacer(modifier = Modifier.height(6.dp))
                 Button(onClick = {
                     coroutineScope.launch {
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                         context.startActivity(Intent.createChooser(Intent().apply {
                             action = Intent.ACTION_SEND
                             type = "text/plain"
@@ -511,6 +510,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
             ) {
                 SegmentedButton(
                     onClick = {
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                         isQRCodeScanning = true
                     }, shape = SegmentedButtonDefaults.itemShape(
                         index = 0,
@@ -535,6 +535,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                 }
                 SegmentedButton(
                     onClick = {
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                         isURLSharedDialog = true
                     }, shape = SegmentedButtonDefaults.itemShape(
                         index = 1,
@@ -559,6 +560,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                 }
                 SegmentedButton(
                     onClick = {
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                         isInputDialog = true
                     }, shape = SegmentedButtonDefaults.itemShape(
                         index = 2,

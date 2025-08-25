@@ -359,20 +359,20 @@ class ChaoxingHttpClient private constructor(
                     }.takeIf { it >= 0 }?.let { index ->
                         setOtherUsers(
                             index, otherUserSession.toBuilder()
-                            .clearCookies()
-                            .addAllCookies(
-                                client.cookieJar.loadForRequest(
-                                    HttpUrl.Builder()
-                                        .scheme("https")
-                                        .host("chaoxing.com").build()
-                                ).map { cookie ->
-                                    HttpCookie.newBuilder()
-                                        .setValue(cookie.value)
-                                        .setName(cookie.name)
-                                        .setHost(cookie.domain).build()
-                                }
-                            )
-                            .build())
+                                .clearCookies()
+                                .addAllCookies(
+                                    client.cookieJar.loadForRequest(
+                                        HttpUrl.Builder()
+                                            .scheme("https")
+                                            .host("chaoxing.com").build()
+                                    ).map { cookie ->
+                                        HttpCookie.newBuilder()
+                                            .setValue(cookie.value)
+                                            .setName(cookie.name)
+                                            .setHost(cookie.domain).build()
+                                    }
+                                )
+                                .build())
                     }
                 }.build()
             }
@@ -437,12 +437,12 @@ class ChaoxingHttpClient private constructor(
                     if (!jsonResult.getBoolean("status")) {
                         throw ChaoxingLoginException(
                             if (jsonResult.containsKey("msg2")) {
-                            jsonResult.getString("msg2").ifEmpty {
+                                jsonResult.getString("msg2").ifEmpty {
+                                    "登录错误"
+                                }
+                            } else {
                                 "登录错误"
-                            }
-                        } else {
-                            "登录错误"
-                        })
+                            })
                     }
                     tempOkHttpClient.cookieJar.saveFromResponse(
                         request.url,
@@ -498,12 +498,12 @@ class ChaoxingHttpClient private constructor(
                     if (!jsonResult.getBoolean("status")) {
                         throw ChaoxingLoginException(
                             if (jsonResult.containsKey("msg2")) {
-                            jsonResult.getString("msg2").ifEmpty {
+                                jsonResult.getString("msg2").ifEmpty {
+                                    "登录错误"
+                                }
+                            } else {
                                 "登录错误"
-                            }
-                        } else {
-                            "登录错误"
-                        })
+                            })
                     }
 
                     client.cookieJar.saveFromResponse(

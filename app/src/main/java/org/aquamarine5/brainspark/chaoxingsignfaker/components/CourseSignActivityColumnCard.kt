@@ -23,9 +23,9 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.launch
 import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingSignHelper
+import org.aquamarine5.brainspark.chaoxingsignfaker.displaySnackbar
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
 
 
@@ -36,9 +36,9 @@ inline fun CourseSignActivityColumnCard(
 ) {
     val isAvailable = activity.status == 1
     val context = LocalContext.current
-    val snackbarHost= LocalSnackbarHostState.current
-    val hapticFeedback= LocalHapticFeedback.current
-    val coroutineScope= rememberCoroutineScope()
+    val snackbarHost = LocalSnackbarHostState.current
+    val hapticFeedback = LocalHapticFeedback.current
+    val coroutineScope = rememberCoroutineScope()
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -49,9 +49,7 @@ inline fun CourseSignActivityColumnCard(
                         onSignAction(it)
                     }
                 } else {
-                    coroutineScope.launch {
-                        snackbarHost?.showSnackbar("活动未开始或已结束")
-                    }
+                    snackbarHost?.displaySnackbar("活动未开始或已结束", coroutineScope)
                 }
             }) {
         Icon(

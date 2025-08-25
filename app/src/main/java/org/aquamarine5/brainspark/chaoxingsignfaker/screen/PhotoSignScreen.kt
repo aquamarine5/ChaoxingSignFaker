@@ -464,6 +464,9 @@ fun PhotoSignScreen(
                                                     bitmapIndexList.indexOf(index).let {
                                                         if (it != -1 && bitmapList.size > it) {
                                                             IconButton(onClick = {
+                                                                hapticFeedback.performHapticFeedback(
+                                                                    HapticFeedbackType.ContextClick
+                                                                )
                                                                 isShowDialog = true
                                                             }) {
                                                                 Icon(

@@ -45,6 +45,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.SnackbarFunction
 import org.aquamarine5.brainspark.chaoxingsignfaker.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
+import org.aquamarine5.brainspark.chaoxingsignfaker.displaySnackbar
 import org.aquamarine5.brainspark.chaoxingsignfaker.snackbarReport
 
 @Serializable
@@ -124,7 +125,7 @@ fun LoginPage(
                         )
                     }.onSuccess {
                         if (ChaoxingHttpClient.instance != null) {
-                            snackbarHost?.showSnackbar("登录成功")
+                            snackbarHost?.displaySnackbar("登录成功", coroutineContext)
                             navToCourseListDestination()
                         }
                     }

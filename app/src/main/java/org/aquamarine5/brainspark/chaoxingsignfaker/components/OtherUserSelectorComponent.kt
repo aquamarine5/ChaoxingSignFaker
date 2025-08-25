@@ -48,12 +48,12 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
+import org.aquamarine5.brainspark.chaoxingsignfaker.displaySnackbar
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignStatus
 
 @Composable
@@ -162,6 +162,9 @@ fun OtherUserSelectorComponent(
                             enabled = (success == true).not()
                         )
                         Row(modifier = Modifier.clickable((success == true).not()) {
+                            hapticFeedback.performHapticFeedback(
+                                HapticFeedbackType.ContextClick
+                            )
                             userSelections[0] = userSelections[0].not()
                         }, verticalAlignment = Alignment.CenterVertically) {
                             Spacer(modifier = Modifier.width(8.dp))
@@ -198,6 +201,9 @@ fun OtherUserSelectorComponent(
                                     enabled = (successForOtherUser == true).not()
                                 )
                                 Row(modifier = Modifier.clickable((successForOtherUser == true).not()) {
+                                    hapticFeedback.performHapticFeedback(
+                                        HapticFeedbackType.ContextClick
+                                    )
                                     userSelections[i] = userSelections[i].not()
                                 }, verticalAlignment = Alignment.CenterVertically) {
                                     Spacer(modifier = Modifier.width(8.dp))
@@ -223,16 +229,13 @@ fun OtherUserSelectorComponent(
                     onClick = {
                         if (!userSelections.any { it }) {
                             hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
-                            coroutineScope.launch {
-                                snackbarHost?.showSnackbar("请选择要签到的用户")
-                            }
+                            snackbarHost?.displaySnackbar("请选择要签到的用户", coroutineScope)
+
                             return@Button
                         }
                         if (signStatus.all { it.isSuccess.value == true }) {
                             hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
-                            coroutineScope.launch {
-                                snackbarHost?.showSnackbar("所有用户均已签到")
-                            }
+                            snackbarHost?.displaySnackbar("所有用户均已签到", coroutineScope)
                             return@Button
                         }
                         val indexList = mutableListOf<Int>()

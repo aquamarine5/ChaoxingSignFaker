@@ -66,6 +66,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
+import org.aquamarine5.brainspark.chaoxingsignfaker.displaySnackbar
 import java.io.File
 
 
@@ -207,7 +208,7 @@ fun SponsorAlertDialog(showDialog: MutableState<Boolean>) {
                                     }
                                 }
                             }
-                            snackbarHost?.showSnackbar("图片已保存到相册")
+                            snackbarHost?.displaySnackbar("图片已保存到相册", coroutineScope)
                         }.invokeOnCompletion {
                             hapticFeedback.performHapticFeedback(HapticFeedbackType.Confirm)
                             context.startActivity(

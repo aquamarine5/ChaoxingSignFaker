@@ -8,5 +8,17 @@ package org.aquamarine5.brainspark.chaoxingsignfaker
 
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.staticCompositionLocalOf
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 
 val LocalSnackbarHostState = staticCompositionLocalOf<SnackbarHostState?> { null }
+
+fun SnackbarHostState?.displaySnackbar(
+    message: String,
+    coroutineScope: CoroutineScope
+) {
+    this?.currentSnackbarData?.dismiss()
+    coroutineScope.launch {
+        this@displaySnackbar?.showSnackbar(message)
+    }
+}

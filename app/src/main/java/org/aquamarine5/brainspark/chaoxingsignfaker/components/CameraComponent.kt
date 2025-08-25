@@ -26,10 +26,12 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -53,6 +55,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -139,16 +142,22 @@ fun CameraComponent(
                                     initialOffsetX = { -it / 4 })
                                 )
                             .togetherWith(
-                                fadeOut(animationSpec = tween(90)) + slideOutHorizontally(
-                                animationSpec = tween(90),
-                                targetOffsetX = { it / 4 }
-                            ))
+                                fadeOut(animationSpec = tween(180)) + slideOutHorizontally(
+                                    animationSpec = tween(180),
+                                    targetOffsetX = { it / 4 }
+                                ))
                     }) {
                     it?.let { img ->
-                        Image(
-                            img.asImageBitmap(),
-                            null
-                        )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxHeight(0.85f)
+                                .border(4.dp, Color.White, RectangleShape)
+                        ) {
+                            Image(
+                                img.asImageBitmap(),
+                                null
+                            )
+                        }
                     }
                     LaunchedEffect(it) {
                         job = launch {
