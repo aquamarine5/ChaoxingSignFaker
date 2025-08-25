@@ -76,7 +76,7 @@ class ChaoxingLocationSigner(
                 if (it.checkResponse(client.context)) {
                     throw ChaoxingHttpClient.ChaoxingNetworkException()
                 }
-                val result = it.body?.string()
+                val result = it.body.string()
                 if (result == "您已签到过了") {
                     throw AlreadySignedException()
                 }
@@ -84,8 +84,8 @@ class ChaoxingLocationSigner(
                     return@use true
                 }
                 if (result != "success") {
-                    Log.w(CLASSTAG, result ?: "")
-                    throw ChaoxingLocationSignException(result ?: "签到失败")
+                    Log.w(CLASSTAG, result)
+                    throw ChaoxingLocationSignException(result)
                 } else {
                     return@use false
                 }
@@ -112,13 +112,13 @@ class ChaoxingLocationSigner(
                 if (it.checkResponse(client.context)) {
                     throw ChaoxingHttpClient.ChaoxingNetworkException()
                 }
-                val result = it.body?.string()
+                val result = it.body.string()
                 if (result == "您已签到过了") {
                     throw AlreadySignedException()
                 }
                 if (result != "success") {
-                    Log.w(CLASSTAG, result ?: "")
-                    throw ChaoxingLocationSignException(result ?: "签到失败")
+                    Log.w(CLASSTAG, result)
+                    throw ChaoxingLocationSignException(result)
                 }
             }
         }

@@ -36,7 +36,7 @@ object ChaoxingCourseHelper {
                         }
                         return@withContext emptyList()
                     }
-                    var jsonResult = JSONObject.parseObject(rawResponse.body?.string())
+                    var jsonResult = JSONObject.parseObject(rawResponse.body.string())
                     if (jsonResult.getInteger("result") == 0) {
                         if (client.reLogin(context).not()) {
                             Toast.makeText(context, "登录信息已过期，请重新登录", Toast.LENGTH_SHORT)
@@ -59,7 +59,7 @@ object ChaoxingCourseHelper {
                                         }
                                         return@withContext emptyList()
                                     }
-                                    jsonResult = JSONObject.parseObject(it.body?.string())
+                                    jsonResult = JSONObject.parseObject(it.body.string())
                                     if (jsonResult.getInteger("result") == 0) {
                                         Toast.makeText(
                                             context,

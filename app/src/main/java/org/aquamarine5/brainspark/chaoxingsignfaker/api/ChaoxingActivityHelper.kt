@@ -48,7 +48,7 @@ object ChaoxingActivityHelper {
             ).execute().use {
                 if (it.checkResponse(context))
                     throw ChaoxingHttpClient.ChaoxingNetworkException()
-                val jsonResult = JSONObject.parseObject(it.body?.string()).getJSONObject("data")
+                val jsonResult = JSONObject.parseObject(it.body.string()).getJSONObject("data")
                 val activeList = jsonResult.getJSONArray("activeList").map { activity ->
                     activity as JSONObject
                 }.filter { activity ->

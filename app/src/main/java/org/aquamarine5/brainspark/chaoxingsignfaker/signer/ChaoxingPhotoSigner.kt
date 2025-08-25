@@ -81,7 +81,7 @@ class ChaoxingPhotoSigner(
             if (it.checkResponse(client.context)) {
                 throw ChaoxingHttpClient.ChaoxingNetworkException()
             }
-            return@withContext JSONObject.parseObject(it.body!!.string()).getString("_token")
+            return@withContext JSONObject.parseObject(it.body.string()).getString("_token")
         }
     }
 
@@ -100,13 +100,13 @@ class ChaoxingPhotoSigner(
             if (it.checkResponse(client.context)) {
                 throw ChaoxingHttpClient.ChaoxingNetworkException()
             }
-            val result = it.body?.string()
+            val result = it.body.string()
             if (result == "validate") {
                 return@use true
             }
             if (result != "success") {
-                Log.w(CLASSTAG, result ?: "")
-                throw ChaoxingPhotoSignException(result ?: "签到失败")
+                Log.w(CLASSTAG, result)
+                throw ChaoxingPhotoSignException(result)
             } else return@use false
         }
     }
@@ -128,13 +128,13 @@ class ChaoxingPhotoSigner(
                 if (it.checkResponse(client.context)) {
                     throw ChaoxingHttpClient.ChaoxingNetworkException()
                 }
-                val result = it.body?.string()
+                val result = it.body.string()
                 if (result == "validate") {
                     return@use true
                 }
                 if (result != "success") {
-                    Log.w(CLASSTAG, result ?: "")
-                    throw ChaoxingPhotoSignException(result ?: "签到失败")
+                    Log.w(CLASSTAG, result)
+                    throw ChaoxingPhotoSignException(result)
                 } else return@use false
             }
         }
@@ -155,13 +155,13 @@ class ChaoxingPhotoSigner(
             if (it.checkResponse(client.context)) {
                 throw ChaoxingHttpClient.ChaoxingNetworkException()
             }
-            val result = it.body?.string()
+            val result = it.body.string()
             if (result == "您已签到过了") {
                 throw AlreadySignedException()
             }
             if (result != "success") {
-                Log.w(CLASSTAG, result ?: "")
-                throw ChaoxingPhotoSignException(result ?: "签到失败")
+                Log.w(CLASSTAG, result)
+                throw ChaoxingPhotoSignException(result)
             }
         }
     }
@@ -184,13 +184,13 @@ class ChaoxingPhotoSigner(
                 if (it.checkResponse(client.context)) {
                     throw ChaoxingHttpClient.ChaoxingNetworkException()
                 }
-                val result = it.body?.string()
+                val result = it.body.string()
                 if (result == "您已签到过了") {
                     throw AlreadySignedException()
                 }
                 if (result != "success") {
-                    Log.w(CLASSTAG, result ?: "")
-                    throw ChaoxingPhotoSignException(result ?: "签到失败")
+                    Log.w(CLASSTAG, result)
+                    throw ChaoxingPhotoSignException(result)
                 }
             }
         }
@@ -231,7 +231,7 @@ class ChaoxingPhotoSigner(
                     if (it.checkResponse(client.context)) {
                         throw ChaoxingHttpClient.ChaoxingNetworkException()
                     }
-                    JSONObject.parseObject(it.body!!.string()).getString("objectId")
+                    JSONObject.parseObject(it.body.string()).getString("objectId")
                 }
             }
         }
@@ -257,7 +257,7 @@ class ChaoxingPhotoSigner(
                 if (it.checkResponse(client.context)) {
                     throw ChaoxingHttpClient.ChaoxingNetworkException()
                 }
-                JSONObject.parseObject(it.body!!.string()).getString("objectId")
+                JSONObject.parseObject(it.body.string()).getString("objectId")
             }
         }
 

@@ -317,7 +317,7 @@ class ChaoxingHttpClient private constructor(
                                 )
                             }
                             val jsonResult =
-                                JSONObject.parseObject(response.body?.string()).getJSONObject("msg")
+                                JSONObject.parseObject(response.body.string()).getJSONObject("msg")
                             return@withContext ChaoxingUserEntity(
                                 jsonResult.getInteger("uid"),
                                 jsonResult.getInteger("fid"),
@@ -433,7 +433,7 @@ class ChaoxingHttpClient private constructor(
                             "网络异常，请检查网络连接或稍后再试"
                         )
                     }
-                    val jsonResult = JSONObject.parseObject(it.body?.string())
+                    val jsonResult = JSONObject.parseObject(it.body.string())
                     if (!jsonResult.getBoolean("status")) {
                         throw ChaoxingLoginException(
                             if (jsonResult.containsKey("msg2")) {
@@ -494,7 +494,7 @@ class ChaoxingHttpClient private constructor(
                             "网络异常，请检查网络连接或稍后再试"
                         )
                     }
-                    val jsonResult = JSONObject.parseObject(it.body?.string())
+                    val jsonResult = JSONObject.parseObject(it.body.string())
                     if (!jsonResult.getBoolean("status")) {
                         throw ChaoxingLoginException(
                             if (jsonResult.containsKey("msg2")) {

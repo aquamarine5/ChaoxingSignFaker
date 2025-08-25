@@ -80,7 +80,7 @@ abstract class ChaoxingSigner(
             if (it.checkResponse(client.context)) {
                 throw ChaoxingHttpClient.ChaoxingNetworkException()
             }
-            return@withContext JSONObject.parseObject(it.body?.string()).getJSONObject("data")
+            return@withContext JSONObject.parseObject(it.body.string()).getJSONObject("data")
         }
     }
 
@@ -100,12 +100,12 @@ abstract class ChaoxingSigner(
             if (it.checkResponse(client.context)) {
                 throw ChaoxingHttpClient.ChaoxingNetworkException()
             }
-            val body = it.body?.string()
-            if (it.code == 302 || body?.contains("校验失败，未查询到活动数据") == true) {
+            val body = it.body.string()
+            if (it.code == 302 || body.contains("校验失败，未查询到活动数据")) {
                 throw SignActivityNoPermissionException()
             }
             postAnalysis()
-            return@withContext checkAlreadySign(body ?: "")
+            return@withContext checkAlreadySign(body)
         }
     }
 
@@ -121,7 +121,7 @@ abstract class ChaoxingSigner(
             }
             postAfterAnalysis(
                 """code='\+'([a-f0-9]+)'""".toRegex()
-                    .find(it.body?.string() ?: throw Exception("网络错误"))?.groupValues?.get(1)
+                    .find(it.body.string())?.groupValues?.get(1)
                     ?: throw Exception("Cannot find code")
             )
         }
@@ -170,7 +170,7 @@ abstract class ChaoxingSigner(
                 throw ChaoxingHttpClient.ChaoxingNetworkException()
             }
             val jsonResult = JSONObject.parseObject(
-                it.body?.string()?.replace("cx_captcha_function(", "")?.replace(")", "")
+                it.body.string().replace("cx_captcha_function(", "").replace(")", "")
             )
             if (jsonResult.getInteger("error") == 1) {
                 throw CaptchaCheckException(jsonResult.getString("msg"))
@@ -194,7 +194,7 @@ abstract class ChaoxingSigner(
             ).build()
         ).execute().use {
             return@use JSONObject.parseObject(
-                it.body?.string()?.replace("cx_captcha_function(", "")?.replace(")", "")
+                it.body.string().replace("cx_captcha_function(", "").replace(")", "")
             ).getLong("t")
         }
     }
@@ -213,7 +213,7 @@ abstract class ChaoxingSigner(
                 ).build()
             ).execute().use { response ->
                 val jsonResult = JSONObject.parseObject(
-                    response.body?.string()?.replace("cx_captcha_function(", "")?.replace(")", "")
+                    response.body.string().replace("cx_captcha_function(", "").replace(")", "")
                 )
                 val params = it.toHttpUrl()
                 onSuccess(
@@ -333,7 +333,7 @@ abstract class ChaoxingSigner(
                 throw ChaoxingHttpClient.ChaoxingNetworkException()
             }
             val jsonResult = JSONObject.parseObject(
-                it.body?.string()?.replace("cx_captcha_function(", "")?.replace(")", "")
+                it.body.string().replace("cx_captcha_function(", "").replace(")", "")
             )
 
             return@use ChaoxingCaptchaDataEntity(
