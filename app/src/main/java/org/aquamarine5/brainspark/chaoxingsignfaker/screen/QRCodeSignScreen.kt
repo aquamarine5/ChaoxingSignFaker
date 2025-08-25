@@ -6,7 +6,6 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.screen
 
-import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
@@ -19,7 +18,6 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,17 +25,12 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -52,11 +45,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -65,7 +58,6 @@ import androidx.compose.ui.zIndex
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
@@ -75,11 +67,11 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingOtherUserHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingSignHelper
-import org.aquamarine5.brainspark.chaoxingsignfaker.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.AlreadySignedNotice
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.GetLocationComponent
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.OtherUserSelectorComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.QRCodeScanComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SignOutRedirectTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SponsorPopupDialog
@@ -134,6 +126,7 @@ fun QRCodeSignScreen(
             null
         )
     }
+    val hapticFeedback = LocalHapticFeedback.current
     if (captchaValidateParams != null) {
         CaptchaHandlerDialog(
             captchaValidateParams!!.first,
@@ -152,7 +145,7 @@ fun QRCodeSignScreen(
             it.snackbarReport(
                 snackbarHost,
                 coroutineScope,
-                "获取签到信息失败"
+                "获取签到信息失败", hapticFeedback
             )
             navBack()
         }
@@ -160,32 +153,40 @@ fun QRCodeSignScreen(
     Crossfade(isAlreadySigned) { v ->
         when (v) {
             true -> {
-                AlreadySignedNotice(onSignForOtherUser = {
-                    isAlreadySigned = false
-                    isCurrentAlreadySigned = true
-                }, onDismiss = {
-                    isAlreadySigned = false
-                }) { navBack() }
+                Column(
+                    modifier = Modifier.padding(8.dp)
+                ) {
+                    AlreadySignedNotice(onSignForOtherUser = {
+                        isAlreadySigned = false
+                        isCurrentAlreadySigned = true
+                    }, onDismiss = {
+                        isAlreadySigned = false
+                    }) { navBack() }
+                }
             }
 
             false -> {
+                var isSelfForSign by remember { mutableStateOf(false) }
                 var isQRCodeScanning by remember { mutableStateOf(false) }
                 val isQRCodeScanPause = remember { mutableStateOf(false) }
                 val isQRCodeParsing = remember { mutableStateOf(false) }
                 var isQRCodeIllegal by remember { mutableStateOf(false) }
                 var isMapGetting by remember { mutableStateOf(false) }
                 var qrcodeIllegalText by remember { mutableStateOf("二维码不合法") }
-                val signUserList = remember { mutableStateListOf<ChaoxingOtherUserSession>() }
+                var signUserList by remember {
+                    mutableStateOf<List<ChaoxingOtherUserSession?>>(
+                        emptyList()
+                    )
+                }
                 var locationData by remember { mutableStateOf<ChaoxingLocationSignEntity?>(null) }
                 var job by remember { mutableStateOf<Job?>(null) }
                 val userSelections = remember { mutableStateListOf(true) }
-                val signStatus = remember { mutableStateListOf(ChaoxingSignStatus()) }
+                val signStatus = remember { mutableStateListOf(ChaoxingSignStatus(hapticFeedback)) }
                 var isSigning by remember { mutableStateOf(false) }
                 var isSponsor by remember { mutableStateOf(false) }
                 if (isSponsor) {
                     SponsorPopupDialog()
                 }
-                var success by signStatus[0].isSuccess
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -193,8 +194,7 @@ fun QRCodeSignScreen(
                 ) {
                     Column(
                         modifier = Modifier
-                            .padding(16.dp)
-                            .verticalScroll(rememberScrollState())
+                            .padding(8.dp)
                     ) {
                         Card(
                             shape = RoundedCornerShape(18.dp),
@@ -203,6 +203,7 @@ fun QRCodeSignScreen(
                             ), modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(3.dp, 3.dp)
+                                .padding(12.dp, 0.dp)
                         ) {
                             if (signoffData != null)
                                 SignOutRedirectTips(
@@ -238,143 +239,21 @@ fun QRCodeSignScreen(
                                 )
                             }
                         }
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Card(
-                            onClick = {
+                        OtherUserSelectorComponent(
+                            navToOtherUser = {
                                 navToOtherUser()
                             },
-                            shape = RoundedCornerShape(18.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = Color(0xFFFCD337)
-                            ),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(3.dp, 6.dp)
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .padding(10.dp, 12.dp)
-                                    .fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Icon(
-                                    painterResource(R.drawable.ic_lightbulb),
-                                    contentDescription = "Help",
-                                    tint = Color.White
-                                )
-                                Spacer(modifier = Modifier.width(9.dp))
-                                Text(
-                                    "如果你还没有添加其他用户，可以点击跳转至添加用户向导。",
-                                    color = Color.White,
-                                    fontSize = 14.sp,
-                                    lineHeight = 19.sp,
-                                    fontWeight = FontWeight.W500,
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                            }
-                        }
-                        LaunchedEffect(Unit) {
-                            signUserList.addAll(context.chaoxingDataStore.data.first().let { data ->
-                                data.otherUsersList.filter {
-                                    it.phoneNumber != data.loginSession.phoneNumber
-                                }
-                            })
-                            userSelections.addAll(List(signUserList.size) { false })
-                            signStatus.addAll(Array(signUserList.size) { ChaoxingSignStatus() })
-                            success = isCurrentAlreadySigned
-                            userSelections[0] = isCurrentAlreadySigned.not()
-                        }
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Text(
-                            "选择要进行二维码签到的用户：",
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(start = 3.dp)
-                        )
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp)
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 4.dp)
-                            ) {
-                                Checkbox(
-                                    checked = userSelections[0],
-                                    onCheckedChange = { isChecked ->
-                                        userSelections[0] = isChecked
-                                    },
-                                    enabled = (success == true).not()
-                                )
-                                Row(modifier = Modifier.clickable((success == true).not()) {
-                                    userSelections[0] = userSelections[0].not()
-                                }) {
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                        "给自己签到",
-                                        fontWeight = FontWeight.Bold,
-                                        textDecoration = if (success != true) TextDecoration.None else TextDecoration.LineThrough,
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                    signStatus[0].ResultCard()
-                                }
-                            }
-                            signUserList.forEachIndexed { index, userSelection ->
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(vertical = 4.dp)
-                                ) {
-                                    val successForOtherUser by signStatus[1 + index].isSuccess
-                                    Checkbox(
-                                        checked = userSelections[1 + index],
-                                        onCheckedChange = { isChecked ->
-                                            userSelections[1 + index] = isChecked
-                                        },
-                                        enabled = (successForOtherUser == true).not()
-                                    )
-                                    Row(modifier = Modifier.clickable((successForOtherUser == true).not()) {
-                                        userSelections[1 + index] =
-                                            userSelections[1 + index].not()
-                                    }) {
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text(
-                                            text = userSelection.name,
-                                            textDecoration = if (successForOtherUser != true) TextDecoration.None else TextDecoration.LineThrough,
-                                            modifier = Modifier.weight(1f)
-                                        )
-                                        signStatus[1 + index].ResultCard()
-                                    }
-                                }
-                            }
-                        }
-
-                        Button(onClick = {
-                            if (!userSelections.any { it }) {
-                                Toast.makeText(context, "请选择要签到的用户", Toast.LENGTH_SHORT)
-                                    .show()
-                                return@Button
-                            }
-                            if (isMapRequired) {
+                            signStatus = signStatus,
+                            isCurrentAlreadySigned = isCurrentAlreadySigned,
+                            userSelections = userSelections,
+                            isSigning = isSigning
+                        ) { isSelf, otherUserSessionList, indexList ->
+                            isSigning = true
+                            isSelfForSign = isSelf
+                            signUserList = otherUserSessionList
+                            if (isMapRequired)
                                 isMapGetting = true
-                            } else {
-                                isQRCodeScanning = true
-                                isQRCodeScanPause.value = false
-                                isQRCodeParsing.value = false
-                            }
-                            signStatus.forEach { status ->
-                                status.takeIf { it.isSuccess.value == false }?.let {
-                                    it.isSuccess.value = null
-                                    it.isLoading.value = false
-                                    it.error.value = ""
-                                }
-                            }
-                        }, modifier = Modifier.fillMaxWidth(), enabled = !isSigning) {
-                            Text("签到")
+                            else isQRCodeScanning = true
                         }
                     }
                     Box(
@@ -385,17 +264,17 @@ fun QRCodeSignScreen(
                         AnimatedVisibility(
                             isMapGetting,
                             enter =
-                            slideInHorizontally(
-                                initialOffsetX = { it },
-                                animationSpec = tween(300)
-                            ) + fadeIn(
-                                animationSpec = tween(300)
-                            ),
+                                slideInHorizontally(
+                                    initialOffsetX = { it },
+                                    animationSpec = tween(300)
+                                ) + fadeIn(
+                                    animationSpec = tween(300)
+                                ),
                             exit =
-                            slideOutHorizontally(
-                                animationSpec = tween(300),
-                                targetOffsetX = { it }) +
-                                    fadeOut(animationSpec = tween(300)),
+                                slideOutHorizontally(
+                                    animationSpec = tween(300),
+                                    targetOffsetX = { it }) +
+                                        fadeOut(animationSpec = tween(300)),
                             modifier = Modifier.zIndex(1f)
                         ) {
                             GetLocationComponent(confirmButtonText = {
@@ -408,28 +287,34 @@ fun QRCodeSignScreen(
                                 locationData = it
                             }
                             BackHandler(isMapGetting) {
+                                isSigning = false
                                 isMapGetting = false
                             }
                         }
                         AnimatedVisibility(
                             isQRCodeScanning, enter =
-                            slideInHorizontally(
-                                initialOffsetX = { it },
-                                animationSpec = tween(300)
-                            ) + fadeIn(
-                                animationSpec = tween(300)
-                            ), exit =
-                            scaleOut(targetScale = 0.8f, animationSpec = tween(300)) + fadeOut(
-                                animationSpec = tween(300)
-                            )
+                                slideInHorizontally(
+                                    initialOffsetX = { it },
+                                    animationSpec = tween(300)
+                                ) + fadeIn(
+                                    animationSpec = tween(300)
+                                ), exit =
+                                scaleOut(targetScale = 0.8f, animationSpec = tween(300)) + fadeOut(
+                                    animationSpec = tween(300)
+                                )
                         ) {
                             BackHandler(isQRCodeScanning) {
+                                isSigning = false
                                 isQRCodeScanning = false
                                 isQRCodeParsing.value = false
                                 isQRCodeScanPause.value = false
                                 isQRCodeIllegal = false
                             }
                             QRCodeScanComponent(isQRCodeScanPause, isQRCodeParsing, onClose = {
+                                isSigning = false
+                                isQRCodeParsing.value = false
+                                isQRCodeScanPause.value = false
+                                isQRCodeIllegal = false
                                 isQRCodeScanning = false
                             }, onScanResult = {
                                 isSigning = true
@@ -441,7 +326,7 @@ fun QRCodeSignScreen(
                                             return@runCatching signer.parseQRCode(it)
                                         }.onSuccess { enc ->
                                             isQRCodeScanning = false
-                                            if (!isCurrentAlreadySigned) {
+                                            if (isSelfForSign) {
                                                 runCatching {
                                                     signStatus[0].loading()
                                                     if (signer.sign(enc, locationData)) {
@@ -469,7 +354,8 @@ fun QRCodeSignScreen(
                                                                         it.snackbarReport(
                                                                             snackbarHost,
                                                                             coroutineScope,
-                                                                            "验证码校验失败"
+                                                                            "验证码校验失败",
+                                                                            hapticFeedback
                                                                         )
                                                                         signStatus[0].failed(it)
                                                                     }
@@ -493,7 +379,7 @@ fun QRCodeSignScreen(
                                                     err.snackbarReport(
                                                         snackbarHost,
                                                         coroutineScope,
-                                                        "签到失败"
+                                                        "签到失败", hapticFeedback
                                                     )
                                                     err.ifAlreadySigned {
                                                         userSelections[0] = false
@@ -555,7 +441,8 @@ fun QRCodeSignScreen(
                                                                                     it.snackbarReport(
                                                                                         snackbarHost,
                                                                                         coroutineScope,
-                                                                                        "验证码校验失败"
+                                                                                        "验证码校验失败",
+                                                                                        hapticFeedback
                                                                                     )
                                                                                     signStatus[1 + index].failed(
                                                                                         it
@@ -589,7 +476,7 @@ fun QRCodeSignScreen(
                                                     err.snackbarReport(
                                                         snackbarHost,
                                                         coroutineScope,
-                                                        "签到失败"
+                                                        "签到失败", hapticFeedback
                                                     )
                                                     err.ifAlreadySigned {
                                                         userSelections[1 + index] = false

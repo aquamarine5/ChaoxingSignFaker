@@ -18,7 +18,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCourseEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
 
 object ChaoxingActivityHelper {
-    enum class SIGN_REDIRECT_STATUS {
+    enum class SignRedirectStatus {
         COMMON,
         SIGN_IN_PUBLISHED,
         SIGN_OUT,
@@ -48,7 +48,7 @@ object ChaoxingActivityHelper {
             ).execute().use {
                 if (it.checkResponse(context))
                     throw ChaoxingHttpClient.ChaoxingNetworkException()
-                val jsonResult = JSONObject.parseObject(it.body?.string()).getJSONObject("data")
+                val jsonResult = JSONObject.parseObject(it.body.string()).getJSONObject("data")
                 val activeList = jsonResult.getJSONArray("activeList").map { activity ->
                     activity as JSONObject
                 }.filter { activity ->

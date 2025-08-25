@@ -24,6 +24,8 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
@@ -34,6 +36,7 @@ fun AlreadySignedNotice(
     onDismiss: () -> Unit,
     navBack: () -> Unit,
 ) {
+    val hapticFeedback = LocalHapticFeedback.current
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -53,6 +56,7 @@ fun AlreadySignedNotice(
         onSignForOtherUser?.let {
             Spacer(modifier = Modifier.width(6.dp))
             Button(onClick = {
+                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                 it.invoke()
             }, modifier = Modifier.fillMaxWidth()) {
                 Text("为其他用户签到")
@@ -60,6 +64,7 @@ fun AlreadySignedNotice(
         }
         Spacer(modifier = Modifier.width(6.dp))
         OutlinedButton(onClick = {
+            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
             navBack()
         }, modifier = Modifier.fillMaxWidth()) {
             Text("返回")

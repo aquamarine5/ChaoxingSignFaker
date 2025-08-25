@@ -7,7 +7,6 @@
 package org.aquamarine5.brainspark.chaoxingsignfaker.screen
 
 import android.content.Intent
-import android.net.Uri
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -38,7 +37,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -48,6 +49,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.net.toUri
 import coil3.ImageLoader
 import coil3.compose.AsyncImage
 import kotlinx.coroutines.launch
@@ -84,6 +86,7 @@ fun SettingScreen(
         val fontGilroy = FontFamily(
             Font(R.font.gilroy)
         )
+        val hapticFeedback = LocalHapticFeedback.current
         val coroutineScope = rememberCoroutineScope()
         val userEntity = ChaoxingHttpClient.instance!!.userEntity
         var isShowSignoffDialog by remember { mutableStateOf(false) }
@@ -155,6 +158,7 @@ fun SettingScreen(
                 confirmButton = {
                     Button(
                         onClick = {
+                            hapticFeedback.performHapticFeedback(HapticFeedbackType.Confirm)
                             coroutineScope.launch {
                                 context.chaoxingDataStore.updateData {
                                     it.toBuilder()
@@ -205,6 +209,7 @@ fun SettingScreen(
                 )
                 IconButton(
                     onClick = {
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                         isShowSignoffDialog = true
                     }
                 ) { Icon(painterResource(R.drawable.ic_log_out), null, tint = Color.White) }
@@ -219,8 +224,9 @@ fun SettingScreen(
         Button(
             onClick = {
                 runCatching {
+                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                     context.startActivity(Intent(Intent.ACTION_SEND).apply {
-                        setData(Uri.parse("mailto:aquamarine5forever@gmail.com"))
+                        setData("mailto:aquamarine5forever@gmail.com".toUri())
                         putExtra(Intent.EXTRA_EMAIL, "aquamarine5forever@gmail.com")
                         putExtra(Intent.EXTRA_CC, "aquamarine5forever@gmail.com")
                         putExtra(Intent.EXTRA_SUBJECT, "Send to ChaoxingSignFaker:\n")
@@ -268,10 +274,11 @@ fun SettingScreen(
         Button(
             onClick = {
                 runCatching {
+                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                     context.startActivity(
                         Intent(
                             Intent.ACTION_VIEW,
-                            Uri.parse("https://github.com/aquamarine5/ChaoxingSignFaker")
+                            "https://github.com/aquamarine5/ChaoxingSignFaker".toUri()
                         )
                     )
                 }

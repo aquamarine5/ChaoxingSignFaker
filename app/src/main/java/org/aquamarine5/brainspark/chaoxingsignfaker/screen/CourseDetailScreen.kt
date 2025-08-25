@@ -33,7 +33,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -62,6 +64,7 @@ fun CourseDetailScreen(
     var activitiesData by remember { mutableStateOf<ChaoxingCourseActivitiesEntity?>(null) }
     val context = LocalContext.current
     val snackbarHost = LocalSnackbarHostState.current
+    val hapticFeedback = LocalHapticFeedback.current
     val coroutineScope = rememberCoroutineScope()
     LaunchedEffect(Unit) {
         runCatching {
@@ -74,7 +77,8 @@ fun CourseDetailScreen(
             it.snackbarReport(
                 snackbarHost,
                 coroutineScope,
-                "获取签到信息失败"
+                "获取签到信息失败",
+                hapticFeedback
             )
         }
     }
@@ -90,6 +94,7 @@ fun CourseDetailScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable {
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                         navToListDestination()
                     }
             ) {

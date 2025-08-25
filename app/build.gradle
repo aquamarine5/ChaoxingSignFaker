@@ -9,15 +9,15 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     id("org.aquamarine5.brainspark.stackbricks-gradle-plugin") version "2.0.2"
-    id("com.google.protobuf") version "0.9.4"
-    id "io.sentry.android.gradle" version "5.3.0"
-    id("org.jetbrains.kotlin.plugin.serialization") version "2.1.0"
+    id("com.google.protobuf") version "0.9.5"
+    id "io.sentry.android.gradle" version "5.9.0"
+    id("org.jetbrains.kotlin.plugin.serialization") version "2.2.10"
 }
 
 stackbricksConfig {
     configJsonFilePath = "chaoxingsignfaker_stackbricks_v2_manifest.json"
     host = "cdn.aquamarine5.fun"
-    changelog = "1.10版本更新：1.支持签退\n\n1.9版本更新：\n1. 支持有验证码的签到\n2. 修复了位置签到第二次打开白屏的情况\n3. 优化了错误提示\n4. 修复了代签存在的问题\n5. 又一次降低了应用崩溃概率\n\n1.8版本更新：\n1. 优化了首页加载逻辑，现在会缓存课程信息\n2. 优化了屏蔽相应的逻辑和动画\n3. 改进了页面，现在更好看了\n4. 减少了应用崩溃概率（网络引起的）\nlovely lonely."
+    changelog = "1.11版本更新：\n1.新增触感反馈\n1.10版本更新：\n1.支持签退\n1.9版本更新：\n1. 支持有验证码的签到\n2. 修复了位置签到第二次打开白屏的情况\n3. 优化了错误提示\n4. 修复了代签存在的问题\n5. 又一次降低了应用崩溃概率\n1.8版本更新：\n1. 优化了首页加载逻辑，现在会缓存课程信息\n2. 优化了屏蔽相应的逻辑和动画\n3. 改进了页面，现在更好看了\n4. 减少了应用崩溃概率（网络引起的）\nlovely lonely."
     qiniuConfig {
         accessKey = project.findProperty("qiniu.accessKey") ?: ""
         secretKey = project.findProperty("qiniu.secretKey") ?: ""
@@ -37,8 +37,8 @@ android {
         applicationId = "org.aquamarine5.brainspark.chaoxingsignfaker"
         minSdk = 26
         targetSdk = 35
-        versionCode = 110001125
-        versionName = "1.10.0-stable-250822"
+        versionCode = 111001125
+        versionName = "1.11.0-stable-250825"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

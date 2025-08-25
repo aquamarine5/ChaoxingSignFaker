@@ -6,7 +6,6 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.components
 
-import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -32,12 +31,15 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
@@ -47,9 +49,11 @@ import androidx.compose.ui.zIndex
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
+import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
+import org.aquamarine5.brainspark.chaoxingsignfaker.displaySnackbar
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignStatus
 
 @Composable
@@ -64,7 +68,9 @@ fun OtherUserSelectorComponent(
 ) {
     LocalContext.current.let { context ->
         val signUserList = remember { mutableStateListOf<ChaoxingOtherUserSession>() }
-
+        val hapticFeedback = LocalHapticFeedback.current
+        val snackbarHost = LocalSnackbarHostState.current
+        val coroutineScope = rememberCoroutineScope()
         var success by signStatus[0].isSuccess
         Box(
             modifier = Modifier
@@ -78,6 +84,9 @@ fun OtherUserSelectorComponent(
             ) {
                 Card(
                     onClick = {
+                        hapticFeedback.performHapticFeedback(
+                            HapticFeedbackType.ContextClick
+                        )
                         navToOtherUser()
                     },
                     shape = RoundedCornerShape(18.dp),
@@ -121,7 +130,7 @@ fun OtherUserSelectorComponent(
                         })
                     }
                     signStatus.addAll(Array(signUserList.size) {
-                        ChaoxingSignStatus()
+                        ChaoxingSignStatus(hapticFeedback)
                     })
                     userSelections.addAll(List(signUserList.size) { false })
                     success = isCurrentAlreadySigned
@@ -136,7 +145,7 @@ fun OtherUserSelectorComponent(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(2.dp, 16.dp)
+                        .padding(8.dp, 16.dp)
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -147,11 +156,15 @@ fun OtherUserSelectorComponent(
                         Checkbox(
                             checked = userSelections[0] && signStatus[0].isSuccess.value != true,
                             onCheckedChange = { isChecked ->
+                                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                                 userSelections[0] = isChecked
                             },
                             enabled = (success == true).not()
                         )
                         Row(modifier = Modifier.clickable((success == true).not()) {
+                            hapticFeedback.performHapticFeedback(
+                                HapticFeedbackType.ContextClick
+                            )
                             userSelections[0] = userSelections[0].not()
                         }, verticalAlignment = Alignment.CenterVertically) {
                             Spacer(modifier = Modifier.width(8.dp))
@@ -182,11 +195,15 @@ fun OtherUserSelectorComponent(
                                 Checkbox(
                                     checked = userSelections[i] && signStatus[i].isSuccess.value != true,
                                     onCheckedChange = { isChecked ->
+                                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                                         userSelections[i] = isChecked
                                     },
                                     enabled = (successForOtherUser == true).not()
                                 )
                                 Row(modifier = Modifier.clickable((successForOtherUser == true).not()) {
+                                    hapticFeedback.performHapticFeedback(
+                                        HapticFeedbackType.ContextClick
+                                    )
                                     userSelections[i] = userSelections[i].not()
                                 }, verticalAlignment = Alignment.CenterVertically) {
                                     Spacer(modifier = Modifier.width(8.dp))
@@ -211,13 +228,14 @@ fun OtherUserSelectorComponent(
                 Button(
                     onClick = {
                         if (!userSelections.any { it }) {
-                            Toast.makeText(context, "请选择要签到的用户", Toast.LENGTH_SHORT)
-                                .show()
+                            hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
+                            snackbarHost?.displaySnackbar("请选择要签到的用户", coroutineScope)
+
                             return@Button
                         }
                         if (signStatus.all { it.isSuccess.value == true }) {
-                            Toast.makeText(context, "所有用户均已签到", Toast.LENGTH_SHORT)
-                                .show()
+                            hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
+                            snackbarHost?.displaySnackbar("所有用户均已签到", coroutineScope)
                             return@Button
                         }
                         val indexList = mutableListOf<Int>()
@@ -225,7 +243,7 @@ fun OtherUserSelectorComponent(
                         // 2 3 5
                         if (userSelections[0] && signStatus[0].isSuccess.value != true)
                             indexList.add(0)
-
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                         onSignAction(
                             userSelections[0] && signStatus[0].isSuccess.value != true,
                             signUserList.mapIndexed { index, chaoxingOtherUserSession ->

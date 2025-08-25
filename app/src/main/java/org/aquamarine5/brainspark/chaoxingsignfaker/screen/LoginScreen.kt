@@ -6,7 +6,6 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.screen
 
-import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -27,6 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.Font
@@ -38,14 +38,15 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import io.sentry.Sentry
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
-import org.aquamarine5.brainspark.chaoxingsignfaker.ChaoxingPredictableException
+import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.SnackbarFunction
 import org.aquamarine5.brainspark.chaoxingsignfaker.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
+import org.aquamarine5.brainspark.chaoxingsignfaker.displaySnackbar
+import org.aquamarine5.brainspark.chaoxingsignfaker.snackbarReport
 
 @Serializable
 object LoginDestination
@@ -59,6 +60,8 @@ fun LoginPage(
     var password by remember { mutableStateOf("") }
     val coroutineContext = rememberCoroutineScope()
     val context = LocalContext.current
+    val hapticFeedback = LocalHapticFeedback.current
+    val snackbarHost = LocalSnackbarHostState.current
     val focusManager = LocalFocusManager.current
     Column(
         modifier = Modifier
@@ -110,21 +113,21 @@ fun LoginPage(
             onClick = {
                 focusManager.clearFocus()
                 coroutineContext.launch {
-                    var tipsText: String
                     runCatching {
                         ChaoxingHttpClient.create(phoneNumber, password, context)
                         UMengHelper.onLoginEvent(context, phoneNumber)
                     }.onFailure {
-                        if ((it is ChaoxingPredictableException).not()) {
-                            Sentry.captureException(it)
+                        it.snackbarReport(
+                            snackbarHost,
+                            coroutineContext,
+                            "登录失败",
+                            hapticFeedback
+                        )
+                    }.onSuccess {
+                        if (ChaoxingHttpClient.instance != null) {
+                            snackbarHost?.displaySnackbar("登录成功", coroutineContext)
+                            navToCourseListDestination()
                         }
-                        tipsText = it.message ?: "登录失败"
-                        showSnackbar(tipsText, null, true, null)
-                    }
-                }.invokeOnCompletion {
-                    if (ChaoxingHttpClient.instance != null) {
-                        Toast.makeText(context, "登录成功", Toast.LENGTH_SHORT).show()
-                        navToCourseListDestination()
                     }
                 }
             },

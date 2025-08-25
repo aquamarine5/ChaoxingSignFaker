@@ -317,7 +317,7 @@ class ChaoxingHttpClient private constructor(
                                 )
                             }
                             val jsonResult =
-                                JSONObject.parseObject(response.body?.string()).getJSONObject("msg")
+                                JSONObject.parseObject(response.body.string()).getJSONObject("msg")
                             return@withContext ChaoxingUserEntity(
                                 jsonResult.getInteger("uid"),
                                 jsonResult.getInteger("fid"),
@@ -357,21 +357,22 @@ class ChaoxingHttpClient private constructor(
                     otherUsersList.indexOfFirst {
                         it.phoneNumber == otherUserSession.phoneNumber
                     }.takeIf { it >= 0 }?.let { index ->
-                        setOtherUsers(index, otherUserSession.toBuilder()
-                            .clearCookies()
-                            .addAllCookies(
-                                client.cookieJar.loadForRequest(
-                                    HttpUrl.Builder()
-                                        .scheme("https")
-                                        .host("chaoxing.com").build()
-                                ).map { cookie ->
-                                    HttpCookie.newBuilder()
-                                        .setValue(cookie.value)
-                                        .setName(cookie.name)
-                                        .setHost(cookie.domain).build()
-                                }
-                            )
-                            .build())
+                        setOtherUsers(
+                            index, otherUserSession.toBuilder()
+                                .clearCookies()
+                                .addAllCookies(
+                                    client.cookieJar.loadForRequest(
+                                        HttpUrl.Builder()
+                                            .scheme("https")
+                                            .host("chaoxing.com").build()
+                                    ).map { cookie ->
+                                        HttpCookie.newBuilder()
+                                            .setValue(cookie.value)
+                                            .setName(cookie.name)
+                                            .setHost(cookie.domain).build()
+                                    }
+                                )
+                                .build())
                     }
                 }.build()
             }
@@ -432,15 +433,16 @@ class ChaoxingHttpClient private constructor(
                             "网络异常，请检查网络连接或稍后再试"
                         )
                     }
-                    val jsonResult = JSONObject.parseObject(it.body?.string())
+                    val jsonResult = JSONObject.parseObject(it.body.string())
                     if (!jsonResult.getBoolean("status")) {
-                        throw ChaoxingLoginException(if (jsonResult.containsKey("msg2")) {
-                            jsonResult.getString("msg2").ifEmpty {
+                        throw ChaoxingLoginException(
+                            if (jsonResult.containsKey("msg2")) {
+                                jsonResult.getString("msg2").ifEmpty {
+                                    "登录错误"
+                                }
+                            } else {
                                 "登录错误"
-                            }
-                        } else {
-                            "登录错误"
-                        })
+                            })
                     }
                     tempOkHttpClient.cookieJar.saveFromResponse(
                         request.url,
@@ -492,15 +494,16 @@ class ChaoxingHttpClient private constructor(
                             "网络异常，请检查网络连接或稍后再试"
                         )
                     }
-                    val jsonResult = JSONObject.parseObject(it.body?.string())
+                    val jsonResult = JSONObject.parseObject(it.body.string())
                     if (!jsonResult.getBoolean("status")) {
-                        throw ChaoxingLoginException(if (jsonResult.containsKey("msg2")) {
-                            jsonResult.getString("msg2").ifEmpty {
+                        throw ChaoxingLoginException(
+                            if (jsonResult.containsKey("msg2")) {
+                                jsonResult.getString("msg2").ifEmpty {
+                                    "登录错误"
+                                }
+                            } else {
                                 "登录错误"
-                            }
-                        } else {
-                            "登录错误"
-                        })
+                            })
                     }
 
                     client.cookieJar.saveFromResponse(

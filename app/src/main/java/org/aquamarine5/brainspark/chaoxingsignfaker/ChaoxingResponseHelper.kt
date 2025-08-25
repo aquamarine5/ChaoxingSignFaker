@@ -11,6 +11,8 @@ import android.widget.Toast
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
+import androidx.compose.ui.hapticfeedback.HapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import io.sentry.Sentry
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -67,13 +69,15 @@ fun Throwable.snackbarReport(
     snackbarHostState: SnackbarHostState?,
     coroutineScope: CoroutineScope,
     prefixTips: String? = null,
+    hapticFeedback: HapticFeedback,
     duration: SnackbarDuration = SnackbarDuration.Short,
     actionLabel: String? = null,
     onSnackbarResult: ((SnackbarResult) -> Unit)? = null
 ) {
     this.cause?.printStackTrace()
     this.printStackTrace()
-    if ((this is ChaoxingPredictableException).not()) {
+    hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
+    if (this !is ChaoxingPredictableException) {
         Sentry.captureException(this)
         snackbarHostState?.currentSnackbarData?.dismiss()
         coroutineScope.launch {

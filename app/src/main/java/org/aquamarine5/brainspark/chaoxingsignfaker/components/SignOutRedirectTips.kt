@@ -22,6 +22,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -36,36 +38,38 @@ import java.util.Date
 import java.util.Locale
 
 @Composable
-fun SignOutRedirectTips(
+inline fun SignOutRedirectTips(
     signoffData: ChaoxingSignOutEntity,
-    onRedirect: (Any) -> Unit
+    crossinline onRedirect: (Any) -> Unit
 ) {
+    val hapticFeedback = LocalHapticFeedback.current
     with(signoffData) {
         val status = if (signInId != null) {
-            ChaoxingActivityHelper.SIGN_REDIRECT_STATUS.SIGN_OUT
+            ChaoxingActivityHelper.SignRedirectStatus.SIGN_OUT
         } else if (signOffPublishTime != null) {
             if (signOffId == null)
-                ChaoxingActivityHelper.SIGN_REDIRECT_STATUS.SIGN_IN_UNPUBLISHED
-            else ChaoxingActivityHelper.SIGN_REDIRECT_STATUS.SIGN_IN_PUBLISHED
+                ChaoxingActivityHelper.SignRedirectStatus.SIGN_IN_UNPUBLISHED
+            else ChaoxingActivityHelper.SignRedirectStatus.SIGN_IN_PUBLISHED
         } else {
-            ChaoxingActivityHelper.SIGN_REDIRECT_STATUS.COMMON
+            ChaoxingActivityHelper.SignRedirectStatus.COMMON
         }
         val coroutineScope = rememberCoroutineScope()
 
-        if (status != ChaoxingActivityHelper.SIGN_REDIRECT_STATUS.COMMON)
+        if (status != ChaoxingActivityHelper.SignRedirectStatus.COMMON)
             Card(
                 onClick = {
+                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                     coroutineScope.launch {
                         onRedirect(
                             ChaoxingSignHelper.getRedirectDestination(
-                                if (status == ChaoxingActivityHelper.SIGN_REDIRECT_STATUS.SIGN_OUT) signInId!! else signOffId!!,
+                                if (status == ChaoxingActivityHelper.SignRedirectStatus.SIGN_OUT) signInId!! else signOffId!!,
                                 classId,
                                 courseId
                             )
                         )
                     }
                 },
-                enabled = status != ChaoxingActivityHelper.SIGN_REDIRECT_STATUS.SIGN_IN_UNPUBLISHED,
+                enabled = status != ChaoxingActivityHelper.SignRedirectStatus.SIGN_IN_UNPUBLISHED,
                 shape = RoundedCornerShape(18.dp),
                 colors = CardDefaults.cardColors(
                     containerColor = Color(0xFFFECC11), disabledContainerColor = Color(0xFFFECC11)
@@ -82,20 +86,22 @@ fun SignOutRedirectTips(
                 ) {
                     Spacer(modifier = Modifier.width(8.dp))
                     Icon(
-                        painterResource(if (status == ChaoxingActivityHelper.SIGN_REDIRECT_STATUS.SIGN_OUT) R.drawable.ic_calendar_arrow_up else R.drawable.ic_calendar_arrow_down),
+                        painterResource(if (status == ChaoxingActivityHelper.SignRedirectStatus.SIGN_OUT) R.drawable.ic_calendar_arrow_up else R.drawable.ic_calendar_arrow_down),
                         contentDescription = "Info",
                         tint = Color.Black
                     )
                     Spacer(modifier = Modifier.width(9.dp))
-                    val dateFormatter= remember { SimpleDateFormat(
-                        "yyyy-MM-dd HH:mm:ss",
-                        Locale.getDefault()
-                    ) }
+                    val dateFormatter = remember {
+                        SimpleDateFormat(
+                            "yyyy-MM-dd HH:mm:ss",
+                            Locale.getDefault()
+                        )
+                    }
                     Text(
                         when (status) {
-                            ChaoxingActivityHelper.SIGN_REDIRECT_STATUS.SIGN_OUT -> "这是一个签退活动，请确保已经签到了本签退活动的主签到活动。\n点击跳转到主签到活动进行签到。"
-                            ChaoxingActivityHelper.SIGN_REDIRECT_STATUS.SIGN_IN_PUBLISHED -> "此签到已发布签退活动。\n点击跳转到签退活动进行签退。"
-                            ChaoxingActivityHelper.SIGN_REDIRECT_STATUS.SIGN_IN_UNPUBLISHED -> "此签到活动设置了签退活动，将在${
+                            ChaoxingActivityHelper.SignRedirectStatus.SIGN_OUT -> "这是一个签退活动，请确保已经签到了本签退活动的主签到活动。\n点击跳转到主签到活动进行签到。"
+                            ChaoxingActivityHelper.SignRedirectStatus.SIGN_IN_PUBLISHED -> "此签到已发布签退活动。\n点击跳转到签退活动进行签退。"
+                            ChaoxingActivityHelper.SignRedirectStatus.SIGN_IN_UNPUBLISHED -> "此签到活动设置了签退活动，将在${
                                 dateFormatter.format(Date(signOffPublishTime!!))
                             }发布，请发布后及时签退。"
 

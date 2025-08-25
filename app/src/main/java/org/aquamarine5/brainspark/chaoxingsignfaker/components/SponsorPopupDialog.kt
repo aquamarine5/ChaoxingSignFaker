@@ -17,6 +17,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import kotlin.random.Random
@@ -27,6 +29,7 @@ private const val SPONSOR_DIALOG_SHOW_RATE = 99
 fun SponsorPopupDialog() {
     var isShowDialog by remember { mutableStateOf(Random.nextInt(100) < SPONSOR_DIALOG_SHOW_RATE) }
     val isShowSponsor = remember { mutableStateOf(false) }
+    val hapticFeedback = LocalHapticFeedback.current
     if (isShowDialog)
         AlertDialog(onDismissRequest = {
             isShowDialog = false
@@ -42,6 +45,7 @@ fun SponsorPopupDialog() {
             Text("随地大小签虽然每次使用不需要签到，但是用于更新的服务器资源还是需要持续付费的 :(")
         }, confirmButton = {
             Button(onClick = {
+                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                 isShowSponsor.value = true
                 isShowDialog = false
             }) { Text("现在就去") }

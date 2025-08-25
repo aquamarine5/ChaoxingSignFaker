@@ -29,7 +29,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.Font
@@ -83,6 +85,7 @@ fun CourseListScreen(
     var preferredClassIds = remember {
         mutableStateListOf<Int>()
     }
+    val hapticFeedback = LocalHapticFeedback.current
     val context = LocalContext.current
     var newestVersionData by remember { mutableStateOf<StackbricksVersionData?>(null) }
     var isNewVersionDialogDisplayed = rememberSaveable { false }
@@ -119,14 +122,18 @@ fun CourseListScreen(
 
                     }
                 }.onFailure {
-                    it.snackbarReport(snackbarHost, coroutineScope, "获取课程列表失败")
+                    it.snackbarReport(
+                        snackbarHost,
+                        coroutineScope,
+                        "获取课程列表失败",
+                        hapticFeedback
+                    )
                 }
             }
         }
     }
     if (newestVersionData != null && (isForceInstall || !isNewVersionDialogDisplayed)) {
         onNewVersionAvailable()
-        isNewVersionDialogDisplayed = true
         AlertDialog(onDismissRequest = {
             if (isForceInstall) {
                 Toast.makeText(context, "必须更新应用", Toast.LENGTH_SHORT).show()
@@ -189,6 +196,7 @@ fun CourseListScreen(
                                     fadeOutSpec = spring(Spring.StiffnessLow)
                                 ),
                                 onPreferredResort = { isPreferred ->
+                                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                                     if (isPreferred)
                                         coroutineScope.launch {
                                             context.chaoxingDataStore.updateData {
@@ -221,6 +229,7 @@ fun CourseListScreen(
                                     }
                                 }
                             ) {
+                                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                                 navToDetailDestination(data)
                             }
                         }

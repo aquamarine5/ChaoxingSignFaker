@@ -39,7 +39,9 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -64,6 +66,7 @@ inline fun QRCodeScanComponent(
     content: @Composable BoxScope.() -> Unit
 ) {
     val cameraPermission = rememberPermissionState(android.Manifest.permission.CAMERA)
+    val hapticFeedback = LocalHapticFeedback.current
     if (cameraPermission.status == PermissionStatus.Granted) {
         val application = LocalActivity.current!!
         val lifecycleOwner = LocalLifecycleOwner.current
@@ -92,11 +95,12 @@ inline fun QRCodeScanComponent(
                             it?.let { result ->
                                 val barcodeResult =
                                     result.getValue(barcodeScanner) ?: return@MlKitAnalyzer
-                                if (barcodeResult.size > 0) {
+                                if (barcodeResult.isNotEmpty()) {
                                     val barcode = barcodeResult[0]
                                     previewView.overlay.clear()
                                     previewView.overlay.add(QRCodeDrawable(barcode))
                                     if (!isPause.value) {
+                                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                                         onScanResult(barcode)
                                     }
                                 }
@@ -150,6 +154,7 @@ inline fun QRCodeScanComponent(
             }
             Text(text = text)
             Button(onClick = {
+                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                 cameraPermission.launchPermissionRequest()
             }) {
                 Text("点击获取权限")

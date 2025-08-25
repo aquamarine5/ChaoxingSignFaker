@@ -51,7 +51,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -155,6 +157,7 @@ class MainActivity : ComponentActivity() {
         UMengHelper.preInit(this)
         enableEdgeToEdge()
         setContent {
+            val hapticFeedback = LocalHapticFeedback.current
             val navController = rememberNavController()
             var isNewVersionAvailable by remember {
                 mutableStateOf(false)
@@ -189,177 +192,187 @@ class MainActivity : ComponentActivity() {
                 }.crossfade(true).build()
             }
             ChaoxingSignFakerTheme {
-                Scaffold(
-                    snackbarHost = {
-                        SnackbarHost(hostState = snackbarHostState)
-                    },
-                    bottomBar = {
-                        val navBackStackEntry by navController.currentBackStackEntryAsState()
-                        val currentDestination = navBackStackEntry?.destination
-                        val isNoBottomNavigationBar by remember(currentDestination) {
-                            mutableStateOf(
-                                listOf(
-                                    WelcomeDestination::class,
-                                    LoginDestination::class
-                                ).any { currentDestination?.hasRoute(it) ?: false }.not()
-                            )
-                        }
-                        AnimatedVisibility(
-                            isNoBottomNavigationBar,
-                            enter = expandVertically(),
-                            exit = shrinkVertically()
-                        ) {
-                            BottomNavigation(
-                                backgroundColor = MaterialTheme.colorScheme.primaryContainer,
-                                elevation = 14.dp
-                            ) {
-                                val bottomBarItem = listOf(
-                                    NavigationBarItemData(
-                                        SignGraphDestination,
-                                        "签到",
-                                        painterResource(R.drawable.ic_clipboard_pen_line)
-                                    ),
-                                    NavigationBarItemData(
-                                        OtherUserGraphDestination,
-                                        "代签",
-                                        painterResource(R.drawable.ic_users_round)
-                                    ),
-                                    NavigationBarItemData(
-                                        SettingGraphDestination,
-                                        "设置",
-                                        painterResource(R.drawable.ic_settings)
-                                    )
+                CompositionLocalProvider(LocalSnackbarHostState provides snackbarHostState) {
+                    Scaffold(
+                        snackbarHost = {
+                            SnackbarHost(hostState = snackbarHostState)
+                        },
+                        bottomBar = {
+                            val navBackStackEntry by navController.currentBackStackEntryAsState()
+                            val currentDestination = navBackStackEntry?.destination
+                            val isNoBottomNavigationBar by remember(currentDestination) {
+                                mutableStateOf(
+                                    listOf(
+                                        WelcomeDestination::class,
+                                        LoginDestination::class
+                                    ).any { currentDestination?.hasRoute(it) ?: false }.not()
                                 )
-                                bottomBarItem.forEach { item ->
-                                    val isSelected =
-                                        currentDestination?.hierarchy?.any { it.hasRoute(item.destination::class) } == true
-                                    BottomNavigationItem(
-                                        isSelected,
-                                        onClick = {
-                                            if (destination != null)
-                                                navController.navigate(item.destination) {
-                                                    popUpTo(navController.graph.findStartDestination().id) {
-                                                        saveState = true
+                            }
+                            AnimatedVisibility(
+                                isNoBottomNavigationBar,
+                                enter = expandVertically(),
+                                exit = shrinkVertically()
+                            ) {
+                                BottomNavigation(
+                                    backgroundColor = MaterialTheme.colorScheme.primaryContainer,
+                                    elevation = 14.dp
+                                ) {
+                                    val bottomBarItem = listOf(
+                                        NavigationBarItemData(
+                                            SignGraphDestination,
+                                            "签到",
+                                            painterResource(R.drawable.ic_clipboard_pen_line)
+                                        ),
+                                        NavigationBarItemData(
+                                            OtherUserGraphDestination,
+                                            "代签",
+                                            painterResource(R.drawable.ic_users_round)
+                                        ),
+                                        NavigationBarItemData(
+                                            SettingGraphDestination,
+                                            "设置",
+                                            painterResource(R.drawable.ic_settings)
+                                        )
+                                    )
+                                    bottomBarItem.forEach { item ->
+                                        val isSelected =
+                                            currentDestination?.hierarchy?.any { it.hasRoute(item.destination::class) } == true
+                                        BottomNavigationItem(
+                                            isSelected,
+                                            onClick = {
+                                                if (destination != null) {
+                                                    hapticFeedback.performHapticFeedback(
+                                                        HapticFeedbackType.ContextClick
+                                                    )
+                                                    navController.navigate(item.destination) {
+                                                        popUpTo(navController.graph.findStartDestination().id) {
+                                                            saveState = true
+                                                        }
+                                                        launchSingleTop = true
+                                                        restoreState = true
                                                     }
-                                                    launchSingleTop = true
-                                                    restoreState = true
                                                 }
-                                        },
-                                        icon = {
-                                            val iconColor by animateColorAsState(
-                                                if (isSelected) LocalContentColor.current else
-                                                    LocalContentColor.current.copy(ContentAlpha.medium),
-                                                tween(300)
-                                            )
-                                            CompositionLocalProvider(LocalContentColor provides iconColor) {
-                                                Column {
-                                                    Spacer(modifier = Modifier.size(1.5.dp))
-                                                    Box {
-                                                        Icon(
-                                                            item.icon,
-                                                            contentDescription = item.name,
-                                                            modifier = Modifier.size(26.dp)
-                                                        )
-                                                        if (item.name == "设置" && isNewVersionAvailable) {
-                                                            Box(
-                                                                modifier = Modifier
-                                                                    .size(10.dp)
-                                                                    .background(
-                                                                        color = Color(0xFFF23E23),
-                                                                        shape = CircleShape
-                                                                    )
-                                                                    .align(Alignment.TopEnd)
-                                                                    .offset(x = 2.dp, y = (-2).dp)
+
+                                            },
+                                            icon = {
+                                                val iconColor by animateColorAsState(
+                                                    if (isSelected) LocalContentColor.current else
+                                                        LocalContentColor.current.copy(ContentAlpha.medium),
+                                                    tween(300)
+                                                )
+                                                CompositionLocalProvider(LocalContentColor provides iconColor) {
+                                                    Column {
+                                                        Spacer(modifier = Modifier.size(1.5.dp))
+                                                        Box {
+                                                            Icon(
+                                                                item.icon,
+                                                                contentDescription = item.name,
+                                                                modifier = Modifier.size(26.dp)
                                                             )
+                                                            if (item.name == "设置" && isNewVersionAvailable) {
+                                                                Box(
+                                                                    modifier = Modifier
+                                                                        .size(10.dp)
+                                                                        .background(
+                                                                            color = Color(0xFFF23E23),
+                                                                            shape = CircleShape
+                                                                        )
+                                                                        .align(Alignment.TopEnd)
+                                                                        .offset(
+                                                                            x = 2.dp,
+                                                                            y = (-2).dp
+                                                                        )
+                                                                )
+                                                            }
                                                         }
                                                     }
                                                 }
-                                            }
-                                        },
-                                        label = {
-                                            Column {
-                                                Spacer(modifier = Modifier.size(1.5.dp))
-                                                Text(item.name, fontSize = 12.sp)
-                                            }
-                                        },
-                                        alwaysShowLabel = false
-                                    )
+                                            },
+                                            label = {
+                                                Column {
+                                                    Spacer(modifier = Modifier.size(1.5.dp))
+                                                    Text(item.name, fontSize = 12.sp)
+                                                }
+                                            },
+                                            alwaysShowLabel = false
+                                        )
+                                    }
                                 }
                             }
                         }
-                    }
-                ) { innerPadding ->
-                    val stackbricksService = QiniuConfiguration(
-                        "cdn.aquamarine5.fun",
-                        referer = "http://cdn.aquamarine5.fun/",
-                        configFilePath = "chaoxingsignfaker_stackbricks_v2_manifest.json",
-                        okHttpClient = OkHttpClient().newBuilder()
-                            .callTimeout(20, TimeUnit.MINUTES)
-                            .readTimeout(20, TimeUnit.MINUTES)
-                            .writeTimeout(20, TimeUnit.MINUTES)
-                            .build()
-                    ).let {
-                        StackbricksService(
-                            LocalContext.current,
-                            QiniuMessageProvider(it),
-                            QiniuPackageProvider(it),
-                            rememberStackbricksStatus(),
-                            stackbricksPolicy = StackbricksPolicy(
-                                versionName = BuildConfig.VERSION_NAME,
-                                isAllowedToDisableCheckUpdateOnLaunch = false,
-                                isForceInstallValueCallback = false,
-                                versionCode = null
-                            ),
-                        )
-                    }
-                    Column(
-                        modifier = Modifier
-                            .background(MaterialTheme.colorScheme.background)
-                            .padding(innerPadding)
-                            .fillMaxSize()
-                    ) {
-                        LaunchedEffect(Unit) {
-                            withContext(Dispatchers.IO) {
-                                val datastore = applicationContext.chaoxingDataStore.data.first()
-                                if (datastore.agreeTerms) {
-                                    UMengHelper.init(applicationContext)
-                                    LocationClient.setAgreePrivacy(true)
-                                    SDKInitializer.setAgreePrivacy(applicationContext, true)
-                                }
-                                ChaoxingHttpClient.deviceCode =
-                                    datastore.deviceCode ?: ChaoxingHttpClient.generateDeviceCode(
-                                        applicationContext
-                                    )
-                                destination =
-                                    when {
-                                        !datastore.agreeTerms -> WelcomeDestination
-                                        !datastore.hasLoginSession() -> LoginDestination
-                                        else -> {
-                                            runCatching {
-                                                ChaoxingHttpClient.loadFromDataStore(
-                                                    datastore,
-                                                    applicationContext
-                                                )
-                                                return@runCatching SignGraphDestination
-                                            }.getOrElse {
-                                                withContext(Dispatchers.Main) {
-                                                    Toast.makeText(
-                                                        applicationContext,
-                                                        "初始化客户端失败，可能是网络问题或登录过期。",
-                                                        Toast.LENGTH_SHORT
-                                                    ).show()
+                    ) { innerPadding ->
+                        val stackbricksService = QiniuConfiguration(
+                            "cdn.aquamarine5.fun",
+                            referer = "http://cdn.aquamarine5.fun/",
+                            configFilePath = "chaoxingsignfaker_stackbricks_v2_manifest.json",
+                            okHttpClient = OkHttpClient().newBuilder()
+                                .callTimeout(20, TimeUnit.MINUTES)
+                                .readTimeout(20, TimeUnit.MINUTES)
+                                .writeTimeout(20, TimeUnit.MINUTES)
+                                .build()
+                        ).let {
+                            StackbricksService(
+                                LocalContext.current,
+                                QiniuMessageProvider(it),
+                                QiniuPackageProvider(it),
+                                rememberStackbricksStatus(),
+                                stackbricksPolicy = StackbricksPolicy(
+                                    versionName = BuildConfig.VERSION_NAME,
+                                    isAllowedToDisableCheckUpdateOnLaunch = false,
+                                    isForceInstallValueCallback = false,
+                                    versionCode = null
+                                ),
+                            )
+                        }
+                        Column(
+                            modifier = Modifier
+                                .background(MaterialTheme.colorScheme.background)
+                                .padding(innerPadding)
+                                .fillMaxSize()
+                        ) {
+                            LaunchedEffect(Unit) {
+                                withContext(Dispatchers.IO) {
+                                    val datastore =
+                                        applicationContext.chaoxingDataStore.data.first()
+                                    if (datastore.agreeTerms) {
+                                        UMengHelper.init(applicationContext)
+                                        LocationClient.setAgreePrivacy(true)
+                                        SDKInitializer.setAgreePrivacy(applicationContext, true)
+                                    }
+                                    ChaoxingHttpClient.deviceCode =
+                                        datastore.deviceCode
+                                            ?: ChaoxingHttpClient.generateDeviceCode(
+                                                applicationContext
+                                            )
+                                    destination =
+                                        when {
+                                            !datastore.agreeTerms -> WelcomeDestination
+                                            !datastore.hasLoginSession() -> LoginDestination
+                                            else -> {
+                                                runCatching {
+                                                    ChaoxingHttpClient.loadFromDataStore(
+                                                        datastore,
+                                                        applicationContext
+                                                    )
+                                                    return@runCatching SignGraphDestination
+                                                }.getOrElse {
+                                                    withContext(Dispatchers.Main) {
+                                                        Toast.makeText(
+                                                            applicationContext,
+                                                            "初始化客户端失败，可能是网络问题或登录过期。",
+                                                            Toast.LENGTH_SHORT
+                                                        ).show()
+                                                    }
+                                                    LoginDestination
                                                 }
-                                                LoginDestination
                                             }
                                         }
-                                    }
 
+                                }
                             }
-                        }
-                        if (destination == null) {
-                            CenterCircularProgressIndicator(isDelay = false)
-                        } else
-                            CompositionLocalProvider(LocalSnackbarHostState provides snackbarHostState) {
+                            if (destination == null) {
+                                CenterCircularProgressIndicator(isDelay = false)
+                            } else
                                 NavHost(
                                     navController,
                                     destination!!,
@@ -482,7 +495,7 @@ class MainActivity : ComponentActivity() {
                                         }
                                     }
                                 }
-                            }
+                        }
                     }
                 }
             }

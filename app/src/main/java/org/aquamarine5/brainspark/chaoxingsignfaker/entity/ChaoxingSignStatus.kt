@@ -13,11 +13,11 @@ import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import org.aquamarine5.brainspark.chaoxingsignfaker.ChaoxingPredictableException
@@ -25,29 +25,25 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSigner
 
 data class ChaoxingSignStatus(
+    private val hapticFeedback: HapticFeedback,
     val isSuccess: MutableState<Boolean?> = mutableStateOf(null),
     val error: MutableState<String> = mutableStateOf(""),
     val isLoading: MutableState<Boolean> = mutableStateOf(false)
 ) {
     fun loading() {
-        var obj by isLoading
-        obj = true
+        isLoading.value = true
     }
 
     fun success() {
-        var obj1 by isSuccess
-        var obj2 by isLoading
-        obj1 = true
-        obj2 = false
+        isSuccess.value = true
+        isLoading.value = false
+        hapticFeedback.performHapticFeedback(HapticFeedbackType.Confirm)
     }
 
     fun failed(e: Throwable) {
-        var obj1 by isSuccess
-        var obj2 by error
-        var obj3 by isLoading
-        obj1 = false
-        obj3 = false
-        obj2 = when (e) {
+        isSuccess.value = false
+        isLoading.value = false
+        error.value = when (e) {
             is ChaoxingSigner.AlreadySignedException -> "您已签到过了"
             is ChaoxingPredictableException -> e.message ?: "签到失败"
             else -> {

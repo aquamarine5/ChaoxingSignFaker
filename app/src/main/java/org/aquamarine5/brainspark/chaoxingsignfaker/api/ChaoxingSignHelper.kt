@@ -63,7 +63,7 @@ object ChaoxingSignHelper {
                 if (it.checkResponse(ChaoxingHttpClient.instance!!.context)) {
                     throw ChaoxingHttpClient.ChaoxingNetworkException()
                 }
-                val result = JSONObject.parseObject(it.body?.string()).getJSONObject("data")
+                val result = JSONObject.parseObject(it.body.string()).getJSONObject("data")
                 when (result.getInteger("otherId")) {
                     0 -> PhotoSignDestination(
                         activeId,
