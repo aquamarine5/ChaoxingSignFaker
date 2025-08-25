@@ -26,7 +26,7 @@ navigationCompose = "2.9.3"
 okhttp = "5.1.0"
 patternlocker = "2.5.7"
 protobufJavalite = "4.32.0"
-stackbricks = "2.2.25"
+stackbricks = "2.2.26"
 
 [libraries]
 accompanist-permissions = { module = "com.google.accompanist:accompanist-permissions", version.ref = "accompanistPermissions" }
