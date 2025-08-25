@@ -134,7 +134,6 @@ fun CourseListScreen(
     }
     if (newestVersionData != null && (isForceInstall || !isNewVersionDialogDisplayed)) {
         onNewVersionAvailable()
-        isNewVersionDialogDisplayed = true
         AlertDialog(onDismissRequest = {
             if (isForceInstall) {
                 Toast.makeText(context, "必须更新应用", Toast.LENGTH_SHORT).show()

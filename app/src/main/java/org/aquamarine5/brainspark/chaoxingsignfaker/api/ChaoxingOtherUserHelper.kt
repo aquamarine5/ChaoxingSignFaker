@@ -11,6 +11,8 @@ import android.graphics.Bitmap
 import android.net.Uri
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.core.graphics.createBitmap
+import androidx.core.graphics.set
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.EncodeHintType
 import com.google.zxing.qrcode.QRCodeWriter
@@ -87,11 +89,11 @@ object ChaoxingOtherUserHelper {
                 EncodeHintType.ERROR_CORRECTION to ErrorCorrectionLevel.M
             )
         )
-        return@withContext Bitmap.createBitmap(qrcodeSize, qrcodeSize, Bitmap.Config.RGB_565)
+        return@withContext createBitmap(qrcodeSize, qrcodeSize, Bitmap.Config.RGB_565)
             .apply {
                 for (x in 0 until qrcodeSize) {
                     for (y in 0 until qrcodeSize) {
-                        setPixel(x, y, (if (qrCode[x, y]) 0xFF000000 else 0xFFFFFFFF).toInt())
+                        set(x, y, (if (qrCode[x, y]) 0xFF000000 else 0xFFFFFFFF).toInt())
                     }
                 }
             }

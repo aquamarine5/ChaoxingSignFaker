@@ -18,7 +18,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCourseEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
 
 object ChaoxingActivityHelper {
-    enum class SIGN_REDIRECT_STATUS {
+    enum class SignRedirectStatus {
         COMMON,
         SIGN_IN_PUBLISHED,
         SIGN_OUT,
