@@ -145,7 +145,7 @@ fun OtherUserSelectorComponent(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(2.dp, 16.dp)
+                        .padding(8.dp, 16.dp)
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,

@@ -7,7 +7,11 @@
 package org.aquamarine5.brainspark.chaoxingsignfaker.components
 
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import androidx.activity.compose.LocalActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
@@ -38,6 +42,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -105,7 +110,7 @@ fun CameraComponent(
             var takeImage by remember { mutableStateOf<Bitmap?>(null) }
             var isBackCamera = true
             val lifecycleOwner = LocalLifecycleOwner.current
-            val photoList = mutableListOf<Bitmap>()
+            val photoList = remember { mutableListOf<Bitmap>() }
             var needTakePictureCount by remember { mutableIntStateOf(pictureCount) }
             future.addListener({
                 val cameraProvider = future.get()
@@ -164,6 +169,41 @@ fun CameraComponent(
                             delay(500L)
                             takeImage = null
                         }
+                    }
+                }
+            }
+            val gallery = rememberLauncherForActivityResult(
+                contract = ActivityResultContracts.PickVisualMedia(),
+                onResult = { uri ->
+                    if (uri == null) return@rememberLauncherForActivityResult
+                    val image = application.contentResolver.openInputStream(uri).use {
+                        BitmapFactory.decodeStream(it)
+                    }
+                    photoList.add(image)
+                    job?.cancel()
+                    takeImage = image
+                    needTakePictureCount--
+                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                    if (needTakePictureCount <= 0) {
+                        onPictureResult(photoList)
+                    } else {
+                        onNextPhoto?.invoke()
+                    }
+                }
+            )
+            Box(modifier = Modifier.fillMaxSize()) {
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .zIndex(1f)
+                        .padding(22.dp)
+                ) {
+                    FloatingActionButton(onClick = {
+                        gallery.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                    }) {
+                        Icon(
+                            painterResource(R.drawable.ic_images), null
+                        )
                     }
                 }
             }
