@@ -67,6 +67,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -112,6 +113,7 @@ object OtherUserGraphDestination
 @Composable
 fun OtherUserScreen(naviBack: () -> Unit) {
     val context = LocalContext.current
+    val resources= LocalResources.current
     val snackbarHost = LocalSnackbarHostState.current
     var inputUrl by remember { mutableStateOf("") }
     var isInputDialog by remember { mutableStateOf(false) }
@@ -767,7 +769,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
             }) {
                 Column(
                     modifier = Modifier
-                        .offset(y = Dp(context.resources.displayMetrics.run {
+                        .offset(y = Dp(resources.displayMetrics.run {
                             0.75f * heightPixels / density
                         }))
                         .zIndex(2f)

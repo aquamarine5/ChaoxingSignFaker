@@ -46,6 +46,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -118,6 +119,7 @@ fun QRCodeSignScreen(
     val coroutineScope = rememberCoroutineScope()
     val signer = ChaoxingQRCodeSigner(ChaoxingHttpClient.instance!!, destination)
     val context = LocalContext.current
+    val resources= LocalResources.current
     val snackbarHost = LocalSnackbarHostState.current
     var isMapRequired by remember { mutableStateOf(false) }
     var signoffData by remember { mutableStateOf<ChaoxingSignOutEntity?>(null) }
@@ -510,7 +512,7 @@ fun QRCodeSignScreen(
                             }) {
                                 Column(
                                     modifier = Modifier
-                                        .offset(y = Dp(context.resources.displayMetrics.run {
+                                        .offset(y = Dp(resources.displayMetrics.run {
                                             0.75f * heightPixels / density
                                         }))
                                         .zIndex(2f)

@@ -20,7 +20,7 @@ pluginManagement {
                 password = System.getenv("GHP_TOKEN")
             }
             content{
-                includeModule("org.aquamarine5.brainspark","stackbricks")
+                includeModule("org\\.aquamarine5\\.brainspark","stackbricks")
             }
         }
         mavenCentral()

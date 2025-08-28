@@ -147,13 +147,13 @@ fun LocationSignScreen(
                 var otherUserSessionForSignList by
                 remember { mutableStateOf<List<ChaoxingOtherUserSession?>>(emptyList()) }
                 val userSelections = remember { mutableStateListOf(isSignForOther.not()) }
-                if (signoffData != null)
-                    SignOutRedirectTips(
-                        signoffData!!
-                    ) {
-                        navToOtherSign(it)
-                    }
                 Column(modifier = Modifier.padding(8.dp)) {
+                    if (signoffData != null)
+                        SignOutRedirectTips(
+                            signoffData!!
+                        ) {
+                            navToOtherSign(it)
+                        }
                     OtherUserSelectorComponent(
                         navToOtherUser = { navToOtherUserDestination() },
                         signStatus = signStatus,

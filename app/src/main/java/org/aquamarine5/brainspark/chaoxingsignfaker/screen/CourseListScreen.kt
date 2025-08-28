@@ -47,6 +47,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
+import org.aquamarine5.brainspark.chaoxingsignfaker.BuildConfig
 import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCourseHelper
@@ -89,15 +90,17 @@ fun CourseListScreen(
     val context = LocalContext.current
     var newestVersionData by remember { mutableStateOf<StackbricksVersionData?>(null) }
     var isNewVersionDialogDisplayed = rememberSaveable { false }
-    var isForceInstall by
-    remember { mutableStateOf(stackbricksService.internalVersionData?.forceInstall ?: false) }
+    var isForceInstall by remember { mutableStateOf(false) }
     val snackbarHost = LocalSnackbarHostState.current
     val coroutineScope = rememberCoroutineScope()
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
             if (stackbricksService.internalVersionData == null && !isNewVersionDialogDisplayed) {
                 newestVersionData = stackbricksService.isNeedUpdate()
-                isForceInstall = newestVersionData?.forceInstall == true
+                newestVersionData?.forceInstallLessVersion?.let {
+                    isForceInstall =
+                        (it > BuildConfig.VERSION_CODE)
+                }
             }
             if (activitiesData.isEmpty()) {
                 runCatching {

@@ -58,7 +58,7 @@ class ChaoxingHttpClient private constructor(
     private class RetryInterceptor : okhttp3.Interceptor {
         override fun intercept(chain: okhttp3.Interceptor.Chain): Response {
             var failureResponse: Response? = null
-            for (attempt in 1..3) {
+            repeat(3) {
                 val request = chain.request()
                 runCatching {
                     val response = chain.proceed(request)
@@ -301,7 +301,7 @@ class ChaoxingHttpClient private constructor(
             }
         }
 
-        private suspend fun getInfo(
+        suspend fun getInfo(
             client: OkHttpClient,
             context: Context,
             otherUserSession: ChaoxingOtherUserSession? = null

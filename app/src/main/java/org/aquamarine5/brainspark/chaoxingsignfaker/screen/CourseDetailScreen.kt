@@ -70,7 +70,7 @@ fun CourseDetailScreen(
         runCatching {
             if (activitiesData == null) {
                 ChaoxingHttpClient.instance?.let {
-                    activitiesData = ChaoxingActivityHelper.getActivities(it, courseEntity, context)
+                    activitiesData = ChaoxingActivityHelper.getActivities(it, courseEntity, context,snackbarHost)
                 }
             }
         }.onFailure {
@@ -122,7 +122,7 @@ fun CourseDetailScreen(
                         runCatching {
                             ChaoxingHttpClient.instance?.let {
                                 activitiesData =
-                                    ChaoxingActivityHelper.getActivities(it, courseEntity, context)
+                                    ChaoxingActivityHelper.getActivities(it, courseEntity, context,snackbarHost)
                             }
                         }.onFailure {
                             Sentry.captureException(it)

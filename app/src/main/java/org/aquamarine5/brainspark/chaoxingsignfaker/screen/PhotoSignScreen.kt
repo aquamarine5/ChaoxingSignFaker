@@ -164,13 +164,14 @@ fun PhotoSignScreen(
                     Column(
                         modifier = Modifier.padding(8.dp)
                     ) {
+                        if (signoffEntity != null)
+                            SignOutRedirectTips(
+                                signoffEntity!!
+                            ) {
+                                navToOtherSign(it)
+                            }
                         Column(modifier = Modifier.padding(16.dp, 0.dp)) {
-                            if (signoffEntity != null)
-                                SignOutRedirectTips(
-                                    signoffEntity!!
-                                ) {
-                                    navToOtherSign(it)
-                                }
+
                             Card(
                                 onClick = {
                                     context.startActivity(

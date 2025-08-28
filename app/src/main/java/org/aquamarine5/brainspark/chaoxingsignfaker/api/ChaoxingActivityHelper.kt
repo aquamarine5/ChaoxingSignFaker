@@ -7,6 +7,7 @@
 package org.aquamarine5.brainspark.chaoxingsignfaker.api
 
 import android.content.Context
+import androidx.compose.material3.SnackbarHostState
 import com.alibaba.fastjson2.JSONObject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -35,7 +36,8 @@ object ChaoxingActivityHelper {
     suspend fun getActivities(
         client: ChaoxingHttpClient,
         course: ChaoxingCourseEntity,
-        context: Context
+        context: Context,
+        snackbarHostState: SnackbarHostState
     ): ChaoxingCourseActivitiesEntity =
         withContext(Dispatchers.IO) {
             client.newCall(
@@ -46,7 +48,7 @@ object ChaoxingActivityHelper {
                         .build()
                 ).build()
             ).execute().use {
-                if (it.checkResponse(context))
+                if (it.checkResponse(snackbarHostState))
                     throw ChaoxingHttpClient.ChaoxingNetworkException()
                 val jsonResult = JSONObject.parseObject(it.body.string()).getJSONObject("data")
                 val activeList = jsonResult.getJSONArray("activeList").map { activity ->

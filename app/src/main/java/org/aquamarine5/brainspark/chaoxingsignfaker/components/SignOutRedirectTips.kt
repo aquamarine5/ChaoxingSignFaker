@@ -23,6 +23,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -54,7 +55,7 @@ inline fun SignOutRedirectTips(
             ChaoxingActivityHelper.SignRedirectStatus.COMMON
         }
         val coroutineScope = rememberCoroutineScope()
-
+        val context= LocalContext.current
         if (status != ChaoxingActivityHelper.SignRedirectStatus.COMMON)
             Card(
                 onClick = {
@@ -64,7 +65,8 @@ inline fun SignOutRedirectTips(
                             ChaoxingSignHelper.getRedirectDestination(
                                 if (status == ChaoxingActivityHelper.SignRedirectStatus.SIGN_OUT) signInId!! else signOffId!!,
                                 classId,
-                                courseId
+                                courseId,
+                                context
                             )
                         )
                     }
@@ -76,7 +78,7 @@ inline fun SignOutRedirectTips(
                 ),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(0.dp, 6.dp)
+                    .padding(16.dp, 6.dp)
             ) {
                 Row(
                     modifier = Modifier
