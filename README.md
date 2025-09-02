@@ -14,7 +14,7 @@
 
 > [!NOTE]
 > ChaoxingSignFaker（随地大小签）需要Android 8.0+（`minSdk>=26`）版本。  
-> 此应用**并不支持**iPhone以及鸿蒙（仅HarmonyOS NEXT）操作系统，也没有准备适配的计划，不过可以使用任意安卓手机在代签选项页通过账号密码登录从而为您的账号使用应用的大部分签到功能。
+> 此应用**并不支持**iPhone、iPad以及鸿蒙（仅HarmonyOS NEXT）操作系统，也并没有准备适配的计划，不过可以使用任意安卓手机在代签选项页通过账号密码登录从而为您的账号使用应用的大部分签到功能。
 
 - 前往 [cdn.aquamarine5.fun](http://cdn.aquamarine5.fun) 下载最新版本。
 - 或前往 [Releases](https://github.com/aquamarine5/ChaoxingSignFaker) 的附件下载最新版本。
