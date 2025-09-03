@@ -1,6 +1,7 @@
 # ChaoxingSignFaker
 
 [![wakatime](https://wakatime.com/badge/github/aquamarine5/ChaoxingSignFaker.svg)](https://wakatime.com/badge/github/aquamarine5/ChaoxingSignFaker)
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Faquamarine5%2FChaoxingSignFaker.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Faquamarine5%2FChaoxingSignFaker?ref=badge_shield)
 [![](https://tokei.rs/b1/github/aquamarine5/ChaoxingSignFaker)](https://github.com/XAMPPRocky/tokei)
 ![GitHub Release Date](https://img.shields.io/github/release-date/aquamarine5/ChaoxingSignFaker)
 ![GitHub top language](https://img.shields.io/github/languages/top/aquamarine5/ChaoxingSignFaker)
@@ -43,3 +44,7 @@
 
 [![Star History Chart](https://api.star-history.com/svg?repos=aquamarine5/ChaoxingSignFaker&type=Date)](https://www.star-history.com/#aquamarine5/ChaoxingSignFaker&Date)
 ![Alt](https://repobeats.axiom.co/api/embed/629e66a936ab63b8d91a7dceb42437d55857900e.svg "Repobeats analytics image")
+
+
+## License
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Faquamarine5%2FChaoxingSignFaker.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Faquamarine5%2FChaoxingSignFaker?ref=badge_large)
