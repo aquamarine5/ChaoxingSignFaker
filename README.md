@@ -32,12 +32,12 @@
 > [!NOTE]
 > 目前尚**不支持**手势签到和签到码签到，因为这用微信等聊天软件很容易实现，所以并不推荐使用ChaoxingSignFaker（随地大小签）。
 
-> [!TIP]
-> ChaoxingSignFaker（随地大小签） 使用 [Stackbricks](https://github.com/aquamarine5/Stackbricks) 来实现更新逻辑，同样由本作者维护。
-
 ## About Brainspark Project
 
 - Brainspark 项目是 @aquamarine5 日常头脑风暴的一部分, Code Anything Possible。
+
+> [!TIP]
+> ChaoxingSignFaker（随地大小签） 使用 [Stackbricks](https://github.com/aquamarine5/Stackbricks) 来实现更新逻辑，同样由本作者维护。
 
 ## Star History
 
