@@ -2,6 +2,7 @@
 
 [![wakatime](https://wakatime.com/badge/github/aquamarine5/ChaoxingSignFaker.svg)](https://wakatime.com/badge/github/aquamarine5/ChaoxingSignFaker)
 [![](https://tokei.rs/b1/github/aquamarine5/ChaoxingSignFaker)](https://github.com/XAMPPRocky/tokei)
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Faquamarine5%2FChaoxingSignFaker.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Faquamarine5%2FChaoxingSignFaker?ref=badge_shield)
 ![GitHub Release Date](https://img.shields.io/github/release-date/aquamarine5/ChaoxingSignFaker)
 ![GitHub top language](https://img.shields.io/github/languages/top/aquamarine5/ChaoxingSignFaker)
 ![GitHub License](https://img.shields.io/github/license/aquamarine5/ChaoxingSignFaker)
@@ -31,6 +32,10 @@
 
 > [!NOTE]
 > 目前尚**不支持**手势签到和签到码签到，因为这用微信等聊天软件很容易实现，所以并不推荐使用ChaoxingSignFaker（随地大小签）。
+
+## 开发
+
+- 详见[CONTRIBUTING.md](./CONTRIBUTING.md)
 
 ## About Brainspark Project
 

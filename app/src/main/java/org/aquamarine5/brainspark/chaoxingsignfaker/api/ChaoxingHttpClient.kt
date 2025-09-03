@@ -33,6 +33,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingSignFakerD
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.HttpCookie
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingOtherUserSharedEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingUserEntity
+import java.io.IOException
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
 import java.security.MessageDigest
@@ -77,7 +78,6 @@ class ChaoxingHttpClient private constructor(
                                     .body("UnknownHostException".toResponseBody())
                                     .code(HTTP_RESPONSE_CODE_UNKNOWN_HOST).build()
                         }
-
                         is SocketTimeoutException -> {
                             it.printStackTrace()
                             failureResponse =
@@ -85,6 +85,15 @@ class ChaoxingHttpClient private constructor(
                                     .message("Socket Timeout")
                                     .body("Socket Timeout".toResponseBody())
                                     .code(HTTP_RESPONSE_CODE_SOCKET_TIMEOUT).build()
+                        }
+
+                        is IOException ->{
+                            it.printStackTrace()
+                            failureResponse =
+                                Response.Builder().request(request).protocol(Protocol.HTTP_2)
+                                    .message("IO Exception")
+                                    .body("IOException".toResponseBody())
+                                    .code(HTTP_RESPONSE_CODE_UNKNOWN_ERROR).build()
                         }
 
                         is NetworkOnMainThreadException -> {
