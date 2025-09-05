@@ -1,6 +1,6 @@
 [versions]
 accompanistPermissions = "0.37.3"
-agp = "8.12.1"
+agp = "8.12.2"
 asms = "1.8.7.2"
 baidumapsdk_location = "9.6.5.1"
 baidumapsdk_map = "7.6.5.1"
