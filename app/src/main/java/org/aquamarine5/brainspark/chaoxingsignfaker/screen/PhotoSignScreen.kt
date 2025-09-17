@@ -171,7 +171,6 @@ fun PhotoSignScreen(
                                 navToOtherSign(it)
                             }
                         Column(modifier = Modifier.padding(16.dp, 0.dp)) {
-
                             Card(
                                 onClick = {
                                     context.startActivity(
@@ -286,6 +285,9 @@ fun PhotoSignScreen(
                                     }
                                     signStatus[0].failed(it)
                                 }
+                                if(otherUserSessionList.isEmpty()){
+                                    isSigning = false
+                                }
                                 otherUserSessionList.forEachIndexed { index, userSession ->
                                     if (userSession == null) return@forEachIndexed
                                     runCatching {
@@ -357,6 +359,7 @@ fun PhotoSignScreen(
                                                         userSelections[1 + index] = false
                                                         signStatus[1 + index].success()
                                                         if (index == otherUserSessionList.size - 1) {
+                                                            isSigning=false
                                                             delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)
                                                             isSponsor = true
                                                         }
@@ -377,7 +380,7 @@ fun PhotoSignScreen(
                                         signStatus[1 + index].failed(err)
                                     }
                                 }
-
+                                isSigning=false
                             }
                         }
                     }
@@ -577,17 +580,17 @@ fun PhotoSignScreen(
                                                         ) {
                                                             Text("拍摄给 ${combinedUserList[index]} 签到的图片")
                                                         }
-                                                    }) {
+                                                    }) { imageList ->
                                                     coroutineScope.launch {
                                                         isCamera = false
-                                                        bitmapList = it
+                                                        bitmapList = imageList
                                                         if (isSelfForSign) {
                                                             runCatching {
                                                                 signStatus[0].loading()
                                                                 signer.getCloudToken()
                                                                     .let { token ->
                                                                         signer.uploadImage(
-                                                                            it[0],
+                                                                            imageList[0],
                                                                             token
                                                                         ).let { objectId ->
                                                                             if (signer.signByImage(
@@ -688,7 +691,7 @@ fun PhotoSignScreen(
                                                                             } else {
                                                                                 val objectId =
                                                                                     uploadImage(
-                                                                                        it[bitmapIndexList.indexOf(
+                                                                                        imageList[bitmapIndexList.indexOf(
                                                                                             index + 1
                                                                                         )],
                                                                                         getCloudToken()

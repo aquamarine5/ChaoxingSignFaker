@@ -81,7 +81,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
-import io.sentry.Sentry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -90,7 +89,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
-import org.aquamarine5.brainspark.chaoxingsignfaker.ChaoxingPredictableException
 import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.UMengHelper
@@ -734,9 +732,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                     otherUserSessions.add(it)
                                     UMengHelper.onAccountOtherUserAddEvent(context, it)
                                 }.onFailure {
-                                    it.printStackTrace()
-                                    if (it !is ChaoxingPredictableException)
-                                        Sentry.captureException(it)
+                                    it.snackbarReport(snackbarHost, coroutineScope, "导入失败", hapticFeedback)
                                     isQRCodeIllegal = true
                                     isQRCodeParsing.value = false
                                     hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
@@ -750,9 +746,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                 }
                             }
                         }.onFailure {
-                            it.printStackTrace()
-                            if (it !is ChaoxingPredictableException)
-                                Sentry.captureException(it)
+                            it.snackbarReport(snackbarHost, coroutineScope, "二维码解析失败", hapticFeedback)
                             isQRCodeIllegal = true
                             isQRCodeScanPause.value = true
                             hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)

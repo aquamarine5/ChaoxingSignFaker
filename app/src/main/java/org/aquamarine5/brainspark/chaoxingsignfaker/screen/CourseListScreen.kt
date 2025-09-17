@@ -185,6 +185,26 @@ fun CourseListScreen(
                 CenterCircularProgressIndicator()
             } else {
                 LazyColumn {
+//                    item {
+//                        OutlinedButton(
+//                            onClick = {
+//
+//                            },
+//                            shape = RoundedCornerShape(18.dp),
+//                            modifier = Modifier
+//                                .fillMaxWidth()
+//                        ){
+//                            Row(
+//                                verticalAlignment = Alignment.CenterVertically,
+//                                horizontalArrangement = Arrangement.Start,
+//                                modifier = Modifier.fillMaxWidth()
+//                            ){
+//                                Icon(painter = painterResource(R.drawable.ic_users_round),"")
+//                                Spacer(modifier = Modifier.width(14.dp))
+//                                Text("为群聊签到")
+//                            }
+//                        }
+//                    }
                     items(activitiesData) { data ->
                         key(data.classId) {
                             CourseInfoColumnCard(
