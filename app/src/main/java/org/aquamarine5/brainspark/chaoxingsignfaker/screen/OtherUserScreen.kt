@@ -67,6 +67,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -80,7 +81,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
-import io.sentry.Sentry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -89,7 +89,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
-import org.aquamarine5.brainspark.chaoxingsignfaker.ChaoxingPredictableException
 import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.UMengHelper
@@ -112,6 +111,7 @@ object OtherUserGraphDestination
 @Composable
 fun OtherUserScreen(naviBack: () -> Unit) {
     val context = LocalContext.current
+    val resources= LocalResources.current
     val snackbarHost = LocalSnackbarHostState.current
     var inputUrl by remember { mutableStateOf("") }
     var isInputDialog by remember { mutableStateOf(false) }
@@ -732,9 +732,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                     otherUserSessions.add(it)
                                     UMengHelper.onAccountOtherUserAddEvent(context, it)
                                 }.onFailure {
-                                    it.printStackTrace()
-                                    if (it !is ChaoxingPredictableException)
-                                        Sentry.captureException(it)
+                                    it.snackbarReport(snackbarHost, coroutineScope, "导入失败", hapticFeedback)
                                     isQRCodeIllegal = true
                                     isQRCodeParsing.value = false
                                     hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
@@ -748,9 +746,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                 }
                             }
                         }.onFailure {
-                            it.printStackTrace()
-                            if (it !is ChaoxingPredictableException)
-                                Sentry.captureException(it)
+                            it.snackbarReport(snackbarHost, coroutineScope, "二维码解析失败", hapticFeedback)
                             isQRCodeIllegal = true
                             isQRCodeScanPause.value = true
                             hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
@@ -767,7 +763,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
             }) {
                 Column(
                     modifier = Modifier
-                        .offset(y = Dp(context.resources.displayMetrics.run {
+                        .offset(y = Dp(resources.displayMetrics.run {
                             0.75f * heightPixels / density
                         }))
                         .zIndex(2f)

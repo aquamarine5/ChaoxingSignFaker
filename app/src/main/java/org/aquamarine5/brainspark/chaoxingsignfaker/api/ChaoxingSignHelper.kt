@@ -51,7 +51,7 @@ object ChaoxingSignHelper {
             }
         }
 
-    suspend fun getRedirectDestination(activeId: Long, classId: Int, courseId: Int): Any =
+    suspend fun getRedirectDestination(activeId: Long, classId: Int, courseId: Int,context: Context): Any =
         withContext(Dispatchers.IO) {
             ChaoxingHttpClient.instance!!.newCall(
                 Request.Builder().get().url(
@@ -60,7 +60,7 @@ object ChaoxingSignHelper {
                         .build()
                 ).build()
             ).execute().use {
-                if (it.checkResponse(ChaoxingHttpClient.instance!!.context)) {
+                if (it.checkResponse(context)) {
                     throw ChaoxingHttpClient.ChaoxingNetworkException()
                 }
                 val result = JSONObject.parseObject(it.body.string()).getJSONObject("data")

@@ -11,7 +11,7 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
-val LocalSnackbarHostState = staticCompositionLocalOf<SnackbarHostState?> { null }
+val LocalSnackbarHostState = staticCompositionLocalOf<SnackbarHostState> { error("")}
 
 fun SnackbarHostState?.displaySnackbar(
     message: String,

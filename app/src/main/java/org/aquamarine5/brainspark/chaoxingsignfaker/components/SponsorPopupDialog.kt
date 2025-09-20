@@ -42,7 +42,7 @@ fun SponsorPopupDialog() {
         }, title = {
             Text("应用还好用嘛？")
         }, text = {
-            Text("随地大小签虽然每次使用不需要签到，但是用于更新的服务器资源还是需要持续付费的 :(")
+            Text("随地大小签虽然每次使用不需要付费，但是用于更新的服务器资源还是需要持续付费的 :(")
         }, confirmButton = {
             Button(onClick = {
                 hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)

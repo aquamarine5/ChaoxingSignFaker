@@ -123,16 +123,17 @@ fun OtherUserSelectorComponent(
                 }
                 LaunchedEffect(Unit) {
                     withContext(Dispatchers.IO) {
-                        signUserList.addAll(context.chaoxingDataStore.data.first().let { data ->
+                        val data=context.chaoxingDataStore.data.first().let { data ->
                             data.otherUsersList.filter {
                                 it.phoneNumber != data.loginSession.phoneNumber
                             }
+                        }
+                        signStatus.addAll(Array(data.size) {
+                            ChaoxingSignStatus(hapticFeedback)
                         })
+                        userSelections.addAll(List(data.size) { false })
+                        signUserList.addAll(data)
                     }
-                    signStatus.addAll(Array(signUserList.size) {
-                        ChaoxingSignStatus(hapticFeedback)
-                    })
-                    userSelections.addAll(List(signUserList.size) { false })
                     success = isCurrentAlreadySigned
                     userSelections[0] = isCurrentAlreadySigned != true
                 }
@@ -229,13 +230,12 @@ fun OtherUserSelectorComponent(
                     onClick = {
                         if (!userSelections.any { it }) {
                             hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
-                            snackbarHost?.displaySnackbar("请选择要签到的用户", coroutineScope)
-
+                            snackbarHost.displaySnackbar("请选择要签到的用户", coroutineScope)
                             return@Button
                         }
                         if (signStatus.all { it.isSuccess.value == true }) {
                             hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
-                            snackbarHost?.displaySnackbar("所有用户均已签到", coroutineScope)
+                            snackbarHost.displaySnackbar("所有用户均已签到", coroutineScope)
                             return@Button
                         }
                         val indexList = mutableListOf<Int>()

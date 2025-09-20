@@ -23,6 +23,7 @@ import kotlinx.coroutines.withContext
 import okhttp3.Cookie
 import okhttp3.CookieJar
 import okhttp3.HttpUrl
+import org.aquamarine5.brainspark.chaoxingsignfaker.ChaoxingPredictableException
 import org.aquamarine5.brainspark.chaoxingsignfaker.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingSignFakerDataStore
@@ -32,9 +33,9 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingOtherUserShar
 object ChaoxingOtherUserHelper {
     const val TIMEOUT_NEXT_SIGN = 200L
 
-    class NotAvailableQRCodeException(message: String) : Exception(message)
+    class NotAvailableQRCodeException(message: String) : ChaoxingPredictableException(message)
 
-    class AlreadyExistedOtherUserException(message: String) : Exception(message)
+    class AlreadyExistedOtherUserException(message: String) : ChaoxingPredictableException(message)
 
     private fun getQRCodeSize(context: Context): Int {
         val displayMetrics = context.resources.displayMetrics
@@ -141,10 +142,12 @@ object ChaoxingOtherUserHelper {
                 isSaveToDataStore = false,
                 isEncryptedPassword = true
             )
-
+            val name= sharedEntity.userName.ifBlank {
+                ChaoxingHttpClient.getInfo(tempOkHttpClient, context).name
+            }
             val session = ChaoxingOtherUserSession.newBuilder()
                 .setPassword(sharedEntity.encryptedPassword.replace(" ", "+"))
-                .setName(sharedEntity.userName)
+                .setName(name)
                 .setPhoneNumber(sharedEntity.phoneNumber)
                 .addAllCookies(
                     tempOkHttpClient.cookieJar.loadForRequest(
