@@ -142,7 +142,7 @@ class ChaoxingQRCodeSigner(
                 if (result.startsWith("validate")) {
                     return@use true
                 }
-                if(result=="success2")
+                if (result == "success2")
                     throw SignAlreadyEndedException()
                 if (result == "您已签到过了") {
                     throw AlreadySignedException()

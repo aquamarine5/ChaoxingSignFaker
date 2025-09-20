@@ -77,7 +77,7 @@ class ChaoxingLocationSigner(
                     throw ChaoxingHttpClient.ChaoxingNetworkException()
                 }
                 val result = it.body.string()
-                if(result=="success2")
+                if (result == "success2")
                     throw SignAlreadyEndedException()
                 if (result == "您已签到过了") {
                     throw AlreadySignedException()
@@ -115,7 +115,7 @@ class ChaoxingLocationSigner(
                     throw ChaoxingHttpClient.ChaoxingNetworkException()
                 }
                 val result = it.body.string()
-                if(result=="success2")
+                if (result == "success2")
                     throw SignAlreadyEndedException()
                 if (result == "您已签到过了") {
                     throw AlreadySignedException()

@@ -228,7 +228,12 @@ fun PhotoSignScreen(
                                         Text(
                                             buildAnnotatedString {
                                                 append("这是一个普通的点击签到，不会收集任何其他的信息，推荐对于这种签到使用学习通APP而不是随地大小签。")
-                                                withStyle(SpanStyle(fontWeight = FontWeight.Bold, textDecoration = TextDecoration.Underline) ){
+                                                withStyle(
+                                                    SpanStyle(
+                                                        fontWeight = FontWeight.Bold,
+                                                        textDecoration = TextDecoration.Underline
+                                                    )
+                                                ) {
                                                     append("\n点击跳转到学习通。")
                                                 }
                                             },
@@ -497,7 +502,11 @@ fun PhotoSignScreen(
                                                     ) {
                                                         navToOtherSign(it)
                                                     }
-                                                SignPotentialWarningTips(destination.startTime, destination.endTime,destination.isLate)
+                                                SignPotentialWarningTips(
+                                                    destination.startTime,
+                                                    destination.endTime,
+                                                    destination.isLate
+                                                )
                                             },
                                             userContent = { index ->
                                                 var isShowDialog by remember {

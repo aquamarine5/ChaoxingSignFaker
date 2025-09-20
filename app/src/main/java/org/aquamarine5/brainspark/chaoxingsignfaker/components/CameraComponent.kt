@@ -244,7 +244,7 @@ fun CameraComponent(
                             override fun onCaptureSuccess(image: ImageProxy) {
                                 super.onCaptureSuccess(image)
                                 image.use {
-                                    val bitmap=it.toBitmap()
+                                    val bitmap = it.toBitmap()
                                     photoList.add(bitmap)
                                     job?.cancel()
                                     takeImage = bitmap

@@ -78,6 +78,7 @@ class ChaoxingHttpClient private constructor(
                                     .body("UnknownHostException".toResponseBody())
                                     .code(HTTP_RESPONSE_CODE_UNKNOWN_HOST).build()
                         }
+
                         is SocketTimeoutException -> {
                             it.printStackTrace()
                             failureResponse =
@@ -87,7 +88,7 @@ class ChaoxingHttpClient private constructor(
                                     .code(HTTP_RESPONSE_CODE_SOCKET_TIMEOUT).build()
                         }
 
-                        is IOException ->{
+                        is IOException -> {
                             it.printStackTrace()
                             failureResponse =
                                 Response.Builder().request(request).protocol(Protocol.HTTP_2)

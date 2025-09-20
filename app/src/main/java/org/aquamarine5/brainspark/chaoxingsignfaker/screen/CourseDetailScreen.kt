@@ -69,7 +69,12 @@ fun CourseDetailScreen(
         runCatching {
             if (activitiesData == null) {
                 ChaoxingHttpClient.instance?.let {
-                    activitiesData = ChaoxingActivityHelper.getActivities(it, courseEntity, context,snackbarHost)
+                    activitiesData = ChaoxingActivityHelper.getActivities(
+                        it,
+                        courseEntity,
+                        context,
+                        snackbarHost
+                    )
                 }
             }
         }.onFailure {
@@ -121,10 +126,20 @@ fun CourseDetailScreen(
                         runCatching {
                             ChaoxingHttpClient.instance?.let {
                                 activitiesData =
-                                    ChaoxingActivityHelper.getActivities(it, courseEntity, context,snackbarHost)
+                                    ChaoxingActivityHelper.getActivities(
+                                        it,
+                                        courseEntity,
+                                        context,
+                                        snackbarHost
+                                    )
                             }
                         }.onFailure {
-                            it.snackbarReport(snackbarHost,coroutineScope,"刷新课程活动失败",hapticFeedback)
+                            it.snackbarReport(
+                                snackbarHost,
+                                coroutineScope,
+                                "刷新课程活动失败",
+                                hapticFeedback
+                            )
                         }
                         delay(1000)
                         pullToRefreshState = false

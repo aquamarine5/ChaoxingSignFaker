@@ -142,7 +142,7 @@ object ChaoxingOtherUserHelper {
                 isSaveToDataStore = false,
                 isEncryptedPassword = true
             )
-            val name= sharedEntity.userName.ifBlank {
+            val name = sharedEntity.userName.ifBlank {
                 ChaoxingHttpClient.getInfo(tempOkHttpClient, context).name
             }
             val session = ChaoxingOtherUserSession.newBuilder()

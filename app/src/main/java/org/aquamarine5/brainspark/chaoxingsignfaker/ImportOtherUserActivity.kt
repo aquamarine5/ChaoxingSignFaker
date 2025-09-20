@@ -100,7 +100,7 @@ class ImportOtherUserActivity : ComponentActivity() {
                                                 textAlign = TextAlign.Center
                                             )
                                         }
-                                        val hapticFeedback=LocalHapticFeedback.current
+                                        val hapticFeedback = LocalHapticFeedback.current
                                         LaunchedEffect(Unit) {
                                             isLoading = true
                                             runCatching {
@@ -122,7 +122,10 @@ class ImportOtherUserActivity : ComponentActivity() {
                                                     failure.message ?: failure.localizedMessage
                                                             ?: "导入失败，请重试"
                                                 isLoading = false
-                                                failure.toastReport(applicationContext, hapticFeedback = hapticFeedback)
+                                                failure.toastReport(
+                                                    applicationContext,
+                                                    hapticFeedback = hapticFeedback
+                                                )
                                             }
                                         }
                                     }

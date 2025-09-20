@@ -41,9 +41,9 @@ data class ChaoxingSignStatus(
         hapticFeedback.performHapticFeedback(HapticFeedbackType.Confirm)
     }
 
-    fun successForLate(){
-        isLoading.value=false
-        error.value="疑似迟到"
+    fun successForLate() {
+        isLoading.value = false
+        error.value = "疑似迟到"
         hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
     }
 
@@ -70,9 +70,9 @@ data class ChaoxingSignStatus(
                 Text(
                     error.value, color = if (error.value == "您已签到过了") {
                         LocalContentColor.current
-                    } else if(error.value=="疑似迟到"){
+                    } else if (error.value == "疑似迟到") {
                         Orange
-                    }else {
+                    } else {
                         Color(0xFFF43E06)
                     }
                 )

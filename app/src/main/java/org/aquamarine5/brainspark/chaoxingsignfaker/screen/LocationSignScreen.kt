@@ -65,12 +65,15 @@ data class GetLocationDestination(
     val classId: Int,
     val courseId: Int,
     val extContent: String,
-    val startTime:Long,
-    val endTime:Long?,
+    val startTime: Long,
+    val endTime: Long?,
     val isLate: Boolean
 ) {
     companion object {
-        fun parseFromSignActivityEntity(activityEntity: ChaoxingSignActivityEntity,isLate: Boolean): GetLocationDestination {
+        fun parseFromSignActivityEntity(
+            activityEntity: ChaoxingSignActivityEntity,
+            isLate: Boolean
+        ): GetLocationDestination {
             return GetLocationDestination(
                 activityEntity.id,
                 activityEntity.course.classId,
@@ -138,7 +141,11 @@ fun LocationSignScreen(
         when (v) {
             true -> {
                 Column(modifier = Modifier.padding(8.dp, 0.dp)) {
-                    SignPotentialWarningTips(destination.startTime, destination.endTime,destination.isLate)
+                    SignPotentialWarningTips(
+                        destination.startTime,
+                        destination.endTime,
+                        destination.isLate
+                    )
                     AlreadySignedNotice(onSignForOtherUser = {
                         isAlreadySigned = false
                         isSignForOther = true
@@ -170,7 +177,11 @@ fun LocationSignScreen(
                                 ) {
                                     navToOtherSign(it)
                                 }
-                            SignPotentialWarningTips(destination.startTime, destination.endTime,destination.isLate)
+                            SignPotentialWarningTips(
+                                destination.startTime,
+                                destination.endTime,
+                                destination.isLate
+                            )
                         }
                     ) { isSelf, otherUserSessionList, _ ->
                         isSigning = true
@@ -287,7 +298,11 @@ fun LocationSignScreen(
                                             if (preSign()) {
                                                 throw ChaoxingSigner.AlreadySignedException()
                                             } else {
-                                                if(ChaoxingCourseHelper.checkClassValid(client,destination.classId)==false)
+                                                if (ChaoxingCourseHelper.checkClassValid(
+                                                        client,
+                                                        destination.classId
+                                                    ) == false
+                                                )
                                                     throw ChaoxingSigner.SignActivityNoPermissionException()
                                                 if (sign(result)) {
                                                     suspendCoroutine { continuation ->

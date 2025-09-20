@@ -111,7 +111,7 @@ object OtherUserGraphDestination
 @Composable
 fun OtherUserScreen(naviBack: () -> Unit) {
     val context = LocalContext.current
-    val resources= LocalResources.current
+    val resources = LocalResources.current
     val snackbarHost = LocalSnackbarHostState.current
     var inputUrl by remember { mutableStateOf("") }
     var isInputDialog by remember { mutableStateOf(false) }
@@ -242,7 +242,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                 )
                             }.onSuccess {
                                 hapticFeedback.performHapticFeedback(HapticFeedbackType.Confirm)
-                                Toast.makeText(context,"导入成功", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, "导入成功", Toast.LENGTH_SHORT).show()
                                 UMengHelper.onAccountOtherUserAddEvent(context, it)
                                 otherUserSessions.add(it)
                                 isInputDialog = false
@@ -295,7 +295,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                             )?.text
                         if (result.isNullOrEmpty()) {
                             hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
-                            Toast.makeText(context,"读取剪切板失败", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "读取剪切板失败", Toast.LENGTH_SHORT).show()
                         } else {
                             hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                             inputUrl = result.toString()
@@ -308,7 +308,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                             val url = inputUrl.toHttpUrlOrNull()
                             if (url == null) {
                                 hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
-                                Toast.makeText(context,"链接格式错误", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, "链接格式错误", Toast.LENGTH_SHORT).show()
                                 return@FilledTonalButton
                             }
                             val phone = url.queryParameter("phone")
@@ -316,7 +316,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                             val name = url.queryParameter("name")
                             if (phone == null || pwd == null || name == null) {
                                 hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
-                                Toast.makeText(context,"链接格式错误", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, "链接格式错误", Toast.LENGTH_SHORT).show()
                                 return@FilledTonalButton
                             }
                             coroutineScope.launch {
@@ -327,7 +327,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                     )
                                 }.onSuccess {
                                     hapticFeedback.performHapticFeedback(HapticFeedbackType.Confirm)
-                                    Toast.makeText(context,"导入成功", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, "导入成功", Toast.LENGTH_SHORT).show()
                                     UMengHelper.onAccountOtherUserAddEvent(context, it)
                                     isURLSharedDialog = false
                                 }.onFailure {
@@ -342,7 +342,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                             }
                         } else {
                             hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
-                            Toast.makeText(context,"链接不能为空",Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "链接不能为空", Toast.LENGTH_SHORT).show()
                         }
                     }, modifier = Modifier.weight(1f)) {
                         Row(
@@ -729,7 +729,12 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                     otherUserSessions.add(it)
                                     UMengHelper.onAccountOtherUserAddEvent(context, it)
                                 }.onFailure {
-                                    it.snackbarReport(snackbarHost, coroutineScope, "导入失败", hapticFeedback)
+                                    it.snackbarReport(
+                                        snackbarHost,
+                                        coroutineScope,
+                                        "导入失败",
+                                        hapticFeedback
+                                    )
                                     isQRCodeIllegal = true
                                     isQRCodeParsing.value = false
                                     hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
@@ -743,7 +748,12 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                 }
                             }
                         }.onFailure {
-                            it.snackbarReport(snackbarHost, coroutineScope, "二维码解析失败", hapticFeedback)
+                            it.snackbarReport(
+                                snackbarHost,
+                                coroutineScope,
+                                "二维码解析失败",
+                                hapticFeedback
+                            )
                             isQRCodeIllegal = true
                             isQRCodeScanPause.value = true
                             hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)

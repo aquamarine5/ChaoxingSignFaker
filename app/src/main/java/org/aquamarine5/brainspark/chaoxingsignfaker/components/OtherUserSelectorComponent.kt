@@ -126,7 +126,7 @@ fun OtherUserSelectorComponent(
                 }
                 LaunchedEffect(Unit) {
                     withContext(Dispatchers.IO) {
-                        val data=context.chaoxingDataStore.data.first().let { data ->
+                        val data = context.chaoxingDataStore.data.first().let { data ->
                             data.otherUsersList.filter {
                                 it.phoneNumber != data.loginSession.phoneNumber
                             }

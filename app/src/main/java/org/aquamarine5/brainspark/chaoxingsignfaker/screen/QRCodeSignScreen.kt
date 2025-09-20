@@ -96,7 +96,7 @@ data class QRCodeSignDestination(
     val classId: Int,
     val courseId: Int,
     val extContent: String,
-    val startTime:Long,
+    val startTime: Long,
     val endTime: Long?,
     val isLate: Boolean
 ) {
@@ -169,7 +169,11 @@ fun QRCodeSignScreen(
                 Column(
                     modifier = Modifier.padding(8.dp)
                 ) {
-                    SignPotentialWarningTips(destination.startTime, destination.endTime,destination.isLate)
+                    SignPotentialWarningTips(
+                        destination.startTime,
+                        destination.endTime,
+                        destination.isLate
+                    )
 
                     AlreadySignedNotice(onSignForOtherUser = {
                         isAlreadySigned = false
@@ -263,7 +267,11 @@ fun QRCodeSignScreen(
                                         )
                                     }
                                 }
-                                SignPotentialWarningTips(destination.startTime, destination.endTime,destination.isLate)
+                                SignPotentialWarningTips(
+                                    destination.startTime,
+                                    destination.endTime,
+                                    destination.isLate
+                                )
                             }
                         ) { isSelf, otherUserSessionList, indexList ->
                             isSigning = true
