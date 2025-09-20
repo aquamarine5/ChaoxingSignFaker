@@ -35,6 +35,7 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.UMengHelper
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCourseHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingOtherUserHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingSignHelper
@@ -44,6 +45,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularPro
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.GetLocationComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.OtherUserSelectorComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SignOutRedirectTips
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.SignPotentialWarningTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SponsorPopupDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationDetailEntity
@@ -63,16 +65,20 @@ data class GetLocationDestination(
     val classId: Int,
     val courseId: Int,
     val extContent: String,
-    val endTime:Long?
+    val startTime:Long,
+    val endTime:Long?,
+    val isLate: Boolean
 ) {
     companion object {
-        fun parseFromSignActivityEntity(activityEntity: ChaoxingSignActivityEntity): GetLocationDestination {
+        fun parseFromSignActivityEntity(activityEntity: ChaoxingSignActivityEntity,isLate: Boolean): GetLocationDestination {
             return GetLocationDestination(
                 activityEntity.id,
                 activityEntity.course.classId,
                 activityEntity.course.courseId,
                 activityEntity.ext,
-                activityEntity.endTime
+                activityEntity.startTime,
+                activityEntity.endTime,
+                isLate
             )
         }
     }
@@ -132,6 +138,7 @@ fun LocationSignScreen(
         when (v) {
             true -> {
                 Column(modifier = Modifier.padding(8.dp, 0.dp)) {
+                    SignPotentialWarningTips(destination.startTime, destination.endTime,destination.isLate)
                     AlreadySignedNotice(onSignForOtherUser = {
                         isAlreadySigned = false
                         isSignForOther = true
@@ -156,6 +163,8 @@ fun LocationSignScreen(
                         ) {
                             navToOtherSign(it)
                         }
+                    SignPotentialWarningTips(destination.startTime, destination.endTime,destination.isLate)
+
                     OtherUserSelectorComponent(
                         navToOtherUser = { navToOtherUserDestination() },
                         signStatus = signStatus,
@@ -277,6 +286,8 @@ fun LocationSignScreen(
                                             if (preSign()) {
                                                 throw ChaoxingSigner.AlreadySignedException()
                                             } else {
+                                                if(ChaoxingCourseHelper.checkClassValid(client,destination.classId)==false)
+                                                    throw ChaoxingSigner.SignActivityNoPermissionException()
                                                 if (sign(result)) {
                                                     suspendCoroutine { continuation ->
                                                         captchaValidateParams =

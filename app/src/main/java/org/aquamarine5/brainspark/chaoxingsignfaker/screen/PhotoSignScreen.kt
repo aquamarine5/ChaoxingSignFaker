@@ -71,6 +71,7 @@ import kotlinx.serialization.Serializable
 import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.UMengHelper
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCourseHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingOtherUserHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingSignHelper
@@ -80,6 +81,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerDia
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.OtherUserSelectorComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SignOutRedirectTips
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.SignPotentialWarningTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SponsorPopupDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
@@ -94,16 +96,27 @@ import kotlin.coroutines.suspendCoroutine
 
 @Serializable
 data class PhotoSignDestination(
-    val activeId: Long, val classId: Int, val courseId: Int, val extContent: String,val endTime:Long?
+    val activeId: Long,
+    val classId: Int,
+    val courseId: Int,
+    val extContent: String,
+    val startTime:Long,
+    val endTime: Long?,
+    val isLate: Boolean
 ) {
     companion object {
-        fun parseFromSignActivityEntity(activityEntity: ChaoxingSignActivityEntity): PhotoSignDestination {
+        fun parseFromSignActivityEntity(
+            activityEntity: ChaoxingSignActivityEntity,
+            isLate: Boolean
+        ): PhotoSignDestination {
             return PhotoSignDestination(
                 activityEntity.id,
                 activityEntity.course.classId,
                 activityEntity.course.courseId,
                 activityEntity.ext,
-                activityEntity.endTime
+                activityEntity.startTime,
+                activityEntity.endTime,
+                isLate
             )
         }
     }
@@ -171,6 +184,8 @@ fun PhotoSignScreen(
                             ) {
                                 navToOtherSign(it)
                             }
+                        SignPotentialWarningTips(destination.startTime, destination.endTime,destination.isLate)
+
                         Column(modifier = Modifier.padding(16.dp, 0.dp)) {
                             Card(
                                 onClick = {
@@ -286,7 +301,7 @@ fun PhotoSignScreen(
                                     }
                                     signStatus[0].failed(it)
                                 }
-                                if(otherUserSessionList.isEmpty()){
+                                if (otherUserSessionList.isEmpty()) {
                                     isSigning = false
                                 }
                                 otherUserSessionList.forEachIndexed { index, userSession ->
@@ -305,6 +320,12 @@ fun PhotoSignScreen(
                                                 } else if (ifPhotoRequiredLogin().first) {
                                                     throw ChaoxingPhotoSigner.ChaoxingIncorrectSignTypeException()
                                                 } else {
+                                                    if (ChaoxingCourseHelper.checkClassValid(
+                                                            client,
+                                                            destination.classId
+                                                        ) == false
+                                                    )
+                                                        throw ChaoxingSigner.SignActivityNoPermissionException()
                                                     if (signByClick()) {
                                                         suspendCoroutine { continuation ->
                                                             captchaValidateParams =
@@ -360,7 +381,7 @@ fun PhotoSignScreen(
                                                         userSelections[1 + index] = false
                                                         signStatus[1 + index].success()
                                                         if (index == otherUserSessionList.size - 1) {
-                                                            isSigning=false
+                                                            isSigning = false
                                                             delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)
                                                             isSponsor = true
                                                         }
@@ -381,7 +402,7 @@ fun PhotoSignScreen(
                                         signStatus[1 + index].failed(err)
                                     }
                                 }
-                                isSigning=false
+                                isSigning = false
                             }
                         }
                     }
@@ -453,6 +474,8 @@ fun PhotoSignScreen(
                                             ) {
                                                 navToOtherSign(it)
                                             }
+                                        SignPotentialWarningTips(destination.startTime, destination.endTime,destination.isLate)
+
                                         OtherUserSelectorComponent(
                                             navToOtherUser = {
                                                 navToOtherUserDestination()
@@ -696,6 +719,12 @@ fun PhotoSignScreen(
                                                                             if (preSign()) {
                                                                                 throw ChaoxingSigner.AlreadySignedException()
                                                                             } else {
+                                                                                if (ChaoxingCourseHelper.checkClassValid(
+                                                                                        client,
+                                                                                        destination.classId
+                                                                                    ) == false
+                                                                                )
+                                                                                    throw ChaoxingSigner.SignActivityNoPermissionException()
                                                                                 val objectId =
                                                                                     uploadImage(
                                                                                         imageList[bitmapIndexList.indexOf(
@@ -944,6 +973,8 @@ fun PhotoSignScreen(
                 Column(
                     modifier = Modifier.padding(8.dp)
                 ) {
+                    SignPotentialWarningTips(destination.startTime, destination.endTime,destination.isLate)
+
                     AlreadySignedNotice({
                         isAlreadySigned = false
                         isForSelf = true

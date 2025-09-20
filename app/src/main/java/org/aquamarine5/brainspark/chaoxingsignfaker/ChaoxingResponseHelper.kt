@@ -66,26 +66,27 @@ suspend fun Response.checkResponse(snackbarHostState: SnackbarHostState): Boolea
         true
     }
 
-fun Throwable.handleReport(context: Context? = null, prefixTips: String? = null) {
+fun Throwable.toastReport(
+    context: Context,
+    prefixTips: String? = null,
+    hapticFeedback: HapticFeedback? = null
+) {
     this.cause?.printStackTrace()
     this.printStackTrace()
-    if ((this is ChaoxingPredictableException).not()) {
+    hapticFeedback?.performHapticFeedback(HapticFeedbackType.Reject)
+    if (this !is ChaoxingPredictableException) {
         Sentry.captureException(this)
-        if (context != null) {
-            Toast.makeText(
-                context,
-                "${prefixTips?.plus(" ") ?: ""}预期外错误:${this.message ?: this::class.simpleName}",
-                Toast.LENGTH_LONG
-            ).show()
-        }
+        Toast.makeText(
+            context,
+            "${prefixTips?.plus(" ") ?: ""}预期外错误:${this.message ?: this::class.simpleName}",
+            Toast.LENGTH_LONG
+        ).show()
     } else {
-        if (context != null) {
-            Toast.makeText(
-                context,
-                "${prefixTips?.plus(" ") ?: ""}${this.message ?: this::class.simpleName}",
-                Toast.LENGTH_LONG
-            ).show()
-        }
+        Toast.makeText(
+            context,
+            "${prefixTips?.plus(" ") ?: ""}${this.message ?: this::class.simpleName}",
+            Toast.LENGTH_LONG
+        ).show()
     }
 }
 

@@ -40,11 +40,11 @@ object ChaoxingSignHelper {
         else -> painterResource(R.drawable.ic_clipboard_pen_line)
     }
 
-    fun getSignDestination(context: Context, activityEntity: ChaoxingSignActivityEntity): Any? =
+    fun getSignDestination(context: Context, activityEntity: ChaoxingSignActivityEntity,isLate: Boolean=false): Any? =
         when (activityEntity.otherId) {
-            "4" -> GetLocationDestination.parseFromSignActivityEntity(activityEntity)
-            "2" -> QRCodeSignDestination.parseFromSignActivityEntity(activityEntity)
-            "0" -> PhotoSignDestination.parseFromSignActivityEntity(activityEntity)
+            "4" -> GetLocationDestination.parseFromSignActivityEntity(activityEntity,isLate)
+            "2" -> QRCodeSignDestination.parseFromSignActivityEntity(activityEntity,isLate)
+            "0" -> PhotoSignDestination.parseFromSignActivityEntity(activityEntity,isLate)
             else -> {
                 Toast.makeText(context, "暂不支持该活动类型", Toast.LENGTH_SHORT).show()
                 null
@@ -64,20 +64,21 @@ object ChaoxingSignHelper {
                     throw ChaoxingHttpClient.ChaoxingNetworkException()
                 }
                 val result = JSONObject.parseObject(it.body.string()).getJSONObject("data")
+                val endTime=result.getLong("endTime")
                 when (result.getInteger("otherId")) {
                     0 -> PhotoSignDestination(
                         activeId,
-                        classId, courseId, "",null
+                        classId, courseId, "",result.getLong("starttime"),endTime,if(endTime!=null)System.currentTimeMillis()>endTime else false
                     )
 
                     2 -> QRCodeSignDestination(
                         activeId,
-                        classId, courseId, "",null
+                        classId, courseId, "",result.getLong("starttime"),endTime,if(endTime!=null)System.currentTimeMillis()>endTime else false
                     )
 
                     4 -> GetLocationDestination(
                         activeId,
-                        classId, courseId, "",null
+                        classId, courseId, "",result.getLong("starttime"),endTime,if(endTime!=null)System.currentTimeMillis()>endTime else false
                     )
 
                     else -> {

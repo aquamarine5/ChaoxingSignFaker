@@ -65,6 +65,7 @@ import kotlinx.serialization.Serializable
 import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.UMengHelper
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCourseHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingOtherUserHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingSignHelper
@@ -75,6 +76,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.components.GetLocationCompon
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.OtherUserSelectorComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.QRCodeScanComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SignOutRedirectTips
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.SignPotentialWarningTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SponsorPopupDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationSignEntity
@@ -94,16 +96,23 @@ data class QRCodeSignDestination(
     val classId: Int,
     val courseId: Int,
     val extContent: String,
-    val endTime: Long?
+    val startTime:Long,
+    val endTime: Long?,
+    val isLate: Boolean
 ) {
     companion object {
-        fun parseFromSignActivityEntity(activityEntity: ChaoxingSignActivityEntity): QRCodeSignDestination {
+        fun parseFromSignActivityEntity(
+            activityEntity: ChaoxingSignActivityEntity,
+            isLate: Boolean
+        ): QRCodeSignDestination {
             return QRCodeSignDestination(
                 activityEntity.id,
                 activityEntity.course.classId,
                 activityEntity.course.courseId,
                 activityEntity.ext,
-                activityEntity.endTime
+                activityEntity.startTime,
+                activityEntity.endTime,
+                isLate
             )
         }
     }
@@ -160,6 +169,8 @@ fun QRCodeSignScreen(
                 Column(
                     modifier = Modifier.padding(8.dp)
                 ) {
+                    SignPotentialWarningTips(destination.startTime, destination.endTime,destination.isLate)
+
                     AlreadySignedNotice(onSignForOtherUser = {
                         isAlreadySigned = false
                         isCurrentAlreadySigned = true
@@ -215,6 +226,8 @@ fun QRCodeSignScreen(
                                 ) {
                                     navToOtherSign(it)
                                 }
+                            SignPotentialWarningTips(destination.startTime, destination.endTime,destination.isLate)
+
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -420,6 +433,12 @@ fun QRCodeSignScreen(
                                                             if (preSign()) {
                                                                 throw ChaoxingSigner.AlreadySignedException()
                                                             } else {
+                                                                if (ChaoxingCourseHelper.checkClassValid(
+                                                                        client,
+                                                                        destination.classId
+                                                                    ) == false
+                                                                )
+                                                                    throw ChaoxingSigner.SignActivityNoPermissionException()
                                                                 if (sign(enc, locationData)) {
                                                                     suspendCoroutine { continuation ->
                                                                         captchaValidateParams =
