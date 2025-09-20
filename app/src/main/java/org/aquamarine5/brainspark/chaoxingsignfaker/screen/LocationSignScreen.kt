@@ -62,7 +62,8 @@ data class GetLocationDestination(
     val activeId: Long,
     val classId: Int,
     val courseId: Int,
-    val extContent: String
+    val extContent: String,
+    val endTime:Long?
 ) {
     companion object {
         fun parseFromSignActivityEntity(activityEntity: ChaoxingSignActivityEntity): GetLocationDestination {
@@ -70,7 +71,8 @@ data class GetLocationDestination(
                 activityEntity.id,
                 activityEntity.course.classId,
                 activityEntity.course.courseId,
-                activityEntity.ext
+                activityEntity.ext,
+                activityEntity.endTime
             )
         }
     }
@@ -204,8 +206,10 @@ fun LocationSignScreen(
                                                             result,
                                                             captchaValidate.getOrThrow()
                                                         )
-
-                                                        signStatus[0].success()
+                                                        if (destination.endTime != null && System.currentTimeMillis() > destination.endTime)
+                                                            signStatus[0].successForLate()
+                                                        else
+                                                            signStatus[0].success()
                                                         if (otherUserSessionForSignList.isEmpty()) {
                                                             isSigning = false
                                                             delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)
@@ -232,7 +236,10 @@ fun LocationSignScreen(
                                                 }
                                         }
                                     } else {
-                                        signStatus[0].success()
+                                        if (destination.endTime != null && System.currentTimeMillis() > destination.endTime)
+                                            signStatus[0].successForLate()
+                                        else
+                                            signStatus[0].success()
                                         if (otherUserSessionForSignList.isEmpty()) {
                                             isSigning = false
                                             delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)
@@ -279,7 +286,10 @@ fun LocationSignScreen(
                                                                         result,
                                                                         captchaValidate.getOrThrow()
                                                                     )
-                                                                    signStatus[index + 1].success()
+                                                                    if (destination.endTime != null && System.currentTimeMillis() > destination.endTime)
+                                                                        signStatus[1 + index].successForLate()
+                                                                    else
+                                                                        signStatus[1 + index].success()
                                                                     userSelections[index + 1] =
                                                                         false
                                                                     if (index == otherUserSessionForSignList.size - 1) {
@@ -311,7 +321,10 @@ fun LocationSignScreen(
                                                             }
                                                     }
                                                 } else {
-                                                    signStatus[index + 1].success()
+                                                    if (destination.endTime != null && System.currentTimeMillis() > destination.endTime)
+                                                        signStatus[1 + index].successForLate()
+                                                    else
+                                                        signStatus[1 + index].success()
                                                     if (index == otherUserSessionForSignList.size - 1) {
                                                         isSigning = false
                                                         delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)

@@ -61,7 +61,7 @@ object ChaoxingActivityHelper {
                         val activity = activeList[i]
                         ChaoxingSignActivityEntity(
                             activity.getLong("startTime"),
-                            activity.getLong("endTime") ?: NO_LIMIT_END_TIME,
+                            activity.getLong("endTime"),
                             activity.getInteger("userStatus"),
                             activity.getString("otherId"),
                             activity.getInteger("isLook") == 1,

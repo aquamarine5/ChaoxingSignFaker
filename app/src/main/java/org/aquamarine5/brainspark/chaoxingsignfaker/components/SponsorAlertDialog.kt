@@ -208,13 +208,13 @@ fun SponsorAlertDialog(showDialog: MutableState<Boolean>) {
                                     }
                                 }
                             }
-                            snackbarHost?.displaySnackbar("图片已保存到相册", coroutineScope)
+                            snackbarHost.displaySnackbar("图片已保存到相册", coroutineScope)
                         }.invokeOnCompletion {
                             hapticFeedback.performHapticFeedback(HapticFeedbackType.Confirm)
                             context.startActivity(
                                 Intent(
                                     Intent.ACTION_VIEW,
-                                    "weixin://".toUri()
+                                    "weixin://dl/scan".toUri()
                                 ).apply {
                                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                                 })

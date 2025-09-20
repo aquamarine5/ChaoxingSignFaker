@@ -94,7 +94,7 @@ import kotlin.coroutines.suspendCoroutine
 
 @Serializable
 data class PhotoSignDestination(
-    val activeId: Long, val classId: Int, val courseId: Int, val extContent: String
+    val activeId: Long, val classId: Int, val courseId: Int, val extContent: String,val endTime:Long?
 ) {
     companion object {
         fun parseFromSignActivityEntity(activityEntity: ChaoxingSignActivityEntity): PhotoSignDestination {
@@ -102,7 +102,8 @@ data class PhotoSignDestination(
                 activityEntity.id,
                 activityEntity.course.classId,
                 activityEntity.course.courseId,
-                activityEntity.ext
+                activityEntity.ext,
+                activityEntity.endTime
             )
         }
     }
@@ -543,7 +544,7 @@ fun PhotoSignScreen(
                                                 otherUserSessionForSignList.filterNotNull()
                                                     .map { it.name }
                                             }
-                                            var index by remember { mutableIntStateOf(0) }
+                                            var imageIndex by remember { mutableIntStateOf(0) }
                                             Column(
                                                 modifier = Modifier
                                                     .zIndex(1f)
@@ -555,7 +556,7 @@ fun PhotoSignScreen(
                                                     pictureCount =
                                                         combinedUserList.size,
                                                     onNextPhoto = {
-                                                        index++
+                                                        imageIndex++
                                                     },
                                                     content = {
                                                         Row(
@@ -574,7 +575,7 @@ fun PhotoSignScreen(
                                                             verticalAlignment = Alignment.CenterVertically,
                                                             horizontalArrangement = Arrangement.Center
                                                         ) {
-                                                            Text("拍摄给 ${combinedUserList[index]} 签到的图片")
+                                                            Text("拍摄给 ${combinedUserList[imageIndex]} 签到的图片")
                                                         }
                                                     }) {
                                                     coroutineScope.launch {
@@ -605,7 +606,10 @@ fun PhotoSignScreen(
                                                                                                     context,
                                                                                                     ChaoxingHttpClient.instance!!.userEntity.name
                                                                                                 )
-                                                                                                signStatus[0].success()
+                                                                                                if (destination.endTime != null && System.currentTimeMillis() > destination.endTime)
+                                                                                                    signStatus[0].successForLate()
+                                                                                                else
+                                                                                                    signStatus[0].success()
                                                                                                 if (otherUserSessionForSignList.isEmpty()) {
                                                                                                     isSigning =
                                                                                                         false
@@ -641,7 +645,10 @@ fun PhotoSignScreen(
                                                                                     context,
                                                                                     ChaoxingHttpClient.instance!!.userEntity.name
                                                                                 )
-                                                                                signStatus[0].success()
+                                                                                if (destination.endTime != null && System.currentTimeMillis() > destination.endTime)
+                                                                                    signStatus[0].successForLate()
+                                                                                else
+                                                                                    signStatus[0].success()
                                                                                 if (otherUserSessionForSignList.isEmpty()) {
                                                                                     isSigning =
                                                                                         false
@@ -711,7 +718,10 @@ fun PhotoSignScreen(
                                                                                                     )
                                                                                                     userSelections[1 + index] =
                                                                                                         false
-                                                                                                    signStatus[index + 1].success()
+                                                                                                    if (destination.endTime != null && System.currentTimeMillis() > destination.endTime)
+                                                                                                        signStatus[1 + index].successForLate()
+                                                                                                    else
+                                                                                                        signStatus[1 + index].success()
                                                                                                     otherUserSessionForSignList.remove(
                                                                                                         chaoxingOtherUserSession
                                                                                                     )
@@ -749,7 +759,10 @@ fun PhotoSignScreen(
                                                                                     )
                                                                                     userSelections[1 + index] =
                                                                                         false
-                                                                                    signStatus[1 + index].success()
+                                                                                    if (destination.endTime != null && System.currentTimeMillis() > destination.endTime)
+                                                                                        signStatus[1 + index].successForLate()
+                                                                                    else
+                                                                                        signStatus[1 + index].success()
                                                                                     otherUserSessionForSignList.remove(
                                                                                         chaoxingOtherUserSession
                                                                                     )
@@ -857,8 +870,8 @@ fun PhotoSignScreen(
                                             isShowPhotoPicker = false
                                         }
                                     }
-                                    Crossfade(isSignSuccess) {
-                                        if (it) {
+                                    Crossfade(isSignSuccess) { v ->
+                                        if (v) {
                                             Column(
                                                 modifier = Modifier.fillMaxSize(),
                                                 horizontalAlignment = Alignment.CenterHorizontally,
