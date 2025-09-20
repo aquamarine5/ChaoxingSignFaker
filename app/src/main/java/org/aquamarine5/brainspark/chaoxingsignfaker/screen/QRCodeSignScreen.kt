@@ -65,6 +65,7 @@ import kotlinx.serialization.Serializable
 import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.UMengHelper
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCourseHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingOtherUserHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingSignHelper
@@ -75,6 +76,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.components.GetLocationCompon
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.OtherUserSelectorComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.QRCodeScanComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SignOutRedirectTips
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.SignPotentialWarningTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SponsorPopupDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationSignEntity
@@ -94,14 +96,23 @@ data class QRCodeSignDestination(
     val classId: Int,
     val courseId: Int,
     val extContent: String,
+    val startTime:Long,
+    val endTime: Long?,
+    val isLate: Boolean
 ) {
     companion object {
-        fun parseFromSignActivityEntity(activityEntity: ChaoxingSignActivityEntity): QRCodeSignDestination {
+        fun parseFromSignActivityEntity(
+            activityEntity: ChaoxingSignActivityEntity,
+            isLate: Boolean
+        ): QRCodeSignDestination {
             return QRCodeSignDestination(
                 activityEntity.id,
                 activityEntity.course.classId,
                 activityEntity.course.courseId,
-                activityEntity.ext
+                activityEntity.ext,
+                activityEntity.startTime,
+                activityEntity.endTime,
+                isLate
             )
         }
     }
@@ -119,7 +130,7 @@ fun QRCodeSignScreen(
     val coroutineScope = rememberCoroutineScope()
     val signer = ChaoxingQRCodeSigner(ChaoxingHttpClient.instance!!, destination)
     val context = LocalContext.current
-    val resources= LocalResources.current
+    val resources = LocalResources.current
     val snackbarHost = LocalSnackbarHostState.current
     var isMapRequired by remember { mutableStateOf(false) }
     var signoffData by remember { mutableStateOf<ChaoxingSignOutEntity?>(null) }
@@ -158,6 +169,8 @@ fun QRCodeSignScreen(
                 Column(
                     modifier = Modifier.padding(8.dp)
                 ) {
+                    SignPotentialWarningTips(destination.startTime, destination.endTime,destination.isLate)
+
                     AlreadySignedNotice(onSignForOtherUser = {
                         isAlreadySigned = false
                         isCurrentAlreadySigned = true
@@ -198,49 +211,6 @@ fun QRCodeSignScreen(
                         modifier = Modifier
                             .padding(8.dp)
                     ) {
-                        Card(
-                            shape = RoundedCornerShape(18.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = Color(83, 83, 83)
-                            ), modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(3.dp, 3.dp)
-                                .padding(12.dp, 0.dp)
-                        ) {
-                            if (signoffData != null)
-                                SignOutRedirectTips(
-                                    signoffData!!
-                                ) {
-                                    navToOtherSign(it)
-                                }
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(10.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Icon(
-                                    painterResource(R.drawable.ic_info),
-                                    contentDescription = "Info",
-                                    tint = Color.White
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    buildAnnotatedString {
-                                        append("通常情况下，")
-                                        withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
-                                            append("随地大小签")
-                                        }
-                                        append(" 的二维码签到功能是用于给其他用户签到的，而不是用于仅给自己签到。")
-                                    },
-                                    color = Color.White,
-                                    fontSize = 13.sp,
-                                    lineHeight = 18.sp,
-                                    fontWeight = FontWeight.W500
-                                )
-                            }
-                        }
                         OtherUserSelectorComponent(
                             navToOtherUser = {
                                 navToOtherUser()
@@ -248,7 +218,53 @@ fun QRCodeSignScreen(
                             signStatus = signStatus,
                             isCurrentAlreadySigned = isCurrentAlreadySigned,
                             userSelections = userSelections,
-                            isSigning = isSigning
+                            isSigning = isSigning,
+                            prefixTipsContent = {
+                                if (signoffData != null)
+                                    SignOutRedirectTips(
+                                        signoffData!!
+                                    ) {
+                                        navToOtherSign(it)
+                                    }
+                                Card(
+                                    shape = RoundedCornerShape(18.dp),
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = Color.DarkGray
+                                    ),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(2.dp, 6.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .padding(10.dp, 12.dp)
+                                            .fillMaxWidth(),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Icon(
+                                            painterResource(R.drawable.ic_info),
+                                            contentDescription = "Info",
+                                            tint = Color.White
+                                        )
+                                        Spacer(modifier = Modifier.width(9.dp))
+                                        Text(
+                                            buildAnnotatedString {
+                                                append("通常情况下，")
+                                                withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
+                                                    append("随地大小签")
+                                                }
+                                                append(" 的二维码签到功能是用于给其他用户签到的，而不是用于仅给自己签到。")
+                                            },
+                                            color = Color.White,
+                                            fontSize = 13.sp,
+                                            lineHeight = 18.sp,
+                                            fontWeight = FontWeight.W500
+                                        )
+                                    }
+                                }
+                                SignPotentialWarningTips(destination.startTime, destination.endTime,destination.isLate)
+                            }
                         ) { isSelf, otherUserSessionList, indexList ->
                             isSigning = true
                             isSelfForSign = isSelf
@@ -341,7 +357,10 @@ fun QRCodeSignScreen(
                                                                             locationData,
                                                                             validateValue.getOrThrow()
                                                                         )
-                                                                        signStatus[0].success()
+                                                                        if (destination.endTime != null && System.currentTimeMillis() > destination.endTime)
+                                                                            signStatus[0].successForLate()
+                                                                        else
+                                                                            signStatus[0].success()
                                                                         userSelections[0] = false
                                                                         UMengHelper.onSignQRCodeEvent(
                                                                             context,
@@ -365,7 +384,10 @@ fun QRCodeSignScreen(
                                                                 }
                                                         }
                                                     } else {
-                                                        signStatus[0].success()
+                                                        if (destination.endTime != null && System.currentTimeMillis() > destination.endTime)
+                                                            signStatus[0].successForLate()
+                                                        else
+                                                            signStatus[0].success()
                                                         userSelections[0] = false
                                                         UMengHelper.onSignQRCodeEvent(
                                                             context,
@@ -412,6 +434,12 @@ fun QRCodeSignScreen(
                                                             if (preSign()) {
                                                                 throw ChaoxingSigner.AlreadySignedException()
                                                             } else {
+                                                                if (ChaoxingCourseHelper.checkClassValid(
+                                                                        client,
+                                                                        destination.classId
+                                                                    ) == false
+                                                                )
+                                                                    throw ChaoxingSigner.SignActivityNoPermissionException()
                                                                 if (sign(enc, locationData)) {
                                                                     suspendCoroutine { continuation ->
                                                                         captchaValidateParams =
@@ -422,7 +450,10 @@ fun QRCodeSignScreen(
                                                                                         locationData,
                                                                                         validateValue.getOrThrow()
                                                                                     )
-                                                                                    signStatus[1 + index].success()
+                                                                                    if (destination.endTime != null && System.currentTimeMillis() > destination.endTime)
+                                                                                        signStatus[1 + index].successForLate()
+                                                                                    else
+                                                                                        signStatus[1 + index].success()
                                                                                     UMengHelper.onSignQRCodeEvent(
                                                                                         context,
                                                                                         session.name,
@@ -456,7 +487,10 @@ fun QRCodeSignScreen(
                                                                             }
                                                                     }
                                                                 } else {
-                                                                    signStatus[1 + index].success()
+                                                                    if (destination.endTime != null && System.currentTimeMillis() > destination.endTime)
+                                                                        signStatus[1 + index].successForLate()
+                                                                    else
+                                                                        signStatus[1 + index].success()
                                                                     UMengHelper.onSignQRCodeEvent(
                                                                         context,
                                                                         session.name,

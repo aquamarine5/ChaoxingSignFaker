@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import org.aquamarine5.brainspark.chaoxingsignfaker.ChaoxingPredictableException
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSigner
+import org.aquamarine5.brainspark.chaoxingsignfaker.ui.theme.Orange
 
 data class ChaoxingSignStatus(
     private val hapticFeedback: HapticFeedback,
@@ -38,6 +39,12 @@ data class ChaoxingSignStatus(
         isSuccess.value = true
         isLoading.value = false
         hapticFeedback.performHapticFeedback(HapticFeedbackType.Confirm)
+    }
+
+    fun successForLate(){
+        isLoading.value=false
+        error.value="疑似迟到"
+        hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
     }
 
     fun failed(e: Throwable) {
@@ -63,7 +70,9 @@ data class ChaoxingSignStatus(
                 Text(
                     error.value, color = if (error.value == "您已签到过了") {
                         LocalContentColor.current
-                    } else {
+                    } else if(error.value=="疑似迟到"){
+                        Orange
+                    }else {
                         Color(0xFFF43E06)
                     }
                 )

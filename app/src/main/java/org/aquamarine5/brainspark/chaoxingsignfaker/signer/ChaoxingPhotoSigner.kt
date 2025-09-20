@@ -101,6 +101,11 @@ class ChaoxingPhotoSigner(
                 throw ChaoxingHttpClient.ChaoxingNetworkException()
             }
             val result = it.body.string()
+            if (result == "您已签到过了") {
+                throw AlreadySignedException()
+            }
+            if(result=="success2")
+                throw SignAlreadyEndedException()
             if (result == "validate") {
                 return@use true
             }
@@ -129,6 +134,11 @@ class ChaoxingPhotoSigner(
                     throw ChaoxingHttpClient.ChaoxingNetworkException()
                 }
                 val result = it.body.string()
+                if (result == "您已签到过了") {
+                    throw AlreadySignedException()
+                }
+                if(result=="success2")
+                    throw SignAlreadyEndedException()
                 if (result == "validate") {
                     return@use true
                 }
@@ -156,6 +166,8 @@ class ChaoxingPhotoSigner(
                 throw ChaoxingHttpClient.ChaoxingNetworkException()
             }
             val result = it.body.string()
+            if(result=="success2")
+                throw SignAlreadyEndedException()
             if (result == "您已签到过了") {
                 throw AlreadySignedException()
             }
@@ -185,6 +197,8 @@ class ChaoxingPhotoSigner(
                     throw ChaoxingHttpClient.ChaoxingNetworkException()
                 }
                 val result = it.body.string()
+                if(result=="success2")
+                    throw SignAlreadyEndedException()
                 if (result == "您已签到过了") {
                     throw AlreadySignedException()
                 }

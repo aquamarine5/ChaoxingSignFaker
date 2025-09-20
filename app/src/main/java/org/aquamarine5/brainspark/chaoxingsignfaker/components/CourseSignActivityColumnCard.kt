@@ -49,7 +49,10 @@ inline fun CourseSignActivityColumnCard(
                         onSignAction(it)
                     }
                 } else {
-                    snackbarHost.displaySnackbar("活动未开始或已结束", coroutineScope)
+                    snackbarHost.displaySnackbar("警告：活动未开始或已结束", coroutineScope)
+                    ChaoxingSignHelper.getSignDestination(context, activity, true)?.let {
+                        onSignAction(it)
+                    }
                 }
             }) {
         Icon(

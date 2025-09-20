@@ -58,7 +58,11 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
@@ -71,6 +75,7 @@ import kotlinx.serialization.Serializable
 import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.UMengHelper
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCourseHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingOtherUserHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingSignHelper
@@ -80,6 +85,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerDia
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.OtherUserSelectorComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SignOutRedirectTips
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.SignPotentialWarningTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SponsorPopupDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
@@ -94,15 +100,27 @@ import kotlin.coroutines.suspendCoroutine
 
 @Serializable
 data class PhotoSignDestination(
-    val activeId: Long, val classId: Int, val courseId: Int, val extContent: String
+    val activeId: Long,
+    val classId: Int,
+    val courseId: Int,
+    val extContent: String,
+    val startTime: Long,
+    val endTime: Long?,
+    val isLate: Boolean
 ) {
     companion object {
-        fun parseFromSignActivityEntity(activityEntity: ChaoxingSignActivityEntity): PhotoSignDestination {
+        fun parseFromSignActivityEntity(
+            activityEntity: ChaoxingSignActivityEntity,
+            isLate: Boolean
+        ): PhotoSignDestination {
             return PhotoSignDestination(
                 activityEntity.id,
                 activityEntity.course.classId,
                 activityEntity.course.courseId,
-                activityEntity.ext
+                activityEntity.ext,
+                activityEntity.startTime,
+                activityEntity.endTime,
+                isLate
             )
         }
     }
@@ -164,53 +182,6 @@ fun PhotoSignScreen(
                     Column(
                         modifier = Modifier.padding(8.dp)
                     ) {
-                        if (signoffEntity != null)
-                            SignOutRedirectTips(
-                                signoffEntity!!
-                            ) {
-                                navToOtherSign(it)
-                            }
-                        Column(modifier = Modifier.padding(16.dp, 0.dp)) {
-                            Card(
-                                onClick = {
-                                    context.startActivity(
-                                        Intent(
-                                            Intent.ACTION_VIEW, "cxstudy://".toUri()
-                                        ).apply {
-                                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                        })
-                                },
-                                shape = RoundedCornerShape(18.dp),
-                                colors = CardDefaults.cardColors(
-                                    containerColor = Color.DarkGray
-                                ),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(0.dp, 6.dp)
-                            ) {
-                                Row(
-                                    modifier = Modifier
-                                        .padding(10.dp)
-                                        .fillMaxWidth(),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Icon(
-                                        painterResource(R.drawable.ic_info),
-                                        contentDescription = "Info",
-                                        tint = Color.White
-                                    )
-                                    Spacer(modifier = Modifier.width(9.dp))
-                                    Text(
-                                        "这是一个普通的点击签到，不会收集任何其他的信息，推荐对于这种签到使用学习通APP而不是随地大小签。\n点击跳转到学习通。",
-                                        color = Color.White,
-                                        fontSize = 13.sp,
-                                        lineHeight = 18.sp,
-                                        fontWeight = FontWeight.W500
-                                    )
-                                }
-                            }
-                        }
                         var isSigning by remember { mutableStateOf(false) }
                         val signStatus =
                             remember { mutableListOf(ChaoxingSignStatus(hapticFeedback)) }
@@ -222,7 +193,64 @@ fun PhotoSignScreen(
                             signStatus,
                             isForSelf,
                             userSelections,
-                            isSigning
+                            isSigning,
+                            prefixTipsContent = {
+                                Card(
+                                    onClick = {
+                                        context.startActivity(
+                                            Intent(
+                                                Intent.ACTION_VIEW, "cxstudy://".toUri()
+                                            ).apply {
+                                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                            })
+                                    },
+                                    shape = RoundedCornerShape(18.dp),
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = Color.DarkGray
+                                    ),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(2.dp, 6.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .padding(10.dp, 12.dp)
+                                            .fillMaxWidth(),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Icon(
+                                            painterResource(R.drawable.ic_info),
+                                            contentDescription = "Info",
+                                            tint = Color.White
+                                        )
+                                        Spacer(modifier = Modifier.width(9.dp))
+                                        Text(
+                                            buildAnnotatedString {
+                                                append("这是一个普通的点击签到，不会收集任何其他的信息，推荐对于这种签到使用学习通APP而不是随地大小签。")
+                                                withStyle(SpanStyle(fontWeight = FontWeight.Bold, textDecoration = TextDecoration.Underline) ){
+                                                    append("\n点击跳转到学习通。")
+                                                }
+                                            },
+                                            color = Color.White,
+                                            fontSize = 13.sp,
+                                            lineHeight = 18.sp,
+                                            fontWeight = FontWeight.W500
+                                        )
+                                    }
+                                }
+                                if (signoffEntity != null)
+                                    SignOutRedirectTips(
+                                        signoffEntity!!
+                                    ) {
+                                        navToOtherSign(it)
+                                    }
+                                SignPotentialWarningTips(
+                                    destination.startTime,
+                                    destination.endTime,
+                                    destination.isLate
+                                )
+                            }
                         ) { isSelf, otherUserSessionList, _ ->
                             isSigning = true
                             coroutineScope.launch {
@@ -285,7 +313,7 @@ fun PhotoSignScreen(
                                     }
                                     signStatus[0].failed(it)
                                 }
-                                if(otherUserSessionList.isEmpty()){
+                                if (otherUserSessionList.isEmpty()) {
                                     isSigning = false
                                 }
                                 otherUserSessionList.forEachIndexed { index, userSession ->
@@ -304,6 +332,12 @@ fun PhotoSignScreen(
                                                 } else if (ifPhotoRequiredLogin().first) {
                                                     throw ChaoxingPhotoSigner.ChaoxingIncorrectSignTypeException()
                                                 } else {
+                                                    if (ChaoxingCourseHelper.checkClassValid(
+                                                            client,
+                                                            destination.classId
+                                                        ) == false
+                                                    )
+                                                        throw ChaoxingSigner.SignActivityNoPermissionException()
                                                     if (signByClick()) {
                                                         suspendCoroutine { continuation ->
                                                             captchaValidateParams =
@@ -359,7 +393,7 @@ fun PhotoSignScreen(
                                                         userSelections[1 + index] = false
                                                         signStatus[1 + index].success()
                                                         if (index == otherUserSessionList.size - 1) {
-                                                            isSigning=false
+                                                            isSigning = false
                                                             delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)
                                                             isSponsor = true
                                                         }
@@ -380,7 +414,7 @@ fun PhotoSignScreen(
                                         signStatus[1 + index].failed(err)
                                     }
                                 }
-                                isSigning=false
+                                isSigning = false
                             }
                         }
                     }
@@ -397,7 +431,9 @@ fun PhotoSignScreen(
                                     horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
                                     Icon(painterResource(R.drawable.ic_image_up), null)
+                                    Spacer(modifier = Modifier.height(6.dp))
                                     Text("这是一个图片签到")
+                                    Spacer(modifier = Modifier.height(6.dp))
                                     Button(
                                         onClick = {
                                             isSignForOther = false
@@ -446,12 +482,6 @@ fun PhotoSignScreen(
                                     Column(
                                         modifier = Modifier.padding(8.dp)
                                     ) {
-                                        if (signoffEntity != null)
-                                            SignOutRedirectTips(
-                                                signoffEntity!!
-                                            ) {
-                                                navToOtherSign(it)
-                                            }
                                         OtherUserSelectorComponent(
                                             navToOtherUser = {
                                                 navToOtherUserDestination()
@@ -460,6 +490,15 @@ fun PhotoSignScreen(
                                             isForSelf,
                                             userSelections,
                                             isSigning,
+                                            prefixTipsContent = {
+                                                if (signoffEntity != null)
+                                                    SignOutRedirectTips(
+                                                        signoffEntity!!
+                                                    ) {
+                                                        navToOtherSign(it)
+                                                    }
+                                                SignPotentialWarningTips(destination.startTime, destination.endTime,destination.isLate)
+                                            },
                                             userContent = { index ->
                                                 var isShowDialog by remember {
                                                     mutableStateOf(
@@ -547,7 +586,7 @@ fun PhotoSignScreen(
                                                 otherUserSessionForSignList.filterNotNull()
                                                     .map { it.name }
                                             }
-                                            var index by remember { mutableIntStateOf(0) }
+                                            var imageIndex by remember { mutableIntStateOf(0) }
                                             Column(
                                                 modifier = Modifier
                                                     .zIndex(1f)
@@ -559,7 +598,7 @@ fun PhotoSignScreen(
                                                     pictureCount =
                                                         combinedUserList.size,
                                                     onNextPhoto = {
-                                                        index++
+                                                        imageIndex++
                                                     },
                                                     content = {
                                                         Row(
@@ -578,7 +617,7 @@ fun PhotoSignScreen(
                                                             verticalAlignment = Alignment.CenterVertically,
                                                             horizontalArrangement = Arrangement.Center
                                                         ) {
-                                                            Text("拍摄给 ${combinedUserList[index]} 签到的图片")
+                                                            Text("拍摄给 ${combinedUserList[imageIndex]} 签到的图片")
                                                         }
                                                     }) { imageList ->
                                                     coroutineScope.launch {
@@ -609,7 +648,10 @@ fun PhotoSignScreen(
                                                                                                     context,
                                                                                                     ChaoxingHttpClient.instance!!.userEntity.name
                                                                                                 )
-                                                                                                signStatus[0].success()
+                                                                                                if (destination.endTime != null && System.currentTimeMillis() > destination.endTime)
+                                                                                                    signStatus[0].successForLate()
+                                                                                                else
+                                                                                                    signStatus[0].success()
                                                                                                 if (otherUserSessionForSignList.isEmpty()) {
                                                                                                     isSigning =
                                                                                                         false
@@ -645,7 +687,10 @@ fun PhotoSignScreen(
                                                                                     context,
                                                                                     ChaoxingHttpClient.instance!!.userEntity.name
                                                                                 )
-                                                                                signStatus[0].success()
+                                                                                if (destination.endTime != null && System.currentTimeMillis() > destination.endTime)
+                                                                                    signStatus[0].successForLate()
+                                                                                else
+                                                                                    signStatus[0].success()
                                                                                 if (otherUserSessionForSignList.isEmpty()) {
                                                                                     isSigning =
                                                                                         false
@@ -689,6 +734,12 @@ fun PhotoSignScreen(
                                                                             if (preSign()) {
                                                                                 throw ChaoxingSigner.AlreadySignedException()
                                                                             } else {
+                                                                                if (ChaoxingCourseHelper.checkClassValid(
+                                                                                        client,
+                                                                                        destination.classId
+                                                                                    ) == false
+                                                                                )
+                                                                                    throw ChaoxingSigner.SignActivityNoPermissionException()
                                                                                 val objectId =
                                                                                     uploadImage(
                                                                                         imageList[bitmapIndexList.indexOf(
@@ -715,7 +766,10 @@ fun PhotoSignScreen(
                                                                                                     )
                                                                                                     userSelections[1 + index] =
                                                                                                         false
-                                                                                                    signStatus[index + 1].success()
+                                                                                                    if (destination.endTime != null && System.currentTimeMillis() > destination.endTime)
+                                                                                                        signStatus[1 + index].successForLate()
+                                                                                                    else
+                                                                                                        signStatus[1 + index].success()
                                                                                                     otherUserSessionForSignList.remove(
                                                                                                         chaoxingOtherUserSession
                                                                                                     )
@@ -753,7 +807,10 @@ fun PhotoSignScreen(
                                                                                     )
                                                                                     userSelections[1 + index] =
                                                                                         false
-                                                                                    signStatus[1 + index].success()
+                                                                                    if (destination.endTime != null && System.currentTimeMillis() > destination.endTime)
+                                                                                        signStatus[1 + index].successForLate()
+                                                                                    else
+                                                                                        signStatus[1 + index].success()
                                                                                     otherUserSessionForSignList.remove(
                                                                                         chaoxingOtherUserSession
                                                                                     )
@@ -861,8 +918,8 @@ fun PhotoSignScreen(
                                             isShowPhotoPicker = false
                                         }
                                     }
-                                    Crossfade(isSignSuccess) {
-                                        if (it) {
+                                    Crossfade(isSignSuccess) { v ->
+                                        if (v) {
                                             Column(
                                                 modifier = Modifier.fillMaxSize(),
                                                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -931,6 +988,12 @@ fun PhotoSignScreen(
                 Column(
                     modifier = Modifier.padding(8.dp)
                 ) {
+                    SignPotentialWarningTips(
+                        destination.startTime,
+                        destination.endTime,
+                        destination.isLate
+                    )
+
                     AlreadySignedNotice({
                         isAlreadySigned = false
                         isForSelf = true

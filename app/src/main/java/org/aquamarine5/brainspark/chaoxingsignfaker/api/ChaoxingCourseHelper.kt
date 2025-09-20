@@ -19,6 +19,26 @@ object ChaoxingCourseHelper {
     private const val URL_COURSE_LIST =
         "https://mooc1-api.chaoxing.com/mycourse/backclazzdata?view=json&rss=1"
 
+    suspend fun checkClassValid(
+        client: ChaoxingHttpClient,
+        classId: Int,
+    ): Boolean? = withContext(Dispatchers.IO) {
+        client.newCall(Request.Builder().get().url(URL_COURSE_LIST).build()).execute().use {
+            val jsonResult = JSONObject.parseObject(it.body.string())
+            val channelList = jsonResult.getJSONArray("channelList")
+            if (jsonResult.getInteger("result") == 0) {
+                return@use null
+            }
+            for (i in 0 until channelList.size) {
+                if (channelList.getJSONObject(i).getJSONObject("content")
+                        .getInteger("id") == classId
+                )
+                    return@use true
+            }
+            return@use false
+        }
+    }
+
     suspend fun getAllCourse(
         client: ChaoxingHttpClient,
         context: Context,

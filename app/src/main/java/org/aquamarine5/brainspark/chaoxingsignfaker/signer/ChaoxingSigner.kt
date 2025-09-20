@@ -56,7 +56,9 @@ abstract class ChaoxingSigner(
             "https://mobilelearn.chaoxing.com/pptSign/stuSignajax?&clientip=&appType=15&ifTiJiao=1&vpProbability=-1&vpStrategy="
     }
 
-    class SignActivityNoPermissionException : ChaoxingPredictableException("无权限访问")
+    class SignAlreadyEndedException : ChaoxingPredictableException("迟到或签到已结束")
+
+    class SignActivityNoPermissionException : ChaoxingPredictableException("此用户不在班级")
 
     class AlreadySignedException : ChaoxingPredictableException("已经签到过了")
 

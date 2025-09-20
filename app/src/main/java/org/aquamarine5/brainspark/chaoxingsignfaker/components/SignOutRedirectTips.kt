@@ -55,7 +55,7 @@ inline fun SignOutRedirectTips(
             ChaoxingActivityHelper.SignRedirectStatus.COMMON
         }
         val coroutineScope = rememberCoroutineScope()
-        val context= LocalContext.current
+        val context = LocalContext.current
         if (status != ChaoxingActivityHelper.SignRedirectStatus.COMMON)
             Card(
                 onClick = {
@@ -74,11 +74,12 @@ inline fun SignOutRedirectTips(
                 enabled = status != ChaoxingActivityHelper.SignRedirectStatus.SIGN_IN_UNPUBLISHED,
                 shape = RoundedCornerShape(18.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = Color(0xFFFECC11), disabledContainerColor = Color(0xFFFECC11)
+                    containerColor = Color(0xFF813C85),
+                    disabledContainerColor = Color(0xFF813C85)
                 ),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp, 6.dp)
+                    .padding(2.dp, 6.dp)
             ) {
                 Row(
                     modifier = Modifier
@@ -88,9 +89,12 @@ inline fun SignOutRedirectTips(
                 ) {
                     Spacer(modifier = Modifier.width(8.dp))
                     Icon(
-                        painterResource(if (status == ChaoxingActivityHelper.SignRedirectStatus.SIGN_OUT) R.drawable.ic_calendar_arrow_up else R.drawable.ic_calendar_arrow_down),
+                        painterResource(
+                            if (status == ChaoxingActivityHelper.SignRedirectStatus.SIGN_OUT)
+                                R.drawable.ic_calendar_arrow_up else R.drawable.ic_calendar_arrow_down
+                        ),
                         contentDescription = "Info",
-                        tint = Color.Black
+                        tint = Color.White
                     )
                     Spacer(modifier = Modifier.width(9.dp))
                     val dateFormatter = remember {
@@ -108,7 +112,7 @@ inline fun SignOutRedirectTips(
                             }发布，请发布后及时签退。"
 
                             else -> ""
-                        }, color = Color.Black,
+                        }, color = Color.White,
                         fontSize = 13.sp,
                         lineHeight = 18.sp,
                         fontWeight = FontWeight.W500

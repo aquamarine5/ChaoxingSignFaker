@@ -35,7 +35,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -139,7 +138,7 @@ fun CameraComponent(
                     transitionSpec = {
                         (fadeIn(animationSpec = tween(220, delayMillis = 90)) +
                                 scaleIn(
-                                    initialScale = 0.92f,
+                                    initialScale = 0.96f,
                                     animationSpec = tween(220, delayMillis = 90)
                                 ) +
                                 slideInHorizontally(
@@ -155,7 +154,7 @@ fun CameraComponent(
                     it?.let { img ->
                         Box(
                             modifier = Modifier
-                                .fillMaxHeight(0.85f)
+                                .fillMaxSize(0.8f)
                                 .border(4.dp, Color.White, RectangleShape)
                         ) {
                             Image(
@@ -243,17 +242,20 @@ fun CameraComponent(
                         ContextCompat.getMainExecutor(application),
                         object : ImageCapture.OnImageCapturedCallback() {
                             override fun onCaptureSuccess(image: ImageProxy) {
-                                photoList.add(image.toBitmap())
-                                job?.cancel()
-                                takeImage = image.toBitmap()
-                                needTakePictureCount--
-                                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                                if (needTakePictureCount <= 0) {
-                                    onPictureResult(photoList)
-                                } else {
-                                    onNextPhoto?.invoke()
-                                }
                                 super.onCaptureSuccess(image)
+                                image.use {
+                                    val bitmap=it.toBitmap()
+                                    photoList.add(bitmap)
+                                    job?.cancel()
+                                    takeImage = bitmap
+                                    needTakePictureCount--
+                                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                                    if (needTakePictureCount <= 0) {
+                                        onPictureResult(photoList)
+                                    } else {
+                                        onNextPhoto?.invoke()
+                                    }
+                                }
                             }
 
                             override fun onError(exception: ImageCaptureException) {

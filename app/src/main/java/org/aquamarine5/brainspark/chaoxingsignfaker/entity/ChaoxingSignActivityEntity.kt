@@ -14,7 +14,7 @@ import kotlinx.serialization.json.Json
 @Serializable
 data class ChaoxingSignActivityEntity(
     val startTime: Long,
-    val endTime: Long,
+    val endTime: Long?,
     val userStatus: Int,
     val otherId: String,
     val isLook: Boolean,

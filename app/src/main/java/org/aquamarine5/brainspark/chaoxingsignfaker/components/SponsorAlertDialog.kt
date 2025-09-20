@@ -51,8 +51,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.ContextCompat
-import androidx.core.graphics.drawable.toBitmap
 import androidx.core.net.toUri
 import com.alibaba.fastjson2.JSONObject
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
@@ -62,11 +60,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.Request
-import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
-import org.aquamarine5.brainspark.chaoxingsignfaker.displaySnackbar
 import java.io.File
 
 
@@ -100,7 +96,6 @@ fun SponsorAlertDialog(showDialog: MutableState<Boolean>) {
             }
         }
     }
-    val snackbarHost = LocalSnackbarHostState.current
     val coroutineScope = rememberCoroutineScope()
     val hapticFeedback = LocalHapticFeedback.current
     val permissionCheck =
@@ -126,13 +121,13 @@ fun SponsorAlertDialog(showDialog: MutableState<Boolean>) {
                         coroutineScope.launch {
                             withContext(Dispatchers.IO) {
                                 val imageValues = ContentValues().apply {
-                                    put(MediaStore.Images.Media.MIME_TYPE, "image/png")
+                                    put(MediaStore.Images.Media.MIME_TYPE, "image/jpg")
                                     val date = System.currentTimeMillis() / 1000
                                     put(MediaStore.Images.Media.DATE_ADDED, date)
                                     put(MediaStore.Images.Media.DATE_MODIFIED, date)
                                 }
                                 val filename =
-                                    "${SPONSOR_IMAGE_FILENAME_BASE}_${System.currentTimeMillis()}.png"
+                                    "${SPONSOR_IMAGE_FILENAME_BASE}_${System.currentTimeMillis()}.jpg"
 
                                 var file: File? = null
                                 val collection =
@@ -168,15 +163,10 @@ fun SponsorAlertDialog(showDialog: MutableState<Boolean>) {
                                 } else {
                                     context.contentResolver.openOutputStream(resultUri)
                                         ?.use { outputStream ->
-                                            ContextCompat.getDrawable(
-                                                context,
-                                                R.drawable.img_sponsor
-                                            )!!
-                                                .toBitmap().compress(
-                                                    android.graphics.Bitmap.CompressFormat.PNG,
-                                                    100,
-                                                    outputStream
-                                                )
+                                            context.resources.openRawResource(R.raw.img_sponsor)
+                                                .use { inputStream ->
+                                                    inputStream.copyTo(outputStream)
+                                                }
                                         }
                                     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
                                         file?.let {
@@ -208,7 +198,7 @@ fun SponsorAlertDialog(showDialog: MutableState<Boolean>) {
                                     }
                                 }
                             }
-                            snackbarHost?.displaySnackbar("图片已保存到相册", coroutineScope)
+                            Toast.makeText(context, "付款码已保存到相册", Toast.LENGTH_LONG).show()
                         }.invokeOnCompletion {
                             hapticFeedback.performHapticFeedback(HapticFeedbackType.Confirm)
                             context.startActivity(

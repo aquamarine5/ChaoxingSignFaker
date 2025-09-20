@@ -34,6 +34,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -99,6 +100,7 @@ class ImportOtherUserActivity : ComponentActivity() {
                                                 textAlign = TextAlign.Center
                                             )
                                         }
+                                        val hapticFeedback=LocalHapticFeedback.current
                                         LaunchedEffect(Unit) {
                                             isLoading = true
                                             runCatching {
@@ -120,7 +122,7 @@ class ImportOtherUserActivity : ComponentActivity() {
                                                     failure.message ?: failure.localizedMessage
                                                             ?: "导入失败，请重试"
                                                 isLoading = false
-                                                failure.handleReport()
+                                                failure.toastReport(applicationContext, hapticFeedback = hapticFeedback)
                                             }
                                         }
                                     }
