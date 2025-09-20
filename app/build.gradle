@@ -8,7 +8,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
-    id("org.aquamarine5.brainspark.stackbricks-gradle-plugin") version "2.1.1"
+    id("org.aquamarine5.brainspark.stackbricks-gradle-plugin") version "2.1.2"
     id("com.google.protobuf") version "0.9.5"
     id "io.sentry.android.gradle" version "5.9.0"
     id("org.jetbrains.kotlin.plugin.serialization") version "2.2.10"
@@ -17,7 +17,7 @@ plugins {
 stackbricksConfig {
     configJsonFilePath = "chaoxingsignfaker_stackbricks_v2_manifest.json"
     host = "cdn.aquamarine5.fun"
-    changelog = "1.11.2版本更新：\n修复了低性能设备下遇到的崩溃问题。\n1.11版本更新：\n1. 新增触感反馈\n1.10版本更新：\n1. 支持签退\n1.9版本更新：\n1. 支持有验证码的签到\n2. 修复了位置签到第二次打开白屏的情况\n3. 优化了错误提示\n4. 修复了代签存在的问题\n5. 又一次降低了应用崩溃概率\n1.8版本更新：\n1. 优化了首页加载逻辑，现在会缓存课程信息\n2. 优化了屏蔽相应的逻辑和动画\n3. 改进了页面，现在更好看了\n4. 减少了应用崩溃概率（网络引起的）\nlovely lonely."
+    changelog = "1.11.3版本更新：\n- 1. 加入了代签时检测到用户不在班级时的提示、迟到签到提示和是否选择正确的签到事件提示\n- 2. 修复了一周内发现的 6 个Bug（拍照签到，代签等），优化了 3 个问题（界面、性能等）。\n如果你的版本在1.7.2（250529）以下，那么新版本更新了：\n- 1. 验证码签到\n- 2. 支持签退\n- 3. 触感反馈\n- 4. 修复了崩溃问题\n- 5. 更好看的界面\n如果你的版本在1.4.9（250420）以下，那么新版本还更新了：\n- 1. 支持给其他用户代签\n- 2. 优化了位置签到时的严重卡顿\n\nlovely lonely, 20250920, @aquamarine5 Brainspark."
     requiredManifestVersion2MigrateForceInstall = true
     qiniuConfig {
         accessKey = project.findProperty("qiniu.accessKey") ?: ""
@@ -38,8 +38,8 @@ android {
         applicationId = "org.aquamarine5.brainspark.chaoxingsignfaker"
         minSdk = 26
         targetSdk = 35
-        versionCode = 111021215
-        versionName = "1.11.2-stable-250903"
+        versionCode = 111031215
+        versionName = "1.11.3-stable-250920"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

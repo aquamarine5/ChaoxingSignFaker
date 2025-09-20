@@ -28,17 +28,20 @@ import androidx.compose.ui.unit.sp
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.ui.theme.Orange
 import java.time.Instant
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.concurrent.TimeUnit
 
 @Composable
 fun SignPotentialWarningTips(startTime: Long, endTime: Long?, isLate: Boolean) {
-    val dateFormatter = remember { DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss") }
-    if (System.currentTimeMillis() - startTime > TimeUnit.HOURS.toMillis(6))
+    val dateFormatter = remember {
+        DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneId.systemDefault())
+    }
+    if (isLate)
         Card(
             shape = RoundedCornerShape(18.dp),
             colors = CardDefaults.cardColors(
-                containerColor = Color(0xFF10AEC2)
+                containerColor = Orange
             ),
             modifier = Modifier
                 .fillMaxWidth()
@@ -50,30 +53,32 @@ fun SignPotentialWarningTips(startTime: Long, endTime: Long?, isLate: Boolean) {
                     .fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Spacer(modifier = Modifier.width(10.5.dp))
+                Spacer(modifier = Modifier.width(8.dp))
                 Icon(
                     painterResource(R.drawable.ic_clock_alert),
                     contentDescription = "Help",
-                    tint = Orange
+                    tint = Color.White
                 )
-                Spacer(modifier = Modifier.width(10.5.dp))
+                Spacer(modifier = Modifier.width(9.dp))
                 Text(
-                    "此签到的发布时间 ${dateFormatter.format(Instant.ofEpochMilli(startTime))} 超过 6 小时，请确认没有选择错签到事件。",
+                    if (endTime != null)
+                        "此签到已经在 ${dateFormatter.format(Instant.ofEpochMilli(endTime))} 截止，现在签到可能会记为迟到。"
+                    else
+                        "此签到已经截止或未开始，现在签到可能会记为迟到。",
                     color = Color.White,
-                    fontSize = 14.sp,
-                    lineHeight = 19.sp,
+                    fontSize = 13.sp,
+                    lineHeight = 18.sp,
                     fontWeight = FontWeight.W500,
                     modifier = Modifier.fillMaxWidth()
                 )
-                Spacer(modifier = Modifier.width(12.dp))
             }
         }
     else
-        if (isLate)
+        if (System.currentTimeMillis() - startTime > TimeUnit.HOURS.toMillis(6))
             Card(
                 shape = RoundedCornerShape(18.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = Color(0xFF10AEC2)
+                    containerColor = Orange
                 ),
                 modifier = Modifier
                     .fillMaxWidth()
@@ -85,25 +90,21 @@ fun SignPotentialWarningTips(startTime: Long, endTime: Long?, isLate: Boolean) {
                         .fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Spacer(modifier = Modifier.width(10.5.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
                     Icon(
                         painterResource(R.drawable.ic_clock_alert),
                         contentDescription = "Help",
-                        tint = Orange
+                        tint = Color.White
                     )
-                    Spacer(modifier = Modifier.width(10.5.dp))
+                    Spacer(modifier = Modifier.width(9.dp))
                     Text(
-                        if (endTime != null)
-                            "此签到已经在 ${dateFormatter.format(Instant.ofEpochMilli(endTime))} 截止，现在签到可能会记为迟到。"
-                        else
-                            "此签到已经截止或未开始，现在签到可能会记为迟到。",
+                        "此签到的发布时间 ${dateFormatter.format(Instant.ofEpochMilli(startTime))} 距离现在已经超过 6 小时，请确认没有选择错签到事件。",
                         color = Color.White,
-                        fontSize = 14.sp,
-                        lineHeight = 19.sp,
+                        fontSize = 13.sp,
+                        lineHeight = 18.sp,
                         fontWeight = FontWeight.W500,
                         modifier = Modifier.fillMaxWidth()
                     )
-                    Spacer(modifier = Modifier.width(12.dp))
                 }
             }
 }

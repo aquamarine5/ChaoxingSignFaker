@@ -58,7 +58,11 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
@@ -100,7 +104,7 @@ data class PhotoSignDestination(
     val classId: Int,
     val courseId: Int,
     val extContent: String,
-    val startTime:Long,
+    val startTime: Long,
     val endTime: Long?,
     val isLate: Boolean
 ) {
@@ -178,55 +182,6 @@ fun PhotoSignScreen(
                     Column(
                         modifier = Modifier.padding(8.dp)
                     ) {
-                        if (signoffEntity != null)
-                            SignOutRedirectTips(
-                                signoffEntity!!
-                            ) {
-                                navToOtherSign(it)
-                            }
-                        SignPotentialWarningTips(destination.startTime, destination.endTime,destination.isLate)
-
-                        Column(modifier = Modifier.padding(16.dp, 0.dp)) {
-                            Card(
-                                onClick = {
-                                    context.startActivity(
-                                        Intent(
-                                            Intent.ACTION_VIEW, "cxstudy://".toUri()
-                                        ).apply {
-                                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                        })
-                                },
-                                shape = RoundedCornerShape(18.dp),
-                                colors = CardDefaults.cardColors(
-                                    containerColor = Color.DarkGray
-                                ),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(0.dp, 6.dp)
-                            ) {
-                                Row(
-                                    modifier = Modifier
-                                        .padding(10.dp)
-                                        .fillMaxWidth(),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Icon(
-                                        painterResource(R.drawable.ic_info),
-                                        contentDescription = "Info",
-                                        tint = Color.White
-                                    )
-                                    Spacer(modifier = Modifier.width(9.dp))
-                                    Text(
-                                        "这是一个普通的点击签到，不会收集任何其他的信息，推荐对于这种签到使用学习通APP而不是随地大小签。\n点击跳转到学习通。",
-                                        color = Color.White,
-                                        fontSize = 13.sp,
-                                        lineHeight = 18.sp,
-                                        fontWeight = FontWeight.W500
-                                    )
-                                }
-                            }
-                        }
                         var isSigning by remember { mutableStateOf(false) }
                         val signStatus =
                             remember { mutableListOf(ChaoxingSignStatus(hapticFeedback)) }
@@ -238,7 +193,64 @@ fun PhotoSignScreen(
                             signStatus,
                             isForSelf,
                             userSelections,
-                            isSigning
+                            isSigning,
+                            prefixTipsContent = {
+                                Card(
+                                    onClick = {
+                                        context.startActivity(
+                                            Intent(
+                                                Intent.ACTION_VIEW, "cxstudy://".toUri()
+                                            ).apply {
+                                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                            })
+                                    },
+                                    shape = RoundedCornerShape(18.dp),
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = Color.DarkGray
+                                    ),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(2.dp, 6.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .padding(10.dp, 12.dp)
+                                            .fillMaxWidth(),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Icon(
+                                            painterResource(R.drawable.ic_info),
+                                            contentDescription = "Info",
+                                            tint = Color.White
+                                        )
+                                        Spacer(modifier = Modifier.width(9.dp))
+                                        Text(
+                                            buildAnnotatedString {
+                                                append("这是一个普通的点击签到，不会收集任何其他的信息，推荐对于这种签到使用学习通APP而不是随地大小签。")
+                                                withStyle(SpanStyle(fontWeight = FontWeight.Bold, textDecoration = TextDecoration.Underline) ){
+                                                    append("\n点击跳转到学习通。")
+                                                }
+                                            },
+                                            color = Color.White,
+                                            fontSize = 13.sp,
+                                            lineHeight = 18.sp,
+                                            fontWeight = FontWeight.W500
+                                        )
+                                    }
+                                }
+                                if (signoffEntity != null)
+                                    SignOutRedirectTips(
+                                        signoffEntity!!
+                                    ) {
+                                        navToOtherSign(it)
+                                    }
+                                SignPotentialWarningTips(
+                                    destination.startTime,
+                                    destination.endTime,
+                                    destination.isLate
+                                )
+                            }
                         ) { isSelf, otherUserSessionList, _ ->
                             isSigning = true
                             coroutineScope.launch {
@@ -419,7 +431,9 @@ fun PhotoSignScreen(
                                     horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
                                     Icon(painterResource(R.drawable.ic_image_up), null)
+                                    Spacer(modifier = Modifier.height(6.dp))
                                     Text("这是一个图片签到")
+                                    Spacer(modifier = Modifier.height(6.dp))
                                     Button(
                                         onClick = {
                                             isSignForOther = false
@@ -468,14 +482,6 @@ fun PhotoSignScreen(
                                     Column(
                                         modifier = Modifier.padding(8.dp)
                                     ) {
-                                        if (signoffEntity != null)
-                                            SignOutRedirectTips(
-                                                signoffEntity!!
-                                            ) {
-                                                navToOtherSign(it)
-                                            }
-                                        SignPotentialWarningTips(destination.startTime, destination.endTime,destination.isLate)
-
                                         OtherUserSelectorComponent(
                                             navToOtherUser = {
                                                 navToOtherUserDestination()
@@ -484,6 +490,15 @@ fun PhotoSignScreen(
                                             isForSelf,
                                             userSelections,
                                             isSigning,
+                                            prefixTipsContent = {
+                                                if (signoffEntity != null)
+                                                    SignOutRedirectTips(
+                                                        signoffEntity!!
+                                                    ) {
+                                                        navToOtherSign(it)
+                                                    }
+                                                SignPotentialWarningTips(destination.startTime, destination.endTime,destination.isLate)
+                                            },
                                             userContent = { index ->
                                                 var isShowDialog by remember {
                                                     mutableStateOf(
@@ -973,7 +988,11 @@ fun PhotoSignScreen(
                 Column(
                     modifier = Modifier.padding(8.dp)
                 ) {
-                    SignPotentialWarningTips(destination.startTime, destination.endTime,destination.isLate)
+                    SignPotentialWarningTips(
+                        destination.startTime,
+                        destination.endTime,
+                        destination.isLate
+                    )
 
                     AlreadySignedNotice({
                         isAlreadySigned = false

@@ -79,7 +79,7 @@ inline fun SignOutRedirectTips(
                 ),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp, 6.dp)
+                    .padding(2.dp, 6.dp)
             ) {
                 Row(
                     modifier = Modifier
@@ -94,7 +94,7 @@ inline fun SignOutRedirectTips(
                                 R.drawable.ic_calendar_arrow_up else R.drawable.ic_calendar_arrow_down
                         ),
                         contentDescription = "Info",
-                        tint = Color.Black
+                        tint = Color.White
                     )
                     Spacer(modifier = Modifier.width(9.dp))
                     val dateFormatter = remember {
@@ -112,7 +112,7 @@ inline fun SignOutRedirectTips(
                             }发布，请发布后及时签退。"
 
                             else -> ""
-                        }, color = Color.Black,
+                        }, color = Color.White,
                         fontSize = 13.sp,
                         lineHeight = 18.sp,
                         fontWeight = FontWeight.W500

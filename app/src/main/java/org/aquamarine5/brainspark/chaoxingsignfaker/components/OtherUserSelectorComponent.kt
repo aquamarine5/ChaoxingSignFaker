@@ -64,6 +64,7 @@ fun OtherUserSelectorComponent(
     userSelections: SnapshotStateList<Boolean>,
     isSigning: Boolean = false,
     userContent: @Composable ((index: Int) -> Unit)? = null,
+    prefixTipsContent: @Composable (() -> Unit),
     onSignAction: (isSelf: Boolean, otherUserSessionList: List<ChaoxingOtherUserSession?>, indexList: List<Int>) -> Unit
 ) {
     LocalContext.current.let { context ->
@@ -82,6 +83,8 @@ fun OtherUserSelectorComponent(
                     .padding(14.dp, 2.dp)
                     .verticalScroll(rememberScrollState())
             ) {
+                prefixTipsContent()
+
                 Card(
                     onClick = {
                         hapticFeedback.performHapticFeedback(

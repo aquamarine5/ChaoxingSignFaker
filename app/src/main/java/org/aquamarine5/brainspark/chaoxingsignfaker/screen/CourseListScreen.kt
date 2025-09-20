@@ -164,6 +164,16 @@ fun CourseListScreen(
                             ?: stackbricksService.internalVersionData?.versionName
                     )
                 }
+                append("\n当前版本：")
+                withStyle(
+                    SpanStyle(
+                        fontWeight = FontWeight.Bold, fontFamily = FontFamily(
+                            Font(R.font.gilroy)
+                        )
+                    )
+                ) {
+                    append(stackbricksService.getCurrentVersionName())
+                }
                 append("\n更新日志：\n")
                 withStyle(SpanStyle(fontSize = 11.sp)) {
                     append(

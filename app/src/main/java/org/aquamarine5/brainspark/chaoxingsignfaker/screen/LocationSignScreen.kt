@@ -157,20 +157,21 @@ fun LocationSignScreen(
                 remember { mutableStateOf<List<ChaoxingOtherUserSession?>>(emptyList()) }
                 val userSelections = remember { mutableStateListOf(isSignForOther.not()) }
                 Column(modifier = Modifier.padding(8.dp)) {
-                    if (signoffData != null)
-                        SignOutRedirectTips(
-                            signoffData!!
-                        ) {
-                            navToOtherSign(it)
-                        }
-                    SignPotentialWarningTips(destination.startTime, destination.endTime,destination.isLate)
-
                     OtherUserSelectorComponent(
                         navToOtherUser = { navToOtherUserDestination() },
                         signStatus = signStatus,
                         isCurrentAlreadySigned = isSignForOther,
                         isSigning = isSigning,
-                        userSelections = userSelections
+                        userSelections = userSelections,
+                        prefixTipsContent = {
+                            if (signoffData != null)
+                                SignOutRedirectTips(
+                                    signoffData!!
+                                ) {
+                                    navToOtherSign(it)
+                                }
+                            SignPotentialWarningTips(destination.startTime, destination.endTime,destination.isLate)
+                        }
                     ) { isSelf, otherUserSessionList, _ ->
                         isSigning = true
                         isSelfForSign = isSelf
