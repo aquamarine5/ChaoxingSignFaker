@@ -74,12 +74,12 @@ fun WelcomeScreen(
             Text(
                 buildAnnotatedString {
                     append(
-                        """随地大小签（ChaoxingSignFaker） 是一个用于超星学习通的辅助应用，使用本应用前请您仔细阅读以下内容：
+                        """随地大小签（ChaoxingSignFaker）是一个用于超星学习通的辅助应用，使用本应用前请您仔细阅读以下内容：
 
 """
                     )
                     withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
-                        append("随地大小签（ChaoxingSignFaker） 仅作为交流学习使用，通过本项目加深前端设计、接口调用、数据库使用、网络通信安全等方面知识的理解，请勿将此项目用作商业用途，任何使用项目中功能或代码进行的任何违法违规行为与本人无关，作者不承担任何因使用本应用而导致的任何责任。")
+                        append("随地大小签（ChaoxingSignFaker）仅作为交流学习使用，通过本项目加深前端设计、接口调用、数据库使用、网络通信安全等方面知识的理解，请勿将此项目用作商业用途，任何使用项目中功能或代码进行的任何违法违规行为与本人无关，作者不承担任何因使用本应用而导致的任何责任。")
                     }
                     append(
                         """

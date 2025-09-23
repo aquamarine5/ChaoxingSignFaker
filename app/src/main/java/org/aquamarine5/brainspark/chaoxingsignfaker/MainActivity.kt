@@ -46,7 +46,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -78,7 +77,6 @@ import io.sentry.android.core.SentryAndroid
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
@@ -164,20 +162,6 @@ class MainActivity : ComponentActivity() {
             }
             var destination by remember { mutableStateOf<Any?>(null) }
             val snackbarHostState = remember { SnackbarHostState() }
-            val coroutineScope = rememberCoroutineScope()
-            val showSnackbar =
-                { message: String, actionLabel: String?, withDismissButton: Boolean, duration: SnackbarDuration? ->
-                    coroutineScope.launch {
-                        snackbarHostState.currentSnackbarData?.dismiss()
-                        snackbarHostState.showSnackbar(
-                            message,
-                            actionLabel,
-                            withDismissButton,
-                            duration
-                                ?: if (actionLabel == null) SnackbarDuration.Short else SnackbarDuration.Indefinite
-                        )
-                    }
-                }
             val imageLoader = remember {
                 ImageLoader.Builder(applicationContext).components {
                     add(
@@ -488,7 +472,7 @@ class MainActivity : ComponentActivity() {
                                     }
 
                                     composable<LoginDestination> {
-                                        LoginPage(showSnackbar) {
+                                        LoginPage() {
                                             navController.navigate(CourseListDestination) {
                                                 popUpTo<LoginDestination> { inclusive = true }
                                             }

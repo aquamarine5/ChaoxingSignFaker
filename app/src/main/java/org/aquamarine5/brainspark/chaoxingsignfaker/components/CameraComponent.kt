@@ -85,11 +85,11 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.snackbarReport
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
-fun CameraComponent(
+inline fun CameraComponent(
     pictureCount: Int = 1,
-    content: @Composable (() -> Unit)? = null,
-    onNextPhoto: (() -> Unit)? = null,
-    onPictureResult: (List<Bitmap>) -> Unit
+    noinline content: @Composable (() -> Unit)? = null,
+    noinline onNextPhoto: (() -> Unit)? = null,
+    crossinline onPictureResult: (List<Bitmap>) -> Unit
 ) {
     val cameraPermission = rememberPermissionState(android.Manifest.permission.CAMERA)
     val hapticFeedback = LocalHapticFeedback.current

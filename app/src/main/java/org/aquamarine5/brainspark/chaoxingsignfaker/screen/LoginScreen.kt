@@ -42,7 +42,6 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
-import org.aquamarine5.brainspark.chaoxingsignfaker.SnackbarFunction
 import org.aquamarine5.brainspark.chaoxingsignfaker.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.displaySnackbar
@@ -53,7 +52,6 @@ object LoginDestination
 
 @Composable
 fun LoginPage(
-    showSnackbar: SnackbarFunction,
     navToCourseListDestination: () -> Unit
 ) {
     var phoneNumber by remember { mutableStateOf("") }

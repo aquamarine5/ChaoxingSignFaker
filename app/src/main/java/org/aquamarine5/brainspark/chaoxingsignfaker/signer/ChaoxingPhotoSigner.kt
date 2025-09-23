@@ -31,7 +31,6 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.checkResponse
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignOutEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.PhotoSignDestination
-import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingLocationSigner.Companion.CLASSTAG
 import java.io.ByteArrayOutputStream
 import java.util.UUID
 
@@ -54,6 +53,7 @@ class ChaoxingPhotoSigner(
         ChaoxingPredictableException("签到类型不匹配，应是图片签到")
 
     companion object {
+        const val CLASSTAG = "ChaoxingPhotoSigner"
         const val URL_CLOUD_TOKEN = "https://pan-yz.chaoxing.com/api/token/uservalid"
         const val URL_CLOUD_UPLOAD = "https://pan-yz.chaoxing.com/upload?_from=mobilelearn&_token="
     }
