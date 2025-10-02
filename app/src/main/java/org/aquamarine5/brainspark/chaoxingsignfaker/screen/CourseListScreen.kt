@@ -95,13 +95,18 @@ fun CourseListScreen(
     val coroutineScope = rememberCoroutineScope()
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
-            if (stackbricksService.internalVersionData == null && !isNewVersionDialogDisplayed) {
-                newestVersionData = stackbricksService.isNeedUpdate()
-                newestVersionData?.forceInstallLessVersion?.let {
-                    isForceInstall =
-                        (it > BuildConfig.VERSION_CODE)
+            runCatching {
+                if (stackbricksService.internalVersionData == null && !isNewVersionDialogDisplayed) {
+                    newestVersionData = stackbricksService.isNeedUpdate()
+                    newestVersionData?.forceInstallLessVersion?.let {
+                        isForceInstall =
+                            (it > BuildConfig.VERSION_CODE)
+                    }
                 }
+            }.onFailure {
+                it.snackbarReport(snackbarHost,coroutineScope,"检查更新失败",hapticFeedback)
             }
+
             if (activitiesData.isEmpty()) {
                 runCatching {
                     preferredClassIds =

@@ -37,7 +37,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -75,7 +74,6 @@ import com.baidu.mapapi.SDKInitializer
 import com.umeng.analytics.MobclickAgent
 import io.sentry.android.core.SentryAndroid
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -113,9 +111,6 @@ import org.aquamarine5.brainspark.stackbricks.providers.qiniu.QiniuPackageProvid
 import org.aquamarine5.brainspark.stackbricks.rememberStackbricksStatus
 import java.util.concurrent.TimeUnit
 import kotlin.reflect.typeOf
-
-typealias SnackbarFunction =
-            (String, String?, Boolean, SnackbarDuration?) -> Job
 
 class MainActivity : ComponentActivity() {
     companion object {
@@ -286,9 +281,12 @@ class MainActivity : ComponentActivity() {
                         }
                     ) { innerPadding ->
                         val stackbricksService = QiniuConfiguration(
-                            "cdn.aquamarine5.fun",
+                            possibleConfigurations = listOf(
+                                "cdn.aquamarine5.fun" to "chaoxingsignfaker_stackbricks_v2_manifest.json",
+                                "cdn.aquamarine5.top" to "chaoxingsignfaker_stackbricks_v2_manifest.json",
+                                "cdn.aquamarine5.vip" to "chaoxingsignfaker_stackbricks_v2_manifest.json",
+                            ),
                             referer = "http://cdn.aquamarine5.fun/",
-                            configFilePath = "chaoxingsignfaker_stackbricks_v2_manifest.json",
                             okHttpClient = OkHttpClient().newBuilder()
                                 .callTimeout(20, TimeUnit.MINUTES)
                                 .readTimeout(20, TimeUnit.MINUTES)

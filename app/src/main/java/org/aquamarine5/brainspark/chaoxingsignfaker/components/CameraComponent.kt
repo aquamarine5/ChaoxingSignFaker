@@ -107,20 +107,22 @@ inline fun CameraComponent(
             val previewView = remember { PreviewView(application) }
             val preview = remember { Preview.Builder().build() }
             var takeImage by remember { mutableStateOf<Bitmap?>(null) }
-            var isBackCamera = true
+            var isBackCamera = remember { true }
             val lifecycleOwner = LocalLifecycleOwner.current
             val photoList = remember { mutableListOf<Bitmap>() }
             var needTakePictureCount by remember { mutableIntStateOf(pictureCount) }
-            future.addListener({
-                val cameraProvider = future.get()
-                preview.surfaceProvider = previewView.surfaceProvider
-                cameraProvider.bindToLifecycle(
-                    lifecycleOwner,
-                    CameraSelector.DEFAULT_BACK_CAMERA,
-                    preview,
-                    imageCapture
-                )
-            }, ContextCompat.getMainExecutor(application))
+            LaunchedEffect(Unit) {
+                future.addListener({
+                    val cameraProvider = future.get()
+                    preview.surfaceProvider = previewView.surfaceProvider
+                    cameraProvider.bindToLifecycle(
+                        lifecycleOwner,
+                        CameraSelector.DEFAULT_BACK_CAMERA,
+                        preview,
+                        imageCapture
+                    )
+                }, ContextCompat.getMainExecutor(application))
+            }
             DisposableEffect(Unit) {
                 onDispose {
                     future.get().unbindAll()
