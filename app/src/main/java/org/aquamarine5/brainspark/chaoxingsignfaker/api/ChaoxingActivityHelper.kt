@@ -29,8 +29,6 @@ object ChaoxingActivityHelper {
     private const val URL_ACTIVITY_LOAD =
         "https://mobilelearn.chaoxing.com/v2/apis/active/student/activelist?fid=0&showNotStartedActive=0"
 
-    private const val NO_LIMIT_END_TIME = -1000L
-
     const val NO_SIGN_OFF_EVENT = 4999L
 
     suspend fun getActivities(

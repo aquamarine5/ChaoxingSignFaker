@@ -1000,7 +1000,8 @@ fun PhotoSignScreen(
                     SignPotentialWarningTips(
                         destination.startTime,
                         destination.endTime,
-                        destination.isLate
+                        destination.isLate,
+                        isPadding = true
                     )
 
                     AlreadySignedNotice({

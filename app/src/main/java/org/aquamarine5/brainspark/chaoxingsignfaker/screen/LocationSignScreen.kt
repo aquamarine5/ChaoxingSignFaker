@@ -97,7 +97,7 @@ fun LocationSignScreen(
     var isAlreadySigned by remember { mutableStateOf<Boolean?>(null) }
     var isSignForOther by remember { mutableStateOf(false) }
     var signInfo by remember { mutableStateOf<ChaoxingLocationDetailEntity?>(null) }
-    val signer = ChaoxingLocationSigner(ChaoxingHttpClient.instance!!, destination)
+    val signer = remember { ChaoxingLocationSigner(ChaoxingHttpClient.instance!!, destination) }
     var isSponsor by remember { mutableStateOf(false) }
     if (isSponsor) {
         SponsorPopupDialog()
@@ -144,7 +144,8 @@ fun LocationSignScreen(
                     SignPotentialWarningTips(
                         destination.startTime,
                         destination.endTime,
-                        destination.isLate
+                        destination.isLate,
+                        isPadding = true
                     )
                     AlreadySignedNotice(onSignForOtherUser = {
                         isAlreadySigned = false

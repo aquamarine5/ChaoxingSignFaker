@@ -13,6 +13,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Request
+import org.aquamarine5.brainspark.chaoxingsignfaker.ChaoxingPredictableException
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingActivityHelper.NO_SIGN_OFF_EVENT
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.checkResponse
@@ -20,7 +21,6 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationSignE
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingQRCodeDetailEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignOutEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.QRCodeSignDestination
-import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingLocationSigner.ChaoxingLocationSignException
 
 class ChaoxingQRCodeSigner(
     client: ChaoxingHttpClient,
@@ -99,7 +99,7 @@ class ChaoxingQRCodeSigner(
                 }
                 if (result != "success") {
                     Log.w(CLASSTAG, result)
-                    throw ChaoxingLocationSignException(result)
+                    throw ChaoxingPredictableException(result)
                 }
             }
         }
@@ -149,7 +149,7 @@ class ChaoxingQRCodeSigner(
                 }
                 if (result != "success") {
                     Log.w(CLASSTAG, result)
-                    throw ChaoxingLocationSignException(result)
+                    throw ChaoxingPredictableException(result)
                 } else {
                     return@use false
                 }
