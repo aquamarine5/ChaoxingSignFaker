@@ -21,6 +21,7 @@ message ChaoxingAnalysis{
   uint32 clickSign = 4;
   uint32 gestureSign = 5;
   uint32 otherUserSign = 6;
+  uint32 passwordSign=7;
 }
 
 message ChaoxingLocation{

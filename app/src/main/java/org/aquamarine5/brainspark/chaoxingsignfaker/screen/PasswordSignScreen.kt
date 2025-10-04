@@ -54,7 +54,9 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
+import org.aquamarine5.brainspark.chaoxingsignfaker.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingSignHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.AlreadySignedNotice
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
@@ -65,8 +67,11 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.components.SponsorPopupDialo
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignOutEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignStatus
+import org.aquamarine5.brainspark.chaoxingsignfaker.ifAlreadySigned
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingPasswordSigner
 import org.aquamarine5.brainspark.chaoxingsignfaker.snackbarReport
+import kotlin.coroutines.resume
+import kotlin.coroutines.suspendCoroutine
 
 
 @Serializable
@@ -333,10 +338,74 @@ fun PasswordSignScreen(
                         }
                         return@OtherUserSelectorComponent
                     }
+                    val code=text.toInt()
                     isSigning=true
-                    if(isSelf){
-                        signStatus[0].loading()
+                    coroutineScope.launch {
+                        runCatching {
+                            if(isSelf){
+                                signStatus[0].loading()
+                                if(signer.sign(code)){
+                                    suspendCoroutine { continuation ->
+                                        captchaValidateParams=
+                                            signer to { captchaValue->
+                                                captchaValue.onSuccess {
+                                                    signer.signWithCaptcha(code,it)
+                                                    if (destination.endTime != null && System.currentTimeMillis() > destination.endTime)
+                                                        signStatus[0].successForLate()
+                                                    else
+                                                        signStatus[0].success()
+                                                    if (otherUserSessionList.isEmpty()) {
+                                                        isSigning = false
+                                                        delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)
+                                                        isSponsor = true
+                                                    }
+                                                    UMengHelper.onSignCodeEvent(
+                                                        context,
+                                                        ChaoxingHttpClient.instance!!.userEntity.name
+                                                    )
+                                                }.onFailure {
+                                                    signStatus[0].failed(it)
+                                                    it.snackbarReport(
+                                                        snackbarHost,
+                                                        coroutineScope,
+                                                        "验证码校验失败",
+                                                        hapticFeedback
+                                                    )
+                                                }
+                                                continuation.resume(Unit)
+                                            }
+                                    }
+                                }else{
+                                    if (destination.endTime != null && System.currentTimeMillis() > destination.endTime)
+                                        signStatus[0].successForLate()
+                                    else
+                                        signStatus[0].success()
+                                    if (otherUserSessionList.isEmpty()) {
+                                        isSigning = false
+                                        delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)
+                                        isSponsor = true
+                                    }
+                                    UMengHelper.onSignCodeEvent(
+                                        context,
+                                        ChaoxingHttpClient.instance!!.userEntity.name
+                                    )
+                                }
+                            }
+                        }.onFailure {
+                            signStatus[0].failed(it)
+                            it.ifAlreadySigned {
+                                userSelections[0] = false
+                            }
+                            it.snackbarReport(
+                                snackbarHost,
+                                coroutineScope,
+                                "签到失败",
+                                hapticFeedback
+                            )
+                        }
+
                     }
+
                 }
 
             }

@@ -10,8 +10,8 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     id("org.aquamarine5.brainspark.stackbricks-gradle-plugin") version "2.2.0"
     id("com.google.protobuf") version "0.9.5"
-    id "io.sentry.android.gradle" version "5.9.0"
-    id("org.jetbrains.kotlin.plugin.serialization") version "2.2.10"
+    id "io.sentry.android.gradle" version "5.12.0"
+    id("org.jetbrains.kotlin.plugin.serialization") version "2.2.20"
 }
 
 stackbricksConfig {
@@ -99,7 +99,8 @@ protobuf {
 }
 
 dependencies {
-    implementation("com.baidu.lbsyun:base:7.6.5.1")
+    implementation(libs.reorderable)
+    implementation(libs.lbsyun.base)
     implementation libs.patternlocker
     implementation libs.androidx.material
     implementation libs.core
