@@ -629,10 +629,9 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                             mutex.withLock {
                                 context.chaoxingDataStore.updateData { datastore ->
                                     datastore.toBuilder().apply {
-                                        clearOtherUsers()
-                                        addAllOtherUsers(
-                                            otherUserSessions
-                                        )
+                                        val sortedValue=getOtherUsers(from)
+                                        removeOtherUsers(from)
+                                        addOtherUsers(to,sortedValue)
                                     }.build()
                                 }
                             }

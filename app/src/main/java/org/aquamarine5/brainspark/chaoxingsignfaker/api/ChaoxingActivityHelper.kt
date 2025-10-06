@@ -31,6 +31,44 @@ object ChaoxingActivityHelper {
 
     const val NO_SIGN_OFF_EVENT = 4999L
 
+    const val AVAILABLE_INTERVAL = 20 * 60 * 1000L // 15 minutes
+
+    suspend fun checkCourseHaveAvailableActivity(
+        client: ChaoxingHttpClient,
+        context: Context,
+        classId: Int,
+        courseId: Int,
+        snackbarHostState: SnackbarHostState
+    ): Pair<Long, Any>? = withContext(Dispatchers.IO) {
+        client.newCall(
+            Request.Builder().get().url(
+                URL_ACTIVITY_LOAD.toHttpUrl().newBuilder()
+                    .addQueryParameter("courseId", courseId.toString())
+                    .addQueryParameter("classId", classId.toString())
+                    .build()
+            ).build()
+        ).execute().use {
+            if (it.checkResponse(snackbarHostState))
+                throw ChaoxingHttpClient.ChaoxingNetworkException()
+            val jsonResult = JSONObject.parseObject(it.body.string()).getJSONObject("data")
+            val nowTimeMillis = System.currentTimeMillis()
+            jsonResult.getJSONArray("activeList").map { activity ->
+                activity as JSONObject
+            }.firstOrNull { activity ->
+                (activity.getInteger("type") == 2 || activity.getInteger("type") == 74) &&
+                        activity.getInteger("status") == 1 &&
+                        activity.getLong("startTime") + AVAILABLE_INTERVAL > nowTimeMillis
+            }?.let { activity ->
+                activity.getLong("startTime") to ChaoxingSignHelper.getRedirectDestination(
+                    activity.getLong("id"),
+                    classId,
+                    courseId,
+                    context
+                )
+            }
+        }
+    }
+
     suspend fun getActivities(
         client: ChaoxingHttpClient,
         course: ChaoxingCourseEntity,

@@ -12,7 +12,7 @@ message ChaoxingSignFakerDataStore{
   string deviceCode = 5;
   repeated uint32 preferCourse = 6;
   repeated uint32 preferClassId = 8;
-  map<uint32, RecommendRecord> recommendRecords = 9;
+  map<uint32, RecommendRecordList> recommendRecords = 9;
   repeated RecommendHabit recommendHabits = 10;
 }
 
@@ -51,14 +51,20 @@ message HttpCookie{
   string value = 3;
 }
 
+message RecommendRecordList{
+  repeated RecommendRecord records = 1;
+}
+
 message RecommendRecord{
   uint32 dayOfWeek = 1;
   uint32 minuteOfDay=2;
+  uint32 courseId=3;
 }
 
 message RecommendHabit{
   uint32 dayOfWeek = 1;
   uint32 minuteOfDay=2;
   uint32 classId=3;
-  uint64 learnedTime=4;
+  uint32 courseId=5;
+  uint32 recordCount=4;
 }
