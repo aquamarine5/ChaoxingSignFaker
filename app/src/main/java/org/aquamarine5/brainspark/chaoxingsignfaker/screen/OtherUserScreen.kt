@@ -22,6 +22,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -87,6 +88,8 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
@@ -101,6 +104,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.components.RequireLoginAlert
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingOtherUserSharedEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.snackbarReport
+import sh.calvin.reorderable.ReorderableColumn
 
 @Serializable
 object OtherUserDestination
@@ -616,45 +620,101 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                     Spacer(modifier = Modifier.height(8.dp))
                 } else {
                     Spacer(modifier = Modifier.height(4.dp))
-                    otherUserSessions.forEachIndexed { index, user ->
+                    val mutex = remember { Mutex() }
+                    ReorderableColumn(list = otherUserSessions.toList(), onMove = {
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.SegmentFrequentTick)
+                    }, onSettle = { from, to ->
+                        otherUserSessions.add(to, otherUserSessions.removeAt(from))
+                        coroutineScope.launch(Dispatchers.IO) {
+                            mutex.withLock {
+                                context.chaoxingDataStore.updateData { datastore ->
+                                    datastore.toBuilder().apply {
+                                        clearOtherUsers()
+                                        addAllOtherUsers(
+                                            otherUserSessions
+                                        )
+                                    }.build()
+                                }
+                            }
+                        }
+                    }, modifier = Modifier.fillMaxWidth()) { index, user, _ ->
                         key(user.phoneNumber) {
-                            Card(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(8.dp, 4.dp),
-                                shape = RoundedCornerShape(8.dp),
-                                elevation = CardDefaults.cardElevation(4.dp)
-                            ) {
-                                Row(
+                            ReorderableItem {
+                                val interactionSource = remember { MutableInteractionSource() }
+                                Card(
+                                    onClick = {},
+                                    interactionSource = interactionSource,
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(17.dp, 2.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.SpaceBetween
+                                        .padding(8.dp, 4.dp,3.dp,4.dp),
+                                    shape = RoundedCornerShape(8.dp),
+                                    elevation = CardDefaults.cardElevation(4.dp)
                                 ) {
-                                    Text(
-                                        text = "${user.name} (${user.phoneNumber})",
-                                        fontSize = 14.sp,
-                                        fontWeight = FontWeight.Medium
-                                    )
-                                    IconButton(
-                                        onClick = {
-                                            coroutineScope.launch {
-                                                context.chaoxingDataStore.updateData { datastore ->
-                                                    datastore.toBuilder()
-                                                        .apply { removeOtherUsers(index) }
-                                                        .build()
-                                                }
-                                            }
-                                            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                                            otherUserSessions.removeIf { it.phoneNumber == user.phoneNumber }
-                                        }
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(17.dp, 2.dp,6.dp,2.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.SpaceBetween
                                     ) {
-                                        Icon(
-                                            painter = painterResource(R.drawable.ic_delete),
-                                            contentDescription = "Delete",
-                                            tint = Color(0xFFF1441D)
+                                        Text(
+                                            text = "${user.name} (${user.phoneNumber})",
+                                            fontSize = 14.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            modifier = Modifier.weight(1f)
                                         )
+                                        Row() {
+                                            IconButton(
+                                                onClick = {
+                                                    coroutineScope.launch {
+                                                        withContext(Dispatchers.IO) {
+                                                            mutex.withLock {
+                                                                context.chaoxingDataStore.updateData { datastore ->
+                                                                    datastore.toBuilder()
+                                                                        .apply {
+                                                                            removeOtherUsers(
+                                                                                index
+                                                                            )
+                                                                        }
+                                                                        .build()
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                    hapticFeedback.performHapticFeedback(
+                                                        HapticFeedbackType.ContextClick
+                                                    )
+                                                    otherUserSessions.removeIf { it.phoneNumber == user.phoneNumber }
+                                                }
+                                            ) {
+                                                Icon(
+                                                    painter = painterResource(R.drawable.ic_delete),
+                                                    contentDescription = "Delete",
+                                                    tint = Color(0xFFF1441D)
+                                                )
+                                            }
+
+                                            IconButton(
+                                                modifier = Modifier.draggableHandle(
+                                                    interactionSource = interactionSource,
+                                                    onDragStarted = {
+                                                        hapticFeedback.performHapticFeedback(
+                                                            HapticFeedbackType.GestureThresholdActivate
+                                                        )
+                                                    }, onDragStopped = {
+                                                        hapticFeedback.performHapticFeedback(
+                                                            HapticFeedbackType.GestureEnd
+                                                        )
+                                                    }
+                                                ), onClick = {}) {
+                                                Icon(
+                                                    painterResource(R.drawable.ic_drag_handle_rounded),
+                                                    "",
+                                                    tint = Color.Gray
+                                                )
+                                            }
+                                        }
+
                                     }
                                 }
                             }
