@@ -713,7 +713,6 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                                 )
                                             }
                                         }
-
                                     }
                                 }
                             }

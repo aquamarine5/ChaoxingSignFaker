@@ -34,6 +34,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -57,12 +59,14 @@ import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
 import coil3.ImageLoader
 import coil3.compose.AsyncImage
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingRecommendHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.AnalyserCard
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SponsorCard
@@ -84,7 +88,6 @@ fun SettingScreen(
     imageLoader: ImageLoader,
     naviToLoginScreen: () -> Unit,
 ) {
-
     Column(
         modifier = Modifier
             .padding(16.dp, 0.dp)
@@ -92,18 +95,16 @@ fun SettingScreen(
     ) {
         var isRecommendEnabled by remember { mutableStateOf(true) }
         val context = LocalContext.current
-        val fontGilroy = FontFamily(
-            Font(R.font.gilroy)
-        )
+        val fontGilroy = remember { FontFamily(Font(R.font.gilroy)) }
         val hapticFeedback = LocalHapticFeedback.current
         val coroutineScope = rememberCoroutineScope()
-        val userEntity = ChaoxingHttpClient.instance!!.userEntity
+        val userEntity = remember { ChaoxingHttpClient.instance!!.userEntity }
         var isShowSignoffDialog by remember { mutableStateOf(false) }
-        var allRecommendHabits by remember { mutableStateOf<List<RecommendHabit>?>(null) }
+        val allRecommendHabits = remember { mutableStateListOf<RecommendHabit>() }
         LaunchedEffect(Unit) {
             context.chaoxingDataStore.data.first().apply {
                 isRecommendEnabled = disableRecommend.not()
-                allRecommendHabits = recommendHabitsList
+                allRecommendHabits.addAll(recommendHabitsList)
             }
         }
         StackbricksComponent(
@@ -268,9 +269,53 @@ fun SettingScreen(
                         enter = slideInVertically(),
                         exit = slideOutHorizontally()
                     ) {
-                        Text("已经学习的签到习惯：", fontWeight = FontWeight.Bold)
-                        allRecommendHabits?.forEachIndexed { index, item->
-
+                        if (allRecommendHabits.isEmpty()) {
+                            Text("已经学习的签到习惯：", fontWeight = FontWeight.Bold)
+                            Spacer(modifier = Modifier.height(3.dp))
+                            allRecommendHabits.forEachIndexed { index, item ->
+                                key(index) {
+                                    Card(
+                                        elevation = CardDefaults.cardElevation(4.dp),
+                                        modifier = Modifier.padding(8.dp, 4.dp, 3.dp, 4.dp)
+                                    ) {
+                                        Row {
+                                            Text(buildAnnotatedString {
+                                                append("星期${ChaoxingRecommendHelper.dayOfWeekTextList[item.dayOfWeek]}的 ")
+                                                withStyle(SpanStyle(fontFamily = fontGilroy)) {
+                                                    append(
+                                                        "${item.minuteOfDay.div(60)}:${
+                                                            (item.minuteOfDay % 60).toString()
+                                                                .padStart(2, '0')
+                                                        }"
+                                                    )
+                                                }
+                                                append(" 在${item.className}的签到活动")
+                                            }, modifier = Modifier.weight(1f))
+                                            IconButton(onClick = {
+                                                allRecommendHabits.removeAt(index)
+                                                hapticFeedback.performHapticFeedback(
+                                                    HapticFeedbackType.TextHandleMove
+                                                )
+                                                coroutineScope.launch(Dispatchers.IO) {
+                                                    context.chaoxingDataStore.updateData { dataStore ->
+                                                        dataStore.toBuilder().apply {
+                                                            removeRecommendHabits(index)
+                                                        }.build()
+                                                    }
+                                                }
+                                            }) {
+                                                Icon(
+                                                    painterResource(R.drawable.ic_delete),
+                                                    null,
+                                                    tint = Color.Red
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        } else {
+                            Text("还没有学习到任何签到习惯，继续更多的使用随地大小签吧~")
                         }
                     }
                 }

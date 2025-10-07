@@ -27,6 +27,8 @@ object ChaoxingRecommendHelper {
     const val MINIMUM_HABIT_MERGE_INTERVAL = 20
     const val FIND_RECOMMEND_HABIT_INTERVAL = 15
 
+    val dayOfWeekTextList=listOf("一","二","三","四","五","六","日")
+
     suspend fun getAllLearnedHabits(context: Context): Pair<Boolean, List<RecommendHabit>> =
         withContext(Dispatchers.IO) {
             context.chaoxingDataStore.data.first().run {
@@ -34,13 +36,6 @@ object ChaoxingRecommendHelper {
             }
         }
 
-
-    suspend fun getAllLearnedHabits(Chaox): Pair<Boolean, List<RecommendHabit>> =
-        withContext(Dispatchers.IO) {
-            context.chaoxingDataStore.data.first().run {
-                disableRecommend to recommendHabitsList
-            }
-        }
 
     suspend fun getRecommendedCourses(context: Context): List<Pair<Int, Int>> {
         val allHabits = getAllLearnedHabits(context)
@@ -133,7 +128,7 @@ object ChaoxingRecommendHelper {
                             .setClassId(classId)
                             .setCourseId(courseId)
                             .setRecordCount(2)
-                            .setClassName(ChaoxingCourseHelper.queryClassName(client,classId))
+                            .setClassName(ChaoxingCourseHelper.queryClassName(client, classId))
                             .setDayOfWeek(currentRecommendRecord.dayOfWeek)
                             .setMinuteOfDay(newHabitMinuteOfDay)
                             .build()
