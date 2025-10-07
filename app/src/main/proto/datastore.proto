@@ -14,6 +14,14 @@ message ChaoxingSignFakerDataStore{
   repeated uint32 preferClassId = 8;
   map<uint32, RecommendRecordList> recommendRecords = 9;
   repeated RecommendHabit recommendHabits = 10;
+  bool disableRecommend = 11;
+  uint32 version = 12;
+  repeated ChaoxingCourseClass preferCourseClass = 13;
+}
+
+message ChaoxingCourseClass{
+  uint32 courseId = 1;
+  uint32 classId = 2;
 }
 
 message ChaoxingAnalysis{
@@ -23,7 +31,7 @@ message ChaoxingAnalysis{
   uint32 clickSign = 4;
   uint32 gestureSign = 5;
   uint32 otherUserSign = 6;
-  uint32 passwordSign=7;
+  uint32 passwordSign = 7;
 }
 
 message ChaoxingLocation{
@@ -57,14 +65,15 @@ message RecommendRecordList{
 
 message RecommendRecord{
   uint32 dayOfWeek = 1;
-  uint32 minuteOfDay=2;
-  uint32 courseId=3;
+  uint32 minuteOfDay = 2;
+  uint32 courseId = 3;
 }
 
 message RecommendHabit{
   uint32 dayOfWeek = 1;
-  uint32 minuteOfDay=2;
-  uint32 classId=3;
-  uint32 courseId=5;
-  uint32 recordCount=4;
+  uint32 minuteOfDay = 2;
+  uint32 classId = 3;
+  uint32 courseId = 5;
+  uint32 recordCount = 4;
+  string className=6;
 }

@@ -16,6 +16,7 @@ import okhttp3.Request
 import org.aquamarine5.brainspark.chaoxingsignfaker.checkResponse
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCourseActivitiesEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCourseEntity
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.RecommendActivityEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
 
 object ChaoxingActivityHelper {
@@ -39,7 +40,7 @@ object ChaoxingActivityHelper {
         classId: Int,
         courseId: Int,
         snackbarHostState: SnackbarHostState
-    ): Pair<Long, Any>? = withContext(Dispatchers.IO) {
+    ): RecommendActivityEntity? = withContext(Dispatchers.IO) {
         client.newCall(
             Request.Builder().get().url(
                 URL_ACTIVITY_LOAD.toHttpUrl().newBuilder()
@@ -59,11 +60,18 @@ object ChaoxingActivityHelper {
                         activity.getInteger("status") == 1 &&
                         activity.getLong("startTime") + AVAILABLE_INTERVAL > nowTimeMillis
             }?.let { activity ->
-                activity.getLong("startTime") to ChaoxingSignHelper.getRedirectDestination(
-                    activity.getLong("id"),
+                RecommendActivityEntity(
+                    ChaoxingSignHelper.getRedirectDestination(
+                        activity.getLong("id"),
+                        classId,
+                        courseId,
+                        context
+                    ),
+                    activity.getLong("startTime"),
+                    ChaoxingCourseHelper.queryClassName(client, classId),
                     classId,
                     courseId,
-                    context
+                    activity.getString("nameOne")
                 )
             }
         }

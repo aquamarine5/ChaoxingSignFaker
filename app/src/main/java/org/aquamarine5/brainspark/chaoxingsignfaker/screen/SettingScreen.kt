@@ -7,6 +7,9 @@
 package org.aquamarine5.brainspark.chaoxingsignfaker.screen
 
 import android.content.Intent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -26,8 +29,10 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -52,6 +57,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
 import coil3.ImageLoader
 import coil3.compose.AsyncImage
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
@@ -60,6 +66,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.AnalyserCard
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SponsorCard
+import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.RecommendHabit
 import org.aquamarine5.brainspark.stackbricks.StackbricksComponent
 import org.aquamarine5.brainspark.stackbricks.StackbricksEventTrigger
 import org.aquamarine5.brainspark.stackbricks.StackbricksService
@@ -77,11 +84,13 @@ fun SettingScreen(
     imageLoader: ImageLoader,
     naviToLoginScreen: () -> Unit,
 ) {
+
     Column(
         modifier = Modifier
             .padding(16.dp, 0.dp)
             .verticalScroll(rememberScrollState())
     ) {
+        var isRecommendEnabled by remember { mutableStateOf(true) }
         val context = LocalContext.current
         val fontGilroy = FontFamily(
             Font(R.font.gilroy)
@@ -90,6 +99,13 @@ fun SettingScreen(
         val coroutineScope = rememberCoroutineScope()
         val userEntity = ChaoxingHttpClient.instance!!.userEntity
         var isShowSignoffDialog by remember { mutableStateOf(false) }
+        var allRecommendHabits by remember { mutableStateOf<List<RecommendHabit>?>(null) }
+        LaunchedEffect(Unit) {
+            context.chaoxingDataStore.data.first().apply {
+                isRecommendEnabled = disableRecommend.not()
+                allRecommendHabits = recommendHabitsList
+            }
+        }
         StackbricksComponent(
             stackbricksService,
             trigger = object : StackbricksEventTrigger() {
@@ -219,6 +235,48 @@ fun SettingScreen(
 
         SponsorCard()
 
+        Spacer(modifier = Modifier.height(8.dp))
+        Card(
+            shape = RoundedCornerShape(18.dp),
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFFF0ADA0))
+        ) {
+            Row(
+                modifier = Modifier
+                    .padding(24.dp, 8.dp)
+                    .padding(3.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(painterResource(R.drawable.ic_brain_cog), null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Column {
+                    Row {
+                        Text("启用数据推测签到活动功能（测试中）")
+                        Switch(isRecommendEnabled, onCheckedChange = { value ->
+                            hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            isRecommendEnabled = value
+                            coroutineScope.launch {
+                                context.chaoxingDataStore.updateData {
+                                    it.toBuilder().setDisableRecommend(value.not())
+                                        .build()
+                                }
+                            }
+                        }, modifier = Modifier.padding(start = 8.dp))
+                    }
+                    AnimatedVisibility(
+                        isRecommendEnabled,
+                        enter = slideInVertically(),
+                        exit = slideOutHorizontally()
+                    ) {
+                        Text("已经学习的签到习惯：", fontWeight = FontWeight.Bold)
+                        allRecommendHabits?.forEachIndexed { index, item->
+
+                        }
+                    }
+                }
+            }
+        }
+        Spacer(modifier = Modifier.height(8.dp))
         AnalyserCard()
         Spacer(modifier = Modifier.height(8.dp))
         Button(

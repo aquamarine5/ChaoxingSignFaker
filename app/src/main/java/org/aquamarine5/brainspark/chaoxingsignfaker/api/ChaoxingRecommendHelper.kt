@@ -17,6 +17,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.RecommendHabit
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.RecommendRecord
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.RecommendRecordList
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.RecommendActivityEntity
 import java.time.LocalDateTime
 import kotlin.math.abs
 
@@ -26,9 +27,19 @@ object ChaoxingRecommendHelper {
     const val MINIMUM_HABIT_MERGE_INTERVAL = 20
     const val FIND_RECOMMEND_HABIT_INTERVAL = 15
 
-    suspend fun getAllLearnedHabits(context: Context): List<RecommendHabit> =
+    suspend fun getAllLearnedHabits(context: Context): Pair<Boolean, List<RecommendHabit>> =
         withContext(Dispatchers.IO) {
-            context.chaoxingDataStore.data.first().recommendHabitsList
+            context.chaoxingDataStore.data.first().run {
+                disableRecommend to recommendHabitsList
+            }
+        }
+
+
+    suspend fun getAllLearnedHabits(Chaox): Pair<Boolean, List<RecommendHabit>> =
+        withContext(Dispatchers.IO) {
+            context.chaoxingDataStore.data.first().run {
+                disableRecommend to recommendHabitsList
+            }
         }
 
     suspend fun getRecommendedCourses(context: Context): List<Pair<Int, Int>> {
@@ -36,18 +47,32 @@ object ChaoxingRecommendHelper {
         val now = LocalDateTime.now()
         val currentDayOfWeek = now.dayOfWeek.value
         val currentMinuteOfDay = now.hour * 60 + now.minute
-
-        return allHabits.filter { habit ->
+        if (allHabits.first) return emptyList()
+        return allHabits.second.filter { habit ->
             habit.dayOfWeek == currentDayOfWeek &&
                     abs(habit.minuteOfDay - currentMinuteOfDay) <= FIND_RECOMMEND_HABIT_INTERVAL
         }.map { it.classId to it.courseId }.distinct()
     }
 
+    suspend fun checkPreferredActivities(
+        context: Context,
+        snackbarHostState: SnackbarHostState
+    ): List<RecommendActivityEntity> = withContext(
+        Dispatchers.IO
+    ) {
+        context.chaoxingDataStore.data.first().apply {
+            if (version <= 0)
+                return@withContext emptyList()
+            // TODO()
+        }
+        return@withContext emptyList()
+    }
+
     suspend fun checkRecommendedActivities(
         context: Context,
         snackbarHostState: SnackbarHostState
-    ): List<Pair<Long, Any>> {
-        buildList {
+    ): List<RecommendActivityEntity> {
+        return buildList {
             getRecommendedCourses(context).forEach { ids ->
                 ChaoxingActivityHelper.checkCourseHaveAvailableActivity(
                     ChaoxingHttpClient.instance!!,
@@ -57,7 +82,6 @@ object ChaoxingRecommendHelper {
                     snackbarHostState
                 )?.let { add(it) }
             }
-            return this
         }
     }
 
@@ -67,7 +91,8 @@ object ChaoxingRecommendHelper {
         courseId: Int,
         recommendRecords: Map<Int, RecommendRecordList>,
         recommendHabits: List<RecommendHabit>,
-        currentRecommendRecord: RecommendRecord
+        currentRecommendRecord: RecommendRecord,
+        client: ChaoxingHttpClient
     ) = withContext(Dispatchers.IO) {
         val allRelatedHabits = recommendHabits.filter { it.classId == classId }
         recommendRecords[classId]?.recordsList?.forEach { record ->
@@ -108,6 +133,7 @@ object ChaoxingRecommendHelper {
                             .setClassId(classId)
                             .setCourseId(courseId)
                             .setRecordCount(2)
+                            .setClassName(ChaoxingCourseHelper.queryClassName(client,classId))
                             .setDayOfWeek(currentRecommendRecord.dayOfWeek)
                             .setMinuteOfDay(newHabitMinuteOfDay)
                             .build()
@@ -121,7 +147,12 @@ object ChaoxingRecommendHelper {
 
     }
 
-    suspend fun recordRecommendEvent(context: Context, classId: Int, courseId: Int) =
+    suspend fun recordRecommendEvent(
+        context: Context,
+        classId: Int,
+        courseId: Int,
+        client: ChaoxingHttpClient
+    ) =
         withContext(Dispatchers.IO) {
             val time = LocalDateTime.now()
             context.chaoxingDataStore.updateData { datastore ->
@@ -138,7 +169,7 @@ object ChaoxingRecommendHelper {
                                 classId, courseId,
                                 recommendRecordsMap,
                                 recommendHabitsList,
-                                newRecord
+                                newRecord, client
                             )
                         }
                     }

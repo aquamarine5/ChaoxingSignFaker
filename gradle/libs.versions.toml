@@ -28,6 +28,7 @@ patternlocker = "2.5.7"
 protobufJavalite = "4.32.1"
 reorderable = "3.0.0"
 stackbricks = "2.4.0"
+animation = "1.9.2"
 
 [libraries]
 
@@ -72,6 +73,7 @@ patternlocker = { module = "com.github.ihsg:PatternLocker", version.ref = "patte
 protobuf-javalite = { module = "com.google.protobuf:protobuf-javalite", version.ref = "protobufJavalite" }
 reorderable = { module = "sh.calvin.reorderable:reorderable", version.ref = "reorderable" }
 stackbricks = { module = "org.aquamarine5.brainspark:stackbricks", version.ref = "stackbricks" }
+androidx-compose-animation = { group = "androidx.compose.animation", name = "animation", version.ref = "animation" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

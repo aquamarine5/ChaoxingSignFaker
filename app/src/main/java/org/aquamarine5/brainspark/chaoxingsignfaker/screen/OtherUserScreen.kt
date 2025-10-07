@@ -662,7 +662,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                             fontWeight = FontWeight.Medium,
                                             modifier = Modifier.weight(1f)
                                         )
-                                        Row() {
+                                        Row {
                                             IconButton(
                                                 onClick = {
                                                     coroutineScope.launch {
