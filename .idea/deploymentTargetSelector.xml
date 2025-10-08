@@ -13,7 +13,7 @@
         </DropdownSelection>
         <DialogSelection />
       </SelectionState>
-      <SelectionState runConfigName="LoginPagePreview">
+      <SelectionState runConfigName="PreviewSetting">
         <option name="selectionMode" value="DROPDOWN" />
       </SelectionState>
     </selectionStates>
