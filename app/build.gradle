@@ -17,7 +17,7 @@ plugins {
 stackbricksConfig {
     configJsonFilePath = "chaoxingsignfaker_stackbricks_v2_manifest.json"
     host = "cdn.aquamarine5.fun"
-    changelog = "1.11.3版本更新：\n- 1. 加入了代签时检测到用户不在班级时的提示、迟到签到提示和是否选择正确的签到事件提示\n- 2. 修复了一周内发现的 6 个Bug（拍照签到，代签等），优化了 3 个问题（界面、性能等）。\n如果你的版本在1.7.2（250529）以下，那么新版本更新了：\n- 1. 验证码签到\n- 2. 支持签退\n- 3. 触感反馈\n- 4. 修复了崩溃问题\n- 5. 更好看的界面\n如果你的版本在1.4.9（250420）以下，那么新版本还更新了：\n- 1. 支持给其他用户代签\n- 2. 优化了位置签到时的严重卡顿\n\nlovely lonely, 20250920, @aquamarine5 Brainspark."
+    changelog = "1.12.0-beta1版本更新：\n- 1. 支持签到码签到。\n- 2. 支持推测签到活动功能。\n1.11.3版本更新：\n- 1. 加入了代签时检测到用户不在班级时的提示、迟到签到提示和是否选择正确的签到事件提示\n- 2. 修复了一周内发现的 6 个Bug（拍照签到，代签等），优化了 3 个问题（界面、性能等）。\n如果你的版本在1.7.2（250529）以下，那么新版本更新了：\n- 1. 验证码签到\n- 2. 支持签退\n- 3. 触感反馈\n- 4. 修复了崩溃问题\n- 5. 更好看的界面\n如果你的版本在1.4.9（250420）以下，那么新版本还更新了：\n- 1. 支持给其他用户代签\n- 2. 优化了位置签到时的严重卡顿\n\nlovely lonely, 20250920, @aquamarine5 Brainspark."
     requiredManifestVersion2MigrateForceInstall = true
     qiniuConfig {
         accessKey = project.findProperty("qiniu.accessKey") ?: ""
@@ -38,8 +38,8 @@ android {
         applicationId = "org.aquamarine5.brainspark.chaoxingsignfaker"
         minSdk = 26
         targetSdk = 35
-        versionCode = 111031215
-        versionName = "1.11.3-stable-250920"
+        versionCode = 112021008
+        versionName = "1.12.0-beta1-251008"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

@@ -92,6 +92,8 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.screen.LoginPage
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.OtherUserDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.OtherUserGraphDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.OtherUserScreen
+import org.aquamarine5.brainspark.chaoxingsignfaker.screen.PasswordSignDestination
+import org.aquamarine5.brainspark.chaoxingsignfaker.screen.PasswordSignScreen
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.PhotoSignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.PhotoSignScreen
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.QRCodeSignDestination
@@ -380,6 +382,9 @@ class MainActivity : ComponentActivity() {
                                                 onNewVersionAvailable = {
                                                     isNewVersionAvailable = true
                                                 },
+                                                navToSignActivityDestination = {
+                                                    navController.navigate(it)
+                                                },
                                                 navToSettingDestination = {
                                                     navController.navigate(SettingDestination) {
                                                         popUpTo<CourseListDestination> {
@@ -437,6 +442,18 @@ class MainActivity : ComponentActivity() {
                                             }, navBack = {
                                                 navController.navigateUp()
                                             }) {
+                                                navController.navigate(OtherUserGraphDestination)
+                                            }
+                                        }
+
+                                        composable<PasswordSignDestination> { route ->
+                                            PasswordSignScreen(
+                                                route.toRoute(), navToOtherSign = {
+                                                    navController.navigate(it)
+                                                },
+                                                navToCourseDetailDestination = {
+                                                    navController.navigateUp()
+                                                }) {
                                                 navController.navigate(OtherUserGraphDestination)
                                             }
                                         }
