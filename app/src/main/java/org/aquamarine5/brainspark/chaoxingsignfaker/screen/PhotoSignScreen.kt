@@ -78,6 +78,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCourseHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingOtherUserHelper
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingRecommendHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingSignHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.AlreadySignedNotice
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CameraComponent
@@ -277,6 +278,14 @@ fun PhotoSignScreen(
                                                         userSelections[0] = false
                                                         if (otherUserSessionList.isEmpty()) {
                                                             isSigning = false
+                                                            coroutineScope.launch {
+                                                                ChaoxingRecommendHelper.recordRecommendEvent(
+                                                                    context,
+                                                                    destination.classId,
+                                                                    destination.courseId,
+                                                                    ChaoxingHttpClient.instance!!
+                                                                )
+                                                            }
                                                             delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)
                                                             isSponsor = true
                                                         }
@@ -303,6 +312,14 @@ fun PhotoSignScreen(
                                         signStatus[0].success()
                                         if (otherUserSessionList.isEmpty()) {
                                             isSigning = false
+                                            coroutineScope.launch {
+                                                ChaoxingRecommendHelper.recordRecommendEvent(
+                                                    context,
+                                                    destination.classId,
+                                                    destination.courseId,
+                                                    ChaoxingHttpClient.instance!!
+                                                )
+                                            }
                                             delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)
                                             isSponsor = true
                                         }
@@ -361,6 +378,14 @@ fun PhotoSignScreen(
                                                                         signStatus[1 + index].success()
                                                                         if (index == otherUserSessionList.size - 1) {
                                                                             isSigning = false
+                                                                            coroutineScope.launch {
+                                                                                ChaoxingRecommendHelper.recordRecommendEvent(
+                                                                                    context,
+                                                                                    destination.classId,
+                                                                                    destination.courseId,
+                                                                                    client
+                                                                                )
+                                                                            }
                                                                             delay(
                                                                                 ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED
                                                                             )
@@ -399,6 +424,14 @@ fun PhotoSignScreen(
                                                         signStatus[1 + index].success()
                                                         if (index == otherUserSessionList.size - 1) {
                                                             isSigning = false
+                                                            coroutineScope.launch {
+                                                                ChaoxingRecommendHelper.recordRecommendEvent(
+                                                                    context,
+                                                                    destination.classId,
+                                                                    destination.courseId,
+                                                                    client
+                                                                )
+                                                            }
                                                             delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)
                                                             isSponsor = true
                                                         }
@@ -664,6 +697,14 @@ fun PhotoSignScreen(
                                                                                                 if (otherUserSessionForSignList.isEmpty()) {
                                                                                                     isSigning =
                                                                                                         false
+                                                                                                    coroutineScope.launch {
+                                                                                                        ChaoxingRecommendHelper.recordRecommendEvent(
+                                                                                                            context,
+                                                                                                            destination.classId,
+                                                                                                            destination.courseId,
+                                                                                                            ChaoxingHttpClient.instance!!
+                                                                                                        )
+                                                                                                    }
                                                                                                     delay(
                                                                                                         ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED
                                                                                                     )
@@ -703,11 +744,18 @@ fun PhotoSignScreen(
                                                                                 if (otherUserSessionForSignList.isEmpty()) {
                                                                                     isSigning =
                                                                                         false
+                                                                                    coroutineScope.launch {
+                                                                                        ChaoxingRecommendHelper.recordRecommendEvent(
+                                                                                            context,
+                                                                                            destination.classId,
+                                                                                            destination.courseId,
+                                                                                            ChaoxingHttpClient.instance!!
+                                                                                        )
+                                                                                    }
                                                                                     delay(
                                                                                         ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED
                                                                                     )
-                                                                                    isSponsor =
-                                                                                        true
+                                                                                    isSponsor = true
                                                                                 }
                                                                             }
                                                                         }
@@ -785,6 +833,14 @@ fun PhotoSignScreen(
                                                                                                     if (otherUserSessionForSignList.isEmpty()) {
                                                                                                         isSigning =
                                                                                                             false
+                                                                                                        coroutineScope.launch {
+                                                                                                            ChaoxingRecommendHelper.recordRecommendEvent(
+                                                                                                                context,
+                                                                                                                destination.classId,
+                                                                                                                destination.courseId,
+                                                                                                                client
+                                                                                                            )
+                                                                                                        }
                                                                                                         delay(
                                                                                                             ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED
                                                                                                         )
@@ -826,6 +882,14 @@ fun PhotoSignScreen(
                                                                                     if (otherUserSessionForSignList.isEmpty()) {
                                                                                         isSigning =
                                                                                             false
+                                                                                        coroutineScope.launch {
+                                                                                            ChaoxingRecommendHelper.recordRecommendEvent(
+                                                                                                context,
+                                                                                                destination.classId,
+                                                                                                destination.courseId,
+                                                                                                client
+                                                                                            )
+                                                                                        }
                                                                                         delay(
                                                                                             ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED
                                                                                         )
@@ -896,6 +960,14 @@ fun PhotoSignScreen(
                                                                                 objectId,
                                                                                 validateValue.getOrThrow()
                                                                             )
+                                                                            coroutineScope.launch {
+                                                                                ChaoxingRecommendHelper.recordRecommendEvent(
+                                                                                    context,
+                                                                                    destination.classId,
+                                                                                    destination.courseId,
+                                                                                    ChaoxingHttpClient.instance!!
+                                                                                )
+                                                                            }
                                                                             isSignSuccess =
                                                                                 true
                                                                             hapticFeedback.performHapticFeedback(
@@ -1000,7 +1072,8 @@ fun PhotoSignScreen(
                     SignPotentialWarningTips(
                         destination.startTime,
                         destination.endTime,
-                        destination.isLate
+                        destination.isLate,
+                        isPadding = true
                     )
 
                     AlreadySignedNotice({

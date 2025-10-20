@@ -21,6 +21,7 @@ object ChaoxingAnalyser {
         val qrcodeSignCount: MutableState<Int> = mutableIntStateOf(0),
         val clickSignCount: MutableState<Int> = mutableIntStateOf(0),
         val otherUserSignCount: MutableState<Int> = mutableIntStateOf(0),
+        val passwordSignCount: MutableState<Int> = mutableIntStateOf(0),
         val isLoaded: MutableState<Boolean> = mutableStateOf(false)
     ) {
         companion object {
@@ -33,7 +34,8 @@ object ChaoxingAnalyser {
                         analyser.qrcodeSignCount.value,
                         analyser.clickSignCount.value,
                         analyser.otherUserSignCount.value,
-                        if (analyser.isLoaded.value) 1 else 0
+                        if (analyser.isLoaded.value) 1 else 0,
+                        analyser.passwordSignCount.value
                     )
                 },
                 restore = { values ->
@@ -44,7 +46,8 @@ object ChaoxingAnalyser {
                         qrcodeSignCount = mutableIntStateOf(values[3]),
                         clickSignCount = mutableIntStateOf(values[4]),
                         otherUserSignCount = mutableIntStateOf(values[5]),
-                        isLoaded = mutableStateOf(values[6] == 1)
+                        isLoaded = mutableStateOf(values[6] == 1),
+                        passwordSignCount = mutableIntStateOf(values[7])
                     )
                 }
             )
@@ -75,6 +78,15 @@ object ChaoxingAnalyser {
             it.toBuilder().apply {
                 mutableAnalyser.qrcodeSignCount.value++
                 setAnalysis(analysis.toBuilder().setQrcodeSign(analysis.qrcodeSign + 1))
+            }.build()
+        }
+    }
+
+    suspend fun onPasswordSignEvent(context: Context) {
+        context.chaoxingDataStore.updateData {
+            it.toBuilder().apply {
+                mutableAnalyser.passwordSignCount.value++
+                setAnalysis(analysis.toBuilder().setPasswordSign(analysis.passwordSign + 1))
             }.build()
         }
     }

@@ -7,15 +7,25 @@
 package org.aquamarine5.brainspark.chaoxingsignfaker.screen
 
 import android.widget.Toast
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.VisibilityThreshold
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -32,6 +42,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.Font
@@ -52,14 +63,18 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCourseHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingRecommendHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.BlockedContent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CourseInfoColumnCard
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCourseEntity
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.RecommendActivityEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.snackbarReport
 import org.aquamarine5.brainspark.stackbricks.StackbricksService
 import org.aquamarine5.brainspark.stackbricks.StackbricksVersionData
+import java.time.Instant
+import java.time.LocalDateTime
 
 @Serializable
 object CourseListDestination
@@ -79,6 +94,7 @@ fun CourseListScreen(
     navToDetailDestination: (ChaoxingCourseEntity) -> Unit,
     onNewVersionAvailable: () -> Unit,
     navToSettingDestination: () -> Unit,
+    navToSignActivityDestination: (Any) -> Unit,
     navToLoginDestination: () -> Unit
 ) {
     val activitiesData =
@@ -92,18 +108,48 @@ fun CourseListScreen(
     var isNewVersionDialogDisplayed = rememberSaveable { false }
     var isForceInstall by remember { mutableStateOf(false) }
     val snackbarHost = LocalSnackbarHostState.current
+    var recommendActivities by remember { mutableStateOf<List<RecommendActivityEntity>?>(null) }
     val coroutineScope = rememberCoroutineScope()
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
-            if (stackbricksService.internalVersionData == null && !isNewVersionDialogDisplayed) {
-                newestVersionData = stackbricksService.isNeedUpdate()
-                newestVersionData?.forceInstallLessVersion?.let {
-                    isForceInstall =
-                        (it > BuildConfig.VERSION_CODE)
+            runCatching {
+                if (stackbricksService.internalVersionData == null && !isNewVersionDialogDisplayed) {
+                    newestVersionData = stackbricksService.isNeedUpdate()
+                    newestVersionData?.forceInstallLessVersion?.let {
+                        isForceInstall =
+                            (it > BuildConfig.VERSION_CODE)
+                    }
                 }
+            }.onFailure {
+                it.snackbarReport(snackbarHost, coroutineScope, "检查更新失败", hapticFeedback)
             }
+            recommendActivities =
+                ChaoxingRecommendHelper.checkRecommendedActivities(context, snackbarHost)
             if (activitiesData.isEmpty()) {
                 runCatching {
+//                    context.chaoxingDataStore.data.first().apply {
+//                        if (version <= 0) {
+//                            ChaoxingHttpClient.instance?.let { httpClient ->
+//                                ChaoxingCourseHelper.getAllCourse(
+//                                    httpClient,
+//                                    context,
+//                                    navToLoginDestination
+//                                ).let { data ->
+//                                    context.chaoxingDataStore.updateData { dataStore ->
+//                                        dataStore.toBuilder().apply {
+//                                            addAllPreferCourseClass(preferClassIdList.map { classId ->
+//                                                ChaoxingCourseClass.newBuilder()
+//                                                    .setClassId(classId)
+//                                                    .setCourseId(data.first { it.classId == classId }.courseId)
+//                                                    .build()
+//                                            })
+//                                            setVersion(1)
+//                                        }.build()
+//                                    }
+//                                }
+//                            }
+//                        }
+//                    }
                     preferredClassIds =
                         context.chaoxingDataStore.data.first().preferClassIdList.toMutableStateList()
                             .apply {
@@ -194,7 +240,60 @@ fun CourseListScreen(
             if (activitiesData.isEmpty()) {
                 CenterCircularProgressIndicator()
             } else {
-                LazyColumn {
+                Column {
+                    AnimatedVisibility(
+                        recommendActivities != null,
+                        enter = fadeIn() + slideInVertically()
+                    ) {
+                        recommendActivities?.forEachIndexed { index, item ->
+                            runCatching {
+                                Card(
+                                    onClick = {
+                                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                                        navToSignActivityDestination(item.destination)
+                                    },
+                                    shape = RoundedCornerShape(18.dp),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .padding(24.dp, 8.dp)
+                                            .padding(3.dp)
+                                    ) {
+                                        Icon(painterResource(R.drawable.ic_brain_circuit), null)
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Column {
+                                            Text("根据平时的签到习惯推断出可能会点击的签到活动：")
+                                            Text(buildAnnotatedString {
+                                                withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+                                                    append(item.className)
+                                                }
+                                                append(" 在 ")
+                                                withStyle(SpanStyle(fontFamily = FontFamily(Font(R.font.gilroy)))) {
+                                                    append(
+                                                        LocalDateTime.from(
+                                                            Instant.ofEpochMilli(
+                                                                item.startTime
+                                                            )
+                                                        ).run {
+                                                            "$hour:$minute:$second"
+                                                        })
+                                                }
+                                                append(" 的 ")
+                                                append(item.activityName)
+                                            })
+
+                                        }
+                                    }
+                                }
+                                if (index != recommendActivities?.lastIndex) {
+                                    Spacer(modifier = Modifier.padding(vertical = 8.dp))
+                                }
+                            }
+                        }
+                    }
+
+                    LazyColumn {
 //                    item {
 //                        OutlinedButton(
 //                            onClick = {
@@ -215,60 +314,61 @@ fun CourseListScreen(
 //                            }
 //                        }
 //                    }
-                    items(activitiesData) { data ->
-                        key(data.classId) {
-                            CourseInfoColumnCard(
-                                data,
-                                imageLoader,
-                                modifier = Modifier.animateItem(
-                                    placementSpec = spring(
-                                        stiffness = Spring.StiffnessLow,
-                                        visibilityThreshold = IntOffset.VisibilityThreshold
+                        items(activitiesData) { data ->
+                            key(data.classId) {
+                                CourseInfoColumnCard(
+                                    data,
+                                    imageLoader,
+                                    modifier = Modifier.animateItem(
+                                        placementSpec = spring(
+                                            stiffness = Spring.StiffnessLow,
+                                            visibilityThreshold = IntOffset.VisibilityThreshold
+                                        ),
+                                        fadeInSpec = spring(Spring.StiffnessLow),
+                                        fadeOutSpec = spring(Spring.StiffnessLow)
                                     ),
-                                    fadeInSpec = spring(Spring.StiffnessLow),
-                                    fadeOutSpec = spring(Spring.StiffnessLow)
-                                ),
-                                onPreferredResort = { isPreferred ->
-                                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                                    if (isPreferred)
-                                        coroutineScope.launch {
-                                            context.chaoxingDataStore.updateData {
-                                                it.toBuilder().addPreferClassId(data.classId)
-                                                    .build()
+                                    onPreferredResort = { isPreferred ->
+                                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                                        if (isPreferred)
+                                            coroutineScope.launch {
+                                                context.chaoxingDataStore.updateData {
+                                                    it.toBuilder().addPreferClassId(data.classId)
+                                                        .build()
+                                                }
+                                                preferredClassIds.add(data.classId)
+                                                activitiesData.sortByDescending {
+                                                    if (it.classId == data.classId)
+                                                        return@sortByDescending SORT_TOP
+                                                    if (preferredClassIds.contains(
+                                                            it.classId
+                                                        )
+                                                    ) return@sortByDescending SORT_STAR
+                                                    else return@sortByDescending SORT_COMMON
+                                                }
                                             }
-                                            preferredClassIds.add(data.classId)
-                                            activitiesData.sortByDescending {
-                                                if (it.classId == data.classId)
-                                                    return@sortByDescending SORT_TOP
-                                                if (preferredClassIds.contains(
-                                                        it.classId
-                                                    )
-                                                ) return@sortByDescending SORT_STAR
-                                                else return@sortByDescending SORT_COMMON
+                                        else {
+                                            coroutineScope.launch {
+                                                context.chaoxingDataStore.updateData { dataStore ->
+                                                    dataStore.toBuilder().apply {
+                                                        //remo
+                                                        val newList =
+                                                            preferClassIdList.filterNot { it == data.classId }
+                                                        clearPreferClassId()
+                                                        addAllPreferClassId(newList)
+                                                    }.build()
+                                                }
+                                                preferredClassIds.remove(data.classId)
                                             }
-                                        }
-                                    else {
-                                        coroutineScope.launch {
-                                            context.chaoxingDataStore.updateData { dataStore ->
-                                                dataStore.toBuilder().apply {
-                                                    val newList =
-                                                        preferClassIdList.filterNot { it == data.classId }
-                                                    clearPreferClassId()
-                                                    addAllPreferClassId(newList)
-                                                }.build()
-                                            }
-                                            preferredClassIds.remove(data.classId)
                                         }
                                     }
+                                ) {
+                                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                                    navToDetailDestination(data)
                                 }
-                            ) {
-                                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                                navToDetailDestination(data)
                             }
                         }
                     }
                 }
-
             }
         }
     }

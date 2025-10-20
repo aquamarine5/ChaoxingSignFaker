@@ -2,10 +2,11 @@
 accompanistPermissions = "0.37.3"
 agp = "8.13.0"
 asms = "1.8.7.2"
-baidumapsdk_location = "9.6.5.1"
-baidumapsdk_map = "7.6.5.1"
+baidumapsdk_location = "9.6.6.1"
+baidumapsdk_map = "7.6.6"
 barcodeScanning = "17.3.0"
-cameraMlkitVisionVersion = "1.5.0"
+base = "7.6.6"
+cameraMlkitVisionVersion = "1.5.1"
 coilCompose = "3.3.0"
 common = "9.8.8"
 core = "3.5.3"
@@ -19,13 +20,14 @@ espressoCore = "3.7.0"
 kotlinxSerializationJson = "1.9.0"
 lifecycleRuntimeKtx = "2.9.4"
 activityCompose = "1.10.1"
-composeBom = "2025.09.00"
-material = "1.9.1"
-navigationCompose = "2.9.4"
-okhttp = "5.1.0"
+composeBom = "2025.10.00"
+material = "1.9.3"
+navigationCompose = "2.9.5"
+okhttp = "5.2.1"
 patternlocker = "2.5.7"
-protobufJavalite = "4.32.1"
-stackbricks = "2.3.2"
+protobufJavalite = "4.33.0"
+reorderable = "3.0.0"
+stackbricks = "2.4.0"
 
 [libraries]
 
@@ -64,9 +66,11 @@ androidx-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-man
 androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 androidx-material3 = { group = "androidx.compose.material3", name = "material3" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
+lbsyun-base = { module = "com.baidu.lbsyun:base", version.ref = "base" }
 okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp" }
 patternlocker = { module = "com.github.ihsg:PatternLocker", version.ref = "patternlocker" }
 protobuf-javalite = { module = "com.google.protobuf:protobuf-javalite", version.ref = "protobufJavalite" }
+reorderable = { module = "sh.calvin.reorderable:reorderable", version.ref = "reorderable" }
 stackbricks = { module = "org.aquamarine5.brainspark:stackbricks", version.ref = "stackbricks" }
 
 [plugins]

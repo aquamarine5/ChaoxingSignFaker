@@ -11,6 +11,7 @@ import android.widget.Toast
 import com.alibaba.fastjson2.JSONObject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Request
 import org.aquamarine5.brainspark.chaoxingsignfaker.checkResponse
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCourseEntity
@@ -18,6 +19,23 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCourseEntity
 object ChaoxingCourseHelper {
     private const val URL_COURSE_LIST =
         "https://mooc1-api.chaoxing.com/mycourse/backclazzdata?view=json&rss=1"
+
+    private const val URL_COURSE_QUERY_NAME =
+        "https://mooc1-api.chaoxing.com/gas/clazz?fields=name&view=json"
+
+    suspend fun queryClassName(client: ChaoxingHttpClient, classId: Int): String = withContext(
+        Dispatchers.IO
+    ) {
+        client.newCall(
+            Request.Builder().get().url(
+                URL_COURSE_QUERY_NAME.toHttpUrl().newBuilder()
+                    .addQueryParameter("id", classId.toString()).build()
+            ).build()
+        ).execute().use {
+            return@use JSONObject.parseObject(it.body.string()).getJSONArray("data")
+                .getJSONObject(0).getString("name")
+        }
+    }
 
     suspend fun checkClassValid(
         client: ChaoxingHttpClient,

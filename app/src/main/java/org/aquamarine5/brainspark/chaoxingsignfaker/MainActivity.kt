@@ -37,7 +37,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -75,7 +74,6 @@ import com.baidu.mapapi.SDKInitializer
 import com.umeng.analytics.MobclickAgent
 import io.sentry.android.core.SentryAndroid
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -94,6 +92,8 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.screen.LoginPage
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.OtherUserDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.OtherUserGraphDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.OtherUserScreen
+import org.aquamarine5.brainspark.chaoxingsignfaker.screen.PasswordSignDestination
+import org.aquamarine5.brainspark.chaoxingsignfaker.screen.PasswordSignScreen
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.PhotoSignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.PhotoSignScreen
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.QRCodeSignDestination
@@ -113,9 +113,6 @@ import org.aquamarine5.brainspark.stackbricks.providers.qiniu.QiniuPackageProvid
 import org.aquamarine5.brainspark.stackbricks.rememberStackbricksStatus
 import java.util.concurrent.TimeUnit
 import kotlin.reflect.typeOf
-
-typealias SnackbarFunction =
-            (String, String?, Boolean, SnackbarDuration?) -> Job
 
 class MainActivity : ComponentActivity() {
     companion object {
@@ -286,9 +283,12 @@ class MainActivity : ComponentActivity() {
                         }
                     ) { innerPadding ->
                         val stackbricksService = QiniuConfiguration(
-                            "cdn.aquamarine5.fun",
+                            possibleConfigurations = listOf(
+                                "cdn.aquamarine5.fun" to "chaoxingsignfaker_stackbricks_v2_manifest.json",
+                                "cdn.aquamarine5.top" to "chaoxingsignfaker_stackbricks_v2_manifest.json",
+                                "cdn.aquamarine5.vip" to "chaoxingsignfaker_stackbricks_v2_manifest.json",
+                            ),
                             referer = "http://cdn.aquamarine5.fun/",
-                            configFilePath = "chaoxingsignfaker_stackbricks_v2_manifest.json",
                             okHttpClient = OkHttpClient().newBuilder()
                                 .callTimeout(20, TimeUnit.MINUTES)
                                 .readTimeout(20, TimeUnit.MINUTES)
@@ -382,6 +382,9 @@ class MainActivity : ComponentActivity() {
                                                 onNewVersionAvailable = {
                                                     isNewVersionAvailable = true
                                                 },
+                                                navToSignActivityDestination = {
+                                                    navController.navigate(it)
+                                                },
                                                 navToSettingDestination = {
                                                     navController.navigate(SettingDestination) {
                                                         popUpTo<CourseListDestination> {
@@ -439,6 +442,18 @@ class MainActivity : ComponentActivity() {
                                             }, navBack = {
                                                 navController.navigateUp()
                                             }) {
+                                                navController.navigate(OtherUserGraphDestination)
+                                            }
+                                        }
+
+                                        composable<PasswordSignDestination> { route ->
+                                            PasswordSignScreen(
+                                                route.toRoute(), navToOtherSign = {
+                                                    navController.navigate(it)
+                                                },
+                                                navToCourseDetailDestination = {
+                                                    navController.navigateUp()
+                                                }) {
                                                 navController.navigate(OtherUserGraphDestination)
                                             }
                                         }

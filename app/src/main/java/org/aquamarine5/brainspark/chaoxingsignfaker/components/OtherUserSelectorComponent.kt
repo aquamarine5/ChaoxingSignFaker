@@ -65,6 +65,7 @@ inline fun OtherUserSelectorComponent(
     isSigning: Boolean = false,
     noinline userContent: @Composable ((index: Int) -> Unit)? = null,
     prefixTipsContent: @Composable (() -> Unit),
+    noinline suffixContent: @Composable (() -> Unit)? = null,
     crossinline onSignAction: (isSelf: Boolean, otherUserSessionList: List<ChaoxingOtherUserSession?>, indexList: List<Int>) -> Unit
 ) {
     LocalContext.current.let { context ->
@@ -140,6 +141,9 @@ inline fun OtherUserSelectorComponent(
                     success = isCurrentAlreadySigned
                     userSelections[0] = isCurrentAlreadySigned != true
                 }
+
+                suffixContent?.invoke()
+
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
                     "选择要进行签到的用户：",

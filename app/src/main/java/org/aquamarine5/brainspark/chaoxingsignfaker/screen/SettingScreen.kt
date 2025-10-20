@@ -7,7 +7,12 @@
 package org.aquamarine5.brainspark.chaoxingsignfaker.screen
 
 import android.content.Intent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -25,10 +30,15 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -36,6 +46,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
@@ -52,14 +63,18 @@ import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
 import coil3.ImageLoader
 import coil3.compose.AsyncImage
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingRecommendHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.AnalyserCard
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SponsorCard
+import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.RecommendHabit
 import org.aquamarine5.brainspark.stackbricks.StackbricksComponent
 import org.aquamarine5.brainspark.stackbricks.StackbricksEventTrigger
 import org.aquamarine5.brainspark.stackbricks.StackbricksService
@@ -82,14 +97,20 @@ fun SettingScreen(
             .padding(16.dp, 0.dp)
             .verticalScroll(rememberScrollState())
     ) {
+        var isRecommendEnabled by remember { mutableStateOf(true) }
         val context = LocalContext.current
-        val fontGilroy = FontFamily(
-            Font(R.font.gilroy)
-        )
+        val fontGilroy = remember { FontFamily(Font(R.font.gilroy)) }
         val hapticFeedback = LocalHapticFeedback.current
         val coroutineScope = rememberCoroutineScope()
-        val userEntity = ChaoxingHttpClient.instance!!.userEntity
+        val userEntity = remember { ChaoxingHttpClient.instance!!.userEntity }
         var isShowSignoffDialog by remember { mutableStateOf(false) }
+        val allRecommendHabits = remember { mutableStateListOf<RecommendHabit>() }
+        LaunchedEffect(Unit) {
+            context.chaoxingDataStore.data.first().apply {
+                isRecommendEnabled = disableRecommend.not()
+                allRecommendHabits.addAll(recommendHabitsList)
+            }
+        }
         StackbricksComponent(
             stackbricksService,
             trigger = object : StackbricksEventTrigger() {
@@ -204,7 +225,7 @@ fun SettingScreen(
                     modifier = Modifier
                         .padding(8.dp, 0.dp)
                         .weight(1f),
-                    fontWeight = FontWeight.Medium,
+                    fontWeight = FontWeight.Bold,
                     color = if (isSystemInDarkTheme()) Color.Black else Color.White
                 )
                 IconButton(
@@ -219,6 +240,120 @@ fun SettingScreen(
 
         SponsorCard()
 
+        Card(
+            shape = RoundedCornerShape(18.dp),
+            border = BorderStroke(
+                3.5.dp, Brush.linearGradient(
+                    listOf(
+                        Color(0xFF76E4F4),
+                        Color(0xFF9E6FCD),
+                        Color(0xFFC777A9)
+                    )
+                )
+            ),
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+        ) {
+            Row(
+                modifier = Modifier
+                    .padding(22.dp, 8.dp, 10.dp, 8.dp)
+                    .padding(3.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(painterResource(R.drawable.ic_brain_cog), null)
+                Spacer(modifier = Modifier.width(9.dp))
+                Column {
+                    Row(horizontalArrangement = Arrangement.SpaceBetween) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                "推测签到活动功能",
+                                fontSize = 17.sp,
+                                fontWeight = FontWeight.Bold,
+                                lineHeight = 21.sp
+                            )
+                            Text(
+                                "根据日常的签到时间，在打开应用时推测可能的签到课程和事件（测试中）",
+                                fontSize = 12.sp,
+                                lineHeight = 14.sp
+                            )
+                        }
+                        Switch(isRecommendEnabled, onCheckedChange = { value ->
+                            hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            isRecommendEnabled = value
+                            coroutineScope.launch {
+                                context.chaoxingDataStore.updateData {
+                                    it.toBuilder().setDisableRecommend(value.not())
+                                        .build()
+                                }
+                            }
+                        }, modifier = Modifier.padding(start = 8.dp))
+                    }
+                    AnimatedVisibility(
+                        isRecommendEnabled,
+                        enter = slideInVertically(),
+                        exit = slideOutVertically()
+                    ) {
+                        Column {
+                            Spacer(modifier = Modifier.height(3.dp))
+                            if (!allRecommendHabits.isEmpty()) {
+                                Text("已经学习的签到习惯：", fontWeight = FontWeight.Bold)
+                                Spacer(modifier = Modifier.height(3.dp))
+                                allRecommendHabits.forEachIndexed { index, item ->
+                                    key(index) {
+                                        Card(
+                                            elevation = CardDefaults.cardElevation(4.dp),
+                                            modifier = Modifier.padding(8.dp, 4.dp, 3.dp, 4.dp)
+                                        ) {
+                                            Row {
+                                                Text(buildAnnotatedString {
+                                                    append("星期${ChaoxingRecommendHelper.dayOfWeekTextList[item.dayOfWeek]}的 ")
+                                                    withStyle(SpanStyle(fontFamily = fontGilroy)) {
+                                                        append(
+                                                            "${item.minuteOfDay.div(60)}:${
+                                                                (item.minuteOfDay % 60).toString()
+                                                                    .padStart(2, '0')
+                                                            }"
+                                                        )
+                                                    }
+                                                    append(" 在${item.className}的签到活动")
+                                                }, modifier = Modifier.weight(1f))
+                                                IconButton(onClick = {
+                                                    allRecommendHabits.removeAt(index)
+                                                    hapticFeedback.performHapticFeedback(
+                                                        HapticFeedbackType.TextHandleMove
+                                                    )
+                                                    coroutineScope.launch(Dispatchers.IO) {
+                                                        context.chaoxingDataStore.updateData { dataStore ->
+                                                            dataStore.toBuilder().apply {
+                                                                removeRecommendHabits(index)
+                                                            }.build()
+                                                        }
+                                                    }
+                                                }) {
+                                                    Icon(
+                                                        painterResource(R.drawable.ic_delete),
+                                                        null,
+                                                        tint = Color.Red
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            } else {
+                                Text(
+                                    "还没有学习到任何签到习惯，继续更多的使用随地大小签吧~",
+                                    fontSize = 13.sp,
+                                    lineHeight = 15.sp,
+                                    color = Color.Gray
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        Spacer(modifier = Modifier.height(8.dp))
         AnalyserCard()
         Spacer(modifier = Modifier.height(8.dp))
         Button(

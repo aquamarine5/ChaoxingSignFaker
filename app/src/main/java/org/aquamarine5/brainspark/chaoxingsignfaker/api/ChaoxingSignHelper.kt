@@ -21,6 +21,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.checkResponse
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.GetLocationDestination
+import org.aquamarine5.brainspark.chaoxingsignfaker.screen.PasswordSignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.PhotoSignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.QRCodeSignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSigner
@@ -46,6 +47,7 @@ object ChaoxingSignHelper {
         isLate: Boolean = false
     ): Any? =
         when (activityEntity.otherId) {
+            "5" -> PasswordSignDestination.parseFromSignActivityEntity(activityEntity, isLate)
             "4" -> GetLocationDestination.parseFromSignActivityEntity(activityEntity, isLate)
             "2" -> QRCodeSignDestination.parseFromSignActivityEntity(activityEntity, isLate)
             "0" -> PhotoSignDestination.parseFromSignActivityEntity(activityEntity, isLate)
@@ -96,6 +98,16 @@ object ChaoxingSignHelper {
                     )
 
                     4 -> GetLocationDestination(
+                        activeId,
+                        classId,
+                        courseId,
+                        "",
+                        result.getLong("starttime"),
+                        endTime,
+                        if (endTime != null) System.currentTimeMillis() > endTime else false
+                    )
+
+                    5 -> PasswordSignDestination(
                         activeId,
                         classId,
                         courseId,
