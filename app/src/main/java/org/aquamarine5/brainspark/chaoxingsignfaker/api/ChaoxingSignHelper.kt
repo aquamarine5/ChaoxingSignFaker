@@ -47,7 +47,7 @@ object ChaoxingSignHelper {
         isLate: Boolean = false
     ): Any? =
         when (activityEntity.otherId) {
-            "5" -> PasswordSignDestination.parseFromSignActivityEntity(activityEntity,isLate)
+            "5" -> PasswordSignDestination.parseFromSignActivityEntity(activityEntity, isLate)
             "4" -> GetLocationDestination.parseFromSignActivityEntity(activityEntity, isLate)
             "2" -> QRCodeSignDestination.parseFromSignActivityEntity(activityEntity, isLate)
             "0" -> PhotoSignDestination.parseFromSignActivityEntity(activityEntity, isLate)

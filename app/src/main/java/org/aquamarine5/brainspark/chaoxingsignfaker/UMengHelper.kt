@@ -23,13 +23,14 @@ object UMengHelper {
 
     private const val EVENT_TAG_ACCOUNT_LOGIN = "account_login"
     private const val EVENT_TAG_SIGN_LOCATION = "sign_location"
-    private const val EVENT_TAG_SIGN_PASSWORD="sign_password"
+    private const val EVENT_TAG_SIGN_PASSWORD = "sign_password"
     private const val EVENT_TAG_SIGN_QR_CODE = "sign_qr_code"
     private const val EVENT_TAG_SIGN_PHOTO = "sign_photo"
     private const val EVENT_TAG_SIGN_CLICK = "sign_click"
     private const val EVENT_TAG_ADD_OTHER_USER = "account_add_other_user"
     private const val EVENT_TAG_GOTO_SPONSOR_WECHAT = "sponsor_wechat_goto"
     private const val EVENT_TAG_ILLEGAL_CHANNEL = "illegal_channel"
+
     @Deprecated("")
     private const val EVENT_TAG_CAPTCHA_SUCCESS = "captcha_success"
 
@@ -88,15 +89,15 @@ object UMengHelper {
 
     suspend fun onSignCodeEvent(
         context: Context,
-        name: String,isOtherUser: Boolean=false
-    ){
+        name: String, isOtherUser: Boolean = false
+    ) {
         onEvent(
-            context,EVENT_TAG_SIGN_PASSWORD,mapOf(
+            context, EVENT_TAG_SIGN_PASSWORD, mapOf(
                 "user" to name
             )
         )
         ChaoxingAnalyser.onPasswordSignEvent(context)
-        if(isOtherUser) ChaoxingAnalyser.onOtherUserSignEvent(context)
+        if (isOtherUser) ChaoxingAnalyser.onOtherUserSignEvent(context)
     }
 
     suspend fun onSignLocationEvent(

@@ -7,10 +7,10 @@
 package org.aquamarine5.brainspark.chaoxingsignfaker.entity
 
 data class RecommendActivityEntity(
-    val destination:Any,
-    val startTime:Long,
-    val className:String,
-    val classId:Int,
-    val courseId:Int,
+    val destination: Any,
+    val startTime: Long,
+    val className: String,
+    val classId: Int,
+    val courseId: Int,
     val activityName: String
 )

@@ -65,7 +65,7 @@ inline fun OtherUserSelectorComponent(
     isSigning: Boolean = false,
     noinline userContent: @Composable ((index: Int) -> Unit)? = null,
     prefixTipsContent: @Composable (() -> Unit),
-    noinline suffixContent:@Composable (() -> Unit)?=null,
+    noinline suffixContent: @Composable (() -> Unit)? = null,
     crossinline onSignAction: (isSelf: Boolean, otherUserSessionList: List<ChaoxingOtherUserSession?>, indexList: List<Int>) -> Unit
 ) {
     LocalContext.current.let { context ->

@@ -274,7 +274,7 @@ fun PasswordSignScreen(
                                                 modifier = Modifier
                                                     .fillMaxWidth()
                                                     .background(Color.Transparent),
-                                                verticalAlignment = Alignment.CenterVertically
+                                                horizontalArrangement = Arrangement.SpaceAround
                                             ) {
                                                 for (i in 0 until numberCount) {
                                                     key(i) {
@@ -291,8 +291,14 @@ fun PasswordSignScreen(
                                                                     0xFF2196F3
                                                                 )
 
-                                                                PasswordCodeStatus.CORRECT -> Color.Green
-                                                                PasswordCodeStatus.INCORRECT -> Color.Red
+                                                                PasswordCodeStatus.CORRECT -> Color(
+                                                                    0xFF43B244
+                                                                )
+
+                                                                PasswordCodeStatus.INCORRECT -> Color(
+                                                                    0xFFF43E06
+                                                                )
+
                                                                 PasswordCodeStatus.INPUTTING -> Color.White
                                                                 PasswordCodeStatus.PENDING -> Color(
                                                                     0xFF9E9E9E
@@ -308,7 +314,7 @@ fun PasswordSignScreen(
                                                         )
                                                         val animatedTextColor by animateColorAsState(
                                                             when (codeState) {
-                                                                PasswordCodeStatus.ENTERED -> Color.White
+                                                                PasswordCodeStatus.ENTERED, PasswordCodeStatus.CORRECT, PasswordCodeStatus.INCORRECT -> Color.White
                                                                 else -> Color.Gray
                                                             }
                                                         )
@@ -327,7 +333,8 @@ fun PasswordSignScreen(
                                                             ) {
                                                                 if (codeState != PasswordCodeStatus.PENDING) {
                                                                     Text(
-                                                                        text.getOrElse(i){'_'}.toString(),
+                                                                        text.getOrElse(i) { '_' }
+                                                                            .toString(),
                                                                         style = TextStyle(
                                                                             fontSize = (144 / numberCount).sp,
                                                                             color = animatedTextColor,
@@ -372,8 +379,12 @@ fun PasswordSignScreen(
                                                         if (otherUserSessionList.isEmpty()) {
                                                             isSigning = false
                                                             coroutineScope.launch {
-                                                                ChaoxingRecommendHelper.recordRecommendEvent(context, destination.classId,destination.courseId,
-                                                                    ChaoxingHttpClient.instance!!)
+                                                                ChaoxingRecommendHelper.recordRecommendEvent(
+                                                                    context,
+                                                                    destination.classId,
+                                                                    destination.courseId,
+                                                                    ChaoxingHttpClient.instance!!
+                                                                )
                                                             }
                                                             delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)
                                                             isSponsor = true
@@ -402,8 +413,12 @@ fun PasswordSignScreen(
                                         if (otherUserSessionList.isEmpty()) {
                                             isSigning = false
                                             coroutineScope.launch {
-                                                ChaoxingRecommendHelper.recordRecommendEvent(context, destination.classId,destination.courseId,
-                                                    ChaoxingHttpClient.instance!!)
+                                                ChaoxingRecommendHelper.recordRecommendEvent(
+                                                    context,
+                                                    destination.classId,
+                                                    destination.courseId,
+                                                    ChaoxingHttpClient.instance!!
+                                                )
                                             }
                                             delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)
                                             isSponsor = true
@@ -471,8 +486,12 @@ fun PasswordSignScreen(
                                                                     if (index == otherUserSessionList.size - 1) {
                                                                         isSigning = false
                                                                         coroutineScope.launch {
-                                                                            ChaoxingRecommendHelper.recordRecommendEvent(context, destination.classId,destination.courseId,
-                                                                                client)
+                                                                            ChaoxingRecommendHelper.recordRecommendEvent(
+                                                                                context,
+                                                                                destination.classId,
+                                                                                destination.courseId,
+                                                                                client
+                                                                            )
                                                                         }
                                                                         delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)
                                                                         isSponsor = true
@@ -507,8 +526,12 @@ fun PasswordSignScreen(
                                                     if (index == otherUserSessionList.size - 1) {
                                                         isSigning = false
                                                         coroutineScope.launch {
-                                                            ChaoxingRecommendHelper.recordRecommendEvent(context, destination.classId,destination.courseId,
-                                                                client)
+                                                            ChaoxingRecommendHelper.recordRecommendEvent(
+                                                                context,
+                                                                destination.classId,
+                                                                destination.courseId,
+                                                                client
+                                                            )
                                                         }
                                                         delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)
                                                         isSponsor = true

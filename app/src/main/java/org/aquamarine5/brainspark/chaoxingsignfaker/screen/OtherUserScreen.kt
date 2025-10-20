@@ -629,9 +629,9 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                             mutex.withLock {
                                 context.chaoxingDataStore.updateData { datastore ->
                                     datastore.toBuilder().apply {
-                                        val sortedValue=getOtherUsers(from)
+                                        val sortedValue = getOtherUsers(from)
                                         removeOtherUsers(from)
-                                        addOtherUsers(to,sortedValue)
+                                        addOtherUsers(to, sortedValue)
                                     }.build()
                                 }
                             }
@@ -645,14 +645,14 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                     interactionSource = interactionSource,
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(8.dp, 4.dp,3.dp,4.dp),
+                                        .padding(8.dp, 4.dp, 3.dp, 4.dp),
                                     shape = RoundedCornerShape(8.dp),
                                     elevation = CardDefaults.cardElevation(4.dp)
                                 ) {
                                     Row(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .padding(17.dp, 2.dp,6.dp,2.dp),
+                                            .padding(17.dp, 2.dp, 6.dp, 2.dp),
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.SpaceBetween
                                     ) {

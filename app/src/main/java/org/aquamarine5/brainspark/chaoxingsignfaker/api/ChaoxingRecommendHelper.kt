@@ -27,7 +27,7 @@ object ChaoxingRecommendHelper {
     const val MINIMUM_HABIT_MERGE_INTERVAL = 20
     const val FIND_RECOMMEND_HABIT_INTERVAL = 15
 
-    val dayOfWeekTextList=listOf("一","二","三","四","五","六","日")
+    val dayOfWeekTextList = listOf("一", "二", "三", "四", "五", "六", "日")
 
     suspend fun getAllLearnedHabits(context: Context): Pair<Boolean, List<RecommendHabit>> =
         withContext(Dispatchers.IO) {

@@ -6,7 +6,7 @@ baidumapsdk_location = "9.6.6.1"
 baidumapsdk_map = "7.6.6"
 barcodeScanning = "17.3.0"
 base = "7.6.6"
-cameraMlkitVisionVersion = "1.5.0"
+cameraMlkitVisionVersion = "1.5.1"
 coilCompose = "3.3.0"
 common = "9.8.8"
 core = "3.5.3"
@@ -20,15 +20,14 @@ espressoCore = "3.7.0"
 kotlinxSerializationJson = "1.9.0"
 lifecycleRuntimeKtx = "2.9.4"
 activityCompose = "1.10.1"
-composeBom = "2025.09.01"
-material = "1.9.2"
+composeBom = "2025.10.00"
+material = "1.9.3"
 navigationCompose = "2.9.5"
-okhttp = "5.1.0"
+okhttp = "5.2.1"
 patternlocker = "2.5.7"
-protobufJavalite = "4.32.1"
+protobufJavalite = "4.33.0"
 reorderable = "3.0.0"
 stackbricks = "2.4.0"
-animation = "1.9.2"
 
 [libraries]
 
@@ -73,7 +72,6 @@ patternlocker = { module = "com.github.ihsg:PatternLocker", version.ref = "patte
 protobuf-javalite = { module = "com.google.protobuf:protobuf-javalite", version.ref = "protobufJavalite" }
 reorderable = { module = "sh.calvin.reorderable:reorderable", version.ref = "reorderable" }
 stackbricks = { module = "org.aquamarine5.brainspark:stackbricks", version.ref = "stackbricks" }
-androidx-compose-animation = { group = "androidx.compose.animation", name = "animation", version.ref = "animation" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

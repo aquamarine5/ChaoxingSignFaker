@@ -378,8 +378,12 @@ fun QRCodeSignScreen(
                                                                         if (signUserList.isEmpty()) {
                                                                             isSigning = false
                                                                             coroutineScope.launch {
-                                                                                ChaoxingRecommendHelper.recordRecommendEvent(context, destination.classId,destination.courseId,
-                                                                                    ChaoxingHttpClient.instance!!)
+                                                                                ChaoxingRecommendHelper.recordRecommendEvent(
+                                                                                    context,
+                                                                                    destination.classId,
+                                                                                    destination.courseId,
+                                                                                    ChaoxingHttpClient.instance!!
+                                                                                )
                                                                             }
                                                                             delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)
                                                                             isSponsor = true
@@ -409,8 +413,12 @@ fun QRCodeSignScreen(
                                                         if (signUserList.isEmpty()) {
                                                             isSigning = false
                                                             coroutineScope.launch {
-                                                                ChaoxingRecommendHelper.recordRecommendEvent(context, destination.classId,destination.courseId,
-                                                                    ChaoxingHttpClient.instance!!)
+                                                                ChaoxingRecommendHelper.recordRecommendEvent(
+                                                                    context,
+                                                                    destination.classId,
+                                                                    destination.courseId,
+                                                                    ChaoxingHttpClient.instance!!
+                                                                )
                                                             }
                                                             delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)
                                                             isSponsor = true
@@ -427,8 +435,12 @@ fun QRCodeSignScreen(
                                                         if (signUserList.isEmpty() && userSelections.all { !it }) {
                                                             isSigning = false
                                                             coroutineScope.launch {
-                                                                ChaoxingRecommendHelper.recordRecommendEvent(context, destination.classId,destination.courseId,
-                                                                    ChaoxingHttpClient.instance!!)
+                                                                ChaoxingRecommendHelper.recordRecommendEvent(
+                                                                    context,
+                                                                    destination.classId,
+                                                                    destination.courseId,
+                                                                    ChaoxingHttpClient.instance!!
+                                                                )
                                                             }
                                                             coroutineScope.launch {
                                                                 delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)
@@ -486,8 +498,12 @@ fun QRCodeSignScreen(
                                                                                         isSigning =
                                                                                             false
                                                                                         coroutineScope.launch {
-                                                                                            ChaoxingRecommendHelper.recordRecommendEvent(context, destination.classId,destination.courseId,
-                                                                                                client)
+                                                                                            ChaoxingRecommendHelper.recordRecommendEvent(
+                                                                                                context,
+                                                                                                destination.classId,
+                                                                                                destination.courseId,
+                                                                                                client
+                                                                                            )
                                                                                         }
                                                                                         delay(
                                                                                             ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED
@@ -526,8 +542,12 @@ fun QRCodeSignScreen(
                                                                     if (index == signUserList.size - 1) {
                                                                         isSigning = false
                                                                         coroutineScope.launch {
-                                                                            ChaoxingRecommendHelper.recordRecommendEvent(context, destination.classId,destination.courseId,
-                                                                                client)
+                                                                            ChaoxingRecommendHelper.recordRecommendEvent(
+                                                                                context,
+                                                                                destination.classId,
+                                                                                destination.courseId,
+                                                                                client
+                                                                            )
                                                                         }
                                                                         delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)
                                                                         isSponsor =
