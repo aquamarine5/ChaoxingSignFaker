@@ -23,7 +23,10 @@ import kotlinx.coroutines.withContext
 import okhttp3.Cookie
 import okhttp3.CookieJar
 import okhttp3.HttpUrl
+import okhttp3.OkHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.ChaoxingPredictableException
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient.Companion.CHAOXING_USER_AGENT
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient.RetryInterceptor
 import org.aquamarine5.brainspark.chaoxingsignfaker.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingSignFakerDataStore
@@ -94,7 +97,7 @@ object ChaoxingOtherUserHelper {
             .apply {
                 for (x in 0 until qrcodeSize) {
                     for (y in 0 until qrcodeSize) {
-                        set(x, y, (if (qrCode[x, y]) 0xFF000000 else 0xFFFFFFFF).toInt())
+                        set(x, y, (if (qrCode[x, y]) 0x000000 else 0xFFFFFF))
                     }
                 }
             }
@@ -113,7 +116,7 @@ object ChaoxingOtherUserHelper {
             }
 
             val tempOkHttpClient =
-                ChaoxingHttpClient.instance!!.okHttpClient.newBuilder()
+                (ChaoxingHttpClient.instance?.okHttpClient ?: OkHttpClient()).newBuilder()
                     .cookieJar(object : CookieJar {
                         private val cookieStore: MutableMap<String, List<Cookie>> = mutableMapOf()
                         private var chaoxingCookieSession: List<Cookie> = listOf()
@@ -132,7 +135,12 @@ object ChaoxingOtherUserHelper {
                                 cookieStore[url.host] ?: listOf()
                             }
                         }
-                    }).build()
+                    }).addInterceptor { chain ->
+                        chain.proceed(
+                            chain.request().newBuilder()
+                                .header("User-Agent", CHAOXING_USER_AGENT).build()
+                        )
+                    }.addInterceptor(RetryInterceptor()).build()
 
             ChaoxingHttpClient.login(
                 tempOkHttpClient,

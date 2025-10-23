@@ -286,7 +286,6 @@ fun PhotoSignScreen(
                                                                     ChaoxingHttpClient.instance!!
                                                                 )
                                                             }
-                                                            delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)
                                                             isSponsor = true
                                                         }
                                                     }.onFailure {
@@ -386,9 +385,6 @@ fun PhotoSignScreen(
                                                                                     client
                                                                                 )
                                                                             }
-                                                                            delay(
-                                                                                ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED
-                                                                            )
                                                                             isSponsor = true
                                                                         }
                                                                     }.onFailure { err ->
@@ -705,9 +701,6 @@ fun PhotoSignScreen(
                                                                                                             ChaoxingHttpClient.instance!!
                                                                                                         )
                                                                                                     }
-                                                                                                    delay(
-                                                                                                        ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED
-                                                                                                    )
                                                                                                     isSponsor =
                                                                                                         true
                                                                                                 }
@@ -841,9 +834,6 @@ fun PhotoSignScreen(
                                                                                                                 client
                                                                                                             )
                                                                                                         }
-                                                                                                        delay(
-                                                                                                            ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED
-                                                                                                        )
                                                                                                         isSponsor =
                                                                                                             true
                                                                                                     }

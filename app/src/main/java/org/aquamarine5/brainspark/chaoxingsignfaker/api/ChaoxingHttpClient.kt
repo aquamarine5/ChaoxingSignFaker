@@ -56,7 +56,7 @@ class ChaoxingHttpClient private constructor(
     class ChaoxingNetworkException(message: String? = null) :
         ChaoxingPredictableException(message ?: "网络错误")
 
-    private class RetryInterceptor : okhttp3.Interceptor {
+    class RetryInterceptor : okhttp3.Interceptor {
         override fun intercept(chain: okhttp3.Interceptor.Chain): Response {
             var failureResponse: Response? = null
             repeat(3) {
@@ -127,7 +127,7 @@ class ChaoxingHttpClient private constructor(
     fun newCall(request: Request): Call = okHttpClient.newCall(request)
 
     companion object {
-        private const val CHAOXING_USER_AGENT =
+        const val CHAOXING_USER_AGENT =
             "Dalvik/2.1.0 (Linux; U; Android 12; SM-N9006 Build/8aba9e4.0) (schild:ce31140dfcdc2fcd113ccdd86f89a9aa) (device:SM-N9006) Language/zh_CN com.chaoxing.mobile/ChaoXingStudy_3_6.5.1_android_phone_10837_265 (@Kalimdor)_68f184fd763546c1a04ab3a09b3deebb"
         private const val TRANSFER_KEY = "u2oh6Vu^HWe4_AES"
         private const val URL_USER_INFO = "https://sso.chaoxing.com/apis/login/userLogin4Uname.do"

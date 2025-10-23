@@ -386,7 +386,6 @@ fun PasswordSignScreen(
                                                                     ChaoxingHttpClient.instance!!
                                                                 )
                                                             }
-                                                            delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)
                                                             isSponsor = true
                                                         }
                                                         UMengHelper.onSignCodeEvent(
@@ -493,7 +492,6 @@ fun PasswordSignScreen(
                                                                                 client
                                                                             )
                                                                         }
-                                                                        delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)
                                                                         isSponsor = true
                                                                     }
                                                                     UMengHelper.onSignCodeEvent(

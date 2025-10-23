@@ -131,7 +131,7 @@ fun CaptchaHandlerDialog(
                                                     HapticFeedbackType.Reject
                                                 )
                                                 sliderPosition = 0f
-                                                snackbar?.displaySnackbar(
+                                                snackbar.displaySnackbar(
                                                     "验证失败，请重试",
                                                     coroutineScope
                                                 )

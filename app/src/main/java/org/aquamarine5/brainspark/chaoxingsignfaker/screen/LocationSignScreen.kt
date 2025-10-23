@@ -243,7 +243,6 @@ fun LocationSignScreen(
                                                                     ChaoxingHttpClient.instance!!
                                                                 )
                                                             }
-                                                            delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)
                                                             isSponsor = true
                                                         }
                                                         UMengHelper.onSignLocationEvent(
@@ -354,7 +353,6 @@ fun LocationSignScreen(
                                                                                 client
                                                                             )
                                                                         }
-                                                                        delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)
                                                                         isSponsor = true
                                                                     }
                                                                     UMengHelper.onSignLocationEvent(

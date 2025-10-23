@@ -9,11 +9,10 @@ package org.aquamarine5.brainspark.chaoxingsignfaker.api
 import android.content.Context
 import androidx.compose.material3.SnackbarHostState
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.aquamarine5.brainspark.chaoxingsignfaker.chaoxingDataStore
+import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingSignFakerDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.RecommendHabit
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.RecommendRecord
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.RecommendRecordList
@@ -87,59 +86,53 @@ object ChaoxingRecommendHelper {
         recommendRecords: Map<Int, RecommendRecordList>,
         recommendHabits: List<RecommendHabit>,
         currentRecommendRecord: RecommendRecord,
-        client: ChaoxingHttpClient
-    ) = withContext(Dispatchers.IO) {
+        client: ChaoxingHttpClient,
+        builder: ChaoxingSignFakerDataStore.Builder
+    ): ChaoxingSignFakerDataStore.Builder = withContext(Dispatchers.IO) {
         val allRelatedHabits = recommendHabits.filter { it.classId == classId }
-        recommendRecords[classId]?.recordsList?.forEach { record ->
-            if (record.dayOfWeek == currentRecommendRecord.dayOfWeek &&
-                abs(record.minuteOfDay - currentRecommendRecord.minuteOfDay) <= MINIMUM_RECORD_ANALYSE_INTERVAL
-            ) {
-                val newHabitMinuteOfDay =
-                    (record.minuteOfDay + currentRecommendRecord.minuteOfDay) / 2
-                val closeHabit = allRelatedHabits.find { habit ->
-                    habit.dayOfWeek == currentRecommendRecord.dayOfWeek &&
-                            abs(habit.minuteOfDay - newHabitMinuteOfDay) <= MINIMUM_HABIT_MERGE_INTERVAL
-                }
-                if (closeHabit != null) {
-                    val totalRecordCount = closeHabit.recordCount + 1
-                    val weightedMinuteOfDay =
-                        (closeHabit.minuteOfDay * closeHabit.recordCount + newHabitMinuteOfDay * 2) / totalRecordCount
-                    val updatedHabit = closeHabit.toBuilder()
-                        .setMinuteOfDay(weightedMinuteOfDay)
-                        .setRecordCount(totalRecordCount)
-                        .build()
-                    context.chaoxingDataStore.updateData { datastore ->
-                        val habitIndex = datastore.recommendHabitsList.indexOf(closeHabit)
-                        if (habitIndex != -1) {
-                            datastore.toBuilder().setRecommendHabits(habitIndex, updatedHabit)
-                                .build()
-                        } else {
-                            datastore
-                        }
-                    }
-                } else {
-                    val isTooCloseToExistingHabits = allRelatedHabits.any { habit ->
+        builder.apply {
+            recommendRecords[classId]?.recordsList?.forEach { record ->
+                if (record.dayOfWeek == currentRecommendRecord.dayOfWeek &&
+                    abs(record.minuteOfDay - currentRecommendRecord.minuteOfDay) <= MINIMUM_RECORD_ANALYSE_INTERVAL
+                ) {
+                    val newHabitMinuteOfDay =
+                        (record.minuteOfDay + currentRecommendRecord.minuteOfDay) / 2
+                    val closeHabit = allRelatedHabits.find { habit ->
                         habit.dayOfWeek == currentRecommendRecord.dayOfWeek &&
-                                abs(habit.minuteOfDay - newHabitMinuteOfDay) <= MINIMUM_HABIT_LEARN_INTERVAL
+                                abs(habit.minuteOfDay - newHabitMinuteOfDay) <= MINIMUM_HABIT_MERGE_INTERVAL
                     }
-
-                    if (!isTooCloseToExistingHabits) {
-                        val newHabit = RecommendHabit.newBuilder()
-                            .setClassId(classId)
-                            .setCourseId(courseId)
-                            .setRecordCount(2)
-                            .setClassName(ChaoxingCourseHelper.queryClassName(client, classId))
-                            .setDayOfWeek(currentRecommendRecord.dayOfWeek)
-                            .setMinuteOfDay(newHabitMinuteOfDay)
+                    if (closeHabit != null) {
+                        val totalRecordCount = closeHabit.recordCount + 1
+                        val weightedMinuteOfDay =
+                            (closeHabit.minuteOfDay * closeHabit.recordCount + newHabitMinuteOfDay * 2) / totalRecordCount
+                        val updatedHabit = closeHabit.toBuilder()
+                            .setMinuteOfDay(weightedMinuteOfDay)
+                            .setRecordCount(totalRecordCount)
                             .build()
-                        context.chaoxingDataStore.updateData { datastore ->
-                            datastore.toBuilder().addRecommendHabits(newHabit).build()
+                        recommendHabits.indexOf(closeHabit).takeIf { it != -1 }?.let {
+                            builder.setRecommendHabits(it, updatedHabit)
+                        }
+                    } else {
+                        val isTooCloseToExistingHabits = allRelatedHabits.any { habit ->
+                            habit.dayOfWeek == currentRecommendRecord.dayOfWeek &&
+                                    abs(habit.minuteOfDay - newHabitMinuteOfDay) <= MINIMUM_HABIT_LEARN_INTERVAL
+                        }
+
+                        if (!isTooCloseToExistingHabits) {
+                            val newHabit = RecommendHabit.newBuilder()
+                                .setClassId(classId)
+                                .setCourseId(courseId)
+                                .setRecordCount(2)
+                                .setClassName(ChaoxingCourseHelper.queryClassName(client, classId))
+                                .setDayOfWeek(currentRecommendRecord.dayOfWeek)
+                                .setMinuteOfDay(newHabitMinuteOfDay)
+                                .build()
+                            builder.addRecommendHabits(newHabit).build()
                         }
                     }
                 }
             }
         }
-
     }
 
     suspend fun recordRecommendEvent(
@@ -157,17 +150,17 @@ object ChaoxingRecommendHelper {
                         .setMinuteOfDay(time.hour * 60 + time.minute)
                         .setCourseId(courseId)
                         .build()
-                    coroutineScope {
-                        launch {
-                            analyseRecommendHabit(
-                                context,
-                                classId, courseId,
-                                recommendRecordsMap,
-                                recommendHabitsList,
-                                newRecord, client
-                            )
-                        }
-                    }
+
+                    analyseRecommendHabit(
+                        context,
+                        classId, courseId,
+                        recommendRecordsMap,
+                        recommendHabitsList,
+                        newRecord,
+                        client,
+                        this@apply
+                    )
+
                     val recordListBuilder =
                         if (containsRecommendRecords(classId)) getRecommendRecordsOrThrow(
                             classId

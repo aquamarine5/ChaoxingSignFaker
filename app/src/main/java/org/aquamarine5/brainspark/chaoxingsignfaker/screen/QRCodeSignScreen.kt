@@ -385,7 +385,6 @@ fun QRCodeSignScreen(
                                                                                     ChaoxingHttpClient.instance!!
                                                                                 )
                                                                             }
-                                                                            delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)
                                                                             isSponsor = true
                                                                         }
                                                                     }.onFailure {
@@ -505,9 +504,6 @@ fun QRCodeSignScreen(
                                                                                                 client
                                                                                             )
                                                                                         }
-                                                                                        delay(
-                                                                                            ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED
-                                                                                        )
                                                                                         isSponsor =
                                                                                             true
                                                                                     }
