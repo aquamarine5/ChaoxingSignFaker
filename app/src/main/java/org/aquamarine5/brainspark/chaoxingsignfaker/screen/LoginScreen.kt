@@ -14,6 +14,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -27,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.Font
@@ -34,6 +37,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
@@ -70,6 +74,7 @@ fun LoginPage(
     ) {
         Text(
             buildAnnotatedString {
+                append("随地大小签（")
                 withStyle(
                     SpanStyle(
                         fontFamily = FontFamily(
@@ -80,7 +85,7 @@ fun LoginPage(
                 ) {
                     append("ChaoxingSignFaker")
                 }
-                append(" 需要你的学习通账号信息\n请登录你的学习通账号")
+                append("）需要你的学习通账号信息\n请登录你的学习通账号")
             },
             fontWeight = FontWeight.Bold,
             fontSize = 18.sp,
@@ -99,12 +104,28 @@ fun LoginPage(
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text("输入密码：")
+        var isPasswordVisible by remember { mutableStateOf(false) }
         OutlinedTextField(
             value = password,
             onValueChange = { password = it },
-            visualTransformation = PasswordVisualTransformation(),
+            visualTransformation = if (isPasswordVisible) {
+                PasswordVisualTransformation()
+            } else {
+                VisualTransformation.None
+            },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            trailingIcon = {
+                IconButton(onClick = {
+                    isPasswordVisible = !isPasswordVisible
+                }) {
+                    Icon(
+                        if (isPasswordVisible) painterResource(R.drawable.ic_eye) else painterResource(
+                            R.drawable.ic_eye_closed
+                        ), null
+                    )
+                }
+            }
         )
         Spacer(modifier = Modifier.height(16.dp))
         Button(
@@ -123,7 +144,7 @@ fun LoginPage(
                         )
                     }.onSuccess {
                         if (ChaoxingHttpClient.instance != null) {
-                            snackbarHost?.displaySnackbar("登录成功", coroutineContext)
+                            snackbarHost.displaySnackbar("登录成功", coroutineContext)
                             navToCourseListDestination()
                         }
                     }
