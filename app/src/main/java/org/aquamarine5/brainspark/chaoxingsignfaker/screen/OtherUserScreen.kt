@@ -221,9 +221,9 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                     onValueChange = { password = it },
                     label = { Text("密码") },
                     visualTransformation = if (isPasswordVisible) {
-                        PasswordVisualTransformation()
-                    } else {
                         VisualTransformation.None
+                    } else {
+                        PasswordVisualTransformation()
                     },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                     modifier = Modifier.fillMaxWidth(),

@@ -14,11 +14,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.size
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -38,7 +38,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -64,8 +64,7 @@ fun CaptchaHandlerDialog(
     var sliderPosition by remember(data) { mutableFloatStateOf(28f) }
     var containerWidth by remember { mutableFloatStateOf(320f) }
     val sliderMaxValue = remember(containerWidth) { containerWidth }
-    val density by remember { mutableFloatStateOf(sliderMaxValue / 320) }
-    val context = LocalContext.current
+    val density = LocalDensity.current
     val snackbar = LocalSnackbarHostState.current
     val hapticFeedback = LocalHapticFeedback.current
     val coroutineScope = rememberCoroutineScope()
@@ -86,28 +85,29 @@ fun CaptchaHandlerDialog(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .aspectRatio(2f)
                             .onSizeChanged {
                                 containerWidth = it.width.toFloat()
                             }
-                            .size(320.dp, 160.dp)
                             .background(Color.Gray)
                     ) {
+                        val density1 by remember { mutableFloatStateOf(sliderMaxValue / 320) }
                         AsyncImage(
                             model = shadeImageUrl,
                             contentDescription = "背景图",
                             modifier = Modifier
-                                .fillMaxSize()
+                                .fillMaxWidth()
                                 .zIndex(0f)
-                                .size(320.dp, 160.dp)
                         )
 
                         AsyncImage(
                             model = cutoutImageUrl,
                             contentDescription = "滑块",
                             modifier = Modifier
-                                .offset { IntOffset((sliderPosition - (28 * density)).toInt(), 0) }
+                                .offset { IntOffset((sliderPosition - (28 * density1)).toInt(), 0) }
+                                .aspectRatio(56f / 160f)
+                                .fillMaxHeight()
                                 .zIndex(1f)
-                                .size(56.dp, 160.dp)
                         )
                     }
 
@@ -122,7 +122,7 @@ fun CaptchaHandlerDialog(
                             coroutineScope.launch {
                                 runCatching {
                                     val normalizedPosition =
-                                        ((sliderPosition / (sliderMaxValue)) * 320f)
+                                        (sliderPosition / sliderMaxValue) * 320f
 
                                     signer.checkCaptchaResult(normalizedPosition, data!!)
                                         .let { result ->

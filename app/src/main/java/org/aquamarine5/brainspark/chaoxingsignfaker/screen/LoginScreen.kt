@@ -109,9 +109,9 @@ fun LoginPage(
             value = password,
             onValueChange = { password = it },
             visualTransformation = if (isPasswordVisible) {
-                PasswordVisualTransformation()
-            } else {
                 VisualTransformation.None
+            } else {
+                PasswordVisualTransformation()
             },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
             modifier = Modifier.fillMaxWidth(),
