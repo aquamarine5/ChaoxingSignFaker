@@ -135,3 +135,11 @@ fun Throwable.ifAlreadySigned(action: () -> Unit) {
         action()
     }
 }
+
+fun <T> List<T?>.checkIsLast(fromIndex: Int) : Boolean{
+    if(this.size-1==fromIndex) return true
+    for(i in fromIndex+1 until this.size){
+        if(this[i]!=null) return false
+    }
+    return true
+}

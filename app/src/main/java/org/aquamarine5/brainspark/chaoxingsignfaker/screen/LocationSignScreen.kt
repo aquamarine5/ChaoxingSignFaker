@@ -40,6 +40,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingOtherUserHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingRecommendHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingSignHelper
+import org.aquamarine5.brainspark.chaoxingsignfaker.checkIsLast
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.AlreadySignedNotice
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
@@ -233,7 +234,7 @@ fun LocationSignScreen(
                                                             signStatus[0].successForLate()
                                                         else
                                                             signStatus[0].success()
-                                                        if (otherUserSessionForSignList.isEmpty()) {
+                                                        if (otherUserSessionForSignList.all{it==null}) {
                                                             isSigning = false
                                                             coroutineScope.launch {
                                                                 ChaoxingRecommendHelper.recordRecommendEvent(
@@ -270,7 +271,7 @@ fun LocationSignScreen(
                                             signStatus[0].successForLate()
                                         else
                                             signStatus[0].success()
-                                        if (otherUserSessionForSignList.isEmpty()) {
+                                        if (otherUserSessionForSignList.all { it==null }) {
                                             isSigning = false
                                             coroutineScope.launch {
                                                 ChaoxingRecommendHelper.recordRecommendEvent(
@@ -343,7 +344,7 @@ fun LocationSignScreen(
                                                                         signStatus[1 + index].success()
                                                                     userSelections[index + 1] =
                                                                         false
-                                                                    if (index == otherUserSessionForSignList.size - 1) {
+                                                                    if (otherUserSessionForSignList.checkIsLast(index+1)) {
                                                                         isSigning = false
                                                                         coroutineScope.launch {
                                                                             ChaoxingRecommendHelper.recordRecommendEvent(
@@ -383,7 +384,7 @@ fun LocationSignScreen(
                                                         signStatus[1 + index].successForLate()
                                                     else
                                                         signStatus[1 + index].success()
-                                                    if (index == otherUserSessionForSignList.size - 1) {
+                                                    if (otherUserSessionForSignList.checkIsLast(index+1)) {
                                                         isSigning = false
                                                         coroutineScope.launch {
                                                             ChaoxingRecommendHelper.recordRecommendEvent(
@@ -416,7 +417,7 @@ fun LocationSignScreen(
                                     )
                                     err.ifAlreadySigned {
                                         userSelections[index + 1] = false
-                                        if (index == otherUserSessionForSignList.size - 1 && userSelections.all { !it }) {
+                                        if (otherUserSessionForSignList.checkIsLast(index+1) && userSelections.all { !it }) {
                                             isSigning = false
                                             coroutineScope.launch {
                                                 delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)

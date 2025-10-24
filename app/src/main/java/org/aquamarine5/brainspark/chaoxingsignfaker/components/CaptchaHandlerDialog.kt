@@ -38,7 +38,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -64,15 +63,12 @@ fun CaptchaHandlerDialog(
     var sliderPosition by remember(data) { mutableFloatStateOf(28f) }
     var containerWidth by remember { mutableFloatStateOf(320f) }
     val sliderMaxValue = remember(containerWidth) { containerWidth }
-    val density = LocalDensity.current
     val snackbar = LocalSnackbarHostState.current
     val hapticFeedback = LocalHapticFeedback.current
     val coroutineScope = rememberCoroutineScope()
+    val density by remember(sliderMaxValue) { mutableFloatStateOf(sliderMaxValue / 320) }
 
     LaunchedEffect(signer) {
-//        signer.getCaptchaImage {
-//            data = it
-//        }
         data = signer.getCaptchaImageV2()
     }
 
@@ -91,7 +87,6 @@ fun CaptchaHandlerDialog(
                             }
                             .background(Color.Gray)
                     ) {
-                        val density1 by remember { mutableFloatStateOf(sliderMaxValue / 320) }
                         AsyncImage(
                             model = shadeImageUrl,
                             contentDescription = "背景图",
@@ -104,7 +99,7 @@ fun CaptchaHandlerDialog(
                             model = cutoutImageUrl,
                             contentDescription = "滑块",
                             modifier = Modifier
-                                .offset { IntOffset((sliderPosition - (28 * density1)).toInt(), 0) }
+                                .offset { IntOffset((sliderPosition - (28 * density)).toInt(), 0) }
                                 .aspectRatio(56f / 160f)
                                 .fillMaxHeight()
                                 .zIndex(1f)
@@ -181,8 +176,6 @@ fun CaptchaHandlerDialog(
                         }
                     }
                 }
-
-
             }
         },
         dismissButton = {
