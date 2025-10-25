@@ -12,21 +12,32 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingSignHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.displaySnackbar
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
+import org.aquamarine5.brainspark.chaoxingsignfaker.ui.theme.Orange
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 
 @Composable
@@ -55,14 +66,42 @@ inline fun CourseSignActivityColumnCard(
                     }
                 }
             }) {
-        Icon(
-            painter = ChaoxingSignHelper.getSignIcon(activity),
-            contentDescription = null,
-            tint = if (isAvailable) LocalContentColor.current else Color.Gray
-        )
+        val currentTime = remember { System.currentTimeMillis() }
+        BadgedBox(badge = {
+            if (currentTime - activity.startTime <= 600000) {
+                Badge(
+                    containerColor = Orange
+                )
+            }
+        }) {
+            Icon(
+                painter = ChaoxingSignHelper.getSignIcon(activity),
+                contentDescription = null,
+                tint = if (isAvailable) LocalContentColor.current else Color.Gray
+            )
+        }
+        val formatter =
+            remember { DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss", Locale.getDefault()) }
+
+        Spacer(modifier = Modifier.width(4.dp))
         Column {
-            Text(activity.nameOne)
-            Text("结束时间：${activity.nameFour}")
+            Text(activity.nameOne, fontWeight = FontWeight.Bold)
+            Text(
+                "开始时间：${
+                    formatter.format(
+                        Instant.ofEpochMilli(activity.startTime).atZone(ZoneId.systemDefault())
+                    )
+                }",
+                fontSize = 12.sp,
+                lineHeight = 14.sp,
+                color = Color.Gray
+            )
+            Text(
+                "结束时间：${activity.nameFour.ifEmpty { "手动结束" }}",
+                fontSize = 12.sp,
+                lineHeight = 14.sp,
+                color = Color.Gray
+            )
         }
     }
     Spacer(modifier = Modifier.height(16.dp))

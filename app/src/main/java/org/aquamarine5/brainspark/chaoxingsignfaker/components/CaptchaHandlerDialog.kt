@@ -60,18 +60,16 @@ fun CaptchaHandlerDialog(
     var data by remember { mutableStateOf<ChaoxingCaptchaDataEntity?>(null) }
     val shadeImageUrl by remember(data) { mutableStateOf(data?.shadeImageUrl) }
     val cutoutImageUrl by remember(data) { mutableStateOf(data?.cutoutImageUrl) }
-    var sliderPosition by remember(data) { mutableFloatStateOf(28f) }
+    var sliderPosition by remember(data) { mutableFloatStateOf(0f) }
     var containerWidth by remember { mutableFloatStateOf(320f) }
-    val sliderMaxValue = remember(containerWidth) { containerWidth }
     val snackbar = LocalSnackbarHostState.current
     val hapticFeedback = LocalHapticFeedback.current
     val coroutineScope = rememberCoroutineScope()
-    val density by remember(sliderMaxValue) { mutableFloatStateOf(sliderMaxValue / 320) }
-
+    val density by remember(containerWidth) { mutableFloatStateOf(containerWidth / 320) }
+    val sliderMaxValue = remember(containerWidth) { containerWidth-56f * density }
     LaunchedEffect(signer) {
         data = signer.getCaptchaImageV2()
     }
-
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("请完成滑动验证") },
@@ -99,7 +97,7 @@ fun CaptchaHandlerDialog(
                             model = cutoutImageUrl,
                             contentDescription = "滑块",
                             modifier = Modifier
-                                .offset { IntOffset((sliderPosition - (28 * density)).toInt(), 0) }
+                                .offset { IntOffset((sliderPosition).toInt(), 0) }
                                 .aspectRatio(56f / 160f)
                                 .fillMaxHeight()
                                 .zIndex(1f)
@@ -116,8 +114,10 @@ fun CaptchaHandlerDialog(
                         onValueChangeFinished = {
                             coroutineScope.launch {
                                 runCatching {
+                                    // (-8 ~ 272) + 28
+                                    // 0 ~280
                                     val normalizedPosition =
-                                        (sliderPosition / sliderMaxValue) * 320f
+                                        (sliderPosition / sliderMaxValue) * 280f-8
 
                                     signer.checkCaptchaResult(normalizedPosition, data!!)
                                         .let { result ->
