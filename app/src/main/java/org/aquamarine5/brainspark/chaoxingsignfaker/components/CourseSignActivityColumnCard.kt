@@ -95,7 +95,7 @@ inline fun CourseSignActivityColumnCard(
             )
         }
         val formatter =
-            remember { DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss", Locale.getDefault()) }
+            remember { DateTimeFormatter.ofPattern("MM-dd HH:mm", Locale.getDefault()) }
 
         Spacer(modifier = Modifier.width(4.dp))
         Column {

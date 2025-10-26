@@ -500,6 +500,7 @@ fun PhotoSignScreen(
                                     Spacer(modifier = Modifier.height(6.dp))
                                     Button(
                                         onClick = {
+                                            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                                             isSignForOther = false
                                         },
                                         enabled = isForSelf.not(),
@@ -507,6 +508,7 @@ fun PhotoSignScreen(
                                     ) { Text("为自己签到（从图库读取图片）") }
                                     Button(
                                         onClick = {
+                                            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                                             isSignForOther = true
                                         }, modifier = Modifier.fillMaxWidth()
                                     ) { Text("为多人签到（拍摄或从图库读取多张图片）") }

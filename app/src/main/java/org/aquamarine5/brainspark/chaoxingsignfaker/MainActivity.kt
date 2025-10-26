@@ -309,7 +309,7 @@ class MainActivity : ComponentActivity() {
                                         LocationClient.setAgreePrivacy(true)
                                         SDKInitializer.setAgreePrivacy(applicationContext, true)
                                     }
-                                    
+
                                     destination =
                                         when {
                                             !datastore.agreeTerms -> WelcomeDestination
