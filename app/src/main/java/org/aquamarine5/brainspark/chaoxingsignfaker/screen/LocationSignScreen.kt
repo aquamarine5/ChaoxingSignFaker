@@ -166,6 +166,8 @@ fun LocationSignScreen(
                 var otherUserSessionForSignList by
                 remember { mutableStateOf<List<ChaoxingOtherUserSession?>>(emptyList()) }
                 val userSelections = remember { mutableStateListOf(isSignForOther.not()) }
+                var isCaptcha = remember { false }
+                var isFirstOtherUserForSign = remember { true }
                 Column(modifier = Modifier.padding(8.dp)) {
                     OtherUserSelectorComponent(
                         navToOtherUser = { navToOtherUserDestination() },
@@ -222,6 +224,7 @@ fun LocationSignScreen(
                                 if (isSelfForSign) {
                                     signStatus[0].loading()
                                     if (signer.sign(result)) {
+                                        isCaptcha = true
                                         suspendCoroutine { continuation ->
                                             captchaValidateParams =
                                                 signer to { captchaValidate ->
@@ -234,7 +237,7 @@ fun LocationSignScreen(
                                                             signStatus[0].successForLate()
                                                         else
                                                             signStatus[0].success()
-                                                        if (otherUserSessionForSignList.all{it==null}) {
+                                                        if (otherUserSessionForSignList.all { it == null }) {
                                                             isSigning = false
                                                             coroutineScope.launch {
                                                                 ChaoxingRecommendHelper.recordRecommendEvent(
@@ -244,6 +247,7 @@ fun LocationSignScreen(
                                                                     ChaoxingHttpClient.instance!!
                                                                 )
                                                             }
+                                                            delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)
                                                             isSponsor = true
                                                         }
                                                         UMengHelper.onSignLocationEvent(
@@ -271,7 +275,7 @@ fun LocationSignScreen(
                                             signStatus[0].successForLate()
                                         else
                                             signStatus[0].success()
-                                        if (otherUserSessionForSignList.all { it==null }) {
+                                        if (otherUserSessionForSignList.all { it == null }) {
                                             isSigning = false
                                             coroutineScope.launch {
                                                 ChaoxingRecommendHelper.recordRecommendEvent(
@@ -295,7 +299,7 @@ fun LocationSignScreen(
                                 signStatus[0].failed(it)
                                 it.ifAlreadySigned {
                                     userSelections[0] = false
-                                    if (otherUserSessionForSignList.isEmpty() && userSelections.all { !it }) {
+                                    if (otherUserSessionForSignList.all { it == null } && userSelections.all { !it }) {
                                         isSigning = false
                                         coroutineScope.launch {
                                             delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)
@@ -306,15 +310,18 @@ fun LocationSignScreen(
                                 it.snackbarReport(
                                     snackbarHost,
                                     coroutineScope,
-                                    "签到失败",
+                                    "为${ChaoxingHttpClient.instance!!.userEntity.name}签到失败",
                                     hapticFeedback
                                 )
                             }
+
                             otherUserSessionForSignList.forEachIndexed { index, userSession ->
                                 if (userSession == null) return@forEachIndexed
                                 runCatching {
                                     signStatus[index + 1].loading()
-                                    delay(ChaoxingOtherUserHelper.TIMEOUT_NEXT_SIGN)
+                                    if (!isCaptcha || (isSelfForSign && isFirstOtherUserForSign))
+                                        delay(ChaoxingOtherUserHelper.TIMEOUT_NEXT_SIGN)
+                                    isFirstOtherUserForSign = false
                                     ChaoxingHttpClient.loadFromOtherUserSession(
                                         userSession,
                                         context
@@ -330,6 +337,7 @@ fun LocationSignScreen(
                                                 )
                                                     throw ChaoxingSigner.SignActivityNoPermissionException()
                                                 if (sign(result)) {
+                                                    isCaptcha = true
                                                     suspendCoroutine { continuation ->
                                                         captchaValidateParams =
                                                             this@apply to { captchaValidate ->
@@ -344,7 +352,10 @@ fun LocationSignScreen(
                                                                         signStatus[1 + index].success()
                                                                     userSelections[index + 1] =
                                                                         false
-                                                                    if (otherUserSessionForSignList.checkIsLast(index+1)) {
+                                                                    if (otherUserSessionForSignList.checkIsLast(
+                                                                            index + 1
+                                                                        )
+                                                                    ) {
                                                                         isSigning = false
                                                                         coroutineScope.launch {
                                                                             ChaoxingRecommendHelper.recordRecommendEvent(
@@ -354,6 +365,7 @@ fun LocationSignScreen(
                                                                                 client
                                                                             )
                                                                         }
+                                                                        delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)
                                                                         isSponsor = true
                                                                     }
                                                                     UMengHelper.onSignLocationEvent(
@@ -384,7 +396,10 @@ fun LocationSignScreen(
                                                         signStatus[1 + index].successForLate()
                                                     else
                                                         signStatus[1 + index].success()
-                                                    if (otherUserSessionForSignList.checkIsLast(index+1)) {
+                                                    if (otherUserSessionForSignList.checkIsLast(
+                                                            index + 1
+                                                        )
+                                                    ) {
                                                         isSigning = false
                                                         coroutineScope.launch {
                                                             ChaoxingRecommendHelper.recordRecommendEvent(
@@ -417,7 +432,7 @@ fun LocationSignScreen(
                                     )
                                     err.ifAlreadySigned {
                                         userSelections[index + 1] = false
-                                        if (otherUserSessionForSignList.checkIsLast(index+1) && userSelections.all { !it }) {
+                                        if (otherUserSessionForSignList.checkIsLast(index + 1) && userSelections.all { !it }) {
                                             isSigning = false
                                             coroutineScope.launch {
                                                 delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)

@@ -187,6 +187,8 @@ fun PasswordSignScreen(
             false -> {
                 var text by remember { mutableStateOf("") }
                 val focusManager = LocalFocusManager.current
+                var isCaptcha = remember { false }
+                var isFirstOtherUserForSign = remember { true }
                 val focusRequester = remember { FocusRequester() }
                 val keyboardController = LocalSoftwareKeyboardController.current
                 val signStatus = remember { mutableListOf(ChaoxingSignStatus(hapticFeedback)) }
@@ -376,6 +378,7 @@ fun PasswordSignScreen(
                                 if (isSelf) {
                                     signStatus[0].loading()
                                     if (signer.sign(code)) {
+                                        isCaptcha = true
                                         suspendCoroutine { continuation ->
                                             captchaValidateParams =
                                                 signer to { captchaValue ->
@@ -385,7 +388,7 @@ fun PasswordSignScreen(
                                                             signStatus[0].successForLate()
                                                         else
                                                             signStatus[0].success()
-                                                        if (otherUserSessionList.isEmpty()) {
+                                                        if (otherUserSessionList.all { it == null }) {
                                                             isSigning = false
                                                             coroutineScope.launch {
                                                                 ChaoxingRecommendHelper.recordRecommendEvent(
@@ -395,6 +398,7 @@ fun PasswordSignScreen(
                                                                     ChaoxingHttpClient.instance!!
                                                                 )
                                                             }
+                                                            delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)
                                                             isSponsor = true
                                                         }
                                                         UMengHelper.onSignCodeEvent(
@@ -441,7 +445,7 @@ fun PasswordSignScreen(
                                 signStatus[0].failed(it)
                                 it.ifAlreadySigned {
                                     userSelections[0] = false
-                                    if (otherUserSessionList.isEmpty() && userSelections.all { !it }) {
+                                    if (otherUserSessionList.all { it == null } && userSelections.all { !it }) {
                                         isSigning = false
                                         coroutineScope.launch {
                                             delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)
@@ -452,7 +456,7 @@ fun PasswordSignScreen(
                                 it.snackbarReport(
                                     snackbarHost,
                                     coroutineScope,
-                                    "签到失败",
+                                    "为${ChaoxingHttpClient.instance!!.userEntity.name}签到失败",
                                     hapticFeedback
                                 )
                             }
@@ -461,7 +465,9 @@ fun PasswordSignScreen(
                                 if (session == null) return@forEachIndexed
                                 runCatching {
                                     signStatus[index + 1].loading()
-                                    delay(ChaoxingOtherUserHelper.TIMEOUT_NEXT_SIGN)
+                                    if (!isCaptcha || (isSelf && isFirstOtherUserForSign))
+                                        delay(ChaoxingOtherUserHelper.TIMEOUT_NEXT_SIGN)
+                                    isFirstOtherUserForSign = false
                                     ChaoxingHttpClient.loadFromOtherUserSession(
                                         session,
                                         context
@@ -491,7 +497,10 @@ fun PasswordSignScreen(
                                                                         signStatus[1 + index].success()
                                                                     userSelections[index + 1] =
                                                                         false
-                                                                    if (index == otherUserSessionList.size - 1) {
+                                                                    if (otherUserSessionList.checkIsLast(
+                                                                            index + 1
+                                                                        )
+                                                                    ) {
                                                                         isSigning = false
                                                                         coroutineScope.launch {
                                                                             ChaoxingRecommendHelper.recordRecommendEvent(
@@ -501,6 +510,7 @@ fun PasswordSignScreen(
                                                                                 client
                                                                             )
                                                                         }
+                                                                        delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)
                                                                         isSponsor = true
                                                                     }
                                                                     UMengHelper.onSignCodeEvent(
@@ -530,7 +540,7 @@ fun PasswordSignScreen(
                                                         signStatus[1 + index].successForLate()
                                                     else
                                                         signStatus[1 + index].success()
-                                                    if (otherUserSessionList.checkIsLast(1+index)) {
+                                                    if (otherUserSessionList.checkIsLast(1 + index)) {
                                                         isSigning = false
                                                         coroutineScope.launch {
                                                             ChaoxingRecommendHelper.recordRecommendEvent(
@@ -562,7 +572,7 @@ fun PasswordSignScreen(
                                     )
                                     err.ifAlreadySigned {
                                         userSelections[index + 1] = false
-                                        if (index == otherUserSessionList.size - 1 && userSelections.all { !it }) {
+                                        if (otherUserSessionList.checkIsLast(index + 1) && userSelections.all { !it }) {
                                             isSigning = false
                                             coroutineScope.launch {
                                                 delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)

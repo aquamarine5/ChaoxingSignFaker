@@ -6,6 +6,7 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.components
 
+import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
@@ -38,6 +39,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -46,7 +48,6 @@ import coil3.compose.AsyncImage
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
-import org.aquamarine5.brainspark.chaoxingsignfaker.displaySnackbar
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCaptchaDataEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSigner
 import org.aquamarine5.brainspark.chaoxingsignfaker.snackbarReport
@@ -63,6 +64,7 @@ fun CaptchaHandlerDialog(
     var sliderPosition by remember(data) { mutableFloatStateOf(0f) }
     var containerWidth by remember { mutableFloatStateOf(320f) }
     val snackbar = LocalSnackbarHostState.current
+    val context= LocalContext.current
     val hapticFeedback = LocalHapticFeedback.current
     val coroutineScope = rememberCoroutineScope()
     val density by remember(containerWidth) { mutableFloatStateOf(containerWidth / 320) }
@@ -126,10 +128,7 @@ fun CaptchaHandlerDialog(
                                                     HapticFeedbackType.Reject
                                                 )
                                                 sliderPosition = 0f
-                                                snackbar?.displaySnackbar(
-                                                    "验证失败，请重试",
-                                                    coroutineScope
-                                                )
+                                                Toast.makeText(context,"验证失败，请重试",Toast.LENGTH_SHORT).show()
                                                 data = signer.getCaptchaImageV2()
                                             } else {
                                                 onResult(Result.success(result))

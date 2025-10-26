@@ -436,8 +436,10 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                     .size(qrcodeSize + 18.dp, qrcodeSize + 18.dp),
                 contentAlignment = Alignment.Center
             ) {
-                if (qrCode != null) {
-                    Image(bitmap = qrCode!!.asImageBitmap(), contentDescription = "QR Code")
+                Crossfade(qrCode) { v ->
+                    if (v != null) {
+                        Image(bitmap = v.asImageBitmap(), contentDescription = "QR Code")
+                    }
                 }
             }
             Spacer(modifier = Modifier.height(4.dp))
