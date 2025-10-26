@@ -46,7 +46,8 @@ import javax.crypto.spec.SecretKeySpec
 class ChaoxingHttpClient private constructor(
     val okHttpClient: OkHttpClient,
     val context: Context,
-    val userEntity: ChaoxingUserEntity
+    val userEntity: ChaoxingUserEntity,
+    val deviceCode: String = generateDeviceCode()
 ) {
     class ChaoxingLoginException(message: String) : ChaoxingPredictableException(message)
 
@@ -140,9 +141,10 @@ class ChaoxingHttpClient private constructor(
 
         var instance: ChaoxingHttpClient? = null
 
+        @Deprecated("Should use ChaoxingHttpClient().deviceCode not ChaoxingHttpClient.Companion.deviceCode")
         var deviceCode: String? = null
 
-        suspend fun generateDeviceCode(context: Context): String {
+        suspend fun saveDeviceCode(context: Context): String {
             val rawData = MessageDigest.getInstance("SHA-256").digest(
                 (UUID.randomUUID().toString().replace("-", "") + UUID.randomUUID().toString()
                     .replace("-", "")).toByteArray()
@@ -152,6 +154,14 @@ class ChaoxingHttpClient private constructor(
                     it.toBuilder().setDeviceCode(this).build()
                 }
             }
+        }
+
+        fun generateDeviceCode(): String {
+            val rawData = MessageDigest.getInstance("SHA-256").digest(
+                (UUID.randomUUID().toString().replace("-", "") + UUID.randomUUID().toString()
+                    .replace("-", "")).toByteArray()
+            )
+            return Base64.getEncoder().encodeToString(rawData + rawData)
         }
 
         suspend fun loadFromOtherUserSession(

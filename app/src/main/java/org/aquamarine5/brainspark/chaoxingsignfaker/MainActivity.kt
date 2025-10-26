@@ -309,10 +309,7 @@ class MainActivity : ComponentActivity() {
                                         LocationClient.setAgreePrivacy(true)
                                         SDKInitializer.setAgreePrivacy(applicationContext, true)
                                     }
-                                    ChaoxingHttpClient.deviceCode =
-                                        datastore.deviceCode.ifEmpty {
-                                            ChaoxingHttpClient.generateDeviceCode(applicationContext)
-                                        }
+                                    
                                     destination =
                                         when {
                                             !datastore.agreeTerms -> WelcomeDestination

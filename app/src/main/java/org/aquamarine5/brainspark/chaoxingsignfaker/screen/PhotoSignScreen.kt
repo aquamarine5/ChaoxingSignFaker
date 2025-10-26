@@ -509,7 +509,7 @@ fun PhotoSignScreen(
                                         onClick = {
                                             isSignForOther = true
                                         }, modifier = Modifier.fillMaxWidth()
-                                    ) { Text("为他人代签（自己拍摄多张图片或选择图库图片上传）") }
+                                    ) { Text("为多人签到（拍摄或从图库读取多张图片）") }
                                 }
                             }
 
