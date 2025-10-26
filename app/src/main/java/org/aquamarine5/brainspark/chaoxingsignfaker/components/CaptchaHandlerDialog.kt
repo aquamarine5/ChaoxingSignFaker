@@ -6,6 +6,7 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.components
 
+import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
@@ -14,11 +15,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.size
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -47,7 +48,6 @@ import coil3.compose.AsyncImage
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
-import org.aquamarine5.brainspark.chaoxingsignfaker.displaySnackbar
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCaptchaDataEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSigner
 import org.aquamarine5.brainspark.chaoxingsignfaker.snackbarReport
@@ -61,22 +61,17 @@ fun CaptchaHandlerDialog(
     var data by remember { mutableStateOf<ChaoxingCaptchaDataEntity?>(null) }
     val shadeImageUrl by remember(data) { mutableStateOf(data?.shadeImageUrl) }
     val cutoutImageUrl by remember(data) { mutableStateOf(data?.cutoutImageUrl) }
-    var sliderPosition by remember(data) { mutableFloatStateOf(28f) }
+    var sliderPosition by remember(data) { mutableFloatStateOf(0f) }
     var containerWidth by remember { mutableFloatStateOf(320f) }
-    val sliderMaxValue = remember(containerWidth) { containerWidth }
-    val density by remember { mutableFloatStateOf(sliderMaxValue / 320) }
-    val context = LocalContext.current
     val snackbar = LocalSnackbarHostState.current
+    val context= LocalContext.current
     val hapticFeedback = LocalHapticFeedback.current
     val coroutineScope = rememberCoroutineScope()
-
+    val density by remember(containerWidth) { mutableFloatStateOf(containerWidth / 320) }
+    val sliderMaxValue = remember(containerWidth) { containerWidth-56f * density }
     LaunchedEffect(signer) {
-//        signer.getCaptchaImage {
-//            data = it
-//        }
         data = signer.getCaptchaImageV2()
     }
-
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("请完成滑动验证") },
@@ -86,28 +81,28 @@ fun CaptchaHandlerDialog(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .aspectRatio(2f)
                             .onSizeChanged {
                                 containerWidth = it.width.toFloat()
                             }
-                            .size(320.dp, 160.dp)
                             .background(Color.Gray)
                     ) {
                         AsyncImage(
                             model = shadeImageUrl,
                             contentDescription = "背景图",
                             modifier = Modifier
-                                .fillMaxSize()
+                                .fillMaxWidth()
                                 .zIndex(0f)
-                                .size(320.dp, 160.dp)
                         )
 
                         AsyncImage(
                             model = cutoutImageUrl,
                             contentDescription = "滑块",
                             modifier = Modifier
-                                .offset { IntOffset((sliderPosition - (28 * density)).toInt(), 0) }
+                                .offset { IntOffset((sliderPosition).toInt(), 0) }
+                                .aspectRatio(56f / 160f)
+                                .fillMaxHeight()
                                 .zIndex(1f)
-                                .size(56.dp, 160.dp)
                         )
                     }
 
@@ -121,8 +116,10 @@ fun CaptchaHandlerDialog(
                         onValueChangeFinished = {
                             coroutineScope.launch {
                                 runCatching {
+                                    // (-8 ~ 272) + 28
+                                    // 0 ~280
                                     val normalizedPosition =
-                                        ((sliderPosition / (sliderMaxValue)) * 320f)
+                                        (sliderPosition / sliderMaxValue) * 280f-8
 
                                     signer.checkCaptchaResult(normalizedPosition, data!!)
                                         .let { result ->
@@ -131,10 +128,7 @@ fun CaptchaHandlerDialog(
                                                     HapticFeedbackType.Reject
                                                 )
                                                 sliderPosition = 0f
-                                                snackbar?.displaySnackbar(
-                                                    "验证失败，请重试",
-                                                    coroutineScope
-                                                )
+                                                Toast.makeText(context,"验证失败，请重试",Toast.LENGTH_SHORT).show()
                                                 data = signer.getCaptchaImageV2()
                                             } else {
                                                 onResult(Result.success(result))
@@ -181,8 +175,6 @@ fun CaptchaHandlerDialog(
                         }
                     }
                 }
-
-
             }
         },
         dismissButton = {

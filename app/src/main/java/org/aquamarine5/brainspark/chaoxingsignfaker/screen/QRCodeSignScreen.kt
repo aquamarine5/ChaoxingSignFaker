@@ -70,6 +70,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingOtherUserHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingRecommendHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingSignHelper
+import org.aquamarine5.brainspark.chaoxingsignfaker.checkIsLast
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.AlreadySignedNotice
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
@@ -198,6 +199,8 @@ fun QRCodeSignScreen(
                         emptyList()
                     )
                 }
+                var isCaptcha = remember { false }
+                var isFirstOtherUserForSign = remember { true }
                 var locationData by remember { mutableStateOf<ChaoxingLocationSignEntity?>(null) }
                 var job by remember { mutableStateOf<Job?>(null) }
                 val userSelections = remember { mutableStateListOf(true) }
@@ -357,6 +360,7 @@ fun QRCodeSignScreen(
                                                 runCatching {
                                                     signStatus[0].loading()
                                                     if (signer.sign(enc, locationData)) {
+                                                        isCaptcha = true
                                                         suspendCoroutine { continuation ->
                                                             captchaValidateParams =
                                                                 signer to { validateValue ->
@@ -375,7 +379,7 @@ fun QRCodeSignScreen(
                                                                             context,
                                                                             ChaoxingHttpClient.instance!!.userEntity.name
                                                                         )
-                                                                        if (signUserList.isEmpty()) {
+                                                                        if (signUserList.all { it == null }) {
                                                                             isSigning = false
                                                                             coroutineScope.launch {
                                                                                 ChaoxingRecommendHelper.recordRecommendEvent(
@@ -428,11 +432,11 @@ fun QRCodeSignScreen(
                                                     err.snackbarReport(
                                                         snackbarHost,
                                                         coroutineScope,
-                                                        "签到失败", hapticFeedback
+                                                        "为${ChaoxingHttpClient.instance!!.userEntity.name}签到失败", hapticFeedback
                                                     )
                                                     err.ifAlreadySigned {
                                                         userSelections[0] = false
-                                                        if (signUserList.isEmpty() && userSelections.all { !it }) {
+                                                        if (signUserList.all { it == null } && userSelections.all { !it }) {
                                                             isSigning = false
                                                             coroutineScope.launch {
                                                                 ChaoxingRecommendHelper.recordRecommendEvent(
@@ -451,13 +455,14 @@ fun QRCodeSignScreen(
                                                     signStatus[0].failed(err)
                                                 }
                                             }
-                                            signUserList.mapIndexed { index, value ->
-                                                if (userSelections[1 + index]) value else null
-                                            }.forEachIndexed { index, session ->
+
+                                            signUserList.forEachIndexed { index, session ->
                                                 if (session == null) return@forEachIndexed
                                                 runCatching {
                                                     signStatus[1 + index].loading()
-                                                    delay(ChaoxingOtherUserHelper.TIMEOUT_NEXT_SIGN)
+                                                    if (!isCaptcha || (isSelfForSign && isFirstOtherUserForSign))
+                                                        delay(ChaoxingOtherUserHelper.TIMEOUT_NEXT_SIGN)
+                                                    isFirstOtherUserForSign = false
                                                     ChaoxingHttpClient.loadFromOtherUserSession(
                                                         session, context
                                                     ).also { client ->
@@ -474,6 +479,7 @@ fun QRCodeSignScreen(
                                                                 )
                                                                     throw ChaoxingSigner.SignActivityNoPermissionException()
                                                                 if (sign(enc, locationData)) {
+                                                                    isCaptcha = true
                                                                     suspendCoroutine { continuation ->
                                                                         captchaValidateParams =
                                                                             this@apply to { validateValue ->
@@ -494,7 +500,10 @@ fun QRCodeSignScreen(
                                                                                     )
                                                                                     userSelections[1 + index] =
                                                                                         false
-                                                                                    if (index == signUserList.size - 1) {
+                                                                                    if (signUserList.checkIsLast(
+                                                                                            index + 1
+                                                                                        )
+                                                                                    ) {
                                                                                         isSigning =
                                                                                             false
                                                                                         coroutineScope.launch {
@@ -539,7 +548,10 @@ fun QRCodeSignScreen(
                                                                     )
                                                                     userSelections[1 + index] =
                                                                         false
-                                                                    if (index == signUserList.size - 1) {
+                                                                    if (signUserList.checkIsLast(
+                                                                            index + 1
+                                                                        )
+                                                                    ) {
                                                                         isSigning = false
                                                                         coroutineScope.launch {
                                                                             ChaoxingRecommendHelper.recordRecommendEvent(
@@ -561,7 +573,7 @@ fun QRCodeSignScreen(
                                                     err.snackbarReport(
                                                         snackbarHost,
                                                         coroutineScope,
-                                                        "签到失败", hapticFeedback
+                                                        "为${session.name}签到失败", hapticFeedback
                                                     )
                                                     err.ifAlreadySigned {
                                                         userSelections[1 + index] = false

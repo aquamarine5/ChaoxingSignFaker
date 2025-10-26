@@ -26,6 +26,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
@@ -62,6 +63,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingOtherUserHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingRecommendHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingSignHelper
+import org.aquamarine5.brainspark.chaoxingsignfaker.checkIsLast
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.AlreadySignedNotice
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
@@ -185,6 +187,8 @@ fun PasswordSignScreen(
             false -> {
                 var text by remember { mutableStateOf("") }
                 val focusManager = LocalFocusManager.current
+                var isCaptcha = remember { false }
+                var isFirstOtherUserForSign = remember { true }
                 val focusRequester = remember { FocusRequester() }
                 val keyboardController = LocalSoftwareKeyboardController.current
                 val signStatus = remember { mutableListOf(ChaoxingSignStatus(hapticFeedback)) }
@@ -243,6 +247,7 @@ fun PasswordSignScreen(
                                                                 hapticFeedback.performHapticFeedback(
                                                                     HapticFeedbackType.Confirm
                                                                 )
+                                                                focusManager.clearFocus()
                                                             } else {
                                                                 isCheckingStatus = false
                                                                 hapticFeedback.performHapticFeedback(
@@ -251,7 +256,6 @@ fun PasswordSignScreen(
                                                             }
                                                         }
                                                     }
-                                                    focusManager.clearFocus()
                                                 }
                                             }
                                         },
@@ -278,12 +282,16 @@ fun PasswordSignScreen(
                                             ) {
                                                 for (i in 0 until numberCount) {
                                                     key(i) {
-                                                        val codeState = when {
-                                                            isCheckingStatus == true -> PasswordCodeStatus.CORRECT
-                                                            isCheckingStatus == false -> PasswordCodeStatus.INCORRECT
-                                                            i < text.length -> PasswordCodeStatus.ENTERED
-                                                            i == text.length -> PasswordCodeStatus.INPUTTING
-                                                            else -> PasswordCodeStatus.PENDING
+                                                        val codeState by remember {
+                                                            derivedStateOf {
+                                                                when {
+                                                                    isCheckingStatus == true -> PasswordCodeStatus.CORRECT
+                                                                    isCheckingStatus == false -> PasswordCodeStatus.INCORRECT
+                                                                    i < text.length -> PasswordCodeStatus.ENTERED
+                                                                    i == text.length -> PasswordCodeStatus.INPUTTING
+                                                                    else -> PasswordCodeStatus.PENDING
+                                                                }
+                                                            }
                                                         }
                                                         val animatedContainerColor by animateColorAsState(
                                                             when (codeState) {
@@ -307,9 +315,9 @@ fun PasswordSignScreen(
                                                         )
                                                         val animatedElevation by animateDpAsState(
                                                             when (codeState) {
-                                                                PasswordCodeStatus.INPUTTING -> 6.dp
+                                                                PasswordCodeStatus.INPUTTING -> 15.dp
                                                                 PasswordCodeStatus.PENDING -> 0.dp
-                                                                else -> 3.dp
+                                                                else -> 7.dp
                                                             }
                                                         )
                                                         val animatedTextColor by animateColorAsState(
@@ -318,14 +326,17 @@ fun PasswordSignScreen(
                                                                 else -> Color.Gray
                                                             }
                                                         )
-                                                        Card(
-                                                            modifier = Modifier.size((276 / numberCount).dp),
-                                                            colors = CardDefaults.cardColors(
-                                                                containerColor = animatedContainerColor
-                                                            ),
-                                                            elevation = CardDefaults.cardElevation(
+                                                        val cardElevation =
+                                                            CardDefaults.cardElevation(
                                                                 defaultElevation = animatedElevation
                                                             )
+                                                        val cardColors = CardDefaults.cardColors(
+                                                            containerColor = animatedContainerColor
+                                                        )
+                                                        Card(
+                                                            modifier = Modifier.size((276 / numberCount).dp),
+                                                            colors = cardColors,
+                                                            elevation = cardElevation
                                                         ) {
                                                             Box(
                                                                 modifier = Modifier.fillMaxSize(),
@@ -367,6 +378,7 @@ fun PasswordSignScreen(
                                 if (isSelf) {
                                     signStatus[0].loading()
                                     if (signer.sign(code)) {
+                                        isCaptcha = true
                                         suspendCoroutine { continuation ->
                                             captchaValidateParams =
                                                 signer to { captchaValue ->
@@ -376,7 +388,7 @@ fun PasswordSignScreen(
                                                             signStatus[0].successForLate()
                                                         else
                                                             signStatus[0].success()
-                                                        if (otherUserSessionList.isEmpty()) {
+                                                        if (otherUserSessionList.all { it == null }) {
                                                             isSigning = false
                                                             coroutineScope.launch {
                                                                 ChaoxingRecommendHelper.recordRecommendEvent(
@@ -410,7 +422,7 @@ fun PasswordSignScreen(
                                             signStatus[0].successForLate()
                                         else
                                             signStatus[0].success()
-                                        if (otherUserSessionList.isEmpty()) {
+                                        if (otherUserSessionList.all { it == null }) {
                                             isSigning = false
                                             coroutineScope.launch {
                                                 ChaoxingRecommendHelper.recordRecommendEvent(
@@ -433,7 +445,7 @@ fun PasswordSignScreen(
                                 signStatus[0].failed(it)
                                 it.ifAlreadySigned {
                                     userSelections[0] = false
-                                    if (otherUserSessionList.isEmpty() && userSelections.all { !it }) {
+                                    if (otherUserSessionList.all { it == null } && userSelections.all { !it }) {
                                         isSigning = false
                                         coroutineScope.launch {
                                             delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)
@@ -444,7 +456,7 @@ fun PasswordSignScreen(
                                 it.snackbarReport(
                                     snackbarHost,
                                     coroutineScope,
-                                    "签到失败",
+                                    "为${ChaoxingHttpClient.instance!!.userEntity.name}签到失败",
                                     hapticFeedback
                                 )
                             }
@@ -453,7 +465,9 @@ fun PasswordSignScreen(
                                 if (session == null) return@forEachIndexed
                                 runCatching {
                                     signStatus[index + 1].loading()
-                                    delay(ChaoxingOtherUserHelper.TIMEOUT_NEXT_SIGN)
+                                    if (!isCaptcha || (isSelf && isFirstOtherUserForSign))
+                                        delay(ChaoxingOtherUserHelper.TIMEOUT_NEXT_SIGN)
+                                    isFirstOtherUserForSign = false
                                     ChaoxingHttpClient.loadFromOtherUserSession(
                                         session,
                                         context
@@ -483,7 +497,10 @@ fun PasswordSignScreen(
                                                                         signStatus[1 + index].success()
                                                                     userSelections[index + 1] =
                                                                         false
-                                                                    if (index == otherUserSessionList.size - 1) {
+                                                                    if (otherUserSessionList.checkIsLast(
+                                                                            index + 1
+                                                                        )
+                                                                    ) {
                                                                         isSigning = false
                                                                         coroutineScope.launch {
                                                                             ChaoxingRecommendHelper.recordRecommendEvent(
@@ -523,7 +540,7 @@ fun PasswordSignScreen(
                                                         signStatus[1 + index].successForLate()
                                                     else
                                                         signStatus[1 + index].success()
-                                                    if (index == otherUserSessionList.size - 1) {
+                                                    if (otherUserSessionList.checkIsLast(1 + index)) {
                                                         isSigning = false
                                                         coroutineScope.launch {
                                                             ChaoxingRecommendHelper.recordRecommendEvent(
@@ -555,7 +572,7 @@ fun PasswordSignScreen(
                                     )
                                     err.ifAlreadySigned {
                                         userSelections[index + 1] = false
-                                        if (index == otherUserSessionList.size - 1 && userSelections.all { !it }) {
+                                        if (otherUserSessionList.checkIsLast(index + 1) && userSelections.all { !it }) {
                                             isSigning = false
                                             coroutineScope.launch {
                                                 delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)

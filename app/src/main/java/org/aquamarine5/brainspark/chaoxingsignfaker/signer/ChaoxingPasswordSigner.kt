@@ -81,7 +81,7 @@ class ChaoxingPasswordSigner(
                     .addQueryParameter("name", client.userEntity.name)
                     .addQueryParameter("fid", client.userEntity.fid.toString())
                     .addQueryParameter("signCode", signCode.toString())
-                    .addQueryParameter("deviceCode", ChaoxingHttpClient.deviceCode)
+                    .addQueryParameter("deviceCode", client.deviceCode)
                     .build()
             ).build()
         ).execute().use {
@@ -118,7 +118,7 @@ class ChaoxingPasswordSigner(
                         .addQueryParameter("name", client.userEntity.name)
                         .addQueryParameter("fid", client.userEntity.fid.toString())
                         .addQueryParameter("signCode", signCode.toString())
-                        .addQueryParameter("deviceCode", ChaoxingHttpClient.deviceCode)
+                        .addQueryParameter("deviceCode", client.deviceCode)
                         .addQueryParameter("validate", validateValue)
                         .build()
                 ).build()

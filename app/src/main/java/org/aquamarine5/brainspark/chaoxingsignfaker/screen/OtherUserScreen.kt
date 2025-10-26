@@ -76,6 +76,7 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
@@ -214,13 +215,29 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.fillMaxWidth()
                 )
+                var isPasswordVisible by remember { mutableStateOf(false) }
                 OutlinedTextField(
                     value = password,
                     onValueChange = { password = it },
                     label = { Text("密码") },
-                    visualTransformation = PasswordVisualTransformation(),
+                    visualTransformation = if (isPasswordVisible) {
+                        VisualTransformation.None
+                    } else {
+                        PasswordVisualTransformation()
+                    },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    trailingIcon = {
+                        IconButton(onClick = {
+                            isPasswordVisible = !isPasswordVisible
+                        }) {
+                            Icon(
+                                if (isPasswordVisible) painterResource(R.drawable.ic_eye) else painterResource(
+                                    R.drawable.ic_eye_closed
+                                ), null
+                            )
+                        }
+                    }
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Button(onClick = {
@@ -419,8 +436,10 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                     .size(qrcodeSize + 18.dp, qrcodeSize + 18.dp),
                 contentAlignment = Alignment.Center
             ) {
-                if (qrCode != null) {
-                    Image(bitmap = qrCode!!.asImageBitmap(), contentDescription = "QR Code")
+                Crossfade(qrCode) { v ->
+                    if (v != null) {
+                        Image(bitmap = v.asImageBitmap(), contentDescription = "QR Code")
+                    }
                 }
             }
             Spacer(modifier = Modifier.height(4.dp))
