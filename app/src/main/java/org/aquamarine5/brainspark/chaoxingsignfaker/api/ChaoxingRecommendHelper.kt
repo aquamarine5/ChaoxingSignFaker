@@ -127,7 +127,7 @@ object ChaoxingRecommendHelper {
                                 .setDayOfWeek(currentRecommendRecord.dayOfWeek)
                                 .setMinuteOfDay(newHabitMinuteOfDay)
                                 .build()
-                            builder.addRecommendHabits(newHabit).build()
+                            builder.addRecommendHabits(newHabit)
                         }
                     }
                 }
