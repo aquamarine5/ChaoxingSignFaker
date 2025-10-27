@@ -186,7 +186,7 @@ fun GestureSignScreen(
                         suffixContent = {
                             Column {
                                 Text(
-                                    "请输入数字签到码：",
+                                    "请绘制图案：",
                                     fontWeight = FontWeight.Bold,
                                     modifier = Modifier.padding(0.dp, 6.dp)
                                 )
