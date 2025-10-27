@@ -85,6 +85,8 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.screen.CourseDetailDestinati
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.CourseDetailScreen
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.CourseListDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.CourseListScreen
+import org.aquamarine5.brainspark.chaoxingsignfaker.screen.GestureSignDestination
+import org.aquamarine5.brainspark.chaoxingsignfaker.screen.GestureSignScreen
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.GetLocationDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.LocationSignScreen
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.LoginDestination
@@ -441,6 +443,18 @@ class MainActivity : ComponentActivity() {
                                             }, navBack = {
                                                 navController.navigateUp()
                                             }) {
+                                                navController.navigate(OtherUserGraphDestination)
+                                            }
+                                        }
+
+                                        composable<GestureSignDestination> { route ->
+                                            GestureSignScreen(
+                                                route.toRoute(), navToOtherSign = {
+                                                    navController.navigate(it)
+                                                },
+                                                navToCourseDetailDestination = {
+                                                    navController.navigateUp()
+                                                }) {
                                                 navController.navigate(OtherUserGraphDestination)
                                             }
                                         }
