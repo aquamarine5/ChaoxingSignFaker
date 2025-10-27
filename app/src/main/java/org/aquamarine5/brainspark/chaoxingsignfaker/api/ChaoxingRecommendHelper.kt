@@ -144,7 +144,7 @@ object ChaoxingRecommendHelper {
         withContext(Dispatchers.IO) {
             val time = LocalDateTime.now()
             context.chaoxingDataStore.updateData { datastore ->
-                if(1==1||datastore.disableRecommend) return@updateData datastore // TODO(Fix it later)
+                if (1 == 1 || datastore.disableRecommend) return@updateData datastore // TODO(Fix it later)
                 datastore.toBuilder().apply {
                     val newRecord = RecommendRecord.newBuilder()
                         .setDayOfWeek(time.dayOfWeek.value)
