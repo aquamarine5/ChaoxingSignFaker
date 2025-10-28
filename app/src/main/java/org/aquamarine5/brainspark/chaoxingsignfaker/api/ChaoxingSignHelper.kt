@@ -20,6 +20,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.ChaoxingPredictableException
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.checkResponse
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
+import org.aquamarine5.brainspark.chaoxingsignfaker.screen.GestureSignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.GetLocationDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.PasswordSignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.PhotoSignDestination
@@ -51,6 +52,7 @@ object ChaoxingSignHelper {
             "4" -> GetLocationDestination.parseFromSignActivityEntity(activityEntity, isLate)
             "2" -> QRCodeSignDestination.parseFromSignActivityEntity(activityEntity, isLate)
             "0" -> PhotoSignDestination.parseFromSignActivityEntity(activityEntity, isLate)
+            "3" -> GestureSignDestination.parseFromSignActivityEntity(activityEntity,isLate)
             else -> {
                 Toast.makeText(context, "暂不支持该活动类型", Toast.LENGTH_SHORT).show()
                 null

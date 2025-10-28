@@ -25,6 +25,7 @@ object UMengHelper {
     private const val EVENT_TAG_SIGN_LOCATION = "sign_location"
     private const val EVENT_TAG_SIGN_PASSWORD = "sign_password"
     private const val EVENT_TAG_SIGN_QR_CODE = "sign_qr_code"
+    private const val EVENT_TAG_SIGN_GESTURE = "sign_gesture"
     private const val EVENT_TAG_SIGN_PHOTO = "sign_photo"
     private const val EVENT_TAG_SIGN_CLICK = "sign_click"
     private const val EVENT_TAG_ADD_OTHER_USER = "account_add_other_user"
@@ -85,6 +86,19 @@ object UMengHelper {
                 "user" to ChaoxingHttpClient.instance!!.userEntity.name
             )
         )
+    }
+
+    suspend fun onSignGestureEvent(
+        context: Context,
+        name: String, isOtherUser: Boolean = false
+    ) {
+        onEvent(
+            context, EVENT_TAG_SIGN_GESTURE, mapOf(
+                "user" to name
+            )
+        )
+        ChaoxingAnalyser.onGestureSignEvent(context)
+        if (isOtherUser) ChaoxingAnalyser.onOtherUserSignEvent(context)
     }
 
     suspend fun onSignCodeEvent(

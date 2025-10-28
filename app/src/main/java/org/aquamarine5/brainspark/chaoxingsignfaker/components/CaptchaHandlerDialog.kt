@@ -64,11 +64,11 @@ fun CaptchaHandlerDialog(
     var sliderPosition by remember(data) { mutableFloatStateOf(0f) }
     var containerWidth by remember { mutableFloatStateOf(320f) }
     val snackbar = LocalSnackbarHostState.current
-    val context= LocalContext.current
+    val context = LocalContext.current
     val hapticFeedback = LocalHapticFeedback.current
     val coroutineScope = rememberCoroutineScope()
     val density by remember(containerWidth) { mutableFloatStateOf(containerWidth / 320) }
-    val sliderMaxValue = remember(containerWidth) { containerWidth-56f * density }
+    val sliderMaxValue = remember(containerWidth) { containerWidth - 56f * density }
     LaunchedEffect(signer) {
         data = signer.getCaptchaImageV2()
     }
@@ -119,7 +119,7 @@ fun CaptchaHandlerDialog(
                                     // (-8 ~ 272) + 28
                                     // 0 ~280
                                     val normalizedPosition =
-                                        (sliderPosition / sliderMaxValue) * 280f-8
+                                        (sliderPosition / sliderMaxValue) * 280f - 8
 
                                     signer.checkCaptchaResult(normalizedPosition, data!!)
                                         .let { result ->
@@ -128,7 +128,11 @@ fun CaptchaHandlerDialog(
                                                     HapticFeedbackType.Reject
                                                 )
                                                 sliderPosition = 0f
-                                                Toast.makeText(context,"验证失败，请重试",Toast.LENGTH_SHORT).show()
+                                                Toast.makeText(
+                                                    context,
+                                                    "验证失败，请重试",
+                                                    Toast.LENGTH_SHORT
+                                                ).show()
                                                 data = signer.getCaptchaImageV2()
                                             } else {
                                                 onResult(Result.success(result))

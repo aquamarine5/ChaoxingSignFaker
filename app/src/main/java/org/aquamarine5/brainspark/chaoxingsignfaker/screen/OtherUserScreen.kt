@@ -654,6 +654,9 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                     }.build()
                                 }
                             }
+
+                            snackbarHost.currentSnackbarData?.dismiss()
+                            snackbarHost.showSnackbar("新顺序已保存")
                         }
                     }, modifier = Modifier.fillMaxWidth()) { index, user, _ ->
                         key(user.phoneNumber) {

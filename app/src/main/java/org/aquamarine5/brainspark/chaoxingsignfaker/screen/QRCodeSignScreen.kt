@@ -432,7 +432,8 @@ fun QRCodeSignScreen(
                                                     err.snackbarReport(
                                                         snackbarHost,
                                                         coroutineScope,
-                                                        "为${ChaoxingHttpClient.instance!!.userEntity.name}签到失败", hapticFeedback
+                                                        "为${ChaoxingHttpClient.instance!!.userEntity.name}签到失败",
+                                                        hapticFeedback
                                                     )
                                                     err.ifAlreadySigned {
                                                         userSelections[0] = false
