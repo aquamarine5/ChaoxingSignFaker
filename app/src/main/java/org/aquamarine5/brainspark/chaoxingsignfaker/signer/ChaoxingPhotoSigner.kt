@@ -30,11 +30,10 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingActivityHelper.N
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.checkResponse
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignOutEntity
-import org.aquamarine5.brainspark.chaoxingsignfaker.screen.PhotoSignDestination
+import org.aquamarine5.brainspark.chaoxingsignfaker.screen.ChaoxingPhotoActivityEntity
 import java.io.ByteArrayOutputStream
 import java.util.UUID
 
-typealias ChaoxingPhotoActivityEntity = PhotoSignDestination
 
 class ChaoxingPhotoSigner(
     client: ChaoxingHttpClient,

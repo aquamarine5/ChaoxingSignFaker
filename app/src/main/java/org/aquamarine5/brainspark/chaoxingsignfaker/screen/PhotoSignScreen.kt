@@ -99,6 +99,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSigner
 import org.aquamarine5.brainspark.chaoxingsignfaker.snackbarReport
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
+typealias ChaoxingPhotoActivityEntity = PhotoSignDestination
 
 @Serializable
 data class PhotoSignDestination(
