@@ -8,6 +8,7 @@ package org.aquamarine5.brainspark.chaoxingsignfaker.screen
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -146,15 +147,27 @@ fun CourseDetailScreen(
                     }
                 }
             ) {
-                LazyColumn(modifier = Modifier.fillMaxSize()) {
-                    items(activitiesData!!.signActivities) {
-                        key(it.id) {
-                            CourseSignActivityColumnCard(it) { destination ->
-                                navToSignerDestination(destination)
+                if (activitiesData!!.signActivities.isEmpty()) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Icon(painter = painterResource(R.drawable.ic_package_open), null)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("该课程暂无签到活动")
+                    }
+                } else
+                    LazyColumn(modifier = Modifier.fillMaxSize()) {
+                        items(activitiesData!!.signActivities) {
+                            key(it.id) {
+                                CourseSignActivityColumnCard(it) { destination ->
+                                    navToSignerDestination(destination)
+                                }
                             }
                         }
                     }
-                }
             }
         }
     }

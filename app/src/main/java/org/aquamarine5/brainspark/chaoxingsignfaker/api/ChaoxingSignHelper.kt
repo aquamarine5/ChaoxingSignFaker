@@ -29,17 +29,24 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSigner
 
 object ChaoxingSignHelper {
     const val TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED = 250L
+    private val signIconMap = mapOf(
+        "0" to R.drawable.ic_square_mouse_pointer,
+        "3" to R.drawable.ic_pattern_locking,
+        "4" to R.drawable.ic_map_pin,
+        "2" to R.drawable.ic_scan_qr_code,
+        "5" to R.drawable.ic_binary
+    )
+
+    private val painterCache = mutableMapOf<Int, Painter>()
 
     class ChaoxingUnsupportedSignTypeException : ChaoxingPredictableException("不支持此签到类型")
 
     @Composable
-    fun getSignIcon(activity: ChaoxingSignActivityEntity): Painter = when (activity.otherId) {
-        "0" -> painterResource(R.drawable.ic_square_mouse_pointer)
-        "3" -> painterResource(R.drawable.ic_git_branch)
-        "4" -> painterResource(R.drawable.ic_map_pin)
-        "2" -> painterResource(R.drawable.ic_scan_qr_code)
-        "5" -> painterResource(R.drawable.ic_binary)
-        else -> painterResource(R.drawable.ic_clipboard_pen_line)
+    fun getSignIcon(activity: ChaoxingSignActivityEntity): Painter {
+        val iconRes = signIconMap[activity.otherId] ?: R.drawable.ic_clipboard_pen_line
+        return painterCache.getOrPut(iconRes) {
+            painterResource(id = iconRes)
+        }
     }
 
     fun getSignDestination(

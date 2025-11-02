@@ -34,13 +34,13 @@ class ChaoxingGestureSigner(
             "https://mobilelearn.chaoxing.com/widget/sign/pcStuSignController/checkSignCode"
     }
 
-    suspend fun getGestureSignInfo(): ChaoxingSignOutEntity=withContext(Dispatchers.IO){
+    suspend fun getGestureSignInfo(): ChaoxingSignOutEntity = withContext(Dispatchers.IO) {
         getSignInfo().let { jsonResult ->
             return@withContext ChaoxingSignOutEntity(
                 jsonResult.getLong("signInId"),
                 jsonResult.getLong("signOutId"),
                 jsonResult.getLong("signOutPublishTimeStamp").let { time ->
-                    if (time == -1L) null else time
+                    if (time == -1L || time == 4999L) null else time
                 },
                 destination.classId,
                 destination.courseId
@@ -132,7 +132,6 @@ class ChaoxingGestureSigner(
             }
         }
 
-    override suspend fun checkAlreadySign(response: String): Boolean {
-        TODO("Not yet implemented")
-    }
+    override suspend fun checkAlreadySign(response: String): Boolean =
+        !response.contains("传达的手势图案")
 }

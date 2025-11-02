@@ -6,11 +6,24 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.screen
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -25,15 +38,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.zIndex
+import com.github.ihsg.patternlocker.DefaultLockerNormalCellView
 import com.github.ihsg.patternlocker.OnPatternChangeListener
 import com.github.ihsg.patternlocker.PatternLockerView
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
+import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCourseHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
@@ -163,6 +181,121 @@ fun GestureSignScreen(
                 val signStatus = remember { mutableListOf(ChaoxingSignStatus(hapticFeedback)) }
                 val userSelections = remember { mutableStateListOf(isSignForOther.not()) }
                 var isSigning by remember { mutableStateOf(false) }
+                AnimatedVisibility(
+                    isCheckingStatus.not(),
+                    enter =
+                        slideInHorizontally(
+                            initialOffsetX = { it },
+                            animationSpec = tween(300)
+                        ) + fadeIn(
+                            animationSpec = tween(300)
+                        ),
+                    exit =
+                        slideOutHorizontally(
+                            animationSpec = tween(300),
+                            targetOffsetX = { it }) +
+                                fadeOut(animationSpec = tween(300)),
+                    modifier = Modifier.zIndex(1f)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(MaterialTheme.colorScheme.background),
+                        verticalArrangement = Arrangement.Center,
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Icon(painterResource(R.drawable.ic_pattern_locking),null)
+                        Spacer(modifier=Modifier.height(6.dp))
+                        Text(
+                            "请绘制签到图案",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp,
+                            modifier = Modifier.padding(0.dp, 6.dp)
+                        )
+                        Spacer(modifier=Modifier.height(6.dp))
+                        Column(
+                            modifier = Modifier.fillMaxWidth().padding(28.dp),
+                            verticalArrangement = Arrangement.Center,
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            val patternLockerView = remember {
+                                PatternLockerView(context).apply {
+                                    (normalCellView as DefaultLockerNormalCellView?)?.let {
+                                        it.styleDecorator.lineWidth=15f
+                                        it.styleDecorator.normalColor=0xFF63BBD0.toInt()
+                                        it.styleDecorator.hitColor=0xFF3F51B5.toInt()
+                                    }
+                                    setOnPatternChangedListener(object :
+                                        OnPatternChangeListener {
+                                        override fun onChange(
+                                            view: PatternLockerView,
+                                            hitIndexList: List<Int>
+                                        ) {
+                                            hapticFeedback.performHapticFeedback(
+                                                HapticFeedbackType.SegmentFrequentTick
+                                            )
+                                        }
+
+                                        override fun onClear(view: PatternLockerView) {
+                                            view.updateStatus(false)
+                                        }
+
+                                        override fun onComplete(
+                                            view: PatternLockerView,
+                                            hitIndexList: List<Int>
+                                        ) {
+                                            val currentGestureOrderCode =
+                                                hitIndexList.joinToString("") { (it + 1).toString() }
+                                            coroutineScope.launch {
+                                                if (signer.checkSignGesture(
+                                                        currentGestureOrderCode
+                                                    )
+                                                ) {
+                                                    hapticFeedback.performHapticFeedback(
+                                                        HapticFeedbackType.Confirm
+                                                    )
+                                                    text = currentGestureOrderCode
+                                                    isCheckingStatus = true
+                                                    snackbarHost.displaySnackbar(
+                                                        "签到码验证成功",
+                                                        coroutineScope
+                                                    )
+                                                } else {
+                                                    hapticFeedback.performHapticFeedback(
+                                                        HapticFeedbackType.Reject
+                                                    )
+                                                    snackbarHost.displaySnackbar(
+                                                        "签到码错误，请重新输入",
+                                                        coroutineScope
+                                                    )
+                                                    view.updateStatus(true)
+                                                    coroutineScope.launch {
+                                                        delay(600L)
+                                                        view.clearHitState()
+                                                    }
+                                                }
+                                            }
+                                        }
+
+                                        override fun onStart(view: PatternLockerView) {
+                                            view.updateStatus(false)
+                                        }
+                                    })
+                                }
+                            }
+                            AndroidView(
+                                {
+                                    patternLockerView
+                                }, modifier = Modifier
+                                    .fillMaxWidth()
+                                    .aspectRatio(1f)
+                            ) { view ->
+                                view.requestLayout()
+                            }
+                        }
+                    }
+                }
+
                 Column(modifier = Modifier.padding(8.dp)) {
                     OtherUserSelectorComponent(
                         navToOtherUser = { navToOtherUserDestination() },
@@ -184,78 +317,7 @@ fun GestureSignScreen(
                             )
                         },
                         suffixContent = {
-                            Column {
-                                Text(
-                                    "请绘制图案：",
-                                    fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.padding(0.dp, 6.dp)
-                                )
-                                Column(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalArrangement = Arrangement.Center,
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    val patternLockerView = remember {
-                                        PatternLockerView(context).apply {
-                                            setOnPatternChangedListener(object :
-                                                OnPatternChangeListener {
-                                                override fun onChange(
-                                                    view: PatternLockerView,
-                                                    hitIndexList: List<Int>
-                                                ) {
-                                                    hapticFeedback.performHapticFeedback(
-                                                        HapticFeedbackType.SegmentFrequentTick
-                                                    )
-                                                }
 
-                                                override fun onClear(view: PatternLockerView) {
-                                                    view.updateStatus(false)
-                                                }
-
-                                                override fun onComplete(
-                                                    view: PatternLockerView,
-                                                    hitIndexList: List<Int>
-                                                ) {
-                                                    val currentGestureOrderCode =
-                                                        hitIndexList.joinToString("") { (it + 1).toString() }
-                                                    coroutineScope.launch {
-                                                        if (signer.checkSignGesture(
-                                                                currentGestureOrderCode
-                                                            )
-                                                        ) {
-                                                            hapticFeedback.performHapticFeedback(
-                                                                HapticFeedbackType.Confirm
-                                                            )
-                                                            isCheckingStatus = true
-                                                            text = currentGestureOrderCode
-                                                        } else {
-                                                            hapticFeedback.performHapticFeedback(
-                                                                HapticFeedbackType.Reject
-                                                            )
-                                                            snackbarHost.displaySnackbar(
-                                                                "签到码错误，请重新输入",
-                                                                coroutineScope
-                                                            )
-                                                            view.updateStatus(true)
-                                                            coroutineScope.launch {
-                                                                delay(600L)
-                                                                view.clearHitState()
-                                                            }
-                                                        }
-                                                    }
-                                                }
-
-                                                override fun onStart(view: PatternLockerView) {
-                                                    view.updateStatus(false)
-                                                }
-                                            })
-                                        }
-                                    }
-                                    AndroidView({
-                                        patternLockerView
-                                    }, modifier = Modifier.fillMaxWidth())
-                                }
-                            }
                         }
                     ) { isSelf, otherUserSessionList, _ ->
                         if (!isCheckingStatus) {

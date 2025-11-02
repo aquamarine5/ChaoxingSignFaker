@@ -13,7 +13,7 @@ plugins {
     id("org.aquamarine5.brainspark.stackbricks-gradle-plugin") version "2.2.2"
     id("com.google.protobuf") version "0.9.5"
     id "io.sentry.android.gradle" version "5.12.1"
-    id("org.jetbrains.kotlin.plugin.serialization") version "2.2.20"
+    id("org.jetbrains.kotlin.plugin.serialization") version "2.2.21"
 }
 
 stackbricksConfig {
@@ -32,7 +32,7 @@ stackbricksConfig {
 }
 android {
     namespace = "org.aquamarine5.brainspark.chaoxingsignfaker"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         ndk {
@@ -40,7 +40,7 @@ android {
         }
         applicationId = "org.aquamarine5.brainspark.chaoxingsignfaker"
         minSdk = 26
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 112021027
         versionName = "1.12.1-stable-251027"
 
