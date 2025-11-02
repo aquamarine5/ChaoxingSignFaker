@@ -240,120 +240,122 @@ fun SettingScreen(
 
         SponsorCard()
 
-        Card(
-            shape = RoundedCornerShape(18.dp),
-            border = BorderStroke(
-                3.5.dp, Brush.linearGradient(
-                    listOf(
-                        Color(0xFF76E4F4),
-                        Color(0xFF9E6FCD),
-                        Color(0xFFC777A9)
+        if (false) {
+            Card(
+                shape = RoundedCornerShape(18.dp),
+                border = BorderStroke(
+                    3.5.dp, Brush.linearGradient(
+                        listOf(
+                            Color(0xFF76E4F4),
+                            Color(0xFF9E6FCD),
+                            Color(0xFFC777A9)
+                        )
                     )
-                )
-            ),
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
-        ) {
-            Row(
-                modifier = Modifier
-                    .padding(22.dp, 8.dp, 10.dp, 8.dp)
-                    .padding(3.dp),
-                verticalAlignment = Alignment.CenterVertically
+                ),
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
             ) {
-                Icon(painterResource(R.drawable.ic_brain_cog), null)
-                Spacer(modifier = Modifier.width(9.dp))
-                Column {
-                    Row(horizontalArrangement = Arrangement.SpaceBetween) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                "推测签到活动功能",
-                                fontSize = 17.sp,
-                                fontWeight = FontWeight.Bold,
-                                lineHeight = 21.sp
-                            )
-                            Text(
-                                "根据日常的签到时间，在打开应用时推测可能的签到课程和事件（测试中）",
-                                fontSize = 12.sp,
-                                lineHeight = 14.sp
-                            )
-                        }
-                        Switch(isRecommendEnabled, onCheckedChange = { value ->
-                            hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                            isRecommendEnabled = value
-                            coroutineScope.launch {
-                                context.chaoxingDataStore.updateData {
-                                    it.toBuilder().setDisableRecommend(value.not())
-                                        .build()
-                                }
+                Row(
+                    modifier = Modifier
+                        .padding(22.dp, 8.dp, 10.dp, 8.dp)
+                        .padding(3.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(painterResource(R.drawable.ic_brain_cog), null)
+                    Spacer(modifier = Modifier.width(9.dp))
+                    Column {
+                        Row(horizontalArrangement = Arrangement.SpaceBetween) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    "推测签到活动功能",
+                                    fontSize = 17.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    lineHeight = 21.sp
+                                )
+                                Text(
+                                    "根据日常的签到时间，在打开应用时推测可能的签到课程和事件（测试中）",
+                                    fontSize = 12.sp,
+                                    lineHeight = 14.sp
+                                )
                             }
-                        }, modifier = Modifier.padding(start = 8.dp))
-                    }
-                    AnimatedVisibility(
-                        isRecommendEnabled,
-                        enter = slideInVertically(),
-                        exit = slideOutVertically()
-                    ) {
-                        Column {
-                            Spacer(modifier = Modifier.height(3.dp))
-                            if (!allRecommendHabits.isEmpty()) {
-                                Text("已经学习的签到习惯：", fontWeight = FontWeight.Bold)
+                            Switch(isRecommendEnabled, onCheckedChange = { value ->
+                                hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                isRecommendEnabled = value
+                                coroutineScope.launch {
+                                    context.chaoxingDataStore.updateData {
+                                        it.toBuilder().setDisableRecommend(value.not())
+                                            .build()
+                                    }
+                                }
+                            }, modifier = Modifier.padding(start = 8.dp))
+                        }
+                        AnimatedVisibility(
+                            isRecommendEnabled,
+                            enter = slideInVertically(),
+                            exit = slideOutVertically()
+                        ) {
+                            Column {
                                 Spacer(modifier = Modifier.height(3.dp))
-                                allRecommendHabits.forEachIndexed { index, item ->
-                                    key(index) {
-                                        Card(
-                                            elevation = CardDefaults.cardElevation(4.dp),
-                                            modifier = Modifier.padding(8.dp, 4.dp, 3.dp, 4.dp)
-                                        ) {
-                                            Row {
-                                                Text(buildAnnotatedString {
-                                                    append("星期${ChaoxingRecommendHelper.dayOfWeekTextList[item.dayOfWeek]}的 ")
-                                                    withStyle(SpanStyle(fontFamily = fontGilroy)) {
-                                                        append(
-                                                            "${item.minuteOfDay.div(60)}:${
-                                                                (item.minuteOfDay % 60).toString()
-                                                                    .padStart(2, '0')
-                                                            }"
+                                if (!allRecommendHabits.isEmpty()) {
+                                    Text("已经学习的签到习惯：", fontWeight = FontWeight.Bold)
+                                    Spacer(modifier = Modifier.height(3.dp))
+                                    allRecommendHabits.forEachIndexed { index, item ->
+                                        key(index) {
+                                            Card(
+                                                elevation = CardDefaults.cardElevation(4.dp),
+                                                modifier = Modifier.padding(8.dp, 4.dp, 3.dp, 4.dp)
+                                            ) {
+                                                Row {
+                                                    Text(buildAnnotatedString {
+                                                        append("星期${ChaoxingRecommendHelper.dayOfWeekTextList[item.dayOfWeek]}的 ")
+                                                        withStyle(SpanStyle(fontFamily = fontGilroy)) {
+                                                            append(
+                                                                "${item.minuteOfDay.div(60)}:${
+                                                                    (item.minuteOfDay % 60).toString()
+                                                                        .padStart(2, '0')
+                                                                }"
+                                                            )
+                                                        }
+                                                        append(" 在${item.className}的签到活动")
+                                                    }, modifier = Modifier.weight(1f))
+                                                    IconButton(onClick = {
+                                                        allRecommendHabits.removeAt(index)
+                                                        hapticFeedback.performHapticFeedback(
+                                                            HapticFeedbackType.TextHandleMove
+                                                        )
+                                                        coroutineScope.launch(Dispatchers.IO) {
+                                                            context.chaoxingDataStore.updateData { dataStore ->
+                                                                dataStore.toBuilder().apply {
+                                                                    removeRecommendHabits(index)
+                                                                }.build()
+                                                            }
+                                                        }
+                                                    }) {
+                                                        Icon(
+                                                            painterResource(R.drawable.ic_delete),
+                                                            null,
+                                                            tint = Color.Red
                                                         )
                                                     }
-                                                    append(" 在${item.className}的签到活动")
-                                                }, modifier = Modifier.weight(1f))
-                                                IconButton(onClick = {
-                                                    allRecommendHabits.removeAt(index)
-                                                    hapticFeedback.performHapticFeedback(
-                                                        HapticFeedbackType.TextHandleMove
-                                                    )
-                                                    coroutineScope.launch(Dispatchers.IO) {
-                                                        context.chaoxingDataStore.updateData { dataStore ->
-                                                            dataStore.toBuilder().apply {
-                                                                removeRecommendHabits(index)
-                                                            }.build()
-                                                        }
-                                                    }
-                                                }) {
-                                                    Icon(
-                                                        painterResource(R.drawable.ic_delete),
-                                                        null,
-                                                        tint = Color.Red
-                                                    )
                                                 }
                                             }
                                         }
                                     }
+                                } else {
+                                    Text(
+                                        "还没有学习到任何签到习惯，继续更多的使用随地大小签吧~",
+                                        fontSize = 13.sp,
+                                        lineHeight = 15.sp,
+                                        color = Color.Gray
+                                    )
                                 }
-                            } else {
-                                Text(
-                                    "还没有学习到任何签到习惯，继续更多的使用随地大小签吧~",
-                                    fontSize = 13.sp,
-                                    lineHeight = 15.sp,
-                                    color = Color.Gray
-                                )
                             }
                         }
                     }
                 }
             }
+            Spacer(modifier = Modifier.height(8.dp))
         }
-        Spacer(modifier = Modifier.height(8.dp))
         AnalyserCard()
         Spacer(modifier = Modifier.height(8.dp))
         Button(

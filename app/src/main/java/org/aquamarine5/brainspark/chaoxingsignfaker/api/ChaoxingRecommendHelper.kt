@@ -142,6 +142,7 @@ object ChaoxingRecommendHelper {
         client: ChaoxingHttpClient
     ) =
         withContext(Dispatchers.IO) {
+            return@withContext
             val time = LocalDateTime.now()
             context.chaoxingDataStore.updateData { datastore ->
                 if (datastore.disableRecommend) return@updateData datastore

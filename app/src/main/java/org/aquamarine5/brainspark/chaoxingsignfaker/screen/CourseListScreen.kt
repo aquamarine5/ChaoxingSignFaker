@@ -292,7 +292,7 @@ fun CourseListScreen(
                             }
                         }
                     }
-
+                    var debouncePreviousTime = 0L
                     LazyColumn {
 //                    item {
 //                        OutlinedButton(
@@ -362,6 +362,10 @@ fun CourseListScreen(
                                         }
                                     }
                                 ) {
+                                    val currentTime = System.currentTimeMillis()
+                                    if (currentTime - debouncePreviousTime < 1000)
+                                        return@CourseInfoColumnCard
+                                    debouncePreviousTime = currentTime
                                     hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                                     navToDetailDestination(data)
                                 }
