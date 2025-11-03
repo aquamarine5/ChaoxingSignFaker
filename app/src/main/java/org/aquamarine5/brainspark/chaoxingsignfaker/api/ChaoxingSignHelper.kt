@@ -26,6 +26,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.screen.PasswordSignDestinati
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.PhotoSignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.QRCodeSignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSigner
+import java.util.concurrent.ConcurrentHashMap
 
 object ChaoxingSignHelper {
     const val TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED = 250L
@@ -37,7 +38,7 @@ object ChaoxingSignHelper {
         "5" to R.drawable.ic_binary
     )
 
-    private val painterCache = mutableMapOf<Int, Painter>()
+    private val painterCache = ConcurrentHashMap<Int, Painter>()
 
     class ChaoxingUnsupportedSignTypeException : ChaoxingPredictableException("不支持此签到类型")
 
