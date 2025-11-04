@@ -99,6 +99,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSigner
 import org.aquamarine5.brainspark.chaoxingsignfaker.snackbarReport
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
+
 typealias ChaoxingPhotoActivityEntity = PhotoSignDestination
 
 @Serializable
@@ -720,6 +721,8 @@ fun PhotoSignScreen(
                                                                                                     context,
                                                                                                     ChaoxingHttpClient.instance!!.userEntity.name
                                                                                                 )
+                                                                                                userSelections[0] =
+                                                                                                    false
                                                                                                 if (destination.endTime != null && System.currentTimeMillis() > destination.endTime)
                                                                                                     signStatus[0].successForLate()
                                                                                                 else
@@ -763,6 +766,8 @@ fun PhotoSignScreen(
                                                                                     context,
                                                                                     ChaoxingHttpClient.instance!!.userEntity.name
                                                                                 )
+                                                                                userSelections[0] =
+                                                                                    false
                                                                                 if (destination.endTime != null && System.currentTimeMillis() > destination.endTime)
                                                                                     signStatus[0].successForLate()
                                                                                 else

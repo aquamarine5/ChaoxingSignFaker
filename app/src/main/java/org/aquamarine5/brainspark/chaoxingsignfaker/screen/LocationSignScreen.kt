@@ -233,6 +233,7 @@ fun LocationSignScreen(
                                                             result,
                                                             captchaValidate.getOrThrow()
                                                         )
+                                                        userSelections[0] = false
                                                         if (destination.endTime != null && System.currentTimeMillis() > destination.endTime)
                                                             signStatus[0].successForLate()
                                                         else
@@ -271,6 +272,7 @@ fun LocationSignScreen(
                                                 }
                                         }
                                     } else {
+                                        userSelections[0] = false
                                         if (destination.endTime != null && System.currentTimeMillis() > destination.endTime)
                                             signStatus[0].successForLate()
                                         else

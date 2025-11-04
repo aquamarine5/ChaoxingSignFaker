@@ -38,7 +38,7 @@ object ChaoxingSignHelper {
         "5" to R.drawable.ic_binary
     )
 
-    private val painterCache = ConcurrentHashMap<Int, Painter>()
+    private val painterCache = ConcurrentHashMap<Int, Painter>(6)
 
     class ChaoxingUnsupportedSignTypeException : ChaoxingPredictableException("不支持此签到类型")
 
@@ -60,7 +60,7 @@ object ChaoxingSignHelper {
             "4" -> GetLocationDestination.parseFromSignActivityEntity(activityEntity, isLate)
             "2" -> QRCodeSignDestination.parseFromSignActivityEntity(activityEntity, isLate)
             "0" -> PhotoSignDestination.parseFromSignActivityEntity(activityEntity, isLate)
-            "3" -> GestureSignDestination.parseFromSignActivityEntity(activityEntity,isLate)
+            "3" -> GestureSignDestination.parseFromSignActivityEntity(activityEntity, isLate)
             else -> {
                 Toast.makeText(context, "暂不支持该活动类型", Toast.LENGTH_SHORT).show()
                 null
@@ -118,6 +118,16 @@ object ChaoxingSignHelper {
                     )
 
                     5 -> PasswordSignDestination(
+                        activeId,
+                        classId,
+                        courseId,
+                        "",
+                        result.getLong("starttime"),
+                        endTime,
+                        if (endTime != null) System.currentTimeMillis() > endTime else false
+                    )
+
+                    3-> GestureSignDestination(
                         activeId,
                         classId,
                         courseId,

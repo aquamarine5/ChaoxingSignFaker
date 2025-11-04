@@ -204,26 +204,28 @@ fun GestureSignScreen(
                         verticalArrangement = Arrangement.Center,
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Icon(painterResource(R.drawable.ic_pattern_locking),null)
-                        Spacer(modifier=Modifier.height(6.dp))
+                        Icon(painterResource(R.drawable.ic_pattern_locking), null)
+                        Spacer(modifier = Modifier.height(6.dp))
                         Text(
                             "请绘制签到图案",
                             fontWeight = FontWeight.Bold,
                             fontSize = 16.sp,
                             modifier = Modifier.padding(0.dp, 6.dp)
                         )
-                        Spacer(modifier=Modifier.height(6.dp))
+                        Spacer(modifier = Modifier.height(6.dp))
                         Column(
-                            modifier = Modifier.fillMaxWidth().padding(28.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(28.dp),
                             verticalArrangement = Arrangement.Center,
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             val patternLockerView = remember {
                                 PatternLockerView(context).apply {
                                     (normalCellView as DefaultLockerNormalCellView?)?.let {
-                                        it.styleDecorator.lineWidth=15f
-                                        it.styleDecorator.normalColor=0xFF63BBD0.toInt()
-                                        it.styleDecorator.hitColor=0xFF3F51B5.toInt()
+                                        it.styleDecorator.lineWidth = 15f
+                                        it.styleDecorator.normalColor = 0xFF63BBD0.toInt()
+                                        it.styleDecorator.hitColor = 0xFF3F51B5.toInt()
                                     }
                                     setOnPatternChangedListener(object :
                                         OnPatternChangeListener {
@@ -344,6 +346,7 @@ fun GestureSignScreen(
                                                             signStatus[0].successForLate()
                                                         else
                                                             signStatus[0].success()
+                                                        userSelections[0] = false
                                                         if (otherUserSessionList.all { it == null }) {
                                                             isSigning = false
                                                             coroutineScope.launch {
@@ -374,6 +377,7 @@ fun GestureSignScreen(
                                                 }
                                         }
                                     } else {
+                                        userSelections[0] = false
                                         if (destination.endTime != null && System.currentTimeMillis() > destination.endTime)
                                             signStatus[0].successForLate()
                                         else
