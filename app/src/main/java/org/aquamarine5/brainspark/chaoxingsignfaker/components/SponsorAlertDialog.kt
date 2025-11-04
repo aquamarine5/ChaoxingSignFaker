@@ -60,9 +60,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.Request
+import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
+import org.aquamarine5.brainspark.chaoxingsignfaker.displaySnackbar
 import java.io.File
 
 
@@ -74,29 +76,34 @@ private const val SPONSOR_IMAGE_FILENAME_BASE = "ChaoxingSignFaker_sponsor"
 fun SponsorAlertDialog(showDialog: MutableState<Boolean>) {
     val context = LocalActivity.current!!.applicationContext
     val sponsorList = remember { mutableStateListOf<List<String>>() }
+    val snackbarState= LocalSnackbarHostState.current
+    val coroutineScope = rememberCoroutineScope()
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
-            ChaoxingHttpClient.instance?.okHttpClient?.newCall(
-                Request.Builder()
-                    .get()
-                    .url("http://cdn.aquamarine5.fun/chaoxingsignfaker_sponsor.json")
-                    .build()
-            )?.execute().use {
-                val json = JSONObject.parseObject(it?.body?.string())
-                val list = json.getJSONArray("sponsorList")
-                if (list.isNotEmpty()) {
-                    sponsorList.clear()
-                    for (i in 0 until list.size) {
-                        val item = list.getJSONArray(i)
-                        if (item.size == 2) {
-                            sponsorList.add(listOf(item.getString(0), item.getString(1)))
+            runCatching {
+                ChaoxingHttpClient.instance?.okHttpClient?.newCall(
+                    Request.Builder()
+                        .get()
+                        .url("http://cdn.aquamarine5.fun/chaoxingsignfaker_sponsor.json")
+                        .build()
+                )?.execute().use {
+                    val json = JSONObject.parseObject(it?.body?.string())
+                    val list = json.getJSONArray("sponsorList")
+                    if (list.isNotEmpty()) {
+                        sponsorList.clear()
+                        for (i in 0 until list.size) {
+                            val item = list.getJSONArray(i)
+                            if (item.size == 2) {
+                                sponsorList.add(listOf(item.getString(0), item.getString(1)))
+                            }
                         }
                     }
                 }
+            }.onFailure {
+                snackbarState.displaySnackbar("加载捐赠列表失败", coroutineScope)
             }
         }
     }
-    val coroutineScope = rememberCoroutineScope()
     val hapticFeedback = LocalHapticFeedback.current
     val permissionCheck =
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) rememberPermissionState(
