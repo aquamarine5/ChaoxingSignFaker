@@ -20,25 +20,34 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.ChaoxingPredictableException
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.checkResponse
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
+import org.aquamarine5.brainspark.chaoxingsignfaker.screen.GestureSignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.GetLocationDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.PasswordSignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.PhotoSignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.QRCodeSignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSigner
+import java.util.concurrent.ConcurrentHashMap
 
 object ChaoxingSignHelper {
     const val TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED = 250L
+    private val signIconMap = mapOf(
+        "0" to R.drawable.ic_square_mouse_pointer,
+        "3" to R.drawable.ic_pattern_locking,
+        "4" to R.drawable.ic_map_pin,
+        "2" to R.drawable.ic_scan_qr_code,
+        "5" to R.drawable.ic_binary
+    )
+
+    private val painterCache = ConcurrentHashMap<Int, Painter>(6)
 
     class ChaoxingUnsupportedSignTypeException : ChaoxingPredictableException("不支持此签到类型")
 
     @Composable
-    fun getSignIcon(activity: ChaoxingSignActivityEntity): Painter = when (activity.otherId) {
-        "0" -> painterResource(R.drawable.ic_square_mouse_pointer)
-        "3" -> painterResource(R.drawable.ic_git_branch)
-        "4" -> painterResource(R.drawable.ic_map_pin)
-        "2" -> painterResource(R.drawable.ic_scan_qr_code)
-        "5" -> painterResource(R.drawable.ic_binary)
-        else -> painterResource(R.drawable.ic_clipboard_pen_line)
+    fun getSignIcon(activity: ChaoxingSignActivityEntity): Painter {
+        val iconRes = signIconMap[activity.otherId] ?: R.drawable.ic_clipboard_pen_line
+        return painterCache.getOrPut(iconRes) {
+            painterResource(id = iconRes)
+        }
     }
 
     fun getSignDestination(
@@ -51,6 +60,7 @@ object ChaoxingSignHelper {
             "4" -> GetLocationDestination.parseFromSignActivityEntity(activityEntity, isLate)
             "2" -> QRCodeSignDestination.parseFromSignActivityEntity(activityEntity, isLate)
             "0" -> PhotoSignDestination.parseFromSignActivityEntity(activityEntity, isLate)
+            "3" -> GestureSignDestination.parseFromSignActivityEntity(activityEntity, isLate)
             else -> {
                 Toast.makeText(context, "暂不支持该活动类型", Toast.LENGTH_SHORT).show()
                 null
@@ -108,6 +118,16 @@ object ChaoxingSignHelper {
                     )
 
                     5 -> PasswordSignDestination(
+                        activeId,
+                        classId,
+                        courseId,
+                        "",
+                        result.getLong("starttime"),
+                        endTime,
+                        if (endTime != null) System.currentTimeMillis() > endTime else false
+                    )
+
+                    3-> GestureSignDestination(
                         activeId,
                         classId,
                         courseId,

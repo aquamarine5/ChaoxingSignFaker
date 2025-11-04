@@ -6,7 +6,6 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.screen
 
-import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
@@ -14,8 +13,17 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -25,15 +33,25 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.zIndex
+import com.github.ihsg.patternlocker.DefaultLockerNormalCellView
+import com.github.ihsg.patternlocker.OnPatternChangeListener
+import com.github.ihsg.patternlocker.PatternLockerView
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
+import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCourseHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
@@ -44,25 +62,24 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.checkIsLast
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.AlreadySignedNotice
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
-import org.aquamarine5.brainspark.chaoxingsignfaker.components.GetLocationComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.OtherUserSelectorComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SignOutRedirectTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SignPotentialWarningTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SponsorPopupDialog
-import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
-import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationDetailEntity
+import org.aquamarine5.brainspark.chaoxingsignfaker.displaySnackbar
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignOutEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignStatus
 import org.aquamarine5.brainspark.chaoxingsignfaker.ifAlreadySigned
-import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingLocationSigner
+import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingGestureSigner
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSigner
 import org.aquamarine5.brainspark.chaoxingsignfaker.snackbarReport
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
+
 @Serializable
-data class GetLocationDestination(
+data class GestureSignDestination(
     val activeId: Long,
     val classId: Int,
     val courseId: Int,
@@ -75,8 +92,8 @@ data class GetLocationDestination(
         fun parseFromSignActivityEntity(
             activityEntity: ChaoxingSignActivityEntity,
             isLate: Boolean
-        ): GetLocationDestination {
-            return GetLocationDestination(
+        ): GestureSignDestination {
+            return GestureSignDestination(
                 activityEntity.id,
                 activityEntity.course.classId,
                 activityEntity.course.courseId,
@@ -89,23 +106,23 @@ data class GetLocationDestination(
     }
 }
 
+
 @Composable
-fun LocationSignScreen(
-    destination: GetLocationDestination,
+fun GestureSignScreen(
+    destination: GestureSignDestination,
     navToCourseDetailDestination: () -> Unit,
     navToOtherSign: (Any) -> Unit,
     navToOtherUserDestination: () -> Unit
 ) {
     var isAlreadySigned by remember { mutableStateOf<Boolean?>(null) }
     var isSignForOther by remember { mutableStateOf(false) }
-    var signInfo by remember { mutableStateOf<ChaoxingLocationDetailEntity?>(null) }
-    val signer = remember { ChaoxingLocationSigner(ChaoxingHttpClient.instance!!, destination) }
+    val signer = remember { ChaoxingGestureSigner(ChaoxingHttpClient.instance!!, destination) }
     var isSponsor by remember { mutableStateOf(false) }
     if (isSponsor) {
         SponsorPopupDialog()
     }
     var captchaValidateParams by remember {
-        mutableStateOf<Pair<ChaoxingLocationSigner, suspend (Result<String>) -> Unit>?>(
+        mutableStateOf<Pair<ChaoxingGestureSigner, suspend (Result<String>) -> Unit>?>(
             null
         )
     }
@@ -124,9 +141,7 @@ fun LocationSignScreen(
     val hapticFeedback = LocalHapticFeedback.current
     LaunchedEffect(Unit) {
         runCatching {
-            val data = signer.getLocationSignInfo()
-            signInfo = data.first
-            signoffData = data.second
+            signoffData = signer.getGestureSignInfo()
             isAlreadySigned = signer.preSign()
         }.onFailure {
             it.snackbarReport(
@@ -159,44 +174,15 @@ fun LocationSignScreen(
             }
 
             false -> {
-                var isGetLocation by remember { mutableStateOf(false) }
-                val signStatus = remember { mutableListOf(ChaoxingSignStatus(hapticFeedback)) }
-                var isSelfForSign by remember { mutableStateOf(false) }
-                var isSigning by remember { mutableStateOf(false) }
-                var otherUserSessionForSignList by
-                remember { mutableStateOf<List<ChaoxingOtherUserSession?>>(emptyList()) }
-                val userSelections = remember { mutableStateListOf(isSignForOther.not()) }
+                var isCheckingStatus by remember { mutableStateOf(false) }
+                var text by remember { mutableStateOf("") }
                 var isCaptcha = remember { false }
                 var isFirstOtherUserForSign = remember { true }
-                Column(modifier = Modifier.padding(8.dp)) {
-                    OtherUserSelectorComponent(
-                        navToOtherUser = { navToOtherUserDestination() },
-                        signStatus = signStatus,
-                        isCurrentAlreadySigned = isSignForOther,
-                        isSigning = isSigning,
-                        userSelections = userSelections,
-                        prefixTipsContent = {
-                            if (signoffData != null)
-                                SignOutRedirectTips(
-                                    signoffData!!
-                                ) {
-                                    navToOtherSign(it)
-                                }
-                            SignPotentialWarningTips(
-                                destination.startTime,
-                                destination.endTime,
-                                destination.isLate
-                            )
-                        }
-                    ) { isSelf, otherUserSessionList, _ ->
-                        isSigning = true
-                        isSelfForSign = isSelf
-                        otherUserSessionForSignList = otherUserSessionList
-                        isGetLocation = true
-                    }
-                }
+                val signStatus = remember { mutableListOf(ChaoxingSignStatus(hapticFeedback)) }
+                val userSelections = remember { mutableStateListOf(isSignForOther.not()) }
+                var isSigning by remember { mutableStateOf(false) }
                 AnimatedVisibility(
-                    isGetLocation,
+                    isCheckingStatus.not(),
                     enter =
                         slideInHorizontally(
                             initialOffsetX = { it },
@@ -211,34 +197,157 @@ fun LocationSignScreen(
                                 fadeOut(animationSpec = tween(300)),
                     modifier = Modifier.zIndex(1f)
                 ) {
-                    BackHandler(isGetLocation) {
-                        isSigning = false
-                        isGetLocation = false
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(MaterialTheme.colorScheme.background),
+                        verticalArrangement = Arrangement.Center,
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Icon(painterResource(R.drawable.ic_pattern_locking), null)
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            "请绘制签到图案",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp,
+                            modifier = Modifier.padding(0.dp, 6.dp)
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(28.dp),
+                            verticalArrangement = Arrangement.Center,
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            val patternLockerView = remember {
+                                PatternLockerView(context).apply {
+                                    (normalCellView as DefaultLockerNormalCellView?)?.let {
+                                        it.styleDecorator.lineWidth = 15f
+                                        it.styleDecorator.normalColor = 0xFF63BBD0.toInt()
+                                        it.styleDecorator.hitColor = 0xFF3F51B5.toInt()
+                                    }
+                                    setOnPatternChangedListener(object :
+                                        OnPatternChangeListener {
+                                        override fun onChange(
+                                            view: PatternLockerView,
+                                            hitIndexList: List<Int>
+                                        ) {
+                                            hapticFeedback.performHapticFeedback(
+                                                HapticFeedbackType.SegmentFrequentTick
+                                            )
+                                        }
+
+                                        override fun onClear(view: PatternLockerView) {
+                                            view.updateStatus(false)
+                                        }
+
+                                        override fun onComplete(
+                                            view: PatternLockerView,
+                                            hitIndexList: List<Int>
+                                        ) {
+                                            val currentGestureOrderCode =
+                                                hitIndexList.joinToString("") { (it + 1).toString() }
+                                            coroutineScope.launch {
+                                                if (signer.checkSignGesture(
+                                                        currentGestureOrderCode
+                                                    )
+                                                ) {
+                                                    hapticFeedback.performHapticFeedback(
+                                                        HapticFeedbackType.Confirm
+                                                    )
+                                                    text = currentGestureOrderCode
+                                                    isCheckingStatus = true
+                                                    snackbarHost.displaySnackbar(
+                                                        "签到码验证成功",
+                                                        coroutineScope
+                                                    )
+                                                } else {
+                                                    hapticFeedback.performHapticFeedback(
+                                                        HapticFeedbackType.Reject
+                                                    )
+                                                    snackbarHost.displaySnackbar(
+                                                        "签到码错误，请重新输入",
+                                                        coroutineScope
+                                                    )
+                                                    view.updateStatus(true)
+                                                    coroutineScope.launch {
+                                                        delay(600L)
+                                                        view.clearHitState()
+                                                    }
+                                                }
+                                            }
+                                        }
+
+                                        override fun onStart(view: PatternLockerView) {
+                                            view.updateStatus(false)
+                                        }
+                                    })
+                                }
+                            }
+                            AndroidView(
+                                {
+                                    patternLockerView
+                                }, modifier = Modifier
+                                    .fillMaxWidth()
+                                    .aspectRatio(1f)
+                            ) { view ->
+                                view.requestLayout()
+                            }
+                        }
                     }
-                    GetLocationComponent(signInfo, confirmButtonText = {
-                        Text("签到")
-                    }) { result ->
-                        isGetLocation = false
+                }
+
+                Column(modifier = Modifier.padding(8.dp)) {
+                    OtherUserSelectorComponent(
+                        navToOtherUser = { navToOtherUserDestination() },
+                        signStatus = signStatus,
+                        isCurrentAlreadySigned = isSignForOther,
+                        userSelections = userSelections,
+                        isSigning = isSigning,
+                        prefixTipsContent = {
+                            if (signoffData != null)
+                                SignOutRedirectTips(
+                                    signoffData!!
+                                ) {
+                                    navToOtherSign(it)
+                                }
+                            SignPotentialWarningTips(
+                                destination.startTime,
+                                destination.endTime,
+                                destination.isLate
+                            )
+                        },
+                        suffixContent = {
+
+                        }
+                    ) { isSelf, otherUserSessionList, _ ->
+                        if (!isCheckingStatus) {
+                            coroutineScope.launch {
+                                snackbarHost.currentSnackbarData?.dismiss()
+                                snackbarHost.showSnackbar("请先输入正确的图案签到码")
+                            }
+                            return@OtherUserSelectorComponent
+                        }
+                        val code = text.toInt()
+                        isSigning = true
                         coroutineScope.launch {
                             runCatching {
-                                if (isSelfForSign) {
+                                if (isSelf) {
                                     signStatus[0].loading()
-                                    if (signer.sign(result)) {
+                                    if (signer.sign(code)) {
                                         isCaptcha = true
                                         suspendCoroutine { continuation ->
                                             captchaValidateParams =
-                                                signer to { captchaValidate ->
-                                                    if (captchaValidate.isSuccess) {
-                                                        signer.signWithCaptcha(
-                                                            result,
-                                                            captchaValidate.getOrThrow()
-                                                        )
-                                                        userSelections[0] = false
+                                                signer to { captchaValue ->
+                                                    captchaValue.onSuccess {
+                                                        signer.signWithCaptcha(code, it)
                                                         if (destination.endTime != null && System.currentTimeMillis() > destination.endTime)
                                                             signStatus[0].successForLate()
                                                         else
                                                             signStatus[0].success()
-                                                        if (otherUserSessionForSignList.all { it == null }) {
+                                                        userSelections[0] = false
+                                                        if (otherUserSessionList.all { it == null }) {
                                                             isSigning = false
                                                             coroutineScope.launch {
                                                                 ChaoxingRecommendHelper.recordRecommendEvent(
@@ -251,22 +360,18 @@ fun LocationSignScreen(
                                                             delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)
                                                             isSponsor = true
                                                         }
-                                                        UMengHelper.onSignLocationEvent(
+                                                        UMengHelper.onSignCodeEvent(
                                                             context,
-                                                            result,
                                                             ChaoxingHttpClient.instance!!.userEntity.name
                                                         )
-                                                    } else {
-                                                        (captchaValidate.exceptionOrNull()
-                                                            ?: ChaoxingSigner.CaptchaException()).apply {
-                                                            signStatus[0].failed(this)
-                                                            this.snackbarReport(
-                                                                snackbarHost,
-                                                                coroutineScope,
-                                                                "验证码校验失败",
-                                                                hapticFeedback
-                                                            )
-                                                        }
+                                                    }.onFailure {
+                                                        signStatus[0].failed(it)
+                                                        it.snackbarReport(
+                                                            snackbarHost,
+                                                            coroutineScope,
+                                                            "验证码校验失败",
+                                                            hapticFeedback
+                                                        )
                                                     }
                                                     continuation.resume(Unit)
                                                 }
@@ -277,7 +382,7 @@ fun LocationSignScreen(
                                             signStatus[0].successForLate()
                                         else
                                             signStatus[0].success()
-                                        if (otherUserSessionForSignList.all { it == null }) {
+                                        if (otherUserSessionList.all { it == null }) {
                                             isSigning = false
                                             coroutineScope.launch {
                                                 ChaoxingRecommendHelper.recordRecommendEvent(
@@ -290,9 +395,8 @@ fun LocationSignScreen(
                                             delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)
                                             isSponsor = true
                                         }
-                                        UMengHelper.onSignLocationEvent(
+                                        UMengHelper.onSignGestureEvent(
                                             context,
-                                            result,
                                             ChaoxingHttpClient.instance!!.userEntity.name
                                         )
                                     }
@@ -301,7 +405,7 @@ fun LocationSignScreen(
                                 signStatus[0].failed(it)
                                 it.ifAlreadySigned {
                                     userSelections[0] = false
-                                    if (otherUserSessionForSignList.all { it == null } && userSelections.all { !it }) {
+                                    if (otherUserSessionList.all { it == null } && userSelections.all { !it }) {
                                         isSigning = false
                                         coroutineScope.launch {
                                             delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)
@@ -317,18 +421,18 @@ fun LocationSignScreen(
                                 )
                             }
 
-                            otherUserSessionForSignList.forEachIndexed { index, userSession ->
-                                if (userSession == null) return@forEachIndexed
+                            otherUserSessionList.forEachIndexed { index, session ->
+                                if (session == null) return@forEachIndexed
                                 runCatching {
                                     signStatus[index + 1].loading()
-                                    if (!isCaptcha || (isSelfForSign && isFirstOtherUserForSign))
+                                    if (!isCaptcha || (isSelf && isFirstOtherUserForSign))
                                         delay(ChaoxingOtherUserHelper.TIMEOUT_NEXT_SIGN)
                                     isFirstOtherUserForSign = false
                                     ChaoxingHttpClient.loadFromOtherUserSession(
-                                        userSession,
+                                        session,
                                         context
                                     ).also { client ->
-                                        ChaoxingLocationSigner(client, destination).apply {
+                                        ChaoxingGestureSigner(client, destination).apply {
                                             if (preSign()) {
                                                 throw ChaoxingSigner.AlreadySignedException()
                                             } else {
@@ -338,14 +442,13 @@ fun LocationSignScreen(
                                                     ) == false
                                                 )
                                                     throw ChaoxingSigner.SignActivityNoPermissionException()
-                                                if (sign(result)) {
-                                                    isCaptcha = true
+                                                if (sign(code)) {
                                                     suspendCoroutine { continuation ->
                                                         captchaValidateParams =
                                                             this@apply to { captchaValidate ->
                                                                 if (captchaValidate.isSuccess) {
                                                                     this@apply.signWithCaptcha(
-                                                                        result,
+                                                                        code,
                                                                         captchaValidate.getOrThrow()
                                                                     )
                                                                     if (destination.endTime != null && System.currentTimeMillis() > destination.endTime)
@@ -354,7 +457,7 @@ fun LocationSignScreen(
                                                                         signStatus[1 + index].success()
                                                                     userSelections[index + 1] =
                                                                         false
-                                                                    if (otherUserSessionForSignList.checkIsLast(
+                                                                    if (otherUserSessionList.checkIsLast(
                                                                             index + 1
                                                                         )
                                                                     ) {
@@ -370,10 +473,9 @@ fun LocationSignScreen(
                                                                         delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)
                                                                         isSponsor = true
                                                                     }
-                                                                    UMengHelper.onSignLocationEvent(
+                                                                    UMengHelper.onSignGestureEvent(
                                                                         context,
-                                                                        result,
-                                                                        userSession.name,
+                                                                        session.name,
                                                                         true
                                                                     )
                                                                 } else {
@@ -385,7 +487,7 @@ fun LocationSignScreen(
                                                                         this.snackbarReport(
                                                                             snackbarHost,
                                                                             coroutineScope,
-                                                                            "为${userSession.name}签到时验证码校验失败",
+                                                                            "为${session.name}签到时验证码校验失败",
                                                                             hapticFeedback
                                                                         )
                                                                     }
@@ -398,10 +500,7 @@ fun LocationSignScreen(
                                                         signStatus[1 + index].successForLate()
                                                     else
                                                         signStatus[1 + index].success()
-                                                    if (otherUserSessionForSignList.checkIsLast(
-                                                            index + 1
-                                                        )
-                                                    ) {
+                                                    if (otherUserSessionList.checkIsLast(1 + index)) {
                                                         isSigning = false
                                                         coroutineScope.launch {
                                                             ChaoxingRecommendHelper.recordRecommendEvent(
@@ -415,10 +514,9 @@ fun LocationSignScreen(
                                                         isSponsor = true
                                                     }
                                                     userSelections[index + 1] = false
-                                                    UMengHelper.onSignLocationEvent(
+                                                    UMengHelper.onSignGestureEvent(
                                                         context,
-                                                        result,
-                                                        userSession.name,
+                                                        session.name,
                                                         true
                                                     )
                                                 }
@@ -429,12 +527,12 @@ fun LocationSignScreen(
                                     err.snackbarReport(
                                         snackbarHost,
                                         coroutineScope,
-                                        "为${userSession.name}签到失败",
+                                        "为${session.name}签到失败",
                                         hapticFeedback
                                     )
                                     err.ifAlreadySigned {
                                         userSelections[index + 1] = false
-                                        if (otherUserSessionForSignList.checkIsLast(index + 1) && userSelections.all { !it }) {
+                                        if (otherUserSessionList.checkIsLast(index + 1) && userSelections.all { !it }) {
                                             isSigning = false
                                             coroutineScope.launch {
                                                 delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)
@@ -443,9 +541,7 @@ fun LocationSignScreen(
                                             }
                                         }
                                     }
-                                    signStatus[index + 1].failed(
-                                        err
-                                    )
+                                    signStatus[index + 1].failed(err)
                                 }
                             }
                         }
@@ -457,5 +553,6 @@ fun LocationSignScreen(
                 CenterCircularProgressIndicator()
             }
         }
+
     }
 }

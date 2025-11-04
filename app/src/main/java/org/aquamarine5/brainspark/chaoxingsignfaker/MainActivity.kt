@@ -22,6 +22,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -45,6 +46,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
@@ -52,6 +54,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -82,6 +85,8 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.screen.CourseDetailDestinati
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.CourseDetailScreen
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.CourseListDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.CourseListScreen
+import org.aquamarine5.brainspark.chaoxingsignfaker.screen.GestureSignDestination
+import org.aquamarine5.brainspark.chaoxingsignfaker.screen.GestureSignScreen
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.GetLocationDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.LocationSignScreen
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.LoginDestination
@@ -102,6 +107,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.screen.SignGraphDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.WelcomeDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.WelcomeScreen
 import org.aquamarine5.brainspark.chaoxingsignfaker.ui.theme.ChaoxingSignFakerTheme
+import org.aquamarine5.brainspark.chaoxingsignfaker.ui.theme.Orange
 import org.aquamarine5.brainspark.stackbricks.StackbricksPolicy
 import org.aquamarine5.brainspark.stackbricks.StackbricksService
 import org.aquamarine5.brainspark.stackbricks.providers.qiniu.QiniuConfiguration
@@ -241,9 +247,22 @@ class MainActivity : ComponentActivity() {
                                                 CompositionLocalProvider(LocalContentColor provides iconColor) {
                                                     Column {
                                                         Spacer(modifier = Modifier.size(1.5.dp))
-                                                        BadgedBox(badge={
+                                                        BadgedBox(badge = {
                                                             if (item.name == "设置" && isNewVersionAvailable) {
-                                                                Badge()
+                                                                Box(contentAlignment = Alignment.Center) {
+                                                                    Badge(
+                                                                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                                                        modifier = Modifier
+                                                                            .size(16.dp)
+                                                                            .zIndex(0f)
+                                                                    )
+                                                                    Badge(
+                                                                        containerColor = Orange,
+                                                                        modifier = Modifier
+                                                                            .size(10.dp)
+                                                                            .zIndex(10f)
+                                                                    )
+                                                                }
                                                             }
                                                         }) {
                                                             Icon(
@@ -424,6 +443,18 @@ class MainActivity : ComponentActivity() {
                                             }, navBack = {
                                                 navController.navigateUp()
                                             }) {
+                                                navController.navigate(OtherUserGraphDestination)
+                                            }
+                                        }
+
+                                        composable<GestureSignDestination> { route ->
+                                            GestureSignScreen(
+                                                route.toRoute(), navToOtherSign = {
+                                                    navController.navigate(it)
+                                                },
+                                                navToCourseDetailDestination = {
+                                                    navController.navigateUp()
+                                                }) {
                                                 navController.navigate(OtherUserGraphDestination)
                                             }
                                         }

@@ -384,6 +384,7 @@ fun PasswordSignScreen(
                                                 signer to { captchaValue ->
                                                     captchaValue.onSuccess {
                                                         signer.signWithCaptcha(code, it)
+                                                        userSelections[0] = false
                                                         if (destination.endTime != null && System.currentTimeMillis() > destination.endTime)
                                                             signStatus[0].successForLate()
                                                         else
@@ -418,6 +419,7 @@ fun PasswordSignScreen(
                                                 }
                                         }
                                     } else {
+                                        userSelections[0] = false
                                         if (destination.endTime != null && System.currentTimeMillis() > destination.endTime)
                                             signStatus[0].successForLate()
                                         else
