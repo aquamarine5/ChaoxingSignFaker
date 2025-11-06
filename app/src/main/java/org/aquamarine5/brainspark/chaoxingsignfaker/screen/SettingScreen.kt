@@ -358,6 +358,58 @@ fun SettingScreen(
         }
         AnalyserCard()
         Spacer(modifier = Modifier.height(8.dp))
+
+        Button(
+            onClick = {
+                runCatching {
+                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                    context.startActivity(
+                        Intent(
+                            Intent.ACTION_VIEW,
+                            "https://github.com/aquamarine5/ChaoxingSignFaker".toUri()
+                        )
+                    )
+                }
+            },
+            shape = RoundedCornerShape(18.dp),
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF55BB8A))
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(3.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(painterResource(R.drawable.ic_github), contentDescription = "github")
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(buildAnnotatedString {
+                    append("前往Github给作者点一个Star吧\n前往：")
+                    withStyle(
+                        SpanStyle(
+                            fontFamily = fontGilroy,
+                            fontSize = 14.sp
+                        )
+                    ) {
+                        append("aquamarine5")
+                    }
+                    withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+                        append("/")
+                    }
+                    withStyle(
+                        SpanStyle(
+                            fontFamily = fontGilroy,
+                            fontSize = 14.sp
+                        )
+                    ) {
+                        append("ChaoxingSignFaker")
+                    }
+                })
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
         Button(
             onClick = {
                 runCatching {
@@ -407,55 +459,7 @@ fun SettingScreen(
                 })
             }
         }
-        Spacer(modifier = Modifier.height(8.dp))
-        Button(
-            onClick = {
-                runCatching {
-                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                    context.startActivity(
-                        Intent(
-                            Intent.ACTION_VIEW,
-                            "https://github.com/aquamarine5/ChaoxingSignFaker".toUri()
-                        )
-                    )
-                }
-            },
-            shape = RoundedCornerShape(18.dp),
-            modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF55BB8A))
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(3.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(painterResource(R.drawable.ic_github), contentDescription = "github")
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(buildAnnotatedString {
-                    append("前往Github给作者点一个Star吧\n前往：")
-                    withStyle(
-                        SpanStyle(
-                            fontFamily = fontGilroy,
-                            fontSize = 14.sp
-                        )
-                    ) {
-                        append("aquamarine5")
-                    }
-                    withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
-                        append("/")
-                    }
-                    withStyle(
-                        SpanStyle(
-                            fontFamily = fontGilroy,
-                            fontSize = 14.sp
-                        )
-                    ) {
-                        append("ChaoxingSignFaker")
-                    }
-                })
-            }
-        }
+
         Spacer(modifier = Modifier.height(8.dp))
     }
 }

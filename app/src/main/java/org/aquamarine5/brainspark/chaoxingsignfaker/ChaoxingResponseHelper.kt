@@ -59,7 +59,8 @@ suspend fun Response.checkResponse(snackbarHostState: SnackbarHostState): Boolea
                         404 -> "网络异常，资源未找到"
                         500 -> "网络异常，服务器内部错误"
                         else -> "网络异常，错误码：$code"
-                    }
+                    },
+                    withDismissAction = true
                 )
             }
         }

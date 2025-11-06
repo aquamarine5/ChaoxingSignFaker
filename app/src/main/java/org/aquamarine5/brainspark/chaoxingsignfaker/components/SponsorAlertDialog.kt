@@ -76,7 +76,7 @@ private const val SPONSOR_IMAGE_FILENAME_BASE = "ChaoxingSignFaker_sponsor"
 fun SponsorAlertDialog(showDialog: MutableState<Boolean>) {
     val context = LocalActivity.current!!.applicationContext
     val sponsorList = remember { mutableStateListOf<List<String>>() }
-    val snackbarState= LocalSnackbarHostState.current
+    val snackbarState = LocalSnackbarHostState.current
     val coroutineScope = rememberCoroutineScope()
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {

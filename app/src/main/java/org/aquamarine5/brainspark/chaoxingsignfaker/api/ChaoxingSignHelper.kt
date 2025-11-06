@@ -127,7 +127,7 @@ object ChaoxingSignHelper {
                         if (endTime != null) System.currentTimeMillis() > endTime else false
                     )
 
-                    3-> GestureSignDestination(
+                    3 -> GestureSignDestination(
                         activeId,
                         classId,
                         courseId,

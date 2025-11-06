@@ -44,7 +44,6 @@ object UMengHelper {
     private const val EVENT_TAG_STACKBRICKS_TEST_CHANNEL_CHANGED =
         "stackbricks_test_channel_status_changed"
 
-    @OptIn(ExperimentalStdlibApi::class)
     fun md5(str: String): String {
         return MessageDigest.getInstance("MD5").digest(str.toByteArray()).toHexString()
     }

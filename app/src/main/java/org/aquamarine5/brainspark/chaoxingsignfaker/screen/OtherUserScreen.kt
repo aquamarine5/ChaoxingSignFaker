@@ -629,6 +629,60 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                         textAlign = TextAlign.Center
                     )
                 }
+                var requestedDeleteUserIndex by remember { mutableStateOf<Int?>(null) }
+                if (requestedDeleteUserIndex != null) {
+                    AlertDialog(
+                        onDismissRequest = {
+                            requestedDeleteUserIndex = null
+                        },
+                        icon = {
+                            Icon(painterResource(R.drawable.ic_delete), null)
+                        },
+                        title = {
+                            Text("删除用户")
+                        },
+                        text = {
+                            Text("确定要删除此用户吗？此操作不可撤销。")
+                        },
+                        confirmButton = {
+                            Button(
+                                onClick = {
+                                    val index = requestedDeleteUserIndex!!
+                                    coroutineScope.launch {
+                                        withContext(Dispatchers.IO) {
+                                            context.chaoxingDataStore.updateData { datastore ->
+                                                datastore.toBuilder()
+                                                    .apply {
+                                                        removeOtherUsers(index)
+                                                    }
+                                                    .build()
+                                            }
+                                        }
+                                    }
+                                    otherUserSessions.removeAt(index)
+                                    hapticFeedback.performHapticFeedback(
+                                        HapticFeedbackType.ContextClick
+                                    )
+                                    requestedDeleteUserIndex = null
+                                }
+                            ) {
+                                Text("删除")
+                            }
+                        },
+                        dismissButton = {
+                            OutlinedButton(
+                                onClick = {
+                                    hapticFeedback.performHapticFeedback(
+                                        HapticFeedbackType.ContextClick
+                                    )
+                                    requestedDeleteUserIndex = null
+                                }
+                            ) {
+                                Text("取消")
+                            }
+                        }
+                    )
+                }
                 if (otherUserSessions.isEmpty()) {
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
@@ -656,7 +710,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                             }
 
                             snackbarHost.currentSnackbarData?.dismiss()
-                            snackbarHost.showSnackbar("新顺序已保存")
+                            snackbarHost.showSnackbar("新顺序已保存", withDismissAction = true)
                         }
                     }, modifier = Modifier.fillMaxWidth()) { index, user, _ ->
                         key(user.phoneNumber) {
@@ -687,25 +741,10 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                         Row {
                                             IconButton(
                                                 onClick = {
-                                                    coroutineScope.launch {
-                                                        withContext(Dispatchers.IO) {
-                                                            mutex.withLock {
-                                                                context.chaoxingDataStore.updateData { datastore ->
-                                                                    datastore.toBuilder()
-                                                                        .apply {
-                                                                            removeOtherUsers(
-                                                                                index
-                                                                            )
-                                                                        }
-                                                                        .build()
-                                                                }
-                                                            }
-                                                        }
-                                                    }
+                                                    requestedDeleteUserIndex = index
                                                     hapticFeedback.performHapticFeedback(
                                                         HapticFeedbackType.ContextClick
                                                     )
-                                                    otherUserSessions.removeIf { it.phoneNumber == user.phoneNumber }
                                                 }
                                             ) {
                                                 Icon(

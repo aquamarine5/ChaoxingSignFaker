@@ -13,22 +13,15 @@ pluginManagement {
                 includeGroupByRegex("androidx.*")
             }
         }
-        maven {
-            url ="https://maven.pkg.github.com/aquamarine5/Stackbricks"
-            credentials {
-                username = "aquamarine5"
-                password = System.getenv("GHP_TOKEN")
-            }
-            content{
-                includeModule("org\\.aquamarine5\\.brainspark","stackbricks")
-            }
-        }
         mavenCentral()
         maven {
             url ="https://maven.pkg.github.com/aquamarine5/stackbricks-gradle-plugin"
             credentials {
                 username = "aquamarine5"
                 password = System.getenv("GHP_TOKEN")
+            }
+            content{
+                include("org.aquamarine5.brainspark.stackbricks-gradle-plugin")
             }
         }
         gradlePluginPortal()
@@ -54,13 +47,6 @@ dependencyResolutionManagement {
         }
 
         mavenCentral()
-        maven {
-            url ="https://maven.pkg.github.com/aquamarine5/stackbricks-gradle-plugin"
-            credentials {
-                username = "aquamarine5"
-                password = System.getenv("GHP_TOKEN")
-            }
-        }
     }
 }
 

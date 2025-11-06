@@ -367,7 +367,10 @@ fun PasswordSignScreen(
                         if (isCheckingSuccess != true) {
                             coroutineScope.launch {
                                 snackbarHost.currentSnackbarData?.dismiss()
-                                snackbarHost.showSnackbar("请先输入正确的数字签到码")
+                                snackbarHost.showSnackbar(
+                                    "请先输入正确的数字签到码",
+                                    withDismissAction = true
+                                )
                             }
                             return@OtherUserSelectorComponent
                         }
