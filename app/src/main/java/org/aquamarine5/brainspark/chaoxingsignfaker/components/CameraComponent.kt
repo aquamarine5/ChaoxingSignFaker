@@ -20,6 +20,7 @@ import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -34,11 +35,13 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.FloatingActionButton
@@ -192,13 +195,50 @@ inline fun CameraComponent(
                     }
                 }
             )
+            var showGalleryTooltip by remember { mutableStateOf(true) }
             Box(modifier = Modifier.fillMaxSize()) {
                 Column(
+                    verticalArrangement = Arrangement.Bottom,
+                    horizontalAlignment = Alignment.End,
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
                         .zIndex(1f)
                         .padding(22.dp)
                 ) {
+                    AnimatedVisibility(visible = showGalleryTooltip) {
+                        Surface(
+                            modifier = Modifier.padding(bottom = 8.dp),
+                            shape = TooltipShape(cornerRadius = 8.dp, tipSize = 12.dp, tipXPadding = 16.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant,
+                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(
+                                    start = 12.dp,
+                                    end = 4.dp,
+                                    top = 6.dp,
+                                    bottom = 18.dp
+                                ),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                Text(
+                                    text = "点击可以从图库选择现有图片",
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                                Spacer(modifier=Modifier.width(4.dp))
+                                IconButton(
+                                    onClick = { showGalleryTooltip = false },
+                                    modifier = Modifier.size(24.dp)
+                                ) {
+                                    Icon(
+                                        painterResource(R.drawable.ic_x),
+                                        contentDescription = "关闭提示"
+                                    )
+                                }
+                            }
+                        }
+                    }
                     FloatingActionButton(onClick = {
                         gallery.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
                     }) {

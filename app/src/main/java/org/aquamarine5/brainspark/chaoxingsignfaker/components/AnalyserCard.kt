@@ -10,11 +10,14 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
@@ -25,18 +28,16 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.aquamarine5.brainspark.chaoxingsignfaker.ChaoxingAnalyser
@@ -52,10 +53,9 @@ fun AnalyserCard() {
             if (analyser.isLoaded.value.not())
                 ChaoxingAnalyser.setupStateAnalyser(context)
         }
-        val fontGilroy = SpanStyle(
-            fontFamily = FontFamily(Font(R.font.gilroy)),
-            fontSize = 13.sp
-        )
+        val fontGilroy = remember {
+            FontFamily(Font(R.font.gilroy))
+        }
         Card(
             shape = RoundedCornerShape(18.dp),
             modifier = Modifier.fillMaxWidth(),
@@ -81,20 +81,27 @@ fun AnalyserCard() {
                         Column {
                             Text("使用次数统计", fontSize = 17.sp, fontWeight = FontWeight.Bold)
                             analyser.apply {
-                                listOf(
-                                    "位置签到" to locationSignCount,
-                                    "二维码签到" to qrcodeSignCount,
-                                    "拍照签到" to photoSignCount,
-                                    "代签次数" to otherUserSignCount
-                                ).forEach {
-                                    Text(
-                                        buildAnnotatedString {
-                                            withStyle(SpanStyle(fontSize = 14.sp)) { append("${it.first}: ") }
-                                            withStyle(fontGilroy) {
-                                                append("${it.second.value}")
-                                            }
-                                        }, modifier = Modifier.fillMaxWidth()
-                                    )
+                                FlowRow(
+                                    modifier=Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(9.dp),
+                                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                                    maxItemsInEachRow = 4
+                                ) {
+                                    listOf(
+                                        photoSignCount to painterResource(R.drawable.ic_camera),
+                                        locationSignCount to painterResource(R.drawable.ic_map_pin),
+                                        qrcodeSignCount to painterResource(R.drawable.ic_scan_qr_code),
+                                        clickSignCount to painterResource(R.drawable.ic_square_mouse_pointer),
+                                        gestureSignCount to painterResource(R.drawable.ic_pattern_locking),
+                                        passwordSignCount to painterResource(R.drawable.ic_binary),
+                                        otherUserSignCount to painterResource(R.drawable.ic_users_round)
+                                    ).forEach {
+                                        Row(modifier=Modifier.padding(0.dp,0.dp), verticalAlignment = Alignment.CenterVertically) {
+                                            Icon(it.second, null, modifier = Modifier.size(20.dp))
+                                            Spacer(modifier=Modifier.width(3.dp))
+                                            Text(it.first.value.toString(), fontFamily = fontGilroy, fontSize = 16.sp)
+                                        }
+                                    }
                                 }
                             }
                         }

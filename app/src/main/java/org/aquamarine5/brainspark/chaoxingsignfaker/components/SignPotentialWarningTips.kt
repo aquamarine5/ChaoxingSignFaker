@@ -99,7 +99,7 @@ fun SignPotentialWarningTips(
                     ) {
                         Spacer(modifier = Modifier.width(8.dp))
                         Icon(
-                            painterResource(R.drawable.ic_clock_alert),
+                            painterResource(R.drawable.ic_clock_fading),
                             contentDescription = "Help",
                             tint = Color.White
                         )

@@ -124,6 +124,7 @@ object ChaoxingAnalyser {
 
     suspend fun setupStateAnalyser(context: Context): MutableStateAnalyser {
         context.chaoxingDataStore.data.first().apply {
+            mutableAnalyser.passwordSignCount.value = analysis.passwordSign
             mutableAnalyser.photoSignCount.value = analysis.photoSign
             mutableAnalyser.gestureSignCount.value = analysis.gestureSign
             mutableAnalyser.locationSignCount.value = analysis.locationSign
