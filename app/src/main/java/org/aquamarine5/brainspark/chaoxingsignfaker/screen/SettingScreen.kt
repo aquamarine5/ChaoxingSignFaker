@@ -67,6 +67,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
+import org.aquamarine5.brainspark.chaoxingsignfaker.BuildConfig
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
@@ -460,6 +461,13 @@ fun SettingScreen(
             }
         }
 
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            "ChaoxingSignFaker ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE}), buildDate: ${BuildConfig.releaseDate}, developed by @aquamarine5, All Rights Reserved.",
+            fontSize = 10.sp,
+            lineHeight = 12.sp,
+            color = Color.Gray
+        )
         Spacer(modifier = Modifier.height(8.dp))
     }
 }

@@ -9,7 +9,7 @@ message ChaoxingSignFakerDataStore{
   repeated ChaoxingOtherUserSession otherUsers = 4;
   ChaoxingAnalysis analysis = 7;
   bool agreeTerms = 3;
-  string deviceCode = 5;
+  string deviceCode = 5 [deprecated = true];
   repeated uint32 preferCourse = 6;
   repeated uint32 preferClassId = 8;
   map<uint32, RecommendRecordList> recommendRecords = 9;

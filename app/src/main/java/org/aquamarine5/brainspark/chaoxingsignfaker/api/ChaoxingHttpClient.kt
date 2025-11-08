@@ -144,6 +144,7 @@ class ChaoxingHttpClient private constructor(
         @Deprecated("Should use ChaoxingHttpClient().deviceCode not ChaoxingHttpClient.Companion.deviceCode")
         var deviceCode: String? = null
 
+        @Deprecated("Don't use saveDeviceCode() and ChaoxingHttpClient.Companion.deviceCode")
         suspend fun saveDeviceCode(context: Context): String {
             val rawData = MessageDigest.getInstance("SHA-256").digest(
                 (UUID.randomUUID().toString().replace("-", "") + UUID.randomUUID().toString()
