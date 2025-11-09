@@ -75,7 +75,7 @@ private const val SPONSOR_IMAGE_FILENAME_BASE = "ChaoxingSignFaker_sponsor"
 @Composable
 fun SponsorAlertDialog(showDialog: MutableState<Boolean>) {
     val context = LocalActivity.current!!.applicationContext
-    var sponsorList by remember { mutableStateOf<List<Pair<String,String>>>(listOf()) }
+    var sponsorList by remember { mutableStateOf<List<Pair<String, String>>>(listOf()) }
     var updateDate by remember { mutableStateOf("2006/12/15") }
     val snackbarState = LocalSnackbarHostState.current
     val coroutineScope = rememberCoroutineScope()
@@ -90,9 +90,9 @@ fun SponsorAlertDialog(showDialog: MutableState<Boolean>) {
                 )?.execute().use {
                     val json = JSONObject.parseObject(it?.body?.string())
                     val list = json.getJSONArray("sponsorList")
-                    updateDate=json.getString("updateTime")
+                    updateDate = json.getString("updateTime")
                     if (list.isNotEmpty()) {
-                        sponsorList=buildList {
+                        sponsorList = buildList {
                             for (i in 0 until list.size) {
                                 val item = list.getJSONArray(i)
                                 if (item.size == 2) {

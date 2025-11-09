@@ -17,6 +17,7 @@ message ChaoxingSignFakerDataStore{
   bool disableRecommend = 11;
   uint32 version = 12;
   repeated ChaoxingCourseClass preferCourseClass = 13;
+  bool bypassBlockedChecking = 14;
 }
 
 message ChaoxingCourseClass{

@@ -79,9 +79,9 @@ object UMengHelper {
             context,
             EVENT_TAG_ILLEGAL_CHANNEL,
             mapOf(
-                "name" to (applicationInfo.applicationInfo?.name ?:"Unknown"),
+                "name" to (applicationInfo.applicationInfo?.name ?: "Unknown"),
                 "label" to context.packageManager.getApplicationLabel(applicationInfo.applicationInfo!!),
-                "version" to (applicationInfo.versionName ?:""),
+                "version" to (applicationInfo.versionName ?: ""),
                 "user" to ChaoxingHttpClient.instance!!.userEntity.name
             )
         )

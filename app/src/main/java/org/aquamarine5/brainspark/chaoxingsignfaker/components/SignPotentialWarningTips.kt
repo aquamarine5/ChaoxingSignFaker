@@ -109,8 +109,16 @@ fun SignPotentialWarningTips(
                         Spacer(modifier = Modifier.width(9.dp))
                         Text(
                             buildAnnotatedString {
-                                append("此签到的发布时间 ${dateFormatter.format(Instant.ofEpochMilli(startTime))} 距离现在已经超过 ")
-                                withStyle(SpanStyle(fontWeight = FontWeight.Bold)){
+                                append(
+                                    "此签到的发布时间 ${
+                                        dateFormatter.format(
+                                            Instant.ofEpochMilli(
+                                                startTime
+                                            )
+                                        )
+                                    } 距离现在已经超过 "
+                                )
+                                withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
                                     append("6")
                                 }
                                 append(" 小时，请确认没有选择错签到事件。")

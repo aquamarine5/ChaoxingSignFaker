@@ -23,6 +23,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -32,10 +33,12 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.alibaba.fastjson2.JSONObject
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import okhttp3.Request
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
+import org.aquamarine5.brainspark.chaoxingsignfaker.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.checkResponse
 
 private const val UNBLOCKED_BUTTON_CLICK_LIMIT = 10
@@ -45,28 +48,31 @@ fun BlockedContent(content: @Composable () -> Unit) {
     var bannedFidList by rememberSaveable { mutableStateOf(listOf<Int>()) }
     val context = LocalContext.current
     var unblockedButtonClickCount by rememberSaveable { mutableIntStateOf(0) }
+    var isBypassBlockedChecking by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         if (bannedFidList.isNotEmpty()) {
             return@LaunchedEffect
         }
         withContext(Dispatchers.IO) {
-            ChaoxingHttpClient.instance?.okHttpClient?.newCall(
-                Request.Builder()
-                    .get()
-                    .url("http://cdn.aquamarine5.fun/chaoxingsignfaker_banlist.json")
-                    .build()
-            )?.execute().use {
-                if (it?.checkResponse(context) == true) {
-                    return@use
+            isBypassBlockedChecking = context.chaoxingDataStore.data.first().bypassBlockedChecking
+            if (!isBypassBlockedChecking)
+                ChaoxingHttpClient.instance?.okHttpClient?.newCall(
+                    Request.Builder()
+                        .get()
+                        .url("http://cdn.aquamarine5.fun/chaoxingsignfaker_banlist.json")
+                        .build()
+                )?.execute().use {
+                    if (it?.checkResponse(context) == true) {
+                        return@use
+                    }
+                    bannedFidList =
+                        JSONObject.parseObject(it?.body?.string()).getJSONArray("banfids")
+                            .toList(Int::class.java)
                 }
-                bannedFidList =
-                    JSONObject.parseObject(it?.body?.string()).getJSONArray("banfids")
-                        .toList(Int::class.java)
-            }
         }
     }
     Crossfade(
-        if (Debug.isDebuggerConnected()) {
+        if (Debug.isDebuggerConnected() || isBypassBlockedChecking) {
             false
         } else {
             unblockedButtonClickCount < UNBLOCKED_BUTTON_CLICK_LIMIT && bannedFidList.contains(

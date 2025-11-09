@@ -7,7 +7,6 @@
 import org.aquamarine5.brainspark.stackbricks.gradleplugin.PossibleConfigurationPath
 
 
-
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -68,11 +67,11 @@ android {
                     "proguard-rules.pro"
             )
             signingConfig signingConfigs.release
-            buildConfigField("String", "releaseDate", "\"${new Date().format('yyyyMMdd')}\"")
+            buildConfigField("String", "releaseDate", "\"${new Date().format('yyyy-MM-dd HH:mm:ss')}\"")
             buildConfigField("String", "UMENG_CHANNEL", "\"${System.getenv("UMENG_CHANNEL")}\"" ?: '"Stackbricks"')
         }
         debug {
-            buildConfigField("String", "releaseDate", "\"${new Date().format('yyyyMMdd')}\"")
+            buildConfigField("String", "releaseDate", "\"${new Date().format('yyyy-MM-dd HH:mm:ss')}\"")
             buildConfigField("String", "UMENG_CHANNEL", "\"${System.getenv("UMENG_CHANNEL")}\"" ?: '"Stackbricks"')
         }
     }

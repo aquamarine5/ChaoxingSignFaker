@@ -82,7 +82,7 @@ fun AnalyserCard() {
                             Text("使用次数统计", fontSize = 17.sp, fontWeight = FontWeight.Bold)
                             analyser.apply {
                                 FlowRow(
-                                    modifier=Modifier.fillMaxWidth(),
+                                    modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.spacedBy(9.dp),
                                     verticalArrangement = Arrangement.spacedBy(2.dp),
                                     maxItemsInEachRow = 4
@@ -96,10 +96,17 @@ fun AnalyserCard() {
                                         passwordSignCount to painterResource(R.drawable.ic_binary),
                                         otherUserSignCount to painterResource(R.drawable.ic_users_round)
                                     ).forEach {
-                                        Row(modifier=Modifier.padding(0.dp,0.dp), verticalAlignment = Alignment.CenterVertically) {
+                                        Row(
+                                            modifier = Modifier.padding(0.dp, 0.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
                                             Icon(it.second, null, modifier = Modifier.size(20.dp))
-                                            Spacer(modifier=Modifier.width(3.dp))
-                                            Text(it.first.value.toString(), fontFamily = fontGilroy, fontSize = 16.sp)
+                                            Spacer(modifier = Modifier.width(3.dp))
+                                            Text(
+                                                it.first.value.toString(),
+                                                fontFamily = fontGilroy,
+                                                fontSize = 16.sp
+                                            )
                                         }
                                     }
                                 }

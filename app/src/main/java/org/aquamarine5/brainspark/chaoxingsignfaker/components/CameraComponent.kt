@@ -208,7 +208,11 @@ inline fun CameraComponent(
                     AnimatedVisibility(visible = showGalleryTooltip) {
                         Surface(
                             modifier = Modifier.padding(bottom = 8.dp),
-                            shape = TooltipShape(cornerRadius = 8.dp, tipSize = 12.dp, tipXPadding = 16.dp),
+                            shape = TooltipShape(
+                                cornerRadius = 8.dp,
+                                tipSize = 12.dp,
+                                tipXPadding = 16.dp
+                            ),
                             color = MaterialTheme.colorScheme.surfaceVariant,
                             contentColor = MaterialTheme.colorScheme.onSurfaceVariant
                         ) {
@@ -226,7 +230,7 @@ inline fun CameraComponent(
                                     text = "点击可以从图库选择现有图片",
                                     style = MaterialTheme.typography.bodySmall
                                 )
-                                Spacer(modifier=Modifier.width(4.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
                                 IconButton(
                                     onClick = { showGalleryTooltip = false },
                                     modifier = Modifier.size(24.dp)

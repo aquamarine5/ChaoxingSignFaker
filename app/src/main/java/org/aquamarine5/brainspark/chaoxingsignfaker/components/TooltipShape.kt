@@ -18,7 +18,11 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 
-class TooltipShape(private val cornerRadius: Dp, private val tipSize: Dp,private val tipXPadding:Dp=0.dp) : Shape {
+class TooltipShape(
+    private val cornerRadius: Dp,
+    private val tipSize: Dp,
+    private val tipXPadding: Dp = 0.dp
+) : Shape {
     override fun createOutline(
         size: Size,
         layoutDirection: LayoutDirection,
@@ -26,7 +30,7 @@ class TooltipShape(private val cornerRadius: Dp, private val tipSize: Dp,private
     ): Outline {
         val cornerRadiusPx = with(density) { cornerRadius.toPx() }
         val tipSizePx = with(density) { tipSize.toPx() }
-        val tipX = size.width - cornerRadiusPx - tipSizePx- with(density){tipXPadding.toPx()}
+        val tipX = size.width - cornerRadiusPx - tipSizePx - with(density) { tipXPadding.toPx() }
 
         val path = Path().apply {
             addRoundRect(

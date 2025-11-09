@@ -6,11 +6,13 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.screen
 
+import android.content.ClipboardManager
 import android.content.Intent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -38,6 +40,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -68,6 +71,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import org.aquamarine5.brainspark.chaoxingsignfaker.BuildConfig
+import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
@@ -76,6 +80,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.AnalyserCard
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SponsorCard
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.RecommendHabit
+import org.aquamarine5.brainspark.chaoxingsignfaker.displaySnackbar
 import org.aquamarine5.brainspark.stackbricks.StackbricksComponent
 import org.aquamarine5.brainspark.stackbricks.StackbricksEventTrigger
 import org.aquamarine5.brainspark.stackbricks.StackbricksService
@@ -86,6 +91,8 @@ object SettingGraphDestination
 
 @Serializable
 object SettingDestination
+
+private const val BYPASS_BLOCKED_CHECKING_KEY = "4ever1215luv"
 
 @Composable
 fun SettingScreen(
@@ -103,11 +110,14 @@ fun SettingScreen(
         val fontGilroy = remember { FontFamily(Font(R.font.gilroy)) }
         val hapticFeedback = LocalHapticFeedback.current
         val coroutineScope = rememberCoroutineScope()
+        val snackbarHostState = LocalSnackbarHostState.current
         val userEntity = remember { ChaoxingHttpClient.instance!!.userEntity }
         var isShowSignoffDialog by remember { mutableStateOf(false) }
         val allRecommendHabits = remember { mutableStateListOf<RecommendHabit>() }
+        var isBypassBlockedChecking by remember { mutableStateOf(false) }
         LaunchedEffect(Unit) {
             context.chaoxingDataStore.data.first().apply {
+                isBypassBlockedChecking = bypassBlockedChecking
                 isRecommendEnabled = disableRecommend.not()
                 allRecommendHabits.addAll(recommendHabitsList)
             }
@@ -462,11 +472,44 @@ fun SettingScreen(
         }
 
         Spacer(modifier = Modifier.height(8.dp))
+        var clickCount by remember { mutableIntStateOf(0) }
         Text(
-            "ChaoxingSignFaker ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE}), buildDate: ${BuildConfig.releaseDate}, developed by @aquamarine5, All Rights Reserved.",
+            "ChaoxingSignFaker ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE}), buildDate: ${BuildConfig.releaseDate},${if (isBypassBlockedChecking) " BypassBlockedChecking," else ""} developed by @aquamarine5, All Rights Reserved.",
             fontSize = 10.sp,
             lineHeight = 12.sp,
-            color = Color.Gray
+            color = Color.Gray,
+            modifier = Modifier.clickable {
+                if (clickCount++ == 0) {
+                    val clipboard =
+                        context.getSystemService(ClipboardManager::class.java)?.primaryClip?.getItemAt(
+                            0
+                        )?.text
+                    if (clipboard == BYPASS_BLOCKED_CHECKING_KEY)
+                        coroutineScope.launch(Dispatchers.IO) {
+                            isBypassBlockedChecking = true
+                            snackbarHostState.displaySnackbar(
+                                "成功解锁@BypassBlockedChecking",
+                                coroutineScope
+                            )
+                            context.chaoxingDataStore.updateData {
+                                it.toBuilder().setBypassBlockedChecking(true).build()
+                            }
+                        }
+                } else if (clickCount >= 2)
+                    Intent(
+                        Intent.ACTION_VIEW,
+                        "orpheus://playlist/6765943151".toUri()
+                    ).apply {
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
+
+                        if (context.packageManager.resolveActivity(this, 0) != null) {
+                            context.startActivity(this)
+                        } else {
+                            this.data = "https://music.163.com/playlist?id=6765943151".toUri()
+                            context.startActivity(this)
+                        }
+                    }
+            }
         )
         Spacer(modifier = Modifier.height(8.dp))
     }
