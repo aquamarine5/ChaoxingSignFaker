@@ -23,6 +23,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -334,7 +335,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
             ReorderableColumn(list = tagsEntityList.toList(), onMove = {
                 hapticFeedback.performHapticFeedback(HapticFeedbackType.SegmentFrequentTick)
             }, onSettle = { from, to ->
-                tagUsageList.add(to,tagUsageList.removeAt(from))
+                tagUsageList.add(to, tagUsageList.removeAt(from))
                 tagsEntityList.add(to, tagsEntityList.removeAt(from))
                 coroutineScope.launch(Dispatchers.IO) {
                     mutex.withLock {
@@ -842,6 +843,25 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                         }
                     )
                 }
+                Card(
+                    onClick = {
+                        isTagsSettingDialog = true
+                    },
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp, 4.dp, 3.dp, 4.dp),
+                    elevation = CardDefaults.cardElevation(7.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(17.dp, 2.dp, 6.dp, 2.dp),
+                    ) {
+                        Icon(painterResource(R.drawable.ic_tags), null)
+                        Text("管理标签")
+                    }
+                }
                 if (otherUserSessions.isEmpty()) {
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
@@ -879,7 +899,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                     interactionSource = interactionSource,
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(8.dp, 4.dp, 3.dp, 4.dp),
+                                        .padding(8.dp, 4.dp),
                                     shape = RoundedCornerShape(8.dp),
                                     elevation = CardDefaults.cardElevation(4.dp)
                                 ) {
@@ -897,7 +917,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                                     append(user.name)
                                                     withStyle(
                                                         SpanStyle(
-                                                            color = Color.DarkGray,
+                                                            color = if (isSystemInDarkTheme()) Color.Gray else Color.DarkGray,
                                                             fontSize = 12.sp
                                                         )
                                                     ) {
@@ -908,7 +928,10 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                                 fontWeight = FontWeight.Medium,
                                                 modifier = Modifier.weight(1f)
                                             )
-                                            Row {
+                                            Row(
+                                                horizontalArrangement = Arrangement.End,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
                                                 IconButton(
                                                     onClick = {
                                                         selectedUserIndexTagDialog = index
@@ -952,7 +975,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                                 }
                                             }
                                         }
-                                        if (userTagList[index].isNotEmpty())
+                                        if (userTagList.getOrNull(index)?.isNotEmpty() == true)
                                             Row {
                                                 Icon(painterResource(R.drawable.ic_tag), null)
                                                 Spacer(modifier = Modifier.width(4.dp))
