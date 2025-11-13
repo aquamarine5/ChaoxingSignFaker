@@ -62,6 +62,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -103,6 +104,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.QRCodeScanComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.RequireLoginAlertDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
+import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.OtherUserTagType
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingOtherUserSharedEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.snackbarReport
 import sh.calvin.reorderable.ReorderableColumn
@@ -119,6 +121,8 @@ fun OtherUserScreen(naviBack: () -> Unit) {
     val resources = LocalResources.current
     val snackbarHost = LocalSnackbarHostState.current
     var inputUrl by remember { mutableStateOf("") }
+    var selectedUserIndexTagDialog by remember { mutableStateOf<Int?>(null) }
+    var isTagsSettingDialog by remember { mutableStateOf(false) }
     var isInputDialog by remember { mutableStateOf(false) }
     var isURLSharedDialog by remember { mutableStateOf(false) }
     val isQRCodeScanPause = remember { mutableStateOf(false) }
@@ -132,11 +136,23 @@ fun OtherUserScreen(naviBack: () -> Unit) {
     var importSharedEntity by remember { mutableStateOf<ChaoxingOtherUserSharedEntity?>(null) }
     val otherUserSessions = remember { mutableStateListOf<ChaoxingOtherUserSession>() }
     var qrCode by remember { mutableStateOf<Bitmap?>(null) }
+    val tagsEntityList = remember { mutableStateListOf<OtherUserTagType>() }
+    var userTagList = remember { emptyList<SnapshotStateList<OtherUserTagType>>() }
     val coroutineScope = rememberCoroutineScope()
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
-            context.chaoxingDataStore.data.first().let {
-                otherUserSessions.addAll(it.otherUsersList)
+            context.chaoxingDataStore.data.first().let { datastore ->
+                tagsEntityList.addAll(datastore.tagsLibraryList)
+                otherUserSessions.addAll(datastore.otherUsersList)
+                userTagList = buildList {
+                    otherUserSessions.forEach { session ->
+                        add(SnapshotStateList<OtherUserTagType>().apply {
+                            session.tagsList.forEach { tagId ->
+                                tagsEntityList.find { it.id == tagId }?.let { add(it) }
+                            }
+                        })
+                    }
+                }
                 isLocalSharedEntityReady =
                     ChaoxingOtherUserHelper.checkSharedEntity(context.chaoxingDataStore.data.first())
             }
@@ -280,7 +296,149 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                     }
                 }, modifier = Modifier.fillMaxWidth()) { Text("添加") }
             }
+        })
+    }
+    if (isTagsSettingDialog) {
+        AlertDialog(onDismissRequest = {
+            isTagsSettingDialog = false
+        }, confirmButton = {
+            OutlinedButton(onClick = {
+                isTagsSettingDialog = false
+            }) { Text("关闭") }
+        }, icon = {
+            Icon(
+                painterResource(R.drawable.ic_tags),
+                null,
+                tint = MaterialTheme.colorScheme.primary
+            )
+        }, title = {
+            Text("管理标签")
+        }, text = {
+            val mutex = remember { Mutex() }
+            val tagUsageList = remember { mutableStateListOf<List<Int>>() }
+            LaunchedEffect(isTagsSettingDialog) {
+                if (isTagsSettingDialog)
+                    coroutineScope.launch(Dispatchers.IO) {
+                        tagsEntityList.forEach { tag ->
+                            tagUsageList.add(
+                                buildList {
+                                    otherUserSessions.forEachIndexed { index, session ->
+                                        if (session.tagsList.any { tag.id == it })
+                                            add(index)
+                                    }
+                                })
+                        }
 
+                    }
+            }
+            ReorderableColumn(list = tagsEntityList.toList(), onMove = {
+                hapticFeedback.performHapticFeedback(HapticFeedbackType.SegmentFrequentTick)
+            }, onSettle = { from, to ->
+                tagUsageList.add(to,tagUsageList.removeAt(from))
+                tagsEntityList.add(to, tagsEntityList.removeAt(from))
+                coroutineScope.launch(Dispatchers.IO) {
+                    mutex.withLock {
+                        context.chaoxingDataStore.updateData { datastore ->
+                            datastore.toBuilder().apply {
+                                val sortedValue = getTagsLibrary(from)
+                                removeTagsLibrary(from)
+                                addTagsLibrary(to, sortedValue)
+                            }.build()
+                        }
+                    }
+                    snackbarHost.currentSnackbarData?.dismiss()
+                    snackbarHost.showSnackbar("新顺序已保存", withDismissAction = true)
+                }
+            }) { index, tagEntity, _ ->
+                key(tagEntity.id) {
+                    ReorderableItem {
+                        val interactionSource = remember { MutableInteractionSource() }
+                        Card(
+                            onClick = {},
+                            interactionSource = interactionSource,
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(8.dp),
+                            elevation = CardDefaults.cardElevation(3.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Icon(
+                                    painterResource(R.drawable.ic_tag),
+                                    null,
+                                    tint = Color(tagEntity.color)
+                                )
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(tagEntity.name)
+                                    Text(buildString {
+                                        tagUsageList[index].let {
+                                            it.forEachIndexed { index, userIndex ->
+                                                append(otherUserSessions[userIndex].name)
+                                                if (index != it.size - 1) append(", ")
+                                            }
+                                        }
+                                    })
+                                }
+                                Row {
+                                    IconButton(onClick = {
+
+                                    }) {
+                                        Icon(painterResource(R.drawable.ic_user_round_cog), null)
+                                    }
+                                    IconButton(onClick = {
+
+                                    }) {
+                                        Icon(
+                                            painter = painterResource(R.drawable.ic_delete),
+                                            contentDescription = "Delete",
+                                            tint = Color(0xFFF1441D)
+                                        )
+                                    }
+                                    IconButton(
+                                        modifier = Modifier.draggableHandle(
+                                            interactionSource = interactionSource,
+                                            onDragStarted = {
+                                                hapticFeedback.performHapticFeedback(
+                                                    HapticFeedbackType.GestureThresholdActivate
+                                                )
+                                            }, onDragStopped = {
+                                                hapticFeedback.performHapticFeedback(
+                                                    HapticFeedbackType.GestureEnd
+                                                )
+                                            }
+                                        ), onClick = {}) {
+                                        Icon(
+                                            painterResource(R.drawable.ic_drag_handle_rounded),
+                                            "",
+                                            tint = Color.Gray
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        })
+    }
+    if (selectedUserIndexTagDialog != null) {
+        AlertDialog(onDismissRequest = {
+            selectedUserIndexTagDialog = null
+        }, icon = {
+            Icon(
+                painterResource(R.drawable.ic_tag),
+                null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(40.dp)
+            )
+        }, confirmButton = {
+            OutlinedButton(onClick = {
+                selectedUserIndexTagDialog = null
+            }) { Text("关闭") }
+        }, title = {
+            Text("为${otherUserSessions[selectedUserIndexTagDialog!!].name}添加标签")
+        }, text = {
         })
     }
     if (isURLSharedDialog) {
@@ -296,7 +454,8 @@ fun OtherUserScreen(naviBack: () -> Unit) {
             Icon(
                 painterResource(R.drawable.ic_link),
                 null,
-                tint = MaterialTheme.colorScheme.primary
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(40.dp)
             )
         }, text = {
             Column {
@@ -708,7 +867,6 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                     }.build()
                                 }
                             }
-
                             snackbarHost.currentSnackbarData?.dismiss()
                             snackbarHost.showSnackbar("新顺序已保存", withDismissAction = true)
                         }
@@ -725,55 +883,100 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                     shape = RoundedCornerShape(8.dp),
                                     elevation = CardDefaults.cardElevation(4.dp)
                                 ) {
-                                    Row(
+                                    Column(
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .padding(17.dp, 2.dp, 6.dp, 2.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.SpaceBetween
                                     ) {
-                                        Text(
-                                            text = "${user.name} (${user.phoneNumber})",
-                                            fontSize = 14.sp,
-                                            fontWeight = FontWeight.Medium,
-                                            modifier = Modifier.weight(1f)
-                                        )
-                                        Row {
-                                            IconButton(
-                                                onClick = {
-                                                    requestedDeleteUserIndex = index
-                                                    hapticFeedback.performHapticFeedback(
-                                                        HapticFeedbackType.ContextClick
-                                                    )
-                                                }
-                                            ) {
-                                                Icon(
-                                                    painter = painterResource(R.drawable.ic_delete),
-                                                    contentDescription = "Delete",
-                                                    tint = Color(0xFFF1441D)
-                                                )
-                                            }
-
-                                            IconButton(
-                                                modifier = Modifier.draggableHandle(
-                                                    interactionSource = interactionSource,
-                                                    onDragStarted = {
-                                                        hapticFeedback.performHapticFeedback(
-                                                            HapticFeedbackType.GestureThresholdActivate
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.SpaceBetween
+                                        ) {
+                                            Text(
+                                                text = buildAnnotatedString {
+                                                    append(user.name)
+                                                    withStyle(
+                                                        SpanStyle(
+                                                            color = Color.DarkGray,
+                                                            fontSize = 12.sp
                                                         )
-                                                    }, onDragStopped = {
+                                                    ) {
+                                                        append(" (${user.phoneNumber})")
+                                                    }
+                                                },
+                                                fontSize = 14.sp,
+                                                fontWeight = FontWeight.Medium,
+                                                modifier = Modifier.weight(1f)
+                                            )
+                                            Row {
+                                                IconButton(
+                                                    onClick = {
+                                                        selectedUserIndexTagDialog = index
+                                                    }
+                                                ) {
+                                                    Icon(painterResource(R.drawable.ic_tags), null)
+                                                }
+                                                IconButton(
+                                                    onClick = {
+                                                        requestedDeleteUserIndex = index
                                                         hapticFeedback.performHapticFeedback(
-                                                            HapticFeedbackType.GestureEnd
+                                                            HapticFeedbackType.ContextClick
                                                         )
                                                     }
-                                                ), onClick = {}) {
-                                                Icon(
-                                                    painterResource(R.drawable.ic_drag_handle_rounded),
-                                                    "",
-                                                    tint = Color.Gray
-                                                )
+                                                ) {
+                                                    Icon(
+                                                        painter = painterResource(R.drawable.ic_delete),
+                                                        contentDescription = "Delete",
+                                                        tint = Color(0xFFF1441D)
+                                                    )
+                                                }
+
+                                                IconButton(
+                                                    modifier = Modifier.draggableHandle(
+                                                        interactionSource = interactionSource,
+                                                        onDragStarted = {
+                                                            hapticFeedback.performHapticFeedback(
+                                                                HapticFeedbackType.GestureThresholdActivate
+                                                            )
+                                                        }, onDragStopped = {
+                                                            hapticFeedback.performHapticFeedback(
+                                                                HapticFeedbackType.GestureEnd
+                                                            )
+                                                        }
+                                                    ), onClick = {}) {
+                                                    Icon(
+                                                        painterResource(R.drawable.ic_drag_handle_rounded),
+                                                        "",
+                                                        tint = Color.Gray
+                                                    )
+                                                }
                                             }
                                         }
+                                        if (userTagList[index].isNotEmpty())
+                                            Row {
+                                                Icon(painterResource(R.drawable.ic_tag), null)
+                                                Spacer(modifier = Modifier.width(4.dp))
+                                                val fontSize10spStyle =
+                                                    remember { SpanStyle(fontSize = 10.sp) }
+                                                Text(buildAnnotatedString {
+                                                    userTagList[index].forEachIndexed { index, tagEntity ->
+                                                        withStyle(
+                                                            SpanStyle(
+                                                                color = Color(
+                                                                    tagEntity.color
+                                                                ), fontSize = 10.sp
+                                                            )
+                                                        ) {
+                                                            append(tagEntity.name)
+                                                        }
+                                                        if (index != user.tagsList.size - 1)
+                                                            withStyle(fontSize10spStyle) {
+                                                                append(", ")
+                                                            }
+                                                    }
+                                                })
+                                            }
+
                                     }
                                 }
                             }

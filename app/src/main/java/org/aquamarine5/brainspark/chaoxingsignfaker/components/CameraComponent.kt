@@ -53,6 +53,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -84,6 +85,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
+import org.aquamarine5.brainspark.chaoxingsignfaker.displaySnackbar
 import org.aquamarine5.brainspark.chaoxingsignfaker.snackbarReport
 
 @OptIn(ExperimentalPermissionsApi::class)
@@ -110,6 +112,18 @@ inline fun CameraComponent(
             val previewView = remember { PreviewView(application) }
             val preview = remember { Preview.Builder().build() }
             var takeImage by remember { mutableStateOf<Bitmap?>(null) }
+            val takeProcessedImage by remember(takeImage) {
+                derivedStateOf {
+                    if (takeImage == null) null
+                    else {
+                        if (takeImage!!.byteCount > 100 * 1024 * 1024) {
+                            snackbarHost.displaySnackbar("图片过大，无法显示预览", coroutineScope)
+                            null
+                        }
+                        else takeImage!!.asImageBitmap()
+                    }
+                }
+            }
             var isBackCamera = remember { true }
             val lifecycleOwner = LocalLifecycleOwner.current
             val photoList = remember { mutableListOf<Bitmap>() }
@@ -138,7 +152,7 @@ inline fun CameraComponent(
             var job: Job? = null
             Box(modifier = Modifier.align(Alignment.Center)) {
                 AnimatedContent(
-                    takeImage,
+                    takeProcessedImage,
                     modifier = Modifier.zIndex(2f),
                     transitionSpec = {
                         (fadeIn(animationSpec = tween(220, delayMillis = 90)) +
@@ -156,14 +170,14 @@ inline fun CameraComponent(
                                     targetOffsetX = { it / 4 }
                                 ))
                     }) {
-                    it?.let { img ->
+                    if (it != null) {
                         Box(
                             modifier = Modifier
                                 .fillMaxSize(0.8f)
                                 .border(4.dp, Color.White, RectangleShape)
                         ) {
                             Image(
-                                img.asImageBitmap(),
+                                it,
                                 null
                             )
                         }
@@ -207,7 +221,7 @@ inline fun CameraComponent(
                 ) {
                     AnimatedVisibility(visible = showGalleryTooltip) {
                         Surface(
-                            modifier = Modifier.padding(bottom = 8.dp),
+                            modifier = Modifier.padding(bottom = 4.dp),
                             shape = TooltipShape(
                                 cornerRadius = 8.dp,
                                 tipSize = 12.dp,
@@ -244,6 +258,7 @@ inline fun CameraComponent(
                         }
                     }
                     FloatingActionButton(onClick = {
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                         gallery.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
                     }) {
                         Icon(
@@ -259,6 +274,7 @@ inline fun CameraComponent(
                     .align(Alignment.TopEnd)
             ) {
                 IconButton(onClick = {
+                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                     future.get().let {
                         it.unbindAll()
                         it.bindToLifecycle(

@@ -211,13 +211,17 @@ fun SponsorAlertDialog(showDialog: MutableState<Boolean>) {
                             Toast.makeText(context, "付款码已保存到相册", Toast.LENGTH_LONG).show()
                         }.invokeOnCompletion {
                             hapticFeedback.performHapticFeedback(HapticFeedbackType.Confirm)
-                            context.startActivity(
-                                Intent(
-                                    Intent.ACTION_VIEW,
-                                    "weixin://".toUri()
-                                ).apply {
-                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                })
+                            runCatching {
+                                context.startActivity(
+                                    Intent(
+                                        Intent.ACTION_VIEW,
+                                        "weixin://".toUri()
+                                    ).apply {
+                                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                    })
+                            }.onFailure {
+                                snackbarState.displaySnackbar("无法打开微信，请确保已安装微信", coroutineScope)
+                            }
                             UMengHelper.onGotoSponsorWechatEvent(
                                 context,
                                 ChaoxingHttpClient.instance!!.userEntity

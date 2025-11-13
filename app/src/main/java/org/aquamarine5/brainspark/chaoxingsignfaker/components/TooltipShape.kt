@@ -31,6 +31,7 @@ class TooltipShape(
         val cornerRadiusPx = with(density) { cornerRadius.toPx() }
         val tipSizePx = with(density) { tipSize.toPx() }
         val tipX = size.width - cornerRadiusPx - tipSizePx - with(density) { tipXPadding.toPx() }
+        val tipYPadding = with(density) { 3.dp.toPx() }
 
         val path = Path().apply {
             addRoundRect(
@@ -45,8 +46,8 @@ class TooltipShape(
                 )
             )
             moveTo(tipX, size.height - tipSizePx)
-            lineTo(tipX + tipSizePx / 2, size.height)
-            lineTo(tipX + tipSizePx, size.height - tipSizePx)
+            lineTo(tipX + tipSizePx / 2, size.height - tipYPadding)
+            lineTo(tipX + tipSizePx, size.height - tipSizePx - tipYPadding)
             close()
         }
         return Outline.Generic(path)

@@ -8,7 +8,6 @@ package org.aquamarine5.brainspark.chaoxingsignfaker.screen
 
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -26,7 +25,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
@@ -282,8 +280,11 @@ fun PasswordSignScreen(
                                             ) {
                                                 for (i in 0 until numberCount) {
                                                     key(i) {
-                                                        val codeState by remember {
-                                                            derivedStateOf {
+                                                        val codeState by remember(
+                                                            isCheckingStatus,
+                                                            i
+                                                        ) {
+                                                            mutableStateOf(
                                                                 when {
                                                                     isCheckingStatus == true -> PasswordCodeStatus.CORRECT
                                                                     isCheckingStatus == false -> PasswordCodeStatus.INCORRECT
@@ -291,7 +292,7 @@ fun PasswordSignScreen(
                                                                     i == text.length -> PasswordCodeStatus.INPUTTING
                                                                     else -> PasswordCodeStatus.PENDING
                                                                 }
-                                                            }
+                                                            )
                                                         }
                                                         val animatedContainerColor by animateColorAsState(
                                                             when (codeState) {
@@ -313,13 +314,15 @@ fun PasswordSignScreen(
                                                                 )
                                                             }
                                                         )
-                                                        val animatedElevation by animateDpAsState(
-                                                            when (codeState) {
-                                                                PasswordCodeStatus.INPUTTING -> 15.dp
-                                                                PasswordCodeStatus.PENDING -> 0.dp
-                                                                else -> 7.dp
-                                                            }
-                                                        )
+                                                        val animatedElevation by remember(codeState) {
+                                                            mutableStateOf(
+                                                                when (codeState) {
+                                                                    PasswordCodeStatus.INPUTTING -> 15.dp
+                                                                    PasswordCodeStatus.PENDING -> 0.dp
+                                                                    else -> 7.dp
+                                                                }
+                                                            )
+                                                        }
                                                         val animatedTextColor by animateColorAsState(
                                                             when (codeState) {
                                                                 PasswordCodeStatus.ENTERED, PasswordCodeStatus.CORRECT, PasswordCodeStatus.INCORRECT -> Color.White
