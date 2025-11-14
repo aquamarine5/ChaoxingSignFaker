@@ -40,12 +40,12 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCourseEntity
 
 @Composable
-inline fun CourseInfoColumnCard(
+fun CourseInfoColumnCard(
     course: ChaoxingCourseEntity,
     imageLoader: ImageLoader,
     modifier: Modifier = Modifier,
-    crossinline onPreferredResort: (Boolean) -> Unit,
-    noinline onClick: () -> Unit,
+    onPreferredResort: (Boolean) -> Unit,
+    onClick: () -> Unit,
 ) {
     Button(
         onClick = onClick,

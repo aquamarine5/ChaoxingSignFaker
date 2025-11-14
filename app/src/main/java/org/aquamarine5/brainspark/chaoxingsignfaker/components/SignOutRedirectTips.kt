@@ -39,9 +39,9 @@ import java.util.Date
 import java.util.Locale
 
 @Composable
-inline fun SignOutRedirectTips(
+fun SignOutRedirectTips(
     signoffData: ChaoxingSignOutEntity,
-    crossinline onRedirect: (Any) -> Unit
+    onRedirect: (Any) -> Unit
 ) {
     val hapticFeedback = LocalHapticFeedback.current
     with(signoffData) {

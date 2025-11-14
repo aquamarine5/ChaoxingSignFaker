@@ -57,16 +57,16 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.displaySnackbar
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignStatus
 
 @Composable
-inline fun OtherUserSelectorComponent(
-    crossinline navToOtherUser: () -> Unit,
+fun OtherUserSelectorComponent(
+    navToOtherUser: () -> Unit,
     signStatus: MutableList<ChaoxingSignStatus>,
     isCurrentAlreadySigned: Boolean,
     userSelections: SnapshotStateList<Boolean>,
     isSigning: Boolean = false,
-    noinline userContent: @Composable ((index: Int) -> Unit)? = null,
+    userContent: @Composable ((index: Int) -> Unit)? = null,
     prefixTipsContent: @Composable (() -> Unit),
-    noinline suffixContent: @Composable (() -> Unit)? = null,
-    crossinline onSignAction: (isSelf: Boolean, otherUserSessionList: List<ChaoxingOtherUserSession?>, indexList: List<Int>) -> Unit
+    suffixContent: @Composable (() -> Unit)? = null,
+    onSignAction: (isSelf: Boolean, otherUserSessionList: List<ChaoxingOtherUserSession?>, indexList: List<Int>) -> Unit
 ) {
     LocalContext.current.let { context ->
         val signUserList = remember { mutableStateListOf<ChaoxingOtherUserSession>() }

@@ -22,6 +22,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
@@ -36,14 +37,17 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -54,6 +58,7 @@ import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -66,16 +71,22 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.toColorLong
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalResources
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -138,14 +149,16 @@ fun OtherUserScreen(naviBack: () -> Unit) {
     val otherUserSessions = remember { mutableStateListOf<ChaoxingOtherUserSession>() }
     var qrCode by remember { mutableStateOf<Bitmap?>(null) }
     val tagsEntityList = remember { mutableStateListOf<OtherUserTagType>() }
-    var userTagList = remember { emptyList<SnapshotStateList<OtherUserTagType>>() }
+    val userTagList = remember { mutableStateListOf<SnapshotStateList<OtherUserTagType>>() }
+    var increasedNextTagIndexId = remember { -1 }
     val coroutineScope = rememberCoroutineScope()
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
             context.chaoxingDataStore.data.first().let { datastore ->
+                increasedNextTagIndexId = datastore.tagsIncreaseId
                 tagsEntityList.addAll(datastore.tagsLibraryList)
                 otherUserSessions.addAll(datastore.otherUsersList)
-                userTagList = buildList {
+                userTagList.addAll(buildList {
                     otherUserSessions.forEach { session ->
                         add(SnapshotStateList<OtherUserTagType>().apply {
                             session.tagsList.forEach { tagId ->
@@ -153,7 +166,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                             }
                         })
                     }
-                }
+                })
                 isLocalSharedEntityReady =
                     ChaoxingOtherUserHelper.checkSharedEntity(context.chaoxingDataStore.data.first())
             }
@@ -329,8 +342,138 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                     }
                                 })
                         }
-
                     }
+            }
+            var newTagColor by remember { mutableStateOf(Color.DarkGray) }
+            var newTagName by remember { mutableStateOf("新标签") }
+            val newTagUserIndexList = remember { mutableListOf<Int>() }
+            var isSelectNewTagUserDialog by remember { mutableStateOf(false) }
+            val focusRequester = remember { FocusRequester() }
+            val keyboardController = LocalSoftwareKeyboardController.current
+            val createTagAction = {
+                val newTagType = OtherUserTagType.newBuilder().apply {
+                    setId(++increasedNextTagIndexId)
+                    setColor(newTagColor.toColorLong())
+                    setName(newTagName)
+                }.build()
+                tagsEntityList.add(0, newTagType)
+                tagUsageList.add(0, newTagUserIndexList)
+                newTagUserIndexList.forEach {
+                    userTagList[it].add(0, newTagType)
+                }
+                coroutineScope.launch(Dispatchers.IO) {
+                    mutex.withLock {
+                        context.chaoxingDataStore.updateData { dataStore ->
+                            dataStore.toBuilder().apply {
+                                setTagsIncreaseId(increasedNextTagIndexId)
+                                addTagsLibrary(0, newTagType)
+                                newTagUserIndexList.forEach { index ->
+                                    val session = otherUserSessions[index]
+                                    val newSession = session.toBuilder().apply {
+                                        addTags(newTagType.id)
+                                    }.build()
+                                    val sessionIndex =
+                                        dataStore.otherUsersList.indexOfFirst { it.phoneNumber == session.phoneNumber }
+                                    if (sessionIndex != -1) {
+                                        setOtherUsers(sessionIndex, newSession)
+                                    }
+                                }
+                            }.build()
+                        }
+                    }
+                }
+            }
+            if (isSelectNewTagUserDialog) {
+                AlertDialog(onDismissRequest = {
+                    isSelectNewTagUserDialog = false
+                }, confirmButton = {
+                    Button(onClick = {
+                        isSelectNewTagUserDialog = false
+                    }) {
+                        Text("关闭")
+                    }
+                }, title = {
+                    Text("为新标签选择用户")
+                }, icon = {
+                    Icon(painterResource(R.drawable.ic_user_round_cog), null)
+                }, text = {
+                    LazyColumn {
+                        otherUserSessions.forEachIndexed { index, session ->
+                            item {
+                                key(session.phoneNumber) {
+                                    var isSelected by remember {
+                                        mutableStateOf(newTagUserIndexList.contains(index))
+                                    }
+                                    Row {
+                                        Checkbox(
+                                            isSelected, onCheckedChange = {
+                                                isSelected = it
+                                                if (it)
+                                                    newTagUserIndexList.add(index)
+                                                else
+                                                    newTagUserIndexList.remove(index)
+                                            }
+                                        )
+                                        Text(
+                                            text = buildAnnotatedString {
+                                                append(session.name)
+                                                withStyle(
+                                                    SpanStyle(
+                                                        color = if (isSystemInDarkTheme()) Color.Gray else Color.DarkGray,
+                                                        fontSize = 12.sp
+                                                    )
+                                                ) {
+                                                    append(" (${session.phoneNumber})")
+                                                }
+                                            },
+                                            fontSize = 14.sp,
+                                            lineHeight = 16.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            modifier = Modifier.clickable {
+                                                isSelected = !isSelected
+                                                if (isSelected)
+                                                    newTagUserIndexList.add(index)
+                                                else
+                                                    newTagUserIndexList.remove(index)
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                })
+            }
+            Card(
+                onClick = {
+                    focusRequester.requestFocus()
+                },
+                shape=RoundedCornerShape(8.dp),
+                modifier=Modifier.fillMaxWidth()
+            ) {
+                Icon(painterResource(R.drawable.ic_tag_plus_outline), null, tint = newTagColor)
+                TextField(
+                    value = newTagName, onValueChange = {
+                        newTagName = it
+                    }, keyboardOptions = KeyboardOptions(
+                        imeAction = ImeAction.Done
+                    ), keyboardActions = KeyboardActions {
+                        createTagAction()
+                    }, modifier = Modifier
+                        .focusRequester(focusRequester)
+                        .onFocusChanged {
+                            if (it.isFocused) keyboardController?.show()
+                        })
+                IconButton(onClick = {
+                    isSelectNewTagUserDialog=true
+                }) {
+                    Icon(painterResource(R.drawable.ic_user_round_cog), null)
+                }
+                IconButton(onClick = {
+                    createTagAction()
+                }) {
+                    Icon(painterResource(R.drawable.ic_check), null)
+                }
             }
             ReorderableColumn(list = tagsEntityList.toList(), onMove = {
                 hapticFeedback.performHapticFeedback(HapticFeedbackType.SegmentFrequentTick)
@@ -876,6 +1019,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                     ReorderableColumn(list = otherUserSessions.toList(), onMove = {
                         hapticFeedback.performHapticFeedback(HapticFeedbackType.SegmentFrequentTick)
                     }, onSettle = { from, to ->
+                        userTagList.add(to, userTagList.removeAt(from))
                         otherUserSessions.add(to, otherUserSessions.removeAt(from))
                         coroutineScope.launch(Dispatchers.IO) {
                             mutex.withLock {
@@ -925,8 +1069,11 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                                     }
                                                 },
                                                 fontSize = 14.sp,
+                                                lineHeight = 16.sp,
                                                 fontWeight = FontWeight.Medium,
-                                                modifier = Modifier.weight(1f)
+                                                modifier = Modifier
+                                                    .weight(1f)
+                                                    .padding(0.dp, 2.dp),
                                             )
                                             Row(
                                                 horizontalArrangement = Arrangement.End,
