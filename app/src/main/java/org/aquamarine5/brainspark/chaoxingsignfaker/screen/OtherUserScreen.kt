@@ -117,6 +117,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.components.QRCodeScanCompone
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.RequireLoginAlertDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.OtherUserTagType
+import org.aquamarine5.brainspark.chaoxingsignfaker.displaySnackbar
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingOtherUserSharedEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.snackbarReport
 import sh.calvin.reorderable.ReorderableColumn
@@ -126,6 +127,8 @@ object OtherUserDestination
 
 @Serializable
 object OtherUserGraphDestination
+
+private const val TAG_COLOR_UNSPECIFIED = -1L
 
 @Composable
 fun OtherUserScreen(naviBack: () -> Unit) {
@@ -167,8 +170,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                         })
                     }
                 })
-                isLocalSharedEntityReady =
-                    ChaoxingOtherUserHelper.checkSharedEntity(context.chaoxingDataStore.data.first())
+                isLocalSharedEntityReady = ChaoxingOtherUserHelper.checkSharedEntity(datastore)
             }
         }
     }
@@ -323,7 +325,8 @@ fun OtherUserScreen(naviBack: () -> Unit) {
             Icon(
                 painterResource(R.drawable.ic_tags),
                 null,
-                tint = MaterialTheme.colorScheme.primary
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(40.dp)
             )
         }, title = {
             Text("管理标签")
@@ -333,6 +336,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
             LaunchedEffect(isTagsSettingDialog) {
                 if (isTagsSettingDialog)
                     coroutineScope.launch(Dispatchers.IO) {
+                        tagUsageList.clear()
                         tagsEntityList.forEach { tag ->
                             tagUsageList.add(
                                 buildList {
@@ -344,41 +348,46 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                         }
                     }
             }
-            var newTagColor by remember { mutableStateOf(Color.DarkGray) }
+            var newTagColor by remember { mutableStateOf<Color?>(null) }
             var newTagName by remember { mutableStateOf("新标签") }
             val newTagUserIndexList = remember { mutableListOf<Int>() }
             var isSelectNewTagUserDialog by remember { mutableStateOf(false) }
             val focusRequester = remember { FocusRequester() }
             val keyboardController = LocalSoftwareKeyboardController.current
             val createTagAction = {
-                val newTagType = OtherUserTagType.newBuilder().apply {
-                    setId(++increasedNextTagIndexId)
-                    setColor(newTagColor.toColorLong())
-                    setName(newTagName)
-                }.build()
-                tagsEntityList.add(0, newTagType)
-                tagUsageList.add(0, newTagUserIndexList)
-                newTagUserIndexList.forEach {
-                    userTagList[it].add(0, newTagType)
-                }
-                coroutineScope.launch(Dispatchers.IO) {
-                    mutex.withLock {
-                        context.chaoxingDataStore.updateData { dataStore ->
-                            dataStore.toBuilder().apply {
-                                setTagsIncreaseId(increasedNextTagIndexId)
-                                addTagsLibrary(0, newTagType)
-                                newTagUserIndexList.forEach { index ->
-                                    val session = otherUserSessions[index]
-                                    val newSession = session.toBuilder().apply {
-                                        addTags(newTagType.id)
-                                    }.build()
-                                    val sessionIndex =
-                                        dataStore.otherUsersList.indexOfFirst { it.phoneNumber == session.phoneNumber }
-                                    if (sessionIndex != -1) {
-                                        setOtherUsers(sessionIndex, newSession)
+                if (tagsEntityList.any { it.name == newTagName }) {
+                    snackbarHost.displaySnackbar("$newTagName 标签已存在", coroutineScope)
+                    hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
+                } else {
+                    val newTagType = OtherUserTagType.newBuilder().apply {
+                        setId(++increasedNextTagIndexId)
+                        setColor(newTagColor?.toColorLong() ?: TAG_COLOR_UNSPECIFIED)
+                        setName(newTagName)
+                    }.build()
+                    tagsEntityList.add(0, newTagType)
+                    tagUsageList.add(0, newTagUserIndexList)
+                    newTagUserIndexList.forEach {
+                        userTagList[it].add(0, newTagType)
+                    }
+                    coroutineScope.launch(Dispatchers.IO) {
+                        mutex.withLock {
+                            context.chaoxingDataStore.updateData { dataStore ->
+                                dataStore.toBuilder().apply {
+                                    setTagsIncreaseId(increasedNextTagIndexId)
+                                    addTagsLibrary(0, newTagType)
+                                    newTagUserIndexList.forEach { index ->
+                                        val session = otherUserSessions[index]
+                                        val newSession = session.toBuilder().apply {
+                                            addTags(newTagType.id)
+                                        }.build()
+                                        val sessionIndex =
+                                            dataStore.otherUsersList.indexOfFirst { it.phoneNumber == session.phoneNumber }
+                                        if (sessionIndex != -1) {
+                                            setOtherUsers(sessionIndex, newSession)
+                                        }
                                     }
-                                }
-                            }.build()
+                                }.build()
+                            }
                         }
                     }
                 }
@@ -404,7 +413,10 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                     var isSelected by remember {
                                         mutableStateOf(newTagUserIndexList.contains(index))
                                     }
-                                    Row {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
                                         Checkbox(
                                             isSelected, onCheckedChange = {
                                                 isSelected = it
@@ -429,13 +441,15 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                             fontSize = 14.sp,
                                             lineHeight = 16.sp,
                                             fontWeight = FontWeight.Medium,
-                                            modifier = Modifier.clickable {
-                                                isSelected = !isSelected
-                                                if (isSelected)
-                                                    newTagUserIndexList.add(index)
-                                                else
-                                                    newTagUserIndexList.remove(index)
-                                            }
+                                            modifier = Modifier
+                                                .clickable {
+                                                    isSelected = !isSelected
+                                                    if (isSelected)
+                                                        newTagUserIndexList.add(index)
+                                                    else
+                                                        newTagUserIndexList.remove(index)
+                                                }
+                                                .fillMaxWidth()
                                         )
                                     }
                                 }
@@ -444,119 +458,151 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                     }
                 })
             }
-            Card(
-                onClick = {
-                    focusRequester.requestFocus()
-                },
-                shape=RoundedCornerShape(8.dp),
-                modifier=Modifier.fillMaxWidth()
-            ) {
-                Icon(painterResource(R.drawable.ic_tag_plus_outline), null, tint = newTagColor)
-                TextField(
-                    value = newTagName, onValueChange = {
-                        newTagName = it
-                    }, keyboardOptions = KeyboardOptions(
-                        imeAction = ImeAction.Done
-                    ), keyboardActions = KeyboardActions {
-                        createTagAction()
-                    }, modifier = Modifier
-                        .focusRequester(focusRequester)
-                        .onFocusChanged {
-                            if (it.isFocused) keyboardController?.show()
-                        })
-                IconButton(onClick = {
-                    isSelectNewTagUserDialog=true
-                }) {
-                    Icon(painterResource(R.drawable.ic_user_round_cog), null)
-                }
-                IconButton(onClick = {
-                    createTagAction()
-                }) {
-                    Icon(painterResource(R.drawable.ic_check), null)
-                }
-            }
-            ReorderableColumn(list = tagsEntityList.toList(), onMove = {
-                hapticFeedback.performHapticFeedback(HapticFeedbackType.SegmentFrequentTick)
-            }, onSettle = { from, to ->
-                tagUsageList.add(to, tagUsageList.removeAt(from))
-                tagsEntityList.add(to, tagsEntityList.removeAt(from))
-                coroutineScope.launch(Dispatchers.IO) {
-                    mutex.withLock {
-                        context.chaoxingDataStore.updateData { datastore ->
-                            datastore.toBuilder().apply {
-                                val sortedValue = getTagsLibrary(from)
-                                removeTagsLibrary(from)
-                                addTagsLibrary(to, sortedValue)
-                            }.build()
+            Column {
+                Card(
+                    onClick = {
+                        focusRequester.requestFocus()
+                    },
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(3.dp, 0.dp)
+                    ) {
+                        Icon(
+                            painterResource(R.drawable.ic_tag_plus_outline),
+                            null,
+                            tint = if (newTagColor == null) {
+                                if (isSystemInDarkTheme()) Color.LightGray else Color.DarkGray
+                            } else newTagColor!!
+                        )
+                        TextField(
+                            value = newTagName, onValueChange = {
+                                newTagName = it
+                            }, keyboardOptions = KeyboardOptions(
+                                imeAction = ImeAction.Done
+                            ), keyboardActions = KeyboardActions {
+                                createTagAction()
+                            }, modifier = Modifier
+                                .focusRequester(focusRequester)
+                                .onFocusChanged {
+                                    if (it.isFocused) keyboardController?.show()
+                                }
+                                .weight(1f)
+                        )
+                        IconButton(onClick = {
+                            isSelectNewTagUserDialog = true
+                        }) {
+                            Icon(painterResource(R.drawable.ic_user_round_cog), null)
+                        }
+                        IconButton(onClick = {
+                            createTagAction()
+                        }) {
+                            Icon(painterResource(R.drawable.ic_check), null)
                         }
                     }
-                    snackbarHost.currentSnackbarData?.dismiss()
-                    snackbarHost.showSnackbar("新顺序已保存", withDismissAction = true)
                 }
-            }) { index, tagEntity, _ ->
-                key(tagEntity.id) {
-                    ReorderableItem {
-                        val interactionSource = remember { MutableInteractionSource() }
-                        Card(
-                            onClick = {},
-                            interactionSource = interactionSource,
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(8.dp),
-                            elevation = CardDefaults.cardElevation(3.dp)
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.fillMaxWidth()
+                ReorderableColumn(list = tagsEntityList.toList(), onMove = {
+                    hapticFeedback.performHapticFeedback(HapticFeedbackType.SegmentFrequentTick)
+                }, onSettle = { from, to ->
+                    tagUsageList.add(to, tagUsageList.removeAt(from))
+                    tagsEntityList.add(to, tagsEntityList.removeAt(from))
+                    coroutineScope.launch(Dispatchers.IO) {
+                        mutex.withLock {
+                            context.chaoxingDataStore.updateData { datastore ->
+                                datastore.toBuilder().apply {
+                                    val sortedValue = getTagsLibrary(from)
+                                    removeTagsLibrary(from)
+                                    addTagsLibrary(to, sortedValue)
+                                }.build()
+                            }
+                        }
+                        snackbarHost.currentSnackbarData?.dismiss()
+                        snackbarHost.showSnackbar("新顺序已保存", withDismissAction = true)
+                    }
+                }) { index, tagEntity, _ ->
+                    key(tagEntity.id) {
+                        ReorderableItem {
+                            val interactionSource = remember { MutableInteractionSource() }
+                            Card(
+                                onClick = {},
+                                interactionSource = interactionSource,
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(8.dp),
+                                elevation = CardDefaults.cardElevation(3.dp)
                             ) {
-                                Icon(
-                                    painterResource(R.drawable.ic_tag),
-                                    null,
-                                    tint = Color(tagEntity.color)
-                                )
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(tagEntity.name)
-                                    Text(buildString {
-                                        tagUsageList[index].let {
-                                            it.forEachIndexed { index, userIndex ->
-                                                append(otherUserSessions[userIndex].name)
-                                                if (index != it.size - 1) append(", ")
-                                            }
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(3.dp, 0.dp)
+                                ) {
+                                    Icon(
+                                        painterResource(R.drawable.ic_tag_outline),
+                                        null,
+                                        tint = if (tagEntity.color == TAG_COLOR_UNSPECIFIED) {
+                                            if (isSystemInDarkTheme()) Color.LightGray else Color.DarkGray
+                                        } else Color(
+                                            tagEntity.color
+                                        )
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(tagEntity.name)
+                                        Text(
+                                            buildString {
+                                                tagUsageList.getOrNull(index)?.let {
+                                                    it.forEachIndexed { index, userIndex ->
+                                                        append(otherUserSessions[userIndex].name)
+                                                        if (index != it.size - 1) append(", ")
+                                                    }
+                                                }
+                                            },
+                                            fontSize = 12.sp,
+                                            lineHeight = 14.sp,
+                                            color = if (isSystemInDarkTheme()) Color.Gray else Color.DarkGray
+                                        )
+                                    }
+                                    Row {
+                                        IconButton(onClick = {
+
+                                        }) {
+                                            Icon(
+                                                painterResource(R.drawable.ic_user_round_cog),
+                                                null
+                                            )
                                         }
-                                    })
-                                }
-                                Row {
-                                    IconButton(onClick = {
+                                        IconButton(onClick = {
 
-                                    }) {
-                                        Icon(painterResource(R.drawable.ic_user_round_cog), null)
-                                    }
-                                    IconButton(onClick = {
-
-                                    }) {
-                                        Icon(
-                                            painter = painterResource(R.drawable.ic_delete),
-                                            contentDescription = "Delete",
-                                            tint = Color(0xFFF1441D)
-                                        )
-                                    }
-                                    IconButton(
-                                        modifier = Modifier.draggableHandle(
-                                            interactionSource = interactionSource,
-                                            onDragStarted = {
-                                                hapticFeedback.performHapticFeedback(
-                                                    HapticFeedbackType.GestureThresholdActivate
-                                                )
-                                            }, onDragStopped = {
-                                                hapticFeedback.performHapticFeedback(
-                                                    HapticFeedbackType.GestureEnd
-                                                )
-                                            }
-                                        ), onClick = {}) {
-                                        Icon(
-                                            painterResource(R.drawable.ic_drag_handle_rounded),
-                                            "",
-                                            tint = Color.Gray
-                                        )
+                                        }) {
+                                            Icon(
+                                                painter = painterResource(R.drawable.ic_delete),
+                                                contentDescription = "Delete",
+                                                tint = Color(0xFFF1441D)
+                                            )
+                                        }
+                                        IconButton(
+                                            modifier = Modifier.draggableHandle(
+                                                interactionSource = interactionSource,
+                                                onDragStarted = {
+                                                    hapticFeedback.performHapticFeedback(
+                                                        HapticFeedbackType.GestureThresholdActivate
+                                                    )
+                                                }, onDragStopped = {
+                                                    hapticFeedback.performHapticFeedback(
+                                                        HapticFeedbackType.GestureEnd
+                                                    )
+                                                }
+                                            ), onClick = {}) {
+                                            Icon(
+                                                painterResource(R.drawable.ic_drag_handle_rounded),
+                                                "",
+                                                tint = Color.Gray
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -1056,25 +1102,74 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                             verticalAlignment = Alignment.CenterVertically,
                                             horizontalArrangement = Arrangement.SpaceBetween
                                         ) {
-                                            Text(
-                                                text = buildAnnotatedString {
-                                                    append(user.name)
-                                                    withStyle(
-                                                        SpanStyle(
-                                                            color = if (isSystemInDarkTheme()) Color.Gray else Color.DarkGray,
-                                                            fontSize = 12.sp
-                                                        )
-                                                    ) {
-                                                        append(" (${user.phoneNumber})")
-                                                    }
-                                                },
-                                                fontSize = 14.sp,
-                                                lineHeight = 16.sp,
-                                                fontWeight = FontWeight.Medium,
+                                            Column(
                                                 modifier = Modifier
                                                     .weight(1f)
-                                                    .padding(0.dp, 2.dp),
-                                            )
+                                                    .padding(0.dp, 2.dp)
+                                            ) {
+                                                Text(
+                                                    text = buildAnnotatedString {
+                                                        append(user.name)
+                                                        withStyle(
+                                                            SpanStyle(
+                                                                color = if (isSystemInDarkTheme()) Color.Gray else Color.DarkGray,
+                                                                fontSize = 12.sp
+                                                            )
+                                                        ) {
+                                                            append(" (${user.phoneNumber})")
+                                                        }
+                                                    },
+                                                    fontSize = 14.sp,
+                                                    lineHeight = 16.sp,
+                                                    fontWeight = FontWeight.Medium,
+                                                    modifier = Modifier
+                                                        .fillMaxWidth(),
+                                                )
+                                                if (userTagList.getOrNull(index)
+                                                        ?.isNotEmpty() == true
+                                                ) {
+                                                    Spacer(
+                                                        modifier = Modifier.padding(
+                                                            0.dp,
+                                                            2.dp,
+                                                            0.dp,
+                                                            0.dp
+                                                        )
+                                                    )
+                                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                                        Icon(
+                                                            painterResource(R.drawable.ic_tag),
+                                                            null
+                                                        )
+                                                        Spacer(modifier = Modifier.width(4.dp))
+                                                        val fontSize10spStyle =
+                                                            remember { SpanStyle(fontSize = 10.sp) }
+                                                        Text(
+                                                            buildAnnotatedString {
+                                                                userTagList[index].forEachIndexed { index, tagEntity ->
+                                                                    withStyle(
+                                                                        SpanStyle(
+                                                                            color = if (tagEntity.color == TAG_COLOR_UNSPECIFIED) {
+                                                                                if (isSystemInDarkTheme()) Color.LightGray else Color.DarkGray
+                                                                            } else Color(
+                                                                                tagEntity.color
+                                                                            ), fontSize = 10.sp
+                                                                        )
+                                                                    ) {
+                                                                        append(tagEntity.name)
+                                                                    }
+                                                                    if (index != user.tagsList.size - 1)
+                                                                        withStyle(fontSize10spStyle) {
+                                                                            append(", ")
+                                                                        }
+                                                                }
+                                                            },
+                                                            lineHeight = 12.sp,
+                                                            modifier = Modifier.padding(0.dp, 1.dp)
+                                                        )
+                                                    }
+                                                }
+                                            }
                                             Row(
                                                 horizontalArrangement = Arrangement.End,
                                                 verticalAlignment = Alignment.CenterVertically
@@ -1122,30 +1217,6 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                                 }
                                             }
                                         }
-                                        if (userTagList.getOrNull(index)?.isNotEmpty() == true)
-                                            Row {
-                                                Icon(painterResource(R.drawable.ic_tag), null)
-                                                Spacer(modifier = Modifier.width(4.dp))
-                                                val fontSize10spStyle =
-                                                    remember { SpanStyle(fontSize = 10.sp) }
-                                                Text(buildAnnotatedString {
-                                                    userTagList[index].forEachIndexed { index, tagEntity ->
-                                                        withStyle(
-                                                            SpanStyle(
-                                                                color = Color(
-                                                                    tagEntity.color
-                                                                ), fontSize = 10.sp
-                                                            )
-                                                        ) {
-                                                            append(tagEntity.name)
-                                                        }
-                                                        if (index != user.tagsList.size - 1)
-                                                            withStyle(fontSize10spStyle) {
-                                                                append(", ")
-                                                            }
-                                                    }
-                                                })
-                                            }
 
                                     }
                                 }
