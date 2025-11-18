@@ -67,9 +67,12 @@ object ChaoxingCourseHelper {
             client.newCall(Request.Builder().get().url(URL_COURSE_LIST).build()).execute()
                 .use { rawResponse ->
                     if (rawResponse.checkResponse(context)) {
-                        Toast.makeText(context, "网络异常，请重新登录", Toast.LENGTH_SHORT)
-                            .show()
                         withContext(Dispatchers.Main) {
+                            Toast.makeText(
+                                context,
+                                "网络异常，请重新登录",
+                                Toast.LENGTH_SHORT
+                            ).show()
                             naviToLogin()
                         }
                         return@withContext emptyList()
@@ -78,9 +81,12 @@ object ChaoxingCourseHelper {
                     var channelList = jsonResult.getJSONArray("channelList")
                     if (jsonResult.getInteger("result") == 0 || channelList == null) {
                         if (client.reLogin(context).not()) {
-                            Toast.makeText(context, "登录信息已过期，请重新登录", Toast.LENGTH_SHORT)
-                                .show()
                             withContext(Dispatchers.Main) {
+                                Toast.makeText(
+                                    context,
+                                    "登录信息已过期，请重新登录",
+                                    Toast.LENGTH_SHORT
+                                ).show()
                                 naviToLogin()
                             }
                             return@withContext emptyList()
@@ -88,25 +94,25 @@ object ChaoxingCourseHelper {
                             client.newCall(Request.Builder().get().url(URL_COURSE_LIST).build())
                                 .execute().use {
                                     if (it.checkResponse(context)) {
-                                        Toast.makeText(
-                                            context,
-                                            "网络异常，请重新登录",
-                                            Toast.LENGTH_SHORT
-                                        ).show()
                                         withContext(Dispatchers.Main) {
+                                            Toast.makeText(
+                                                context,
+                                                "网络异常，请重新登录",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
                                             naviToLogin()
                                         }
                                         return@withContext emptyList()
                                     }
                                     jsonResult = JSONObject.parseObject(it.body.string())
                                     channelList = jsonResult.getJSONArray("channelList")
-                                    if (jsonResult.getInteger("result") == 0 || channelList==null) {
-                                        Toast.makeText(
-                                            context,
-                                            "登录信息已过期，请重新登录",
-                                            Toast.LENGTH_SHORT
-                                        ).show()
+                                    if (jsonResult.getInteger("result") == 0 || channelList == null) {
                                         withContext(Dispatchers.Main) {
+                                            Toast.makeText(
+                                                context,
+                                                "登录信息已过期，请重新登录",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
                                             naviToLogin()
                                         }
                                     }

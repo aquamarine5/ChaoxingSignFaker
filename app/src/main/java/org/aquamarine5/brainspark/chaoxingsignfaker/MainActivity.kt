@@ -49,7 +49,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
@@ -300,18 +299,21 @@ class MainActivity : ComponentActivity() {
                                 .writeTimeout(20, TimeUnit.MINUTES)
                                 .build()
                         ).let {
-                            StackbricksService(
-                                LocalContext.current,
-                                QiniuMessageProvider(it),
-                                QiniuPackageProvider(it),
-                                rememberStackbricksStatus(),
-                                stackbricksPolicy = StackbricksPolicy(
-                                    versionName = BuildConfig.VERSION_NAME,
-                                    isAllowedToDisableCheckUpdateOnLaunch = false,
-                                    isForceInstallValueCallback = false,
-                                    versionCode = null
-                                ),
-                            )
+                            val state = rememberStackbricksStatus()
+                            remember {
+                                StackbricksService(
+                                    this,
+                                    QiniuMessageProvider(it),
+                                    QiniuPackageProvider(it),
+                                    state,
+                                    stackbricksPolicy = StackbricksPolicy(
+                                        versionName = BuildConfig.VERSION_NAME,
+                                        isAllowedToDisableCheckUpdateOnLaunch = false,
+                                        isForceInstallValueCallback = false,
+                                        versionCode = null
+                                    ),
+                                )
+                            }
                         }
                         Column(
                             modifier = Modifier

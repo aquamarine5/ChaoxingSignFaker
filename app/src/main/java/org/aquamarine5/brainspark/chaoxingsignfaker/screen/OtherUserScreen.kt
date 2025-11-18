@@ -84,12 +84,14 @@ import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.LineBreak
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
@@ -440,6 +442,9 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                             },
                                             fontSize = 14.sp,
                                             lineHeight = 16.sp,
+                                            style= TextStyle.Default.copy(
+                                                lineBreak = LineBreak.Paragraph
+                                            ),
                                             fontWeight = FontWeight.Medium,
                                             modifier = Modifier
                                                 .clickable {
@@ -1040,7 +1045,8 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(8.dp, 4.dp, 3.dp, 4.dp),
-                    elevation = CardDefaults.cardElevation(7.dp)
+                    elevation = CardDefaults.cardElevation(7.dp),
+                    colors= CardDefaults.cardColors(MaterialTheme.colorScheme.primaryContainer)
                 ) {
                     Row(
                         modifier = Modifier
@@ -1165,6 +1171,9 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                                                 }
                                                             },
                                                             lineHeight = 12.sp,
+                                                            style= TextStyle.Default.copy(
+                                                                lineBreak = LineBreak.Paragraph
+                                                            ),
                                                             modifier = Modifier.padding(0.dp, 1.dp)
                                                         )
                                                     }
