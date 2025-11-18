@@ -42,11 +42,14 @@ dependencyResolutionManagement {
             }
         }
         google()
-        mavenCentral()
+
         maven {
             url = uri("https://jitpack.io")
+            content{
+                includeModule("com.github.ihsg","PatternLocker")
+            }
         }
-
+        mavenCentral()
 
     }
 }
