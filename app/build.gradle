@@ -109,6 +109,7 @@ dependencies {
     implementation(libs.lbsyun.base)
     implementation libs.patternlocker
     implementation libs.androidx.material
+    implementation(libs.colorpicker.compose)
     implementation libs.core
     implementation libs.camera.mlkit.vision
     implementation libs.barcode.scanning

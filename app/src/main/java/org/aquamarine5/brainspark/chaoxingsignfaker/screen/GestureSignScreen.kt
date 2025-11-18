@@ -15,6 +15,7 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
@@ -157,19 +158,20 @@ fun GestureSignScreen(
     Crossfade(isAlreadySigned) { v ->
         when (v) {
             true -> {
-                Column(modifier = Modifier.padding(8.dp, 0.dp)) {
-                    SignPotentialWarningTips(
-                        destination.startTime,
-                        destination.endTime,
-                        destination.isLate,
-                        isPadding = true
-                    )
+                Box(modifier = Modifier.padding(8.dp)) {
                     AlreadySignedNotice(onSignForOtherUser = {
                         isAlreadySigned = false
                         isSignForOther = true
                     }, onDismiss = {
                         isAlreadySigned = false
                     }) { navToCourseDetailDestination() }
+
+                    SignPotentialWarningTips(
+                        destination.startTime,
+                        destination.endTime,
+                        destination.isLate,
+                        isPadding = true
+                    )
                 }
             }
 

@@ -14,6 +14,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
@@ -142,19 +143,20 @@ fun LocationSignScreen(
     Crossfade(isAlreadySigned) { v ->
         when (v) {
             true -> {
-                Column(modifier = Modifier.padding(8.dp, 0.dp)) {
-                    SignPotentialWarningTips(
-                        destination.startTime,
-                        destination.endTime,
-                        destination.isLate,
-                        isPadding = true
-                    )
+                Box(modifier = Modifier.padding(8.dp)) {
                     AlreadySignedNotice(onSignForOtherUser = {
                         isAlreadySigned = false
                         isSignForOther = true
                     }, onDismiss = {
                         isAlreadySigned = false
                     }) { navToCourseDetailDestination() }
+
+                    SignPotentialWarningTips(
+                        destination.startTime,
+                        destination.endTime,
+                        destination.isLate,
+                        isPadding = true
+                    )
                 }
             }
 

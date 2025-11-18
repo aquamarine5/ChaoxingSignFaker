@@ -26,6 +26,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -41,12 +42,17 @@ fun SignPotentialWarningTips(
     startTime: Long,
     endTime: Long?,
     isLate: Boolean,
+    modifier: Modifier = Modifier,
     isPadding: Boolean = false
 ) {
     val dateFormatter = remember {
         DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneId.systemDefault())
     }
-    Column(modifier = Modifier.padding(horizontal = if (isPadding) 8.dp else 0.dp)) {
+    Column(
+        modifier = Modifier
+            .padding(horizontal = if (isPadding) 8.dp else 0.dp)
+            .then(modifier)
+    ) {
         if (isLate)
             Card(
                 shape = RoundedCornerShape(18.dp),
@@ -118,7 +124,12 @@ fun SignPotentialWarningTips(
                                         )
                                     } 距离现在已经超过 "
                                 )
-                                withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+                                withStyle(
+                                    SpanStyle(
+                                        fontWeight = FontWeight.Bold,
+                                        textDecoration = TextDecoration.Underline
+                                    )
+                                ) {
                                     append("6")
                                 }
                                 append(" 小时，请确认没有选择错签到事件。")

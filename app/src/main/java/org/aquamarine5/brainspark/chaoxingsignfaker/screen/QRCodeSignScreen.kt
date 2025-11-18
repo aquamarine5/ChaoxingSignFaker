@@ -168,21 +168,21 @@ fun QRCodeSignScreen(
     Crossfade(isAlreadySigned) { v ->
         when (v) {
             true -> {
-                Column(
+                Box(
                     modifier = Modifier.padding(8.dp)
                 ) {
-                    SignPotentialWarningTips(
-                        destination.startTime,
-                        destination.endTime,
-                        destination.isLate
-                    )
-
                     AlreadySignedNotice(onSignForOtherUser = {
                         isAlreadySigned = false
                         isCurrentAlreadySigned = true
                     }, onDismiss = {
                         isAlreadySigned = false
                     }) { navBack() }
+
+                    SignPotentialWarningTips(
+                        destination.startTime,
+                        destination.endTime,
+                        destination.isLate
+                    )
                 }
             }
 

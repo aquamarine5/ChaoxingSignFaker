@@ -34,6 +34,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.R
 fun AlreadySignedNotice(
     onSignForOtherUser: (() -> Unit)?,
     onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
     navBack: () -> Unit,
 ) {
     val hapticFeedback = LocalHapticFeedback.current
@@ -41,7 +42,8 @@ fun AlreadySignedNotice(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .padding(16.dp),
+            .padding(16.dp)
+            .then(modifier),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {

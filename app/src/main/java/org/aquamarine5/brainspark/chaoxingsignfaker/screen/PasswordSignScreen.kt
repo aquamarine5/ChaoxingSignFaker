@@ -165,19 +165,20 @@ fun PasswordSignScreen(
     Crossfade(isAlreadySigned) { v ->
         when (v) {
             true -> {
-                Column(modifier = Modifier.padding(8.dp, 0.dp)) {
-                    SignPotentialWarningTips(
-                        destination.startTime,
-                        destination.endTime,
-                        destination.isLate,
-                        isPadding = true
-                    )
+                Box(modifier = Modifier.padding(8.dp)) {
                     AlreadySignedNotice(onSignForOtherUser = {
                         isAlreadySigned = false
                         isSignForOther = true
                     }, onDismiss = {
                         isAlreadySigned = false
                     }) { navToCourseDetailDestination() }
+
+                    SignPotentialWarningTips(
+                        destination.startTime,
+                        destination.endTime,
+                        destination.isLate,
+                        isPadding = true
+                    )
                 }
             }
 
