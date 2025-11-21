@@ -60,6 +60,7 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -176,7 +177,12 @@ fun SettingScreen(
                 text = {
                     Text(buildAnnotatedString {
                         append("当你登出时，你的签到统计数据不会丢失，但是星标课程")
-                        withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+                        withStyle(
+                            SpanStyle(
+                                fontWeight = FontWeight.Bold,
+                                textDecoration = TextDecoration.Underline
+                            )
+                        ) {
                             append("会被清除")
                         }
                         append("。")

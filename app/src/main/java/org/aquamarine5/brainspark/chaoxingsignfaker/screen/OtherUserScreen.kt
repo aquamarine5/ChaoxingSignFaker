@@ -39,13 +39,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.minimumInteractiveComponentSize
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -485,6 +485,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                     onDismissRequest = {},
                     confirmButton = {
                         Button(onClick = {
+                            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                             coroutineScope.launch(Dispatchers.IO) {
                                 isSavingDatastore = true
                                 modifiedUserList.forEachIndexed { index, state ->
@@ -507,15 +508,16 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                             }
                                         }
                                     }.build()
-                                    val sessionIndex =
-                                        context.chaoxingDataStore.data.first().otherUsersList.indexOfFirst { it.phoneNumber == session.phoneNumber }
-                                    if (sessionIndex != -1) {
-                                        mutex.withLock {
-                                            context.chaoxingDataStore.updateData { dataStore ->
-                                                dataStore.toBuilder().apply {
+                                    otherUserSessions[index] = newSession
+                                    mutex.withLock {
+                                        context.chaoxingDataStore.updateData { dataStore ->
+                                            val sessionIndex =
+                                                dataStore.otherUsersList.indexOfFirst { it.phoneNumber == session.phoneNumber }
+                                            dataStore.toBuilder().apply {
+                                                if (sessionIndex != -1) {
                                                     setOtherUsers(sessionIndex, newSession)
-                                                }.build()
-                                            }
+                                                }
+                                            }.build()
                                         }
                                     }
                                 }
@@ -527,12 +529,19 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                         }
                     }, dismissButton = {
                         OutlinedButton(onClick = {
+                            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                             modifiedTagIndexForUserSelector = null
                         }) {
                             Text("不保存")
                         }
                     }, title = {
-                        Text("修改${tagsEntityList[modifiedTagIndexForUserSelector!!].name}标签的用户")
+                        Text(buildAnnotatedString {
+                            append("修改 ")
+                            withStyle(SpanStyle(color = Color(tagsEntityList[modifiedTagIndexForUserSelector!!].color))) {
+                                append(tagsEntityList[modifiedTagIndexForUserSelector!!].name)
+                            }
+                            append(" 标签的用户")
+                        })
                     }, text = {
                         LazyColumn {
                             otherUserSessions.forEachIndexed { index, session ->
@@ -591,6 +600,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                     isSelectNewTagColorDialog = false
                 }, confirmButton = {
                     Button(onClick = {
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                         newTagColor = color
                         isSelectNewTagColorDialog = false
                     }) {
@@ -598,6 +608,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                     }
                 }, dismissButton = {
                     OutlinedButton(onClick = {
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                         newTagColor = null
                         isSelectNewTagColorDialog = false
                     }) {
@@ -699,7 +710,6 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                                         newTagUserIndexList.remove(index)
                                                 }
                                                 .fillMaxWidth()
-                                                .padding(0.dp, 2.dp)
                                                 .padding(0.dp, 2.dp)
                                         )
                                     }
@@ -836,7 +846,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                         } else Color(
                                             tagEntity.color
                                         ),
-                                        modifier = Modifier.minimumInteractiveComponentSize()
+                                        modifier = Modifier.padding(3.dp, 0.dp)
                                     )
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Column(modifier = Modifier.weight(1f)) {
@@ -902,23 +912,89 @@ fun OtherUserScreen(naviBack: () -> Unit) {
         })
     }
     if (selectedUserIndexTagDialog != null) {
-        AlertDialog(onDismissRequest = {
-            selectedUserIndexTagDialog = null
-        }, icon = {
-            Icon(
-                painterResource(R.drawable.ic_tag),
-                null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(40.dp)
-            )
-        }, confirmButton = {
-            OutlinedButton(onClick = {
-                selectedUserIndexTagDialog = null
-            }) { Text("关闭") }
-        }, title = {
-            Text("为${otherUserSessions[selectedUserIndexTagDialog!!].name}添加标签")
-        }, text = {
-        })
+        val modifiedTagIndexList = remember(selectedUserIndexTagDialog) {
+            List(tagsEntityList.size) {
+                mutableStateOf(userTagList[selectedUserIndexTagDialog!!].any { tagEntity ->
+                    tagEntity.id == tagsEntityList[it].id
+                })
+            }
+        }
+        var isSavingDatastore by remember { mutableStateOf(false) }
+        AlertDialog(
+            onDismissRequest = {},
+            icon = {
+                Icon(
+                    painterResource(R.drawable.ic_tag),
+                    null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(40.dp)
+                )
+            }, confirmButton = {
+                Button(onClick = {
+                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                    coroutineScope.launch(Dispatchers.IO) {
+                        isSavingDatastore = true
+                        context.chaoxingDataStore.updateData { dataStore ->
+                            dataStore.toBuilder().apply {
+                                val newTagList = modifiedTagIndexList.mapIndexed { index, state ->
+                                    if (state.value) null
+                                    else {
+                                        tagsEntityList[index].id
+                                    }
+                                }.filterNotNull()
+                                userTagList[selectedUserIndexTagDialog!!].clear()
+                                userTagList[selectedUserIndexTagDialog!!].addAll(newTagList.map { tagId ->
+                                    tagsEntityList.first { it.id == tagId }
+                                })
+                                setOtherUsers(
+                                    selectedUserIndexTagDialog!!,
+                                    otherUserSessions[selectedUserIndexTagDialog!!].toBuilder()
+                                        .apply {
+                                            clearTags()
+                                            addAllTags(newTagList)
+                                        })
+
+                            }.build()
+                        }
+                        isSavingDatastore = false
+                        selectedUserIndexTagDialog = null
+                    }
+                }, enabled = !isSavingDatastore) {
+                    Text(if (isSavingDatastore) "保存中" else "保存")
+                }
+            }, dismissButton = {
+                OutlinedButton(onClick = {
+                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                    selectedUserIndexTagDialog = null
+                }) { Text("不保存退出") }
+            }, title = {
+                Text("为${otherUserSessions[selectedUserIndexTagDialog!!].name}添加标签")
+            }, text = {
+                LazyColumn {
+                    itemsIndexed(tagsEntityList) { index, tagEntity ->
+                        key(tagEntity.id) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(3.dp)
+                            ) {
+                                Icon(
+                                    painterResource(R.drawable.ic_tag),
+                                    null,
+                                    tint = Color(tagEntity.color)
+                                )
+                                Checkbox(
+                                    checked = modifiedTagIndexList[index].value,
+                                    onCheckedChange = {
+                                        modifiedTagIndexList[index].value = it
+                                    })
+                                Text(tagEntity.name)
+                            }
+                        }
+                    }
+                }
+            })
     }
     if (isURLSharedDialog) {
         AlertDialog(onDismissRequest = {
@@ -1132,6 +1208,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
             Spacer(modifier = Modifier.height(8.dp))
             Card(
                 onClick = {
+                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                     isTagsSettingDialog = true
                 },
                 shape = RoundedCornerShape(18.dp),
@@ -1419,7 +1496,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                                             remember { SpanStyle(fontSize = 10.sp) }
                                                         Text(
                                                             buildAnnotatedString {
-                                                                userTagList[index].forEachIndexed { index, tagEntity ->
+                                                                userTagList[index].forEachIndexed { tagIndex, tagEntity ->
                                                                     withStyle(
                                                                         SpanStyle(
                                                                             color = if (tagEntity.color == TAG_COLOR_UNSPECIFIED) {
@@ -1431,7 +1508,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                                                     ) {
                                                                         append(tagEntity.name)
                                                                     }
-                                                                    if (index != user.tagsList.size - 1)
+                                                                    if (tagIndex != userTagList[index].size - 1)
                                                                         withStyle(fontSize10spStyle) {
                                                                             append(", ")
                                                                         }
