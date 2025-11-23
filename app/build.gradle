@@ -21,7 +21,7 @@ stackbricksConfig {
     possibleConfigurationPaths = [
             new PossibleConfigurationPath("cdn.aquamarine5.fun", "chaoxingsignfaker_stackbricks_v2_manifest.json")
     ]
-    changelog = "1.12版本更新：\n- 1. 支持签到码和图案九宫格签到。\n- 2. 优化了验证码处理逻辑。\n- 3. 添加的代签用户现在可以重排序了。\n- 4. 提升了签到速度。\n- 5. 修复了影响签到体验的超级多BUG。\n如果你的版本在1.7.2（250529）以下，那么新版本更新了：\n- 1. 验证码签到\n- 2. 支持签退\n- 3. 触感反馈\n- 4. 修复了崩溃问题\n- 5. 更好看的界面\n如果你的版本在1.4.9（250420）以下，那么新版本还更新了：\n- 1. 支持给其他用户代签\n- 2. 优化了位置签到时的严重卡顿\n\nlovely lonely, 20251108, @aquamarine5 Brainspark."
+    changelog = "# 1.12.3版本更新：\n- 1. 支持了代签用户的标签系统。\n- 2. 优化了程序运行速度和界面操作，修复了BUG。\n# 1.12.2版本更新：\n- 1. 支持签到码和图案九宫格签到。\n- 2. 优化了验证码处理逻辑。\n- 3. 添加的代签用户现在可以重排序了。\n- 4. 提升了签到速度。\n- 5. 修复了影响签到体验的超级多BUG。\n# 如果你的版本在1.7.2（250529）以下，那么新版本更新了：\n- 1. 验证码签到\n- 2. 支持签退\n- 3. 触感反馈\n- 4. 修复了崩溃问题\n- 5. 更好看的界面\n# 如果你的版本在1.4.9（250420）以下，那么新版本还更新了：\n- 1. 支持给其他用户代签\n- 2. 优化了位置签到时的严重卡顿\n\nlovely lonely, 20251123, @aquamarine5 Brainspark."
     requiredManifestVersion2MigrateForceInstall = true
     qiniuConfig {
         accessKey = project.findProperty("qiniu.accessKey") ?: ""

@@ -470,7 +470,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                             painterResource(R.drawable.ic_delete),
                             null,
                             tint = Color.Red,
-                            modifier=Modifier.size(40.dp)
+                            modifier = Modifier.size(40.dp)
                         )
                     }
                 )

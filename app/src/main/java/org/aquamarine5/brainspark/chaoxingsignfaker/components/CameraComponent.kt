@@ -119,8 +119,7 @@ fun CameraComponent(
                         if (takeImage!!.byteCount > 100 * 1024 * 1024) {
                             snackbarHost.displaySnackbar("图片过大，无法显示预览", coroutineScope)
                             null
-                        }
-                        else takeImage!!.asImageBitmap()
+                        } else takeImage!!.asImageBitmap()
                     }
                 }
             }

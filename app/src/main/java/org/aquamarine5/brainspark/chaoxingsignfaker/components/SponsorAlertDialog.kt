@@ -220,7 +220,10 @@ fun SponsorAlertDialog(showDialog: MutableState<Boolean>) {
                                         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                                     })
                             }.onFailure {
-                                snackbarState.displaySnackbar("无法打开微信，请确保已安装微信", coroutineScope)
+                                snackbarState.displaySnackbar(
+                                    "无法打开微信，请确保已安装微信",
+                                    coroutineScope
+                                )
                             }
                             UMengHelper.onGotoSponsorWechatEvent(
                                 context,
