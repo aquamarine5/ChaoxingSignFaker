@@ -93,6 +93,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -342,21 +343,23 @@ fun OtherUserScreen(naviBack: () -> Unit) {
             Text("管理标签")
         }, text = {
             val mutex = remember { Mutex() }
-            val tagUsageList = remember { mutableStateListOf<List<Int>>() }
-            LaunchedEffect(isTagsSettingDialog) {
-                if (isTagsSettingDialog)
-                    coroutineScope.launch(Dispatchers.IO) {
-                        tagUsageList.clear()
+            val tagUsageList = remember(isTagsSettingDialog) {
+                if (isTagsSettingDialog) {
+                    mutableStateListOf<MutableState<List<Int>>>().apply {
                         tagsEntityList.forEach { tag ->
-                            tagUsageList.add(
-                                buildList {
+                            add(
+                                mutableStateOf(buildList {
                                     otherUserSessions.forEachIndexed { index, session ->
                                         if (session.tagsList.any { tag.id == it })
                                             add(index)
                                     }
                                 })
+                            )
                         }
                     }
+                } else {
+                    mutableStateListOf()
+                }
             }
             var delectTagIndexForSecondaryConfirm by remember { mutableStateOf<Int?>(null) }
             var modifiedTagIndexForUserSelector by remember { mutableStateOf<Int?>(null) }
@@ -381,7 +384,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                         setName(newTagName)
                     }.build()
                     tagsEntityList.add(0, newTagType)
-                    tagUsageList.add(0, newTagUserIndexList)
+                    tagUsageList.add(0, mutableStateOf(newTagUserIndexList))
                     newTagUserIndexList.forEach {
                         userTagList[it].value = listOf(newTagType) + userTagList[it].value
                     }
@@ -466,7 +469,8 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                         Icon(
                             painterResource(R.drawable.ic_delete),
                             null,
-                            tint = Color.Red
+                            tint = Color.Red,
+                            modifier=Modifier.size(40.dp)
                         )
                     }
                 )
@@ -488,16 +492,30 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                             hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                             coroutineScope.launch(Dispatchers.IO) {
                                 isSavingDatastore = true
+                                val newTagUsage = mutableListOf<Int>()
                                 modifiedUserList.forEachIndexed { index, state ->
-                                    if (state.value == null) return@forEachIndexed
+                                    if (state.value == null) {
+                                        if (tagUsageList[modifiedTagIndexForUserSelector!!].value.any { it == index })
+                                            newTagUsage.add(index)
+                                        return@forEachIndexed
+                                    }
+                                    if (state.value == true) {
+                                        newTagUsage.add(index)
+                                    }
                                     val tagId = tagsEntityList[modifiedTagIndexForUserSelector!!].id
                                     val session = otherUserSessions[index]
+                                    val newUserTag = userTagList[index].value.toMutableList()
                                     val newSession = session.toBuilder().apply {
                                         if (state.value!!) {
+                                            newUserTag.add(
+                                                0,
+                                                tagsEntityList[modifiedTagIndexForUserSelector!!]
+                                            )
                                             if (session.tagsList.none { it == tagId }) {
                                                 addTags(tagsEntityList[modifiedTagIndexForUserSelector!!].id)
                                             }
                                         } else {
+                                            newUserTag.remove(tagsEntityList[modifiedTagIndexForUserSelector!!])
                                             val tagIndexInSession =
                                                 session.tagsList.indexOfFirst { it == tagId }
                                             if (tagIndexInSession != -1) {
@@ -508,6 +526,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                             }
                                         }
                                     }.build()
+                                    userTagList[index].value = newUserTag
                                     otherUserSessions[index] = newSession
                                     mutex.withLock {
                                         context.chaoxingDataStore.updateData { dataStore ->
@@ -521,6 +540,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                         }
                                     }
                                 }
+                                tagUsageList[modifiedTagIndexForUserSelector!!].value = newTagUsage
                                 isSavingDatastore = false
                                 modifiedTagIndexForUserSelector = null
                             }
@@ -535,13 +555,14 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                             Text("不保存")
                         }
                     }, title = {
-                        Text(buildAnnotatedString {
-                            append("修改 ")
-                            withStyle(SpanStyle(color = Color(tagsEntityList[modifiedTagIndexForUserSelector!!].color))) {
-                                append(tagsEntityList[modifiedTagIndexForUserSelector!!].name)
-                            }
-                            append(" 标签的用户")
-                        })
+                        if (modifiedTagIndexForUserSelector != null)
+                            Text(buildAnnotatedString {
+                                append("修改 ")
+                                withStyle(SpanStyle(color = Color(tagsEntityList[modifiedTagIndexForUserSelector!!].color))) {
+                                    append(tagsEntityList[modifiedTagIndexForUserSelector!!].name)
+                                }
+                                append(" 标签的用户")
+                            })
                     }, text = {
                         LazyColumn {
                             otherUserSessions.forEachIndexed { index, session ->
@@ -553,7 +574,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                         ) {
                                             Checkbox(
                                                 modifiedUserList[index].value
-                                                    ?: tagUsageList[modifiedTagIndexForUserSelector!!].any { it == index },
+                                                    ?: if (modifiedTagIndexForUserSelector != null) tagUsageList[modifiedTagIndexForUserSelector!!].value.any { it == index } else false,
                                                 onCheckedChange = {
                                                     modifiedUserList[index].value = it
                                                 }
@@ -580,7 +601,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                                     .clickable {
                                                         modifiedUserList[index].value =
                                                             (modifiedUserList[index].value
-                                                                ?: tagUsageList[modifiedTagIndexForUserSelector!!].any { it == index }).not()
+                                                                ?: tagUsageList[modifiedTagIndexForUserSelector!!].value.any { it == index }).not()
                                                     }
                                                     .fillMaxWidth()
                                                     .padding(0.dp, 2.dp)
@@ -591,7 +612,12 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                             }
                         }
                     }, icon = {
-                        Icon(painterResource(R.drawable.ic_user_round_cog), null)
+                        Icon(
+                            painterResource(R.drawable.ic_user_round_cog),
+                            null,
+                            modifier = Modifier.size(40.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
                     })
             }
             if (isSelectNewTagColorDialog) {
@@ -614,6 +640,13 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                     }) {
                         Text("恢复默认")
                     }
+                }, icon = {
+                    Icon(
+                        painterResource(R.drawable.ic_palette),
+                        null,
+                        modifier = Modifier.size(40.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
                 }, title = {
                     Text("设置标签颜色")
                 }, text = {
@@ -661,7 +694,12 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                 }, title = {
                     Text("为新标签选择用户")
                 }, icon = {
-                    Icon(painterResource(R.drawable.ic_user_round_cog), null)
+                    Icon(
+                        painterResource(R.drawable.ic_user_round_cog),
+                        null,
+                        modifier = Modifier.size(40.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
                 }, text = {
                     LazyColumn {
                         otherUserSessions.forEachIndexed { index, session ->
@@ -852,12 +890,16 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                     Column(modifier = Modifier.weight(1f)) {
                                         Text(tagEntity.name)
                                         Text(
-                                            buildString {
-                                                tagUsageList.getOrNull(index)?.let {
-                                                    it.forEachIndexed { index, userIndex ->
-                                                        append(otherUserSessions[userIndex].name)
-                                                        if (index != it.size - 1) append(", ")
+                                            buildAnnotatedString {
+                                                tagUsageList.getOrNull(index)?.value?.let {
+                                                    if (it.isEmpty()) withStyle(SpanStyle(fontStyle = FontStyle.Italic)) {
+                                                        append("未被使用")
                                                     }
+                                                    else
+                                                        it.forEachIndexed { index, userIndex ->
+                                                            append(otherUserSessions[userIndex].name)
+                                                            if (index != it.size - 1) append(", ")
+                                                        }
                                                 }
                                             },
                                             fontSize = 12.sp,
@@ -1247,7 +1289,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        "管理用户标签",
+                        "管理用户标签（测试版）",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.W500
                     )
@@ -1331,7 +1373,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                             tint = MaterialTheme.colorScheme.primary
                         )
                         Spacer(modifier = Modifier.width(2.dp))
-                        Text("手动添加")
+                        Text("账密添加")
                     }
                 }
             }
@@ -1368,7 +1410,12 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                             requestedDeleteUserIndex = null
                         },
                         icon = {
-                            Icon(painterResource(R.drawable.ic_delete), null)
+                            Icon(
+                                painterResource(R.drawable.ic_delete),
+                                null,
+                                tint = Color.Red,
+                                modifier = Modifier.size(40.dp)
+                            )
                         },
                         title = {
                             Text("删除用户")
