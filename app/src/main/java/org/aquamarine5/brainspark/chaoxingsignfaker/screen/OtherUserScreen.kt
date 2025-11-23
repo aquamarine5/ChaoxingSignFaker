@@ -65,6 +65,7 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateListOf
@@ -72,7 +73,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
@@ -140,7 +140,7 @@ object OtherUserDestination
 @Serializable
 object OtherUserGraphDestination
 
-private const val TAG_COLOR_UNSPECIFIED = -1L
+const val TAG_COLOR_UNSPECIFIED = -1L
 
 @Composable
 fun OtherUserScreen(naviBack: () -> Unit) {
@@ -164,7 +164,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
     val otherUserSessions = remember { mutableStateListOf<ChaoxingOtherUserSession>() }
     var qrCode by remember { mutableStateOf<Bitmap?>(null) }
     val tagsEntityList = remember { mutableStateListOf<OtherUserTagType>() }
-    val userTagList = remember { mutableStateListOf<SnapshotStateList<OtherUserTagType>>() }
+    val userTagList = remember { mutableStateListOf<MutableState<List<OtherUserTagType>>>() }
     val coroutineScope = rememberCoroutineScope()
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
@@ -173,11 +173,11 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                 otherUserSessions.addAll(datastore.otherUsersList)
                 userTagList.addAll(buildList {
                     otherUserSessions.forEach { session ->
-                        add(SnapshotStateList<OtherUserTagType>().apply {
+                        add(mutableStateOf(buildList {
                             session.tagsList.forEach { tagId ->
                                 tagsEntityList.find { it.id == tagId }?.let { add(it) }
                             }
-                        })
+                        }))
                     }
                 })
                 isLocalSharedEntityReady = ChaoxingOtherUserHelper.checkSharedEntity(datastore)
@@ -383,7 +383,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                     tagsEntityList.add(0, newTagType)
                     tagUsageList.add(0, newTagUserIndexList)
                     newTagUserIndexList.forEach {
-                        userTagList[it].add(0, newTagType)
+                        userTagList[it].value = listOf(newTagType) + userTagList[it].value
                     }
                     coroutineScope.launch(Dispatchers.IO) {
                         mutex.withLock {
@@ -914,7 +914,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
     if (selectedUserIndexTagDialog != null) {
         val modifiedTagIndexList = remember(selectedUserIndexTagDialog) {
             List(tagsEntityList.size) {
-                mutableStateOf(userTagList[selectedUserIndexTagDialog!!].any { tagEntity ->
+                mutableStateOf(userTagList[selectedUserIndexTagDialog!!].value.any { tagEntity ->
                     tagEntity.id == tagsEntityList[it].id
                 })
             }
@@ -937,15 +937,15 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                         context.chaoxingDataStore.updateData { dataStore ->
                             dataStore.toBuilder().apply {
                                 val newTagList = modifiedTagIndexList.mapIndexed { index, state ->
-                                    if (state.value) null
+                                    if (!state.value) null
                                     else {
                                         tagsEntityList[index].id
                                     }
                                 }.filterNotNull()
-                                userTagList[selectedUserIndexTagDialog!!].clear()
-                                userTagList[selectedUserIndexTagDialog!!].addAll(newTagList.map { tagId ->
-                                    tagsEntityList.first { it.id == tagId }
-                                })
+                                userTagList[selectedUserIndexTagDialog!!].value =
+                                    newTagList.map { tagId ->
+                                        tagsEntityList.first { it.id == tagId }
+                                    }
                                 setOtherUsers(
                                     selectedUserIndexTagDialog!!,
                                     otherUserSessions[selectedUserIndexTagDialog!!].toBuilder()
@@ -968,7 +968,8 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                     selectedUserIndexTagDialog = null
                 }) { Text("不保存退出") }
             }, title = {
-                Text("为${otherUserSessions[selectedUserIndexTagDialog!!].name}添加标签")
+                if (selectedUserIndexTagDialog != null)
+                    Text("为${otherUserSessions[selectedUserIndexTagDialog!!].name}添加标签")
             }, text = {
                 LazyColumn {
                     itemsIndexed(tagsEntityList) { index, tagEntity ->
@@ -979,17 +980,31 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                     .fillMaxWidth()
                                     .padding(3.dp)
                             ) {
-                                Icon(
-                                    painterResource(R.drawable.ic_tag),
-                                    null,
-                                    tint = Color(tagEntity.color)
-                                )
                                 Checkbox(
                                     checked = modifiedTagIndexList[index].value,
                                     onCheckedChange = {
                                         modifiedTagIndexList[index].value = it
                                     })
-                                Text(tagEntity.name)
+                                Icon(
+                                    painterResource(R.drawable.ic_tag),
+                                    null,
+                                    tint = Color(tagEntity.color),
+                                    modifier = Modifier
+                                        .size(24.dp)
+                                        .padding(0.dp, 2.dp)
+                                        .clickable {
+                                            modifiedTagIndexList[index].value =
+                                                !modifiedTagIndexList[index].value
+                                        }
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    tagEntity.name, modifier = Modifier
+                                        .clickable {
+                                            modifiedTagIndexList[index].value =
+                                                !modifiedTagIndexList[index].value
+                                        }
+                                        .fillMaxWidth())
                             }
                         }
                     }
@@ -1475,9 +1490,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                                     modifier = Modifier
                                                         .fillMaxWidth(),
                                                 )
-                                                if (userTagList.getOrNull(index)
-                                                        ?.isNotEmpty() == true
-                                                ) {
+                                                if (userTagList.getOrNull(index)?.value?.isNotEmpty() == true) {
                                                     Spacer(
                                                         modifier = Modifier.padding(
                                                             0.dp,
@@ -1496,7 +1509,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                                             remember { SpanStyle(fontSize = 10.sp) }
                                                         Text(
                                                             buildAnnotatedString {
-                                                                userTagList[index].forEachIndexed { tagIndex, tagEntity ->
+                                                                userTagList[index].value.forEachIndexed { tagIndex, tagEntity ->
                                                                     withStyle(
                                                                         SpanStyle(
                                                                             color = if (tagEntity.color == TAG_COLOR_UNSPECIFIED) {
@@ -1508,7 +1521,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                                                     ) {
                                                                         append(tagEntity.name)
                                                                     }
-                                                                    if (tagIndex != userTagList[index].size - 1)
+                                                                    if (tagIndex != userTagList[index].value.size - 1)
                                                                         withStyle(fontSize10spStyle) {
                                                                             append(", ")
                                                                         }
