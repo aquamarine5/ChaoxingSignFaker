@@ -1114,16 +1114,9 @@ fun PhotoSignScreen(
             }
 
             true -> {
-                Column(
+                Box(
                     modifier = Modifier.padding(8.dp)
                 ) {
-                    SignPotentialWarningTips(
-                        destination.startTime,
-                        destination.endTime,
-                        destination.isLate,
-                        isPadding = true
-                    )
-
                     AlreadySignedNotice({
                         isAlreadySigned = false
                         isForSelf = true
@@ -1132,6 +1125,12 @@ fun PhotoSignScreen(
                     }) {
                         navBack()
                     }
+                    SignPotentialWarningTips(
+                        destination.startTime,
+                        destination.endTime,
+                        destination.isLate,
+                        isPadding = true
+                    )
                 }
             }
 

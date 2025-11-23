@@ -20,6 +20,7 @@ import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -34,11 +35,13 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.FloatingActionButton
@@ -50,6 +53,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -81,15 +85,16 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
+import org.aquamarine5.brainspark.chaoxingsignfaker.displaySnackbar
 import org.aquamarine5.brainspark.chaoxingsignfaker.snackbarReport
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
-inline fun CameraComponent(
+fun CameraComponent(
     pictureCount: Int = 1,
-    noinline content: @Composable (() -> Unit)? = null,
-    noinline onNextPhoto: (() -> Unit)? = null,
-    crossinline onPictureResult: (List<Bitmap>) -> Unit
+    content: @Composable (() -> Unit)? = null,
+    onNextPhoto: (() -> Unit)? = null,
+    onPictureResult: (List<Bitmap>) -> Unit
 ) {
     val cameraPermission = rememberPermissionState(android.Manifest.permission.CAMERA)
     val hapticFeedback = LocalHapticFeedback.current
@@ -107,6 +112,17 @@ inline fun CameraComponent(
             val previewView = remember { PreviewView(application) }
             val preview = remember { Preview.Builder().build() }
             var takeImage by remember { mutableStateOf<Bitmap?>(null) }
+            val takeProcessedImage by remember(takeImage) {
+                derivedStateOf {
+                    if (takeImage == null) null
+                    else {
+                        if (takeImage!!.byteCount > 100 * 1024 * 1024) {
+                            snackbarHost.displaySnackbar("图片过大，无法显示预览", coroutineScope)
+                            null
+                        } else takeImage!!.asImageBitmap()
+                    }
+                }
+            }
             var isBackCamera = remember { true }
             val lifecycleOwner = LocalLifecycleOwner.current
             val photoList = remember { mutableListOf<Bitmap>() }
@@ -135,7 +151,7 @@ inline fun CameraComponent(
             var job: Job? = null
             Box(modifier = Modifier.align(Alignment.Center)) {
                 AnimatedContent(
-                    takeImage,
+                    takeProcessedImage,
                     modifier = Modifier.zIndex(2f),
                     transitionSpec = {
                         (fadeIn(animationSpec = tween(220, delayMillis = 90)) +
@@ -153,14 +169,14 @@ inline fun CameraComponent(
                                     targetOffsetX = { it / 4 }
                                 ))
                     }) {
-                    it?.let { img ->
+                    if (it != null) {
                         Box(
                             modifier = Modifier
                                 .fillMaxSize(0.8f)
                                 .border(4.dp, Color.White, RectangleShape)
                         ) {
                             Image(
-                                img.asImageBitmap(),
+                                it,
                                 null
                             )
                         }
@@ -192,14 +208,56 @@ inline fun CameraComponent(
                     }
                 }
             )
+            var showGalleryTooltip by remember { mutableStateOf(true) }
             Box(modifier = Modifier.fillMaxSize()) {
                 Column(
+                    verticalArrangement = Arrangement.Bottom,
+                    horizontalAlignment = Alignment.End,
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
                         .zIndex(1f)
                         .padding(22.dp)
                 ) {
+                    AnimatedVisibility(visible = showGalleryTooltip) {
+                        Surface(
+                            modifier = Modifier.padding(bottom = 4.dp),
+                            shape = TooltipShape(
+                                cornerRadius = 8.dp,
+                                tipSize = 12.dp,
+                                tipXPadding = 16.dp
+                            ),
+                            color = MaterialTheme.colorScheme.surfaceVariant,
+                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(
+                                    start = 12.dp,
+                                    end = 4.dp,
+                                    top = 6.dp,
+                                    bottom = 18.dp
+                                ),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                Text(
+                                    text = "点击可以从图库选择现有图片",
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                IconButton(
+                                    onClick = { showGalleryTooltip = false },
+                                    modifier = Modifier.size(24.dp)
+                                ) {
+                                    Icon(
+                                        painterResource(R.drawable.ic_x),
+                                        contentDescription = "关闭提示"
+                                    )
+                                }
+                            }
+                        }
+                    }
                     FloatingActionButton(onClick = {
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                         gallery.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
                     }) {
                         Icon(
@@ -215,6 +273,7 @@ inline fun CameraComponent(
                     .align(Alignment.TopEnd)
             ) {
                 IconButton(onClick = {
+                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                     future.get().let {
                         it.unbindAll()
                         it.bindToLifecycle(

@@ -34,7 +34,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -75,8 +75,9 @@ private const val SPONSOR_IMAGE_FILENAME_BASE = "ChaoxingSignFaker_sponsor"
 @Composable
 fun SponsorAlertDialog(showDialog: MutableState<Boolean>) {
     val context = LocalActivity.current!!.applicationContext
-    val sponsorList = remember { mutableStateListOf<List<String>>() }
-    val snackbarState= LocalSnackbarHostState.current
+    var sponsorList by remember { mutableStateOf<List<Pair<String, String>>>(listOf()) }
+    var updateDate by remember { mutableStateOf("2006/12/15") }
+    val snackbarState = LocalSnackbarHostState.current
     val coroutineScope = rememberCoroutineScope()
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
@@ -89,12 +90,14 @@ fun SponsorAlertDialog(showDialog: MutableState<Boolean>) {
                 )?.execute().use {
                     val json = JSONObject.parseObject(it?.body?.string())
                     val list = json.getJSONArray("sponsorList")
+                    updateDate = json.getString("updateTime")
                     if (list.isNotEmpty()) {
-                        sponsorList.clear()
-                        for (i in 0 until list.size) {
-                            val item = list.getJSONArray(i)
-                            if (item.size == 2) {
-                                sponsorList.add(listOf(item.getString(0), item.getString(1)))
+                        sponsorList = buildList {
+                            for (i in 0 until list.size) {
+                                val item = list.getJSONArray(i)
+                                if (item.size == 2) {
+                                    add(item.getString(0) to item.getString(1))
+                                }
                             }
                         }
                     }
@@ -208,13 +211,20 @@ fun SponsorAlertDialog(showDialog: MutableState<Boolean>) {
                             Toast.makeText(context, "付款码已保存到相册", Toast.LENGTH_LONG).show()
                         }.invokeOnCompletion {
                             hapticFeedback.performHapticFeedback(HapticFeedbackType.Confirm)
-                            context.startActivity(
-                                Intent(
-                                    Intent.ACTION_VIEW,
-                                    "weixin://".toUri()
-                                ).apply {
-                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                })
+                            runCatching {
+                                context.startActivity(
+                                    Intent(
+                                        Intent.ACTION_VIEW,
+                                        "weixin://".toUri()
+                                    ).apply {
+                                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                    })
+                            }.onFailure {
+                                snackbarState.displaySnackbar(
+                                    "无法打开微信，请确保已安装微信",
+                                    coroutineScope
+                                )
+                            }
                             UMengHelper.onGotoSponsorWechatEvent(
                                 context,
                                 ChaoxingHttpClient.instance!!.userEntity
@@ -237,7 +247,7 @@ fun SponsorAlertDialog(showDialog: MutableState<Boolean>) {
                     color = MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    "如需在列表内显示完整名称，请添加备注，微信支付不会显示完整名称。捐赠列表并非实时更新。",
+                    "如需在列表内显示完整名称，请添加备注，微信支付不会显示完整名称。捐赠列表并非实时更新，上次更新时间：$updateDate",
                     fontStyle = FontStyle.Italic,
                     lineHeight = 14.sp,
                     fontSize = 12.sp
@@ -247,7 +257,7 @@ fun SponsorAlertDialog(showDialog: MutableState<Boolean>) {
                     buildAnnotatedString {
                         sponsorList.forEachIndexed { index, it ->
                             withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
-                                append(it[0])
+                                append(it.first)
                             }
                             append(" 赞赏了 ")
                             withStyle(
@@ -257,7 +267,7 @@ fun SponsorAlertDialog(showDialog: MutableState<Boolean>) {
                                     )
                                 )
                             ) {
-                                append(it[1])
+                                append(it.second)
                             }
                             append(" 元")
                             if (index != sponsorList.size - 1)

@@ -22,12 +22,15 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -35,17 +38,24 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -55,6 +65,7 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateListOf
@@ -64,19 +75,31 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalResources
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.LineBreak
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
@@ -84,6 +107,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
+import com.github.skydoves.colorpicker.compose.HsvColorPicker
+import com.github.skydoves.colorpicker.compose.rememberColorPickerController
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -103,9 +128,12 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.QRCodeScanComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.RequireLoginAlertDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
+import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.OtherUserTagType
+import org.aquamarine5.brainspark.chaoxingsignfaker.displaySnackbar
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingOtherUserSharedEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.snackbarReport
 import sh.calvin.reorderable.ReorderableColumn
+import kotlin.random.Random
 
 @Serializable
 object OtherUserDestination
@@ -113,12 +141,16 @@ object OtherUserDestination
 @Serializable
 object OtherUserGraphDestination
 
+const val TAG_COLOR_UNSPECIFIED = -1L
+
 @Composable
 fun OtherUserScreen(naviBack: () -> Unit) {
     val context = LocalContext.current
     val resources = LocalResources.current
     val snackbarHost = LocalSnackbarHostState.current
     var inputUrl by remember { mutableStateOf("") }
+    var selectedUserIndexTagDialog by remember { mutableStateOf<Int?>(null) }
+    var isTagsSettingDialog by remember { mutableStateOf(false) }
     var isInputDialog by remember { mutableStateOf(false) }
     var isURLSharedDialog by remember { mutableStateOf(false) }
     val isQRCodeScanPause = remember { mutableStateOf(false) }
@@ -132,13 +164,24 @@ fun OtherUserScreen(naviBack: () -> Unit) {
     var importSharedEntity by remember { mutableStateOf<ChaoxingOtherUserSharedEntity?>(null) }
     val otherUserSessions = remember { mutableStateListOf<ChaoxingOtherUserSession>() }
     var qrCode by remember { mutableStateOf<Bitmap?>(null) }
+    val tagsEntityList = remember { mutableStateListOf<OtherUserTagType>() }
+    val userTagList = remember { mutableStateListOf<MutableState<List<OtherUserTagType>>>() }
     val coroutineScope = rememberCoroutineScope()
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
-            context.chaoxingDataStore.data.first().let {
-                otherUserSessions.addAll(it.otherUsersList)
-                isLocalSharedEntityReady =
-                    ChaoxingOtherUserHelper.checkSharedEntity(context.chaoxingDataStore.data.first())
+            context.chaoxingDataStore.data.first().let { datastore ->
+                tagsEntityList.addAll(datastore.tagsLibraryList)
+                otherUserSessions.addAll(datastore.otherUsersList)
+                userTagList.addAll(buildList {
+                    otherUserSessions.forEach { session ->
+                        add(mutableStateOf(buildList {
+                            session.tagsList.forEach { tagId ->
+                                tagsEntityList.find { it.id == tagId }?.let { add(it) }
+                            }
+                        }))
+                    }
+                })
+                isLocalSharedEntityReady = ChaoxingOtherUserHelper.checkSharedEntity(datastore)
             }
         }
     }
@@ -280,8 +323,735 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                     }
                 }, modifier = Modifier.fillMaxWidth()) { Text("添加") }
             }
-
         })
+    }
+    if (isTagsSettingDialog) {
+        AlertDialog(onDismissRequest = {
+            isTagsSettingDialog = false
+        }, confirmButton = {
+            OutlinedButton(onClick = {
+                isTagsSettingDialog = false
+            }) { Text("关闭") }
+        }, icon = {
+            Icon(
+                painterResource(R.drawable.ic_tags),
+                null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(40.dp)
+            )
+        }, title = {
+            Text("管理标签")
+        }, text = {
+            val mutex = remember { Mutex() }
+            val tagUsageList = remember(isTagsSettingDialog) {
+                if (isTagsSettingDialog) {
+                    mutableStateListOf<MutableState<List<Int>>>().apply {
+                        tagsEntityList.forEach { tag ->
+                            add(
+                                mutableStateOf(buildList {
+                                    otherUserSessions.forEachIndexed { index, session ->
+                                        if (session.tagsList.any { tag.id == it })
+                                            add(index)
+                                    }
+                                })
+                            )
+                        }
+                    }
+                } else {
+                    mutableStateListOf()
+                }
+            }
+            var delectTagIndexForSecondaryConfirm by remember { mutableStateOf<Int?>(null) }
+            var modifiedTagIndexForUserSelector by remember { mutableStateOf<Int?>(null) }
+            var newTagColor by remember { mutableStateOf<Color?>(null) }
+            var newTagName by remember { mutableStateOf("") }
+            val newTagUserIndexList = remember { mutableListOf<Int>() }
+            var isSelectNewTagUserDialog by remember { mutableStateOf(false) }
+            var isSelectNewTagColorDialog by remember { mutableStateOf(false) }
+            val focusRequester = remember { FocusRequester() }
+            val keyboardController = LocalSoftwareKeyboardController.current
+            val createTagAction = {
+                if (tagsEntityList.any { it.name == newTagName }) {
+                    snackbarHost.displaySnackbar("$newTagName 标签已存在", coroutineScope)
+                    hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
+                } else if (newTagName.isBlank()) {
+                    snackbarHost.displaySnackbar("标签名称不能为空", coroutineScope)
+                    hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
+                } else {
+                    val newTagType = OtherUserTagType.newBuilder().apply {
+                        setId(Random.nextInt(21_20061215))
+                        setColor(newTagColor?.toArgb()?.toLong() ?: TAG_COLOR_UNSPECIFIED)
+                        setName(newTagName)
+                    }.build()
+                    tagsEntityList.add(0, newTagType)
+                    tagUsageList.add(0, mutableStateOf(newTagUserIndexList))
+                    newTagUserIndexList.forEach {
+                        userTagList[it].value = listOf(newTagType) + userTagList[it].value
+                    }
+                    coroutineScope.launch(Dispatchers.IO) {
+                        mutex.withLock {
+                            context.chaoxingDataStore.updateData { dataStore ->
+                                dataStore.toBuilder().apply {
+                                    addTagsLibrary(0, newTagType)
+                                    newTagUserIndexList.forEach { index ->
+                                        val session = otherUserSessions[index]
+                                        val newSession = session.toBuilder().apply {
+                                            addTags(newTagType.id)
+                                        }.build()
+                                        val sessionIndex =
+                                            dataStore.otherUsersList.indexOfFirst { it.phoneNumber == session.phoneNumber }
+                                        if (sessionIndex != -1) {
+                                            setOtherUsers(sessionIndex, newSession)
+                                        }
+                                    }
+                                }.build()
+                            }
+                            newTagName = ""
+                            newTagColor = null
+                            newTagUserIndexList.clear()
+                        }
+                    }
+                }
+            }
+            if (delectTagIndexForSecondaryConfirm != null) {
+                AlertDialog(
+                    onDismissRequest = {
+                        delectTagIndexForSecondaryConfirm = null
+                    },
+                    confirmButton = {
+                        Button(onClick = {
+                            coroutineScope.launch(Dispatchers.IO) {
+                                val tagId = tagsEntityList[delectTagIndexForSecondaryConfirm!!].id
+                                mutex.withLock {
+                                    context.chaoxingDataStore.updateData { dataStore ->
+                                        dataStore.toBuilder().apply {
+                                            otherUsersList.forEachIndexed { index, session ->
+                                                if (session.tagsList.any { it == tagId }) {
+                                                    val newTagsList =
+                                                        session.tagsList.filter { it != tagId }
+                                                    val newSession = session.toBuilder().apply {
+                                                        clearTags()
+                                                        addAllTags(newTagsList)
+                                                    }.build()
+                                                    setOtherUsers(index, newSession)
+                                                }
+                                            }
+                                            val tagIndex =
+                                                dataStore.tagsLibraryList.indexOfFirst { it.id == tagId }
+                                            if (tagIndex != -1) {
+                                                removeTagsLibrary(tagIndex)
+                                            }
+                                        }.build()
+                                    }
+                                }
+                                tagUsageList.removeAt(delectTagIndexForSecondaryConfirm!!)
+                                tagsEntityList.removeAt(delectTagIndexForSecondaryConfirm!!)
+                                delectTagIndexForSecondaryConfirm = null
+                            }
+                        }) {
+                            Text("删除")
+                        }
+                    },
+                    dismissButton = {
+                        OutlinedButton(onClick = {
+                            delectTagIndexForSecondaryConfirm = null
+                        }) {
+                            Text("取消")
+                        }
+                    },
+                    title = {
+                        Text("确认删除标签${tagsEntityList[delectTagIndexForSecondaryConfirm!!].name}？")
+                    },
+                    text = {
+                        Text("删除标签会同时将该标签从所有用户中移除，此操作不可撤销。")
+                    },
+                    icon = {
+                        Icon(
+                            painterResource(R.drawable.ic_delete),
+                            null,
+                            tint = Color.Red,
+                            modifier = Modifier.size(40.dp)
+                        )
+                    }
+                )
+            }
+            if (modifiedTagIndexForUserSelector != null) {
+                val modifiedUserList =
+                    remember(modifiedTagIndexForUserSelector) {
+                        List(otherUserSessions.size) {
+                            mutableStateOf<Boolean?>(
+                                null
+                            )
+                        }
+                    }
+                var isSavingDatastore by remember { mutableStateOf(false) }
+                AlertDialog(
+                    onDismissRequest = {},
+                    confirmButton = {
+                        Button(onClick = {
+                            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                            coroutineScope.launch(Dispatchers.IO) {
+                                isSavingDatastore = true
+                                val newTagUsage = mutableListOf<Int>()
+                                modifiedUserList.forEachIndexed { index, state ->
+                                    if (state.value == null) {
+                                        if (tagUsageList[modifiedTagIndexForUserSelector!!].value.any { it == index })
+                                            newTagUsage.add(index)
+                                        return@forEachIndexed
+                                    }
+                                    if (state.value == true) {
+                                        newTagUsage.add(index)
+                                    }
+                                    val tagId = tagsEntityList[modifiedTagIndexForUserSelector!!].id
+                                    val session = otherUserSessions[index]
+                                    val newUserTag = userTagList[index].value.toMutableList()
+                                    val newSession = session.toBuilder().apply {
+                                        if (state.value!!) {
+                                            newUserTag.add(
+                                                0,
+                                                tagsEntityList[modifiedTagIndexForUserSelector!!]
+                                            )
+                                            if (session.tagsList.none { it == tagId }) {
+                                                addTags(tagsEntityList[modifiedTagIndexForUserSelector!!].id)
+                                            }
+                                        } else {
+                                            newUserTag.remove(tagsEntityList[modifiedTagIndexForUserSelector!!])
+                                            val tagIndexInSession =
+                                                session.tagsList.indexOfFirst { it == tagId }
+                                            if (tagIndexInSession != -1) {
+                                                val newTagsList =
+                                                    session.tagsList.filter { it != tagId }
+                                                clearTags()
+                                                addAllTags(newTagsList)
+                                            }
+                                        }
+                                    }.build()
+                                    userTagList[index].value = newUserTag
+                                    otherUserSessions[index] = newSession
+                                    mutex.withLock {
+                                        context.chaoxingDataStore.updateData { dataStore ->
+                                            val sessionIndex =
+                                                dataStore.otherUsersList.indexOfFirst { it.phoneNumber == session.phoneNumber }
+                                            dataStore.toBuilder().apply {
+                                                if (sessionIndex != -1) {
+                                                    setOtherUsers(sessionIndex, newSession)
+                                                }
+                                            }.build()
+                                        }
+                                    }
+                                }
+                                tagUsageList[modifiedTagIndexForUserSelector!!].value = newTagUsage
+                                isSavingDatastore = false
+                                modifiedTagIndexForUserSelector = null
+                            }
+                        }, enabled = !isSavingDatastore) {
+                            Text(if (isSavingDatastore) "保存中" else "保存")
+                        }
+                    }, dismissButton = {
+                        OutlinedButton(onClick = {
+                            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                            modifiedTagIndexForUserSelector = null
+                        }) {
+                            Text("不保存")
+                        }
+                    }, title = {
+                        if (modifiedTagIndexForUserSelector != null)
+                            Text(buildAnnotatedString {
+                                append("修改 ")
+                                withStyle(SpanStyle(color = Color(tagsEntityList[modifiedTagIndexForUserSelector!!].color))) {
+                                    append(tagsEntityList[modifiedTagIndexForUserSelector!!].name)
+                                }
+                                append(" 标签的用户")
+                            })
+                    }, text = {
+                        LazyColumn {
+                            otherUserSessions.forEachIndexed { index, session ->
+                                item {
+                                    key(session.phoneNumber) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            Checkbox(
+                                                modifiedUserList[index].value
+                                                    ?: if (modifiedTagIndexForUserSelector != null) tagUsageList[modifiedTagIndexForUserSelector!!].value.any { it == index } else false,
+                                                onCheckedChange = {
+                                                    modifiedUserList[index].value = it
+                                                }
+                                            )
+                                            Text(
+                                                text = buildAnnotatedString {
+                                                    append(session.name)
+                                                    withStyle(
+                                                        SpanStyle(
+                                                            color = if (isSystemInDarkTheme()) Color.Gray else Color.DarkGray,
+                                                            fontSize = 12.sp
+                                                        )
+                                                    ) {
+                                                        append(" (${session.phoneNumber})")
+                                                    }
+                                                },
+                                                fontSize = 14.sp,
+                                                lineHeight = 16.sp,
+                                                style = TextStyle.Default.copy(
+                                                    lineBreak = LineBreak.Paragraph
+                                                ),
+                                                fontWeight = FontWeight.Medium,
+                                                modifier = Modifier
+                                                    .clickable {
+                                                        modifiedUserList[index].value =
+                                                            (modifiedUserList[index].value
+                                                                ?: tagUsageList[modifiedTagIndexForUserSelector!!].value.any { it == index }).not()
+                                                    }
+                                                    .fillMaxWidth()
+                                                    .padding(0.dp, 2.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }, icon = {
+                        Icon(
+                            painterResource(R.drawable.ic_user_round_cog),
+                            null,
+                            modifier = Modifier.size(40.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    })
+            }
+            if (isSelectNewTagColorDialog) {
+                var color by remember(newTagColor) { mutableStateOf(newTagColor) }
+                AlertDialog(onDismissRequest = {
+                    isSelectNewTagColorDialog = false
+                }, confirmButton = {
+                    Button(onClick = {
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                        newTagColor = color
+                        isSelectNewTagColorDialog = false
+                    }) {
+                        Text("保存")
+                    }
+                }, dismissButton = {
+                    OutlinedButton(onClick = {
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                        newTagColor = null
+                        isSelectNewTagColorDialog = false
+                    }) {
+                        Text("恢复默认")
+                    }
+                }, icon = {
+                    Icon(
+                        painterResource(R.drawable.ic_palette),
+                        null,
+                        modifier = Modifier.size(40.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }, title = {
+                    Text("设置标签颜色")
+                }, text = {
+                    val controller = rememberColorPickerController()
+                    Column(
+                        verticalArrangement = Arrangement.Center,
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        HsvColorPicker(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .aspectRatio(1f),
+                            controller = controller,
+                            onColorChanged = {
+                                color = it.color
+                            })
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Box(
+                            modifier = Modifier
+                                .size(64.dp)
+                                .background(
+                                    color ?: Color.Transparent,
+                                    shape = RoundedCornerShape(4.dp)
+                                )
+                                .border(
+                                    1.dp,
+                                    if (isSystemInDarkTheme()) Color.White else Color.Black,
+                                    RoundedCornerShape(4.dp)
+                                )
+                        )
+                    }
+
+                })
+            }
+            if (isSelectNewTagUserDialog) {
+                AlertDialog(onDismissRequest = {
+                    isSelectNewTagUserDialog = false
+                }, confirmButton = {
+                    Button(onClick = {
+                        isSelectNewTagUserDialog = false
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                    }) {
+                        Text("关闭")
+                    }
+                }, title = {
+                    Text("为新标签选择用户")
+                }, icon = {
+                    Icon(
+                        painterResource(R.drawable.ic_user_round_cog),
+                        null,
+                        modifier = Modifier.size(40.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }, text = {
+                    LazyColumn {
+                        otherUserSessions.forEachIndexed { index, session ->
+                            item {
+                                key(session.phoneNumber) {
+                                    var isSelected by remember {
+                                        mutableStateOf(newTagUserIndexList.contains(index))
+                                    }
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Checkbox(
+                                            isSelected, onCheckedChange = {
+                                                isSelected = it
+                                                if (it)
+                                                    newTagUserIndexList.add(index)
+                                                else
+                                                    newTagUserIndexList.remove(index)
+                                            }
+                                        )
+                                        Text(
+                                            text = buildAnnotatedString {
+                                                append(session.name)
+                                                withStyle(
+                                                    SpanStyle(
+                                                        color = if (isSystemInDarkTheme()) Color.Gray else Color.DarkGray,
+                                                        fontSize = 12.sp
+                                                    )
+                                                ) {
+                                                    append(" (${session.phoneNumber})")
+                                                }
+                                            },
+                                            fontSize = 14.sp,
+                                            lineHeight = 16.sp,
+                                            style = TextStyle.Default.copy(
+                                                lineBreak = LineBreak.Paragraph
+                                            ),
+                                            fontWeight = FontWeight.Medium,
+                                            modifier = Modifier
+                                                .clickable {
+                                                    isSelected = !isSelected
+                                                    if (isSelected)
+                                                        newTagUserIndexList.add(index)
+                                                    else
+                                                        newTagUserIndexList.remove(index)
+                                                }
+                                                .fillMaxWidth()
+                                                .padding(0.dp, 2.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                })
+            }
+            Column {
+                Card(
+                    onClick = {
+                        focusRequester.requestFocus()
+                    },
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 4.dp),
+                    elevation = CardDefaults.cardElevation(4.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(3.dp, 0.dp)
+                    ) {
+                        IconButton(onClick = {
+                            isSelectNewTagColorDialog = true
+                        }) {
+                            Icon(
+                                painterResource(R.drawable.ic_palette),
+                                null,
+                                tint = if (newTagColor == null) {
+                                    if (isSystemInDarkTheme()) Color.LightGray else Color.DarkGray
+                                } else newTagColor!!
+                            )
+                        }
+                        BasicTextField(
+                            value = newTagName,
+                            onValueChange = { newTagName = it },
+                            cursorBrush = SolidColor(if (isSystemInDarkTheme()) Color.White else MaterialTheme.colorScheme.primary),
+                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                            keyboardActions = KeyboardActions { createTagAction() },
+                            modifier = Modifier
+                                .focusRequester(focusRequester)
+                                .onFocusChanged {
+                                    if (it.isFocused) keyboardController?.show()
+                                }
+                                .weight(1f)
+                                .drawBehind {
+                                    val strokeWidth = 2.dp.toPx()
+                                    val y = size.height + 3.dp.toPx() - strokeWidth / 2
+                                    drawLine(
+                                        color = Color.Gray,
+                                        start = Offset(0f, y),
+                                        end = Offset(size.width, y),
+                                        strokeWidth = strokeWidth
+                                    )
+                                },
+                            textStyle = TextStyle(
+                                color = LocalContentColor.current,
+                                lineHeight = 16.sp
+                            ),
+                            decorationBox = { innerTextField ->
+                                Box(
+                                    contentAlignment = Alignment.CenterStart
+                                ) {
+                                    if (newTagName.isEmpty()) {
+                                        Text(
+                                            "新标签名称",
+                                            style = LocalTextStyle.current.copy(
+                                                color = LocalContentColor.current.copy(alpha = 0.4f)
+                                            )
+                                        )
+                                    }
+                                    innerTextField()
+                                }
+                            }
+                        )
+                        IconButton(onClick = {
+                            isSelectNewTagUserDialog = true
+                        }) {
+                            Icon(painterResource(R.drawable.ic_user_round_cog), null)
+                        }
+                        IconButton(onClick = {
+                            createTagAction()
+                        }) {
+                            Icon(painterResource(R.drawable.ic_tag_plus_outline), null)
+                        }
+                    }
+                }
+                ReorderableColumn(list = tagsEntityList.toList(), onMove = {
+                    hapticFeedback.performHapticFeedback(HapticFeedbackType.SegmentFrequentTick)
+                }, onSettle = { from, to ->
+                    tagUsageList.add(to, tagUsageList.removeAt(from))
+                    tagsEntityList.add(to, tagsEntityList.removeAt(from))
+                    coroutineScope.launch(Dispatchers.IO) {
+                        mutex.withLock {
+                            context.chaoxingDataStore.updateData { datastore ->
+                                datastore.toBuilder().apply {
+                                    val sortedValue = getTagsLibrary(from)
+                                    removeTagsLibrary(from)
+                                    addTagsLibrary(to, sortedValue)
+                                }.build()
+                            }
+                        }
+                        snackbarHost.currentSnackbarData?.dismiss()
+                        snackbarHost.showSnackbar("新顺序已保存", withDismissAction = true)
+                    }
+                }) { index, tagEntity, _ ->
+                    key(tagEntity.id) {
+                        ReorderableItem {
+                            val interactionSource = remember { MutableInteractionSource() }
+                            Card(
+                                onClick = {},
+                                interactionSource = interactionSource,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(0.dp, 4.dp),
+                                shape = RoundedCornerShape(8.dp),
+                                elevation = CardDefaults.cardElevation(3.dp)
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(3.dp)
+                                ) {
+                                    Icon(
+                                        painterResource(R.drawable.ic_tag_outline),
+                                        null,
+                                        tint = if (tagEntity.color == TAG_COLOR_UNSPECIFIED) {
+                                            if (isSystemInDarkTheme()) Color.LightGray else Color.DarkGray
+                                        } else Color(
+                                            tagEntity.color
+                                        ),
+                                        modifier = Modifier.padding(3.dp, 0.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(tagEntity.name)
+                                        Text(
+                                            buildAnnotatedString {
+                                                tagUsageList.getOrNull(index)?.value?.let {
+                                                    if (it.isEmpty()) withStyle(SpanStyle(fontStyle = FontStyle.Italic)) {
+                                                        append("未被使用")
+                                                    }
+                                                    else
+                                                        it.forEachIndexed { index, userIndex ->
+                                                            append(otherUserSessions[userIndex].name)
+                                                            if (index != it.size - 1) append(", ")
+                                                        }
+                                                }
+                                            },
+                                            fontSize = 12.sp,
+                                            lineHeight = 14.sp,
+                                            color = if (isSystemInDarkTheme()) Color.Gray else Color.DarkGray
+                                        )
+                                    }
+                                    Row {
+                                        IconButton(onClick = {
+                                            modifiedTagIndexForUserSelector = index
+                                        }) {
+                                            Icon(
+                                                painterResource(R.drawable.ic_user_round_cog),
+                                                null
+                                            )
+                                        }
+                                        IconButton(onClick = {
+                                            delectTagIndexForSecondaryConfirm = index
+                                        }) {
+                                            Icon(
+                                                painter = painterResource(R.drawable.ic_delete),
+                                                contentDescription = "Delete",
+                                                tint = Color(0xFFF1441D)
+                                            )
+                                        }
+                                        IconButton(
+                                            modifier = Modifier.draggableHandle(
+                                                interactionSource = interactionSource,
+                                                onDragStarted = {
+                                                    hapticFeedback.performHapticFeedback(
+                                                        HapticFeedbackType.GestureThresholdActivate
+                                                    )
+                                                }, onDragStopped = {
+                                                    hapticFeedback.performHapticFeedback(
+                                                        HapticFeedbackType.GestureEnd
+                                                    )
+                                                }
+                                            ), onClick = {}) {
+                                            Icon(
+                                                painterResource(R.drawable.ic_drag_handle_rounded),
+                                                "",
+                                                tint = Color.Gray
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        })
+    }
+    if (selectedUserIndexTagDialog != null) {
+        val modifiedTagIndexList = remember(selectedUserIndexTagDialog) {
+            List(tagsEntityList.size) {
+                mutableStateOf(userTagList[selectedUserIndexTagDialog!!].value.any { tagEntity ->
+                    tagEntity.id == tagsEntityList[it].id
+                })
+            }
+        }
+        var isSavingDatastore by remember { mutableStateOf(false) }
+        AlertDialog(
+            onDismissRequest = {},
+            icon = {
+                Icon(
+                    painterResource(R.drawable.ic_tag),
+                    null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(40.dp)
+                )
+            }, confirmButton = {
+                Button(onClick = {
+                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                    coroutineScope.launch(Dispatchers.IO) {
+                        isSavingDatastore = true
+                        context.chaoxingDataStore.updateData { dataStore ->
+                            dataStore.toBuilder().apply {
+                                val newTagList = modifiedTagIndexList.mapIndexed { index, state ->
+                                    if (!state.value) null
+                                    else {
+                                        tagsEntityList[index].id
+                                    }
+                                }.filterNotNull()
+                                userTagList[selectedUserIndexTagDialog!!].value =
+                                    newTagList.map { tagId ->
+                                        tagsEntityList.first { it.id == tagId }
+                                    }
+                                setOtherUsers(
+                                    selectedUserIndexTagDialog!!,
+                                    otherUserSessions[selectedUserIndexTagDialog!!].toBuilder()
+                                        .apply {
+                                            clearTags()
+                                            addAllTags(newTagList)
+                                        })
+
+                            }.build()
+                        }
+                        isSavingDatastore = false
+                        selectedUserIndexTagDialog = null
+                    }
+                }, enabled = !isSavingDatastore) {
+                    Text(if (isSavingDatastore) "保存中" else "保存")
+                }
+            }, dismissButton = {
+                OutlinedButton(onClick = {
+                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                    selectedUserIndexTagDialog = null
+                }) { Text("不保存退出") }
+            }, title = {
+                if (selectedUserIndexTagDialog != null)
+                    Text("为${otherUserSessions[selectedUserIndexTagDialog!!].name}添加标签")
+            }, text = {
+                LazyColumn {
+                    itemsIndexed(tagsEntityList) { index, tagEntity ->
+                        key(tagEntity.id) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(3.dp)
+                            ) {
+                                Checkbox(
+                                    checked = modifiedTagIndexList[index].value,
+                                    onCheckedChange = {
+                                        modifiedTagIndexList[index].value = it
+                                    })
+                                Icon(
+                                    painterResource(R.drawable.ic_tag),
+                                    null,
+                                    tint = Color(tagEntity.color),
+                                    modifier = Modifier
+                                        .size(24.dp)
+                                        .padding(0.dp, 2.dp)
+                                        .clickable {
+                                            modifiedTagIndexList[index].value =
+                                                !modifiedTagIndexList[index].value
+                                        }
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    tagEntity.name, modifier = Modifier
+                                        .clickable {
+                                            modifiedTagIndexList[index].value =
+                                                !modifiedTagIndexList[index].value
+                                        }
+                                        .fillMaxWidth())
+                            }
+                        }
+                    }
+                }
+            })
     }
     if (isURLSharedDialog) {
         AlertDialog(onDismissRequest = {
@@ -296,7 +1066,8 @@ fun OtherUserScreen(naviBack: () -> Unit) {
             Icon(
                 painterResource(R.drawable.ic_link),
                 null,
-                tint = MaterialTheme.colorScheme.primary
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(40.dp)
             )
         }, text = {
             Column {
@@ -493,36 +1264,38 @@ fun OtherUserScreen(naviBack: () -> Unit) {
             }
             Spacer(modifier = Modifier.height(8.dp))
             Card(
+                onClick = {
+                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                    isTagsSettingDialog = true
+                },
                 shape = RoundedCornerShape(18.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = Color(0xFF2486B9)
-                ), modifier = Modifier
+                modifier = Modifier
                     .fillMaxWidth()
-                    .padding(6.dp, 0.dp)
+                    .padding(4.dp, 0.dp),
+                elevation = CardDefaults.cardElevation(4.dp),
+                colors = CardDefaults.cardColors(MaterialTheme.colorScheme.primary)
             ) {
                 Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(10.dp),
-                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Spacer(modifier = Modifier.width(4.dp))
                     Icon(
-                        painterResource(R.drawable.ic_mailbox_flag),
-                        contentDescription = "new",
-                        tint = Color.White
+                        painterResource(R.drawable.ic_tags),
+                        null,
+                        modifier = Modifier.size(24.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        "在 1.5 版本更新后，代签功能支持了位置签到、拍照签到等所有的签到啦🥳",
-                        color = Color.White,
-                        fontSize = 13.sp,
-                        lineHeight = 18.sp,
+                        "管理用户标签（测试版）",
+                        fontSize = 16.sp,
                         fontWeight = FontWeight.W500
                     )
                 }
             }
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(3.dp))
             SingleChoiceSegmentedButtonRow(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -600,14 +1373,14 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                             tint = MaterialTheme.colorScheme.primary
                         )
                         Spacer(modifier = Modifier.width(2.dp))
-                        Text("手动添加")
+                        Text("账密添加")
                     }
                 }
             }
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(8.dp)
+                    .padding(8.dp, 5.dp, 8.dp, 8.dp)
                     .border(
                         BorderStroke(2.dp, MaterialTheme.colorScheme.primary),
                         shape = RoundedCornerShape(8.dp)
@@ -615,7 +1388,8 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Card(
-                    modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.primaryContainer
                     )
                 ) {
@@ -629,6 +1403,66 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                         textAlign = TextAlign.Center
                     )
                 }
+                var requestedDeleteUserIndex by remember { mutableStateOf<Int?>(null) }
+                if (requestedDeleteUserIndex != null) {
+                    AlertDialog(
+                        onDismissRequest = {
+                            requestedDeleteUserIndex = null
+                        },
+                        icon = {
+                            Icon(
+                                painterResource(R.drawable.ic_delete),
+                                null,
+                                tint = Color.Red,
+                                modifier = Modifier.size(40.dp)
+                            )
+                        },
+                        title = {
+                            Text("删除用户")
+                        },
+                        text = {
+                            Text("确定要删除此用户吗？此操作不可撤销。")
+                        },
+                        confirmButton = {
+                            Button(
+                                onClick = {
+                                    val index = requestedDeleteUserIndex!!
+                                    coroutineScope.launch {
+                                        withContext(Dispatchers.IO) {
+                                            context.chaoxingDataStore.updateData { datastore ->
+                                                datastore.toBuilder()
+                                                    .apply {
+                                                        removeOtherUsers(index)
+                                                    }
+                                                    .build()
+                                            }
+                                        }
+                                    }
+                                    otherUserSessions.removeAt(index)
+                                    hapticFeedback.performHapticFeedback(
+                                        HapticFeedbackType.ContextClick
+                                    )
+                                    requestedDeleteUserIndex = null
+                                }
+                            ) {
+                                Text("删除")
+                            }
+                        },
+                        dismissButton = {
+                            OutlinedButton(
+                                onClick = {
+                                    hapticFeedback.performHapticFeedback(
+                                        HapticFeedbackType.ContextClick
+                                    )
+                                    requestedDeleteUserIndex = null
+                                }
+                            ) {
+                                Text("取消")
+                            }
+                        }
+                    )
+                }
+
                 if (otherUserSessions.isEmpty()) {
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
@@ -643,6 +1477,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                     ReorderableColumn(list = otherUserSessions.toList(), onMove = {
                         hapticFeedback.performHapticFeedback(HapticFeedbackType.SegmentFrequentTick)
                     }, onSettle = { from, to ->
+                        userTagList.add(to, userTagList.removeAt(from))
                         otherUserSessions.add(to, otherUserSessions.removeAt(from))
                         coroutineScope.launch(Dispatchers.IO) {
                             mutex.withLock {
@@ -654,9 +1489,8 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                     }.build()
                                 }
                             }
-
                             snackbarHost.currentSnackbarData?.dismiss()
-                            snackbarHost.showSnackbar("新顺序已保存")
+                            snackbarHost.showSnackbar("新顺序已保存", withDismissAction = true)
                         }
                     }, modifier = Modifier.fillMaxWidth()) { index, user, _ ->
                         key(user.phoneNumber) {
@@ -667,74 +1501,136 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                     interactionSource = interactionSource,
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(8.dp, 4.dp, 3.dp, 4.dp),
+                                        .padding(8.dp, 4.dp),
                                     shape = RoundedCornerShape(8.dp),
                                     elevation = CardDefaults.cardElevation(4.dp)
                                 ) {
-                                    Row(
+                                    Column(
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .padding(17.dp, 2.dp, 6.dp, 2.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.SpaceBetween
                                     ) {
-                                        Text(
-                                            text = "${user.name} (${user.phoneNumber})",
-                                            fontSize = 14.sp,
-                                            fontWeight = FontWeight.Medium,
-                                            modifier = Modifier.weight(1f)
-                                        )
-                                        Row {
-                                            IconButton(
-                                                onClick = {
-                                                    coroutineScope.launch {
-                                                        withContext(Dispatchers.IO) {
-                                                            mutex.withLock {
-                                                                context.chaoxingDataStore.updateData { datastore ->
-                                                                    datastore.toBuilder()
-                                                                        .apply {
-                                                                            removeOtherUsers(
-                                                                                index
-                                                                            )
-                                                                        }
-                                                                        .build()
-                                                                }
-                                                            }
-                                                        }
-                                                    }
-                                                    hapticFeedback.performHapticFeedback(
-                                                        HapticFeedbackType.ContextClick
-                                                    )
-                                                    otherUserSessions.removeIf { it.phoneNumber == user.phoneNumber }
-                                                }
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.SpaceBetween
+                                        ) {
+                                            Column(
+                                                modifier = Modifier
+                                                    .weight(1f)
+                                                    .padding(0.dp, 2.dp)
                                             ) {
-                                                Icon(
-                                                    painter = painterResource(R.drawable.ic_delete),
-                                                    contentDescription = "Delete",
-                                                    tint = Color(0xFFF1441D)
+                                                Text(
+                                                    text = buildAnnotatedString {
+                                                        append(user.name)
+                                                        withStyle(
+                                                            SpanStyle(
+                                                                color = if (isSystemInDarkTheme()) Color.Gray else Color.DarkGray,
+                                                                fontSize = 12.sp
+                                                            )
+                                                        ) {
+                                                            append(" (${user.phoneNumber})")
+                                                        }
+                                                    },
+                                                    fontSize = 14.sp,
+                                                    lineHeight = 16.sp,
+                                                    fontWeight = FontWeight.Medium,
+                                                    modifier = Modifier
+                                                        .fillMaxWidth(),
                                                 )
-                                            }
-
-                                            IconButton(
-                                                modifier = Modifier.draggableHandle(
-                                                    interactionSource = interactionSource,
-                                                    onDragStarted = {
-                                                        hapticFeedback.performHapticFeedback(
-                                                            HapticFeedbackType.GestureThresholdActivate
+                                                if (userTagList.getOrNull(index)?.value?.isNotEmpty() == true) {
+                                                    Spacer(
+                                                        modifier = Modifier.padding(
+                                                            0.dp,
+                                                            2.dp,
+                                                            0.dp,
+                                                            0.dp
                                                         )
-                                                    }, onDragStopped = {
-                                                        hapticFeedback.performHapticFeedback(
-                                                            HapticFeedbackType.GestureEnd
+                                                    )
+                                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                                        Icon(
+                                                            painterResource(R.drawable.ic_tag),
+                                                            null
+                                                        )
+                                                        Spacer(modifier = Modifier.width(4.dp))
+                                                        val fontSize10spStyle =
+                                                            remember { SpanStyle(fontSize = 10.sp) }
+                                                        Text(
+                                                            buildAnnotatedString {
+                                                                userTagList[index].value.forEachIndexed { tagIndex, tagEntity ->
+                                                                    withStyle(
+                                                                        SpanStyle(
+                                                                            color = if (tagEntity.color == TAG_COLOR_UNSPECIFIED) {
+                                                                                if (isSystemInDarkTheme()) Color.LightGray else Color.DarkGray
+                                                                            } else Color(
+                                                                                tagEntity.color
+                                                                            ), fontSize = 10.sp
+                                                                        )
+                                                                    ) {
+                                                                        append(tagEntity.name)
+                                                                    }
+                                                                    if (tagIndex != userTagList[index].value.size - 1)
+                                                                        withStyle(fontSize10spStyle) {
+                                                                            append(", ")
+                                                                        }
+                                                                }
+                                                            },
+                                                            lineHeight = 12.sp,
+                                                            style = TextStyle.Default.copy(
+                                                                lineBreak = LineBreak.Paragraph
+                                                            ),
+                                                            modifier = Modifier.padding(0.dp, 1.dp)
                                                         )
                                                     }
-                                                ), onClick = {}) {
-                                                Icon(
-                                                    painterResource(R.drawable.ic_drag_handle_rounded),
-                                                    "",
-                                                    tint = Color.Gray
-                                                )
+                                                }
+                                            }
+                                            Row(
+                                                horizontalArrangement = Arrangement.End,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                IconButton(
+                                                    onClick = {
+                                                        selectedUserIndexTagDialog = index
+                                                    }
+                                                ) {
+                                                    Icon(painterResource(R.drawable.ic_tags), null)
+                                                }
+                                                IconButton(
+                                                    onClick = {
+                                                        requestedDeleteUserIndex = index
+                                                        hapticFeedback.performHapticFeedback(
+                                                            HapticFeedbackType.ContextClick
+                                                        )
+                                                    }
+                                                ) {
+                                                    Icon(
+                                                        painter = painterResource(R.drawable.ic_delete),
+                                                        contentDescription = "Delete",
+                                                        tint = Color(0xFFF1441D)
+                                                    )
+                                                }
+
+                                                IconButton(
+                                                    modifier = Modifier.draggableHandle(
+                                                        interactionSource = interactionSource,
+                                                        onDragStarted = {
+                                                            hapticFeedback.performHapticFeedback(
+                                                                HapticFeedbackType.GestureThresholdActivate
+                                                            )
+                                                        }, onDragStopped = {
+                                                            hapticFeedback.performHapticFeedback(
+                                                                HapticFeedbackType.GestureEnd
+                                                            )
+                                                        }
+                                                    ), onClick = {}) {
+                                                    Icon(
+                                                        painterResource(R.drawable.ic_drag_handle_rounded),
+                                                        "",
+                                                        tint = Color.Gray
+                                                    )
+                                                }
                                             }
                                         }
+
                                     }
                                 }
                             }

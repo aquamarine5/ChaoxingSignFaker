@@ -7,29 +7,37 @@
 package org.aquamarine5.brainspark.chaoxingsignfaker.components
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -53,27 +61,44 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
+import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.OtherUserTagType
 import org.aquamarine5.brainspark.chaoxingsignfaker.displaySnackbar
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignStatus
+import org.aquamarine5.brainspark.chaoxingsignfaker.screen.TAG_COLOR_UNSPECIFIED
 
 @Composable
-inline fun OtherUserSelectorComponent(
-    crossinline navToOtherUser: () -> Unit,
+fun OtherUserSelectorComponent(
+    navToOtherUser: () -> Unit,
     signStatus: MutableList<ChaoxingSignStatus>,
     isCurrentAlreadySigned: Boolean,
     userSelections: SnapshotStateList<Boolean>,
     isSigning: Boolean = false,
-    noinline userContent: @Composable ((index: Int) -> Unit)? = null,
+    userContent: @Composable ((index: Int) -> Unit)? = null,
     prefixTipsContent: @Composable (() -> Unit),
-    noinline suffixContent: @Composable (() -> Unit)? = null,
-    crossinline onSignAction: (isSelf: Boolean, otherUserSessionList: List<ChaoxingOtherUserSession?>, indexList: List<Int>) -> Unit
+    suffixContent: @Composable (() -> Unit)? = null,
+    onSignAction: (isSelf: Boolean, otherUserSessionList: List<ChaoxingOtherUserSession?>, indexList: List<Int>) -> Unit
 ) {
     LocalContext.current.let { context ->
         val signUserList = remember { mutableStateListOf<ChaoxingOtherUserSession>() }
         val hapticFeedback = LocalHapticFeedback.current
         val snackbarHost = LocalSnackbarHostState.current
         val coroutineScope = rememberCoroutineScope()
+        var tagEntities by remember { mutableStateOf<List<OtherUserTagType>?>(null) }
+        var tagContainedUserIndexList by remember { mutableStateOf<List<List<Int>>?>(null) }
+        val tagClickState = remember { mutableListOf<MutableState<Boolean>>() }
         var success by signStatus[0].isSuccess
+
+        fun updateTagClickState() {
+            tagContainedUserIndexList?.forEachIndexed { tagIndex, userIndexList ->
+                if (userIndexList.isNotEmpty()) {
+                    val allChecked = userIndexList.all { userIndex ->
+                        userSelections[userIndex + 1]
+                    }
+                    tagClickState[tagIndex].value = allChecked
+                }
+            }
+        }
+
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -127,9 +152,23 @@ inline fun OtherUserSelectorComponent(
                 }
                 LaunchedEffect(Unit) {
                     withContext(Dispatchers.IO) {
-                        val data = context.chaoxingDataStore.data.first().let { data ->
-                            data.otherUsersList.filter {
-                                it.phoneNumber != data.loginSession.phoneNumber
+                        val data = context.chaoxingDataStore.data.first().let { datastore ->
+                            tagEntities = datastore.tagsLibraryList
+                            tagClickState.addAll(List(datastore.tagsLibraryList.size) {
+                                mutableStateOf(
+                                    false
+                                )
+                            })
+                            tagContainedUserIndexList = datastore.tagsLibraryList.map { tagEntity ->
+                                buildList {
+                                    datastore.otherUsersList.mapIndexed { index, otherUserSession ->
+                                        if (otherUserSession.tagsList.any { it == tagEntity.id })
+                                            add(index)
+                                    }
+                                }
+                            }
+                            datastore.otherUsersList.filter {
+                                it.phoneNumber != datastore.loginSession.phoneNumber
                             }
                         }
                         signStatus.addAll(Array(data.size) {
@@ -137,6 +176,7 @@ inline fun OtherUserSelectorComponent(
                         })
                         userSelections.addAll(List(data.size) { false })
                         signUserList.addAll(data)
+
                     }
                     success = isCurrentAlreadySigned
                     userSelections[0] = isCurrentAlreadySigned != true
@@ -153,8 +193,69 @@ inline fun OtherUserSelectorComponent(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(8.dp, 16.dp)
+                        .padding(0.dp, 4.dp, 8.dp, 16.dp)
                 ) {
+                    Row {
+                        if (tagEntities != null && tagContainedUserIndexList != null)
+                            if (tagEntities!!.isEmpty()) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        "标签列表为空",
+                                        color = if (isSystemInDarkTheme()) Color.LightGray else Color.DarkGray
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    AssistChip(onClick = {
+                                        navToOtherUser()
+                                    }, label = {
+                                        Text("点击跳转添加")
+                                    }, leadingIcon = {
+                                        Icon(painterResource(R.drawable.ic_tag_plus_outline), null)
+                                    })
+                                }
+                            } else {
+                                FlowRow(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(5.dp),
+                                    verticalArrangement = Arrangement.spacedBy((-8).dp)
+                                ) {
+                                    tagEntities!!.forEachIndexed { index, type ->
+                                        FilterChip(
+                                            selected = tagClickState[index].value,
+                                            onClick = {
+                                                tagClickState[index].value =
+                                                    !tagClickState[index].value
+                                                hapticFeedback.performHapticFeedback(
+                                                    HapticFeedbackType.ContextClick
+                                                )
+                                                tagContainedUserIndexList!![index].forEach { userIndex ->
+                                                    userSelections[userIndex + 1] =
+                                                        tagClickState[index].value
+                                                }
+                                            },
+                                            label = {
+                                                Text(type.name)
+                                            },
+                                            leadingIcon = {
+                                                Icon(
+                                                    painterResource(R.drawable.ic_tag),
+                                                    null,
+                                                    tint = if (type.color == TAG_COLOR_UNSPECIFIED) {
+                                                        if (isSystemInDarkTheme()) Color.LightGray else Color.DarkGray
+                                                    } else {
+                                                        Color(type.color)
+                                                    }, modifier = Modifier.size(16.dp)
+                                                )
+                                            },
+                                            border = FilterChipDefaults.filterChipBorder(
+                                                true,
+                                                tagClickState[index].value,
+                                                borderWidth = 1.5.dp
+                                            )
+                                        )
+                                    }
+                                }
+                            }
+                    }
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
@@ -205,6 +306,7 @@ inline fun OtherUserSelectorComponent(
                                     onCheckedChange = { isChecked ->
                                         hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                                         userSelections[i] = isChecked
+                                        updateTagClickState()
                                     },
                                     enabled = (successForOtherUser == true).not()
                                 )
@@ -213,6 +315,7 @@ inline fun OtherUserSelectorComponent(
                                         HapticFeedbackType.ContextClick
                                     )
                                     userSelections[i] = userSelections[i].not()
+                                    updateTagClickState()
                                 }, verticalAlignment = Alignment.CenterVertically) {
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text(

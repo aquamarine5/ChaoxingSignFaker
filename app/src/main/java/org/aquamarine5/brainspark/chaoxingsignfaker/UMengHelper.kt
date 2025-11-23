@@ -44,7 +44,6 @@ object UMengHelper {
     private const val EVENT_TAG_STACKBRICKS_TEST_CHANNEL_CHANGED =
         "stackbricks_test_channel_status_changed"
 
-    @OptIn(ExperimentalStdlibApi::class)
     fun md5(str: String): String {
         return MessageDigest.getInstance("MD5").digest(str.toByteArray()).toHexString()
     }
@@ -80,9 +79,9 @@ object UMengHelper {
             context,
             EVENT_TAG_ILLEGAL_CHANNEL,
             mapOf(
-                "name" to applicationInfo.applicationInfo!!.name,
+                "name" to (applicationInfo.applicationInfo?.name ?: "Unknown"),
                 "label" to context.packageManager.getApplicationLabel(applicationInfo.applicationInfo!!),
-                "version" to applicationInfo.versionName.toString(),
+                "version" to (applicationInfo.versionName ?: ""),
                 "user" to ChaoxingHttpClient.instance!!.userEntity.name
             )
         )

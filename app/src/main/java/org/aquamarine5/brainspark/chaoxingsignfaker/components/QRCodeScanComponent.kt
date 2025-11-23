@@ -58,11 +58,11 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.R
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
-inline fun QRCodeScanComponent(
+fun QRCodeScanComponent(
     isPause: MutableState<Boolean>,
     isLoading: MutableState<Boolean>,
-    noinline onClose: () -> Unit,
-    crossinline onScanResult: @DisallowComposableCalls (Barcode) -> Unit,
+    onClose: () -> Unit,
+    onScanResult: @DisallowComposableCalls (Barcode) -> Unit,
     content: @Composable BoxScope.() -> Unit
 ) {
     val cameraPermission = rememberPermissionState(android.Manifest.permission.CAMERA)

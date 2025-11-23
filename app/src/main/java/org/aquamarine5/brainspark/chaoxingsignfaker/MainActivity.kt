@@ -49,7 +49,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
@@ -126,21 +125,15 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val versionData = packageManager.getPackageInfo(
+            packageName,
+            GET_META_DATA
+        )
         SentryAndroid.init(this) {
             if (Debug.isDebuggerConnected()) {
                 it.isEnabled = false
             }
-            val versionData = packageManager.getPackageInfo(
-                packageName,
-                GET_META_DATA
-            )
-            if (UMengHelper.md5(
-                    packageManager.getApplicationLabel(versionData.applicationInfo!!).toString()
-                ) != "181b23fb3bfa29181fcde41f72757e97"
-            ) {
-                UMengHelper.onIllegalChannelEvent(this, versionData)
-                throw ChaoxingPredictableException.ApplicationIllegalChannelException()
-            }
+
             val versionName = versionData.versionName!!
             if (versionName.contains("rc"))
                 it.environment = "rc"
@@ -151,6 +144,13 @@ class MainActivity : ComponentActivity() {
                 it.isAnrEnabled = false
             } else
                 it.environment = "stable"
+        }
+        if (UMengHelper.md5(
+                packageManager.getApplicationLabel(versionData.applicationInfo!!).toString()
+            ) != "181b23fb3bfa29181fcde41f72757e97"
+        ) {
+            UMengHelper.onIllegalChannelEvent(this, versionData)
+            throw ChaoxingPredictableException.ApplicationIllegalChannelException()
         }
         UMengHelper.preInit(this)
         enableEdgeToEdge()
@@ -236,7 +236,6 @@ class MainActivity : ComponentActivity() {
                                                         restoreState = true
                                                     }
                                                 }
-
                                             },
                                             icon = {
                                                 val iconColor by animateColorAsState(
@@ -300,18 +299,21 @@ class MainActivity : ComponentActivity() {
                                 .writeTimeout(20, TimeUnit.MINUTES)
                                 .build()
                         ).let {
-                            StackbricksService(
-                                LocalContext.current,
-                                QiniuMessageProvider(it),
-                                QiniuPackageProvider(it),
-                                rememberStackbricksStatus(),
-                                stackbricksPolicy = StackbricksPolicy(
-                                    versionName = BuildConfig.VERSION_NAME,
-                                    isAllowedToDisableCheckUpdateOnLaunch = false,
-                                    isForceInstallValueCallback = false,
-                                    versionCode = null
-                                ),
-                            )
+                            val state = rememberStackbricksStatus()
+                            remember {
+                                StackbricksService(
+                                    this,
+                                    QiniuMessageProvider(it),
+                                    QiniuPackageProvider(it),
+                                    state,
+                                    stackbricksPolicy = StackbricksPolicy(
+                                        versionName = BuildConfig.VERSION_NAME,
+                                        isAllowedToDisableCheckUpdateOnLaunch = false,
+                                        isForceInstallValueCallback = false,
+                                        versionCode = null
+                                    ),
+                                )
+                            }
                         }
                         Column(
                             modifier = Modifier
@@ -390,13 +392,17 @@ class MainActivity : ComponentActivity() {
                                                     navController.navigate(SettingDestination) {
                                                         popUpTo<CourseListDestination> {
                                                             inclusive = true
+                                                            saveState = true
                                                         }
+                                                        restoreState = true
                                                     }
                                                 }) {
                                                 navController.navigate(LoginDestination) {
                                                     popUpTo<CourseListDestination> {
                                                         inclusive = true
+                                                        saveState = true
                                                     }
+                                                    restoreState = true
                                                 }
                                             }
                                         }
@@ -405,7 +411,13 @@ class MainActivity : ComponentActivity() {
                                             QRCodeSignScreen(entry.toRoute(), navToOtherSign = {
                                                 navController.navigate(it)
                                             }, navToOtherUser = {
-                                                navController.navigate(OtherUserGraphDestination)
+                                                navController.navigate(OtherUserGraphDestination) {
+                                                    popUpTo<SignGraphDestination> {
+                                                        saveState = true
+                                                        inclusive = true
+                                                    }
+                                                    restoreState = true
+                                                }
                                             }) {
                                                 navController.navigateUp()
                                             }
@@ -423,7 +435,13 @@ class MainActivity : ComponentActivity() {
                                                 navToCourseDetailDestination = {
                                                     navController.navigateUp()
                                                 }) {
-                                                navController.navigate(OtherUserGraphDestination)
+                                                navController.navigate(OtherUserGraphDestination) {
+                                                    popUpTo<SignGraphDestination> {
+                                                        saveState = true
+                                                        inclusive = true
+                                                    }
+                                                    restoreState = true
+                                                }
                                             }
                                         }
 
@@ -443,7 +461,13 @@ class MainActivity : ComponentActivity() {
                                             }, navBack = {
                                                 navController.navigateUp()
                                             }) {
-                                                navController.navigate(OtherUserGraphDestination)
+                                                navController.navigate(OtherUserGraphDestination) {
+                                                    popUpTo<SignGraphDestination> {
+                                                        saveState = true
+                                                        inclusive = true
+                                                    }
+                                                    restoreState = true
+                                                }
                                             }
                                         }
 
@@ -455,7 +479,13 @@ class MainActivity : ComponentActivity() {
                                                 navToCourseDetailDestination = {
                                                     navController.navigateUp()
                                                 }) {
-                                                navController.navigate(OtherUserGraphDestination)
+                                                navController.navigate(OtherUserGraphDestination) {
+                                                    popUpTo<SignGraphDestination> {
+                                                        saveState = true
+                                                        inclusive = true
+                                                    }
+                                                    restoreState = true
+                                                }
                                             }
                                         }
 
@@ -467,7 +497,13 @@ class MainActivity : ComponentActivity() {
                                                 navToCourseDetailDestination = {
                                                     navController.navigateUp()
                                                 }) {
-                                                navController.navigate(OtherUserGraphDestination)
+                                                navController.navigate(OtherUserGraphDestination) {
+                                                    popUpTo<SignGraphDestination> {
+                                                        saveState = true
+                                                        inclusive = true
+                                                    }
+                                                    restoreState = true
+                                                }
                                             }
                                         }
                                     }

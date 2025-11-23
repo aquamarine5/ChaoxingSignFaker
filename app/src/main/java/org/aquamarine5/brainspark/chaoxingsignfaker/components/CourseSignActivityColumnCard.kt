@@ -36,7 +36,6 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingSignHelper
-import org.aquamarine5.brainspark.chaoxingsignfaker.displaySnackbar
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.ui.theme.Orange
 import java.time.Instant
@@ -61,15 +60,8 @@ inline fun CourseSignActivityColumnCard(
             .fillMaxWidth()
             .clickable {
                 hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                if (isAvailable) {
-                    ChaoxingSignHelper.getSignDestination(context, activity)?.let {
-                        onSignAction(it)
-                    }
-                } else {
-                    snackbarHost.displaySnackbar("警告：活动未开始或已结束", coroutineScope)
-                    ChaoxingSignHelper.getSignDestination(context, activity, true)?.let {
-                        onSignAction(it)
-                    }
+                ChaoxingSignHelper.getSignDestination(context, activity, !isAvailable)?.let {
+                    onSignAction(it)
                 }
             }) {
         val currentTime = remember { System.currentTimeMillis() }

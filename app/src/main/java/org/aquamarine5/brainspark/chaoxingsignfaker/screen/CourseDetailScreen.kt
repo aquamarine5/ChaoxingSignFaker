@@ -19,7 +19,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -54,7 +55,6 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.snackbarReport
 
 typealias CourseDetailDestination = ChaoxingCourseEntity
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CourseDetailScreen(
     courseEntity: ChaoxingCourseEntity,
@@ -89,7 +89,7 @@ fun CourseDetailScreen(
     }
     Column(
         modifier = Modifier
-            .padding(16.dp)
+            .padding(16.dp, 16.dp, 16.dp, 0.dp)
     ) {
         if (activitiesData == null) {
             CenterCircularProgressIndicator()
@@ -142,7 +142,7 @@ fun CourseDetailScreen(
                                 hapticFeedback
                             )
                         }
-                        delay(1000)
+                        delay(500)
                         pullToRefreshState = false
                     }
                 }
@@ -150,7 +150,8 @@ fun CourseDetailScreen(
                 if (activitiesData!!.signActivities.isEmpty()) {
                     Column(
                         modifier = Modifier
-                            .fillMaxSize(),
+                            .fillMaxSize()
+                            .verticalScroll(rememberScrollState()),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center
                     ) {

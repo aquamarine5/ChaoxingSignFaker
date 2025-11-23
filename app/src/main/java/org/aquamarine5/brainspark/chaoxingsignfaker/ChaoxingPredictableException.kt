@@ -11,5 +11,5 @@ open class ChaoxingPredictableException(
     throwable: Throwable? = null
 ) : Throwable(message, throwable) {
     class ApplicationIllegalChannelException(
-    ) : ChaoxingPredictableException("Illegal channel detected. Please check your app version and channel.")
+    ) : Exception("Illegal channel detected. Please check your app version and channel.")
 }

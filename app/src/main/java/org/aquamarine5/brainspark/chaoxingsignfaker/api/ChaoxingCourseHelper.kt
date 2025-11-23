@@ -44,7 +44,7 @@ object ChaoxingCourseHelper {
         client.newCall(Request.Builder().get().url(URL_COURSE_LIST).build()).execute().use {
             val jsonResult = JSONObject.parseObject(it.body.string())
             val channelList = jsonResult.getJSONArray("channelList")
-            if (jsonResult.getInteger("result") == 0) {
+            if (jsonResult.getInteger("result") == 0 || channelList == null) {
                 return@use null
             }
             for (i in 0 until channelList.size) {
@@ -67,19 +67,26 @@ object ChaoxingCourseHelper {
             client.newCall(Request.Builder().get().url(URL_COURSE_LIST).build()).execute()
                 .use { rawResponse ->
                     if (rawResponse.checkResponse(context)) {
-                        Toast.makeText(context, "网络异常，请重新登录", Toast.LENGTH_SHORT)
-                            .show()
                         withContext(Dispatchers.Main) {
+                            Toast.makeText(
+                                context,
+                                "网络异常，请重新登录",
+                                Toast.LENGTH_SHORT
+                            ).show()
                             naviToLogin()
                         }
                         return@withContext emptyList()
                     }
                     var jsonResult = JSONObject.parseObject(rawResponse.body.string())
-                    if (jsonResult.getInteger("result") == 0) {
+                    var channelList = jsonResult.getJSONArray("channelList")
+                    if (jsonResult.getInteger("result") == 0 || channelList == null) {
                         if (client.reLogin(context).not()) {
-                            Toast.makeText(context, "登录信息已过期，请重新登录", Toast.LENGTH_SHORT)
-                                .show()
                             withContext(Dispatchers.Main) {
+                                Toast.makeText(
+                                    context,
+                                    "登录信息已过期，请重新登录",
+                                    Toast.LENGTH_SHORT
+                                ).show()
                                 naviToLogin()
                             }
                             return@withContext emptyList()
@@ -87,31 +94,32 @@ object ChaoxingCourseHelper {
                             client.newCall(Request.Builder().get().url(URL_COURSE_LIST).build())
                                 .execute().use {
                                     if (it.checkResponse(context)) {
-                                        Toast.makeText(
-                                            context,
-                                            "网络异常，请重新登录",
-                                            Toast.LENGTH_SHORT
-                                        ).show()
                                         withContext(Dispatchers.Main) {
+                                            Toast.makeText(
+                                                context,
+                                                "网络异常，请重新登录",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
                                             naviToLogin()
                                         }
                                         return@withContext emptyList()
                                     }
                                     jsonResult = JSONObject.parseObject(it.body.string())
-                                    if (jsonResult.getInteger("result") == 0) {
-                                        Toast.makeText(
-                                            context,
-                                            "登录信息已过期，请重新登录",
-                                            Toast.LENGTH_SHORT
-                                        ).show()
+                                    channelList = jsonResult.getJSONArray("channelList")
+                                    if (jsonResult.getInteger("result") == 0 || channelList == null) {
                                         withContext(Dispatchers.Main) {
+                                            Toast.makeText(
+                                                context,
+                                                "登录信息已过期，请重新登录",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
                                             naviToLogin()
                                         }
                                     }
                                 }
                         }
                     }
-                    val channelList = jsonResult.getJSONArray("channelList")
+
                     for (i in 0 until channelList.size) {
                         val course = channelList.getJSONObject(i)
                         val content = course.getJSONObject("content")

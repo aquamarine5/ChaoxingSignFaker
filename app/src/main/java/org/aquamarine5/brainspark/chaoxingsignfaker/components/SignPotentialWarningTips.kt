@@ -23,7 +23,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
@@ -38,12 +42,17 @@ fun SignPotentialWarningTips(
     startTime: Long,
     endTime: Long?,
     isLate: Boolean,
+    modifier: Modifier = Modifier,
     isPadding: Boolean = false
 ) {
     val dateFormatter = remember {
         DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneId.systemDefault())
     }
-    Column(modifier = Modifier.padding(horizontal = if (isPadding) 8.dp else 0.dp)) {
+    Column(
+        modifier = Modifier
+            .padding(horizontal = if (isPadding) 8.dp else 0.dp)
+            .then(modifier)
+    ) {
         if (isLate)
             Card(
                 shape = RoundedCornerShape(18.dp),
@@ -99,13 +108,32 @@ fun SignPotentialWarningTips(
                     ) {
                         Spacer(modifier = Modifier.width(8.dp))
                         Icon(
-                            painterResource(R.drawable.ic_clock_alert),
+                            painterResource(R.drawable.ic_clock_fading),
                             contentDescription = "Help",
                             tint = Color.White
                         )
                         Spacer(modifier = Modifier.width(9.dp))
                         Text(
-                            "此签到的发布时间 ${dateFormatter.format(Instant.ofEpochMilli(startTime))} 距离现在已经超过 6 小时，请确认没有选择错签到事件。",
+                            buildAnnotatedString {
+                                append(
+                                    "此签到的发布时间 ${
+                                        dateFormatter.format(
+                                            Instant.ofEpochMilli(
+                                                startTime
+                                            )
+                                        )
+                                    } 距离现在已经超过 "
+                                )
+                                withStyle(
+                                    SpanStyle(
+                                        fontWeight = FontWeight.Bold,
+                                        textDecoration = TextDecoration.Underline
+                                    )
+                                ) {
+                                    append("6")
+                                }
+                                append(" 小时，请确认没有选择错签到事件。")
+                            },
                             color = Color.White,
                             fontSize = 13.sp,
                             lineHeight = 18.sp,

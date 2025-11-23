@@ -19,6 +19,6 @@ fun SnackbarHostState?.displaySnackbar(
 ) {
     this?.currentSnackbarData?.dismiss()
     coroutineScope.launch {
-        this@displaySnackbar?.showSnackbar(message)
+        this@displaySnackbar?.showSnackbar(message, withDismissAction = true)
     }
 }

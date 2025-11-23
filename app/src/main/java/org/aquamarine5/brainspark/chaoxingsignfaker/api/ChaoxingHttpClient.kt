@@ -57,6 +57,7 @@ class ChaoxingHttpClient private constructor(
     class ChaoxingNetworkException(message: String? = null) :
         ChaoxingPredictableException(message ?: "网络错误")
 
+    @Deprecated("Should use okhttp3.HttpClient.Builder.retryOnConnectionFailure(true)")
     class RetryInterceptor : okhttp3.Interceptor {
         override fun intercept(chain: okhttp3.Interceptor.Chain): Response {
             var failureResponse: Response? = null
@@ -144,6 +145,7 @@ class ChaoxingHttpClient private constructor(
         @Deprecated("Should use ChaoxingHttpClient().deviceCode not ChaoxingHttpClient.Companion.deviceCode")
         var deviceCode: String? = null
 
+        @Deprecated("Don't use saveDeviceCode() and ChaoxingHttpClient.Companion.deviceCode")
         suspend fun saveDeviceCode(context: Context): String {
             val rawData = MessageDigest.getInstance("SHA-256").digest(
                 (UUID.randomUUID().toString().replace("-", "") + UUID.randomUUID().toString()
@@ -195,7 +197,7 @@ class ChaoxingHttpClient private constructor(
                     chain.request().newBuilder()
                         .header("User-Agent", CHAOXING_USER_AGENT).build()
                 )
-            }.addInterceptor(RetryInterceptor())
+            }.retryOnConnectionFailure(true)
                 .build().apply {
                     cookieJar.saveFromResponse(
                         HttpUrl.Builder().scheme("https").host("chaoxing.com")
@@ -247,7 +249,7 @@ class ChaoxingHttpClient private constructor(
             }
             val client = OkHttpClient.Builder()
                 .cookieJar(cookieJar)
-                .addInterceptor(RetryInterceptor())
+                .retryOnConnectionFailure(true)
                 .addInterceptor { chain ->
                     chain.proceed(
                         chain.request().newBuilder()
@@ -298,7 +300,7 @@ class ChaoxingHttpClient private constructor(
                     chain.request().newBuilder()
                         .header("User-Agent", CHAOXING_USER_AGENT).build()
                 )
-            }.addInterceptor(RetryInterceptor()).build().apply {
+            }.retryOnConnectionFailure(true).build().apply {
                 cookieJar.saveFromResponse(
                     HttpUrl.Builder().scheme("https").host("chaoxing.com")
                         .encodedPath("/fanyalogin").build(),
@@ -445,7 +447,7 @@ class ChaoxingHttpClient private constructor(
                                     cookieStore[url.host] ?: listOf()
                                 }
                             }
-                        }).addInterceptor(RetryInterceptor())
+                        }).retryOnConnectionFailure(true)
                         .build()
                 tempOkHttpClient.newCall(request).execute().use {
                     if (it.checkResponse(context)) {

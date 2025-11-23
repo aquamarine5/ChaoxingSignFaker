@@ -20,6 +20,10 @@
 
     <uses-feature android:name="android.hardware.camera" />
 
+    <queries>
+        <package android:name="com.netease.cloudmusic"/>
+    </queries>
+
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"

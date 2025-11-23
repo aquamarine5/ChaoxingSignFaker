@@ -26,7 +26,6 @@ import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.ChaoxingPredictableException
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient.Companion.CHAOXING_USER_AGENT
-import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient.RetryInterceptor
 import org.aquamarine5.brainspark.chaoxingsignfaker.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingSignFakerDataStore
@@ -140,7 +139,7 @@ object ChaoxingOtherUserHelper {
                             chain.request().newBuilder()
                                 .header("User-Agent", CHAOXING_USER_AGENT).build()
                         )
-                    }.addInterceptor(RetryInterceptor()).build()
+                    }.retryOnConnectionFailure(true).build()
 
             ChaoxingHttpClient.login(
                 tempOkHttpClient,

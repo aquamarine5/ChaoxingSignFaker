@@ -3,13 +3,17 @@ syntax = "proto3";
 option java_package = "org.aquamarine5.brainspark.chaoxingsignfaker.datastore";
 option java_multiple_files = true;
 
+// Copyright (c) 2025, @aquamarine5 (@海蓝色的咕咕鸽). All Rights Reserved.
+// Author: aquamarine5@163.com (Github: https://github.com/aquamarine5) and Brainspark (previously RenegadeCreation)
+// Repository: https://github.com/aquamarine5/ChaoxingSignFaker
+
 message ChaoxingSignFakerDataStore{
   repeated ChaoxingLocation locations = 1;
   ChaoxingLoginSession loginSession = 2;
   repeated ChaoxingOtherUserSession otherUsers = 4;
   ChaoxingAnalysis analysis = 7;
   bool agreeTerms = 3;
-  string deviceCode = 5;
+  string deviceCode = 5 [deprecated = true];
   repeated uint32 preferCourse = 6;
   repeated uint32 preferClassId = 8;
   map<uint32, RecommendRecordList> recommendRecords = 9;
@@ -17,11 +21,25 @@ message ChaoxingSignFakerDataStore{
   bool disableRecommend = 11;
   uint32 version = 12;
   repeated ChaoxingCourseClass preferCourseClass = 13;
+  bool bypassBlockedChecking = 14;
+  uint32 tagsIncreaseId = 16;
+  repeated OtherUserTagType tagsLibrary = 15;
 }
 
 message ChaoxingCourseClass{
   uint32 courseId = 1;
   uint32 classId = 2;
+}
+
+message LearntTooltip{
+  bool tagsFeature = 1;
+  bool cameraSelectedFromGallery = 2;
+}
+
+message OtherUserTagType{
+  uint32 id = 1;
+  string name = 2;
+  uint64 color = 3;
 }
 
 message ChaoxingAnalysis{
@@ -51,6 +69,7 @@ message ChaoxingOtherUserSession{
   string phoneNumber = 2;
   string password = 3;
   string name = 4;
+  repeated uint32 tags = 5;
 }
 
 message HttpCookie{
@@ -75,5 +94,5 @@ message RecommendHabit{
   uint32 classId = 3;
   uint32 courseId = 5;
   uint32 recordCount = 4;
-  string className=6;
+  string className = 6;
 }

@@ -8,7 +8,6 @@ package org.aquamarine5.brainspark.chaoxingsignfaker.screen
 
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -26,7 +25,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
@@ -48,7 +46,6 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -168,19 +165,20 @@ fun PasswordSignScreen(
     Crossfade(isAlreadySigned) { v ->
         when (v) {
             true -> {
-                Column(modifier = Modifier.padding(8.dp, 0.dp)) {
-                    SignPotentialWarningTips(
-                        destination.startTime,
-                        destination.endTime,
-                        destination.isLate,
-                        isPadding = true
-                    )
+                Box(modifier = Modifier.padding(8.dp)) {
                     AlreadySignedNotice(onSignForOtherUser = {
                         isAlreadySigned = false
                         isSignForOther = true
                     }, onDismiss = {
                         isAlreadySigned = false
                     }) { navToCourseDetailDestination() }
+
+                    SignPotentialWarningTips(
+                        destination.startTime,
+                        destination.endTime,
+                        destination.isLate,
+                        isPadding = true
+                    )
                 }
             }
 
@@ -260,8 +258,7 @@ fun PasswordSignScreen(
                                             }
                                         },
                                         keyboardOptions = KeyboardOptions(
-                                            keyboardType = KeyboardType.Number,
-                                            imeAction = ImeAction.Done
+                                            keyboardType = KeyboardType.Number
                                         ),
                                         modifier = Modifier
                                             .align(Alignment.CenterHorizontally)
@@ -282,8 +279,11 @@ fun PasswordSignScreen(
                                             ) {
                                                 for (i in 0 until numberCount) {
                                                     key(i) {
-                                                        val codeState by remember {
-                                                            derivedStateOf {
+                                                        val codeState by remember(
+                                                            isCheckingStatus,
+                                                            i
+                                                        ) {
+                                                            mutableStateOf(
                                                                 when {
                                                                     isCheckingStatus == true -> PasswordCodeStatus.CORRECT
                                                                     isCheckingStatus == false -> PasswordCodeStatus.INCORRECT
@@ -291,7 +291,7 @@ fun PasswordSignScreen(
                                                                     i == text.length -> PasswordCodeStatus.INPUTTING
                                                                     else -> PasswordCodeStatus.PENDING
                                                                 }
-                                                            }
+                                                            )
                                                         }
                                                         val animatedContainerColor by animateColorAsState(
                                                             when (codeState) {
@@ -313,13 +313,15 @@ fun PasswordSignScreen(
                                                                 )
                                                             }
                                                         )
-                                                        val animatedElevation by animateDpAsState(
-                                                            when (codeState) {
-                                                                PasswordCodeStatus.INPUTTING -> 15.dp
-                                                                PasswordCodeStatus.PENDING -> 0.dp
-                                                                else -> 7.dp
-                                                            }
-                                                        )
+                                                        val animatedElevation by remember(codeState) {
+                                                            mutableStateOf(
+                                                                when (codeState) {
+                                                                    PasswordCodeStatus.INPUTTING -> 15.dp
+                                                                    PasswordCodeStatus.PENDING -> 0.dp
+                                                                    else -> 7.dp
+                                                                }
+                                                            )
+                                                        }
                                                         val animatedTextColor by animateColorAsState(
                                                             when (codeState) {
                                                                 PasswordCodeStatus.ENTERED, PasswordCodeStatus.CORRECT, PasswordCodeStatus.INCORRECT -> Color.White
@@ -367,7 +369,10 @@ fun PasswordSignScreen(
                         if (isCheckingSuccess != true) {
                             coroutineScope.launch {
                                 snackbarHost.currentSnackbarData?.dismiss()
-                                snackbarHost.showSnackbar("请先输入正确的数字签到码")
+                                snackbarHost.showSnackbar(
+                                    "请先输入正确的数字签到码",
+                                    withDismissAction = true
+                                )
                             }
                             return@OtherUserSelectorComponent
                         }
