@@ -293,10 +293,11 @@ class MainActivity : ComponentActivity() {
                                 "cdn.aquamarine5.vip" to "chaoxingsignfaker_stackbricks_v2_manifest.json",
                             ),
                             referer = "http://cdn.aquamarine5.fun/",
-                            okHttpClient = OkHttpClient().newBuilder()
+                            okHttpClient = OkHttpClient.Builder()
                                 .callTimeout(20, TimeUnit.MINUTES)
                                 .readTimeout(20, TimeUnit.MINUTES)
                                 .writeTimeout(20, TimeUnit.MINUTES)
+                                .retryOnConnectionFailure(true)
                                 .build()
                         ).let {
                             val state = rememberStackbricksStatus()

@@ -1013,44 +1013,47 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                 if (selectedUserIndexTagDialog != null)
                     Text("为${otherUserSessions[selectedUserIndexTagDialog!!].name}添加标签")
             }, text = {
-                LazyColumn {
-                    itemsIndexed(tagsEntityList) { index, tagEntity ->
-                        key(tagEntity.id) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(3.dp)
-                            ) {
-                                Checkbox(
-                                    checked = modifiedTagIndexList[index].value,
-                                    onCheckedChange = {
-                                        modifiedTagIndexList[index].value = it
-                                    })
-                                Icon(
-                                    painterResource(R.drawable.ic_tag),
-                                    null,
-                                    tint = Color(tagEntity.color),
+                if (tagsEntityList.isEmpty()) {
+                    Text("暂无可用标签，请先创建标签。", modifier = Modifier.padding(6.dp))
+                } else
+                    LazyColumn {
+                        itemsIndexed(tagsEntityList) { index, tagEntity ->
+                            key(tagEntity.id) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
                                     modifier = Modifier
-                                        .size(24.dp)
-                                        .padding(0.dp, 2.dp)
-                                        .clickable {
-                                            modifiedTagIndexList[index].value =
-                                                !modifiedTagIndexList[index].value
-                                        }
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    tagEntity.name, modifier = Modifier
-                                        .clickable {
-                                            modifiedTagIndexList[index].value =
-                                                !modifiedTagIndexList[index].value
-                                        }
-                                        .fillMaxWidth())
+                                        .fillMaxWidth()
+                                        .padding(3.dp)
+                                ) {
+                                    Checkbox(
+                                        checked = modifiedTagIndexList[index].value,
+                                        onCheckedChange = {
+                                            modifiedTagIndexList[index].value = it
+                                        })
+                                    Icon(
+                                        painterResource(R.drawable.ic_tag),
+                                        null,
+                                        tint = Color(tagEntity.color),
+                                        modifier = Modifier
+                                            .size(24.dp)
+                                            .padding(0.dp, 2.dp)
+                                            .clickable {
+                                                modifiedTagIndexList[index].value =
+                                                    !modifiedTagIndexList[index].value
+                                            }
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        tagEntity.name, modifier = Modifier
+                                            .clickable {
+                                                modifiedTagIndexList[index].value =
+                                                    !modifiedTagIndexList[index].value
+                                            }
+                                            .fillMaxWidth())
+                                }
                             }
                         }
                     }
-                }
             })
     }
     if (isURLSharedDialog) {
