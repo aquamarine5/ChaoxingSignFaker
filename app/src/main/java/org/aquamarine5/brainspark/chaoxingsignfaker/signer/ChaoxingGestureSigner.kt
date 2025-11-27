@@ -14,7 +14,7 @@ import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Request
 import org.aquamarine5.brainspark.chaoxingsignfaker.ChaoxingPredictableException
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
-import org.aquamarine5.brainspark.chaoxingsignfaker.checkResponse
+import org.aquamarine5.brainspark.chaoxingsignfaker.checkResponseThrowException
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignOutEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.GestureSignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingLocationSigner.ChaoxingLocationSignException
@@ -57,8 +57,7 @@ class ChaoxingGestureSigner(
                     .build()
             ).build()
         ).execute().use {
-            if (it.checkResponse(client.context))
-                throw ChaoxingHttpClient.ChaoxingNetworkException()
+            it.checkResponseThrowException()
             return@withContext JSONObject.parseObject(it.body.string()).getInteger("result") == 1
         }
     }
@@ -78,9 +77,7 @@ class ChaoxingGestureSigner(
                     .build()
             ).build()
         ).execute().use {
-            if (it.checkResponse(client.context)) {
-                throw ChaoxingHttpClient.ChaoxingNetworkException()
-            }
+            it.checkResponseThrowException()
             val result = it.body.string()
             if (result == "success2")
                 throw SignAlreadyEndedException()
@@ -116,9 +113,7 @@ class ChaoxingGestureSigner(
                         .build()
                 ).build()
             ).execute().use {
-                if (it.checkResponse(client.context)) {
-                    throw ChaoxingHttpClient.ChaoxingNetworkException()
-                }
+                it.checkResponseThrowException()
                 val result = it.body.string()
                 if (result == "success2")
                     throw SignAlreadyEndedException()

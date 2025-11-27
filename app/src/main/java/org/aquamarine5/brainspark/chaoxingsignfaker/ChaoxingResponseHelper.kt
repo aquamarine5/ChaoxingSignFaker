@@ -7,6 +7,7 @@
 package org.aquamarine5.brainspark.chaoxingsignfaker
 
 import android.content.Context
+import android.os.NetworkOnMainThreadException
 import android.widget.Toast
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
@@ -20,8 +21,33 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.Response
-import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSigner
+import java.net.ConnectException
+import java.net.SocketTimeoutException
+import java.net.UnknownHostException
+import javax.net.ssl.SSLHandshakeException
+
+fun Throwable.getNetworkExceptionMessage(): String? = when (this) {
+    is UnknownHostException -> "网络连接异常"
+    is SocketTimeoutException -> "网络连接超时"
+    is SSLHandshakeException -> "网络连接失败"
+    is ConnectException -> "无法连接到服务器"
+    is NetworkOnMainThreadException -> "网络调用方法异常"
+    else -> null
+}
+
+fun Response.checkResponseThrowException() {
+    if (!isSuccessful) {
+        throw ChaoxingPredictableException(
+            when (code) {
+                403 -> "网络异常，访问被拒绝"
+                404 -> "网络异常，资源未找到"
+                500 -> "网络异常，服务器内部错误"
+                else -> "网络异常，错误码：$code"
+            }
+        )
+    }
+}
 
 suspend fun Response.checkResponse(context: Context): Boolean =
     if (isSuccessful) {
@@ -30,9 +56,6 @@ suspend fun Response.checkResponse(context: Context): Boolean =
         withContext(Dispatchers.Main) {
             Toast.makeText(
                 context, when (code) {
-                    ChaoxingHttpClient.HTTP_RESPONSE_CODE_UNKNOWN_HOST -> "网络异常，请检查网络连接和DNS服务器"
-                    ChaoxingHttpClient.HTTP_RESPONSE_CODE_UNKNOWN_ERROR -> "网络异常，请稍后再试"
-                    ChaoxingHttpClient.HTTP_RESPONSE_CODE_SOCKET_TIMEOUT -> "网络异常，连接超时，请检查网络连接"
                     403 -> "网络异常，访问被拒绝"
                     404 -> "网络异常，资源未找到"
                     500 -> "网络异常，服务器内部错误"
@@ -43,6 +66,7 @@ suspend fun Response.checkResponse(context: Context): Boolean =
         true
     }
 
+@Deprecated("Use Response.checkResponseThrowException()")
 suspend fun Response.checkResponse(snackbarHostState: SnackbarHostState): Boolean =
     if (isSuccessful) {
         false
@@ -52,9 +76,6 @@ suspend fun Response.checkResponse(snackbarHostState: SnackbarHostState): Boolea
                 snackbarHostState.currentSnackbarData?.dismiss()
                 snackbarHostState.showSnackbar(
                     when (code) {
-                        ChaoxingHttpClient.HTTP_RESPONSE_CODE_UNKNOWN_HOST -> "网络异常，请检查网络连接和DNS服务器"
-                        ChaoxingHttpClient.HTTP_RESPONSE_CODE_UNKNOWN_ERROR -> "网络异常，请稍后再试"
-                        ChaoxingHttpClient.HTTP_RESPONSE_CODE_SOCKET_TIMEOUT -> "网络异常，连接超时，请检查网络连接"
                         403 -> "网络异常，访问被拒绝"
                         404 -> "网络异常，资源未找到"
                         500 -> "网络异常，服务器内部错误"

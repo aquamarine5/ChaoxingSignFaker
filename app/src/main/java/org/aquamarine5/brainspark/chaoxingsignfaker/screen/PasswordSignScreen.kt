@@ -238,20 +238,30 @@ fun PasswordSignScreen(
                                                 text = newText
                                                 if (newText.length == numberCount) {
                                                     coroutineScope.launch {
-                                                        signer.checkSignCode(text.toInt()).let {
-                                                            isCheckingSuccess = it
-                                                            if (it) {
-                                                                isCheckingStatus = true
-                                                                hapticFeedback.performHapticFeedback(
-                                                                    HapticFeedbackType.Confirm
-                                                                )
-                                                                focusManager.clearFocus()
-                                                            } else {
-                                                                isCheckingStatus = false
-                                                                hapticFeedback.performHapticFeedback(
-                                                                    HapticFeedbackType.Reject
-                                                                )
+                                                        runCatching {
+                                                            signer.checkSignCode(text.toInt()).let {
+                                                                isCheckingSuccess = it
+                                                                if (it) {
+                                                                    isCheckingStatus = true
+                                                                    hapticFeedback.performHapticFeedback(
+                                                                        HapticFeedbackType.Confirm
+                                                                    )
+                                                                    focusManager.clearFocus()
+                                                                } else {
+                                                                    isCheckingStatus = false
+                                                                    hapticFeedback.performHapticFeedback(
+                                                                        HapticFeedbackType.Reject
+                                                                    )
+                                                                }
                                                             }
+                                                        }.onFailure {
+                                                            isCheckingStatus = false
+                                                            it.snackbarReport(
+                                                                snackbarHost,
+                                                                coroutineScope,
+                                                                "签到码校验失败",
+                                                                hapticFeedback
+                                                            )
                                                         }
                                                     }
                                                 }

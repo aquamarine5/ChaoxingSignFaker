@@ -335,7 +335,7 @@ class MainActivity : ComponentActivity() {
                                     destination =
                                         when {
                                             !datastore.agreeTerms -> WelcomeDestination
-                                            !datastore.hasLoginSession() -> LoginDestination
+                                            !datastore.hasLoginSession() -> LoginDestination()
                                             else -> {
                                                 runCatching {
                                                     ChaoxingHttpClient.loadFromDataStore(
@@ -351,7 +351,7 @@ class MainActivity : ComponentActivity() {
                                                             Toast.LENGTH_SHORT
                                                         ).show()
                                                     }
-                                                    LoginDestination
+                                                    LoginDestination(isFailureNetworkRedirect = true)
                                                 }
                                             }
                                         }
@@ -398,7 +398,7 @@ class MainActivity : ComponentActivity() {
                                                         restoreState = true
                                                     }
                                                 }) {
-                                                navController.navigate(LoginDestination) {
+                                                navController.navigate(LoginDestination(true)) {
                                                     popUpTo<CourseListDestination> {
                                                         inclusive = true
                                                         saveState = true
@@ -520,7 +520,7 @@ class MainActivity : ComponentActivity() {
                                     navigation<SettingGraphDestination>(startDestination = SettingDestination) {
                                         composable<SettingDestination> {
                                             SettingScreen(stackbricksService, imageLoader) {
-                                                navController.navigate(LoginDestination) {
+                                                navController.navigate(LoginDestination()) {
                                                     popUpTo<SettingDestination> { inclusive = true }
                                                 }
                                             }
@@ -530,14 +530,14 @@ class MainActivity : ComponentActivity() {
 
                                     composable<WelcomeDestination> {
                                         WelcomeScreen {
-                                            navController.navigate(LoginDestination) {
+                                            navController.navigate(LoginDestination()) {
                                                 popUpTo<WelcomeDestination> { inclusive = true }
                                             }
                                         }
                                     }
 
                                     composable<LoginDestination> {
-                                        LoginPage() {
+                                        LoginPage(it.toRoute(),stackbricksService) {
                                             navController.navigate(CourseListDestination) {
                                                 popUpTo<LoginDestination> { inclusive = true }
                                             }
