@@ -21,6 +21,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.Response
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSigner
 import java.net.ConnectException
 import java.net.SocketTimeoutException
@@ -38,7 +39,7 @@ fun Throwable.getNetworkExceptionMessage(): String? = when (this) {
 
 fun Response.checkResponseThrowException() {
     if (!isSuccessful) {
-        throw ChaoxingPredictableException(
+        throw ChaoxingHttpClient.ChaoxingNetworkException(
             when (code) {
                 403 -> "网络异常，访问被拒绝"
                 404 -> "网络异常，资源未找到"
@@ -96,7 +97,14 @@ fun Throwable.toastReport(
     this.cause?.printStackTrace()
     this.printStackTrace()
     hapticFeedback?.performHapticFeedback(HapticFeedbackType.Reject)
-    if (this !is ChaoxingPredictableException) {
+    val networkExceptionTips = this.getNetworkExceptionMessage()
+    if (networkExceptionTips != null) {
+        Toast.makeText(
+            context,
+            "${prefixTips?.plus(" ") ?: ""}$networkExceptionTips",
+            Toast.LENGTH_LONG
+        ).show()
+    } else if (this !is ChaoxingPredictableException) {
         Sentry.captureException(this)
         Toast.makeText(
             context,
@@ -124,7 +132,20 @@ fun Throwable.snackbarReport(
     this.cause?.printStackTrace()
     this.printStackTrace()
     hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
-    if (this !is ChaoxingPredictableException) {
+    val networkExceptionTips = this.getNetworkExceptionMessage()
+    if (networkExceptionTips != null) {
+        snackbarHostState?.currentSnackbarData?.dismiss()
+        coroutineScope.launch {
+            snackbarHostState?.showSnackbar(
+                "${prefixTips?.plus(" ") ?: ""}$networkExceptionTips",
+                actionLabel,
+                true,
+                duration
+            )?.apply {
+                onSnackbarResult?.invoke(this)
+            }
+        }
+    } else if (this !is ChaoxingPredictableException) {
         Sentry.captureException(this)
         snackbarHostState?.currentSnackbarData?.dismiss()
         coroutineScope.launch {
