@@ -8,6 +8,7 @@ package org.aquamarine5.brainspark.chaoxingsignfaker.screen
 
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.VisibilityThreshold
 import androidx.compose.animation.core.spring
@@ -16,6 +17,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -68,6 +70,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.BlockedContent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CourseInfoColumnCard
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.NetworkExceptionComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCourseEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.RecommendActivityEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.snackbarReport
@@ -109,6 +112,7 @@ fun CourseListScreen(
     var isForceInstall by remember { mutableStateOf(false) }
     val snackbarHost = LocalSnackbarHostState.current
     var recommendActivities by remember { mutableStateOf<List<RecommendActivityEntity>?>(null) }
+    var isFetchedFailure by remember { mutableStateOf<Result<*>?>(null) }
     val coroutineScope = rememberCoroutineScope()
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
@@ -126,7 +130,7 @@ fun CourseListScreen(
             recommendActivities =
                 ChaoxingRecommendHelper.checkRecommendedActivities(context, snackbarHost)
             if (activitiesData.isEmpty()) {
-                runCatching {
+                isFetchedFailure = runCatching {
 //                    context.chaoxingDataStore.data.first().apply {
 //                        if (version <= 0) {
 //                            ChaoxingHttpClient.instance?.let { httpClient ->
@@ -237,63 +241,106 @@ fun CourseListScreen(
             modifier = Modifier
                 .padding(16.dp, 12.dp, 16.dp, 0.dp)
         ) {
-            if (activitiesData.isEmpty()) {
-                CenterCircularProgressIndicator()
-            } else {
-                Column {
-                    AnimatedVisibility(
-                        recommendActivities != null,
-                        enter = fadeIn() + slideInVertically()
-                    ) {
-                        recommendActivities?.forEachIndexed { index, item ->
-                            runCatching {
-                                Card(
-                                    onClick = {
-                                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                                        navToSignActivityDestination(item.destination)
-                                    },
-                                    shape = RoundedCornerShape(18.dp),
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Row(
-                                        modifier = Modifier
-                                            .padding(24.dp, 8.dp)
-                                            .padding(3.dp)
-                                    ) {
-                                        Icon(painterResource(R.drawable.ic_brain_circuit), null)
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Column {
-                                            Text("根据平时的签到习惯推断出可能会点击的签到活动：")
-                                            Text(buildAnnotatedString {
-                                                withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
-                                                    append(item.className)
+            Crossfade(isFetchedFailure) { v ->
+                if (v == null) {
+                    CenterCircularProgressIndicator()
+                } else if (v.isFailure) {
+                    NetworkExceptionComponent(v.exceptionOrNull()!!) {
+                        coroutineScope.launch {
+                            isFetchedFailure = runCatching {
+                                ChaoxingHttpClient.instance?.let { httpClient ->
+                                    ChaoxingCourseHelper.getAllCourse(
+                                        httpClient,
+                                        context,
+                                        navToLoginDestination
+                                    )
+                                        .apply {
+                                            activitiesData.addAll(this.filter {
+                                                preferredClassIds.contains(it.classId)
+                                            }.map {
+                                                it.apply {
+                                                    isPreferred = true
                                                 }
-                                                append(" 在 ")
-                                                withStyle(SpanStyle(fontFamily = FontFamily(Font(R.font.gilroy)))) {
-                                                    append(
-                                                        LocalDateTime.from(
-                                                            Instant.ofEpochMilli(
-                                                                item.startTime
-                                                            )
-                                                        ).run {
-                                                            "$hour:$minute:$second"
-                                                        })
-                                                }
-                                                append(" 的 ")
-                                                append(item.activityName)
+                                            } + this.filter {
+                                                !preferredClassIds.contains(it.classId)
                                             })
+                                        }
 
+                                }
+                            }.onFailure {
+                                it.snackbarReport(
+                                    snackbarHost,
+                                    coroutineScope,
+                                    "获取课程列表失败",
+                                    hapticFeedback
+                                )
+                            }
+                        }
+                        isFetchedFailure = null
+                    }
+                } else {
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        AnimatedVisibility(
+                            recommendActivities != null,
+                            enter = fadeIn() + slideInVertically()
+                        ) {
+                            recommendActivities?.forEachIndexed { index, item ->
+                                runCatching {
+                                    Card(
+                                        onClick = {
+                                            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                                            navToSignActivityDestination(item.destination)
+                                        },
+                                        shape = RoundedCornerShape(18.dp),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Row(
+                                            modifier = Modifier
+                                                .padding(24.dp, 8.dp)
+                                                .padding(3.dp)
+                                        ) {
+                                            Icon(painterResource(R.drawable.ic_brain_circuit), null)
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Column {
+                                                Text("根据平时的签到习惯推断出可能会点击的签到活动：")
+                                                Text(buildAnnotatedString {
+                                                    withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+                                                        append(item.className)
+                                                    }
+                                                    append(" 在 ")
+                                                    withStyle(
+                                                        SpanStyle(
+                                                            fontFamily = FontFamily(
+                                                                Font(
+                                                                    R.font.gilroy
+                                                                )
+                                                            )
+                                                        )
+                                                    ) {
+                                                        append(
+                                                            LocalDateTime.from(
+                                                                Instant.ofEpochMilli(
+                                                                    item.startTime
+                                                                )
+                                                            ).run {
+                                                                "$hour:$minute:$second"
+                                                            })
+                                                    }
+                                                    append(" 的 ")
+                                                    append(item.activityName)
+                                                })
+
+                                            }
                                         }
                                     }
-                                }
-                                if (index != recommendActivities?.lastIndex) {
-                                    Spacer(modifier = Modifier.padding(vertical = 8.dp))
+                                    if (index != recommendActivities?.lastIndex) {
+                                        Spacer(modifier = Modifier.padding(vertical = 8.dp))
+                                    }
                                 }
                             }
                         }
-                    }
-                    var debouncePreviousTime = 0L
-                    LazyColumn {
+                        var debouncePreviousTime = 0L
+                        LazyColumn {
 //                    item {
 //                        OutlinedButton(
 //                            onClick = {
@@ -314,60 +361,62 @@ fun CourseListScreen(
 //                            }
 //                        }
 //                    }
-                        items(activitiesData) { data ->
-                            key(data.classId) {
-                                CourseInfoColumnCard(
-                                    data,
-                                    imageLoader,
-                                    modifier = Modifier.animateItem(
-                                        placementSpec = spring(
-                                            stiffness = Spring.StiffnessLow,
-                                            visibilityThreshold = IntOffset.VisibilityThreshold
+                            items(activitiesData) { data ->
+                                key(data.classId) {
+                                    CourseInfoColumnCard(
+                                        data,
+                                        imageLoader,
+                                        modifier = Modifier.animateItem(
+                                            placementSpec = spring(
+                                                stiffness = Spring.StiffnessLow,
+                                                visibilityThreshold = IntOffset.VisibilityThreshold
+                                            ),
+                                            fadeInSpec = spring(Spring.StiffnessLow),
+                                            fadeOutSpec = spring(Spring.StiffnessLow)
                                         ),
-                                        fadeInSpec = spring(Spring.StiffnessLow),
-                                        fadeOutSpec = spring(Spring.StiffnessLow)
-                                    ),
-                                    onPreferredResort = { isPreferred ->
-                                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                                        if (isPreferred)
-                                            coroutineScope.launch {
-                                                context.chaoxingDataStore.updateData {
-                                                    it.toBuilder().addPreferClassId(data.classId)
-                                                        .build()
+                                        onPreferredResort = { isPreferred ->
+                                            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                                            if (isPreferred)
+                                                coroutineScope.launch {
+                                                    context.chaoxingDataStore.updateData {
+                                                        it.toBuilder()
+                                                            .addPreferClassId(data.classId)
+                                                            .build()
+                                                    }
+                                                    preferredClassIds.add(data.classId)
+                                                    activitiesData.sortByDescending {
+                                                        if (it.classId == data.classId)
+                                                            return@sortByDescending SORT_TOP
+                                                        if (preferredClassIds.contains(
+                                                                it.classId
+                                                            )
+                                                        ) return@sortByDescending SORT_STAR
+                                                        else return@sortByDescending SORT_COMMON
+                                                    }
                                                 }
-                                                preferredClassIds.add(data.classId)
-                                                activitiesData.sortByDescending {
-                                                    if (it.classId == data.classId)
-                                                        return@sortByDescending SORT_TOP
-                                                    if (preferredClassIds.contains(
-                                                            it.classId
-                                                        )
-                                                    ) return@sortByDescending SORT_STAR
-                                                    else return@sortByDescending SORT_COMMON
+                                            else {
+                                                coroutineScope.launch {
+                                                    context.chaoxingDataStore.updateData { dataStore ->
+                                                        dataStore.toBuilder().apply {
+                                                            //remo
+                                                            val newList =
+                                                                preferClassIdList.filterNot { it == data.classId }
+                                                            clearPreferClassId()
+                                                            addAllPreferClassId(newList)
+                                                        }.build()
+                                                    }
+                                                    preferredClassIds.remove(data.classId)
                                                 }
-                                            }
-                                        else {
-                                            coroutineScope.launch {
-                                                context.chaoxingDataStore.updateData { dataStore ->
-                                                    dataStore.toBuilder().apply {
-                                                        //remo
-                                                        val newList =
-                                                            preferClassIdList.filterNot { it == data.classId }
-                                                        clearPreferClassId()
-                                                        addAllPreferClassId(newList)
-                                                    }.build()
-                                                }
-                                                preferredClassIds.remove(data.classId)
                                             }
                                         }
+                                    ) {
+                                        val currentTime = System.currentTimeMillis()
+                                        if (currentTime - debouncePreviousTime < 1000)
+                                            return@CourseInfoColumnCard
+                                        debouncePreviousTime = currentTime
+                                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                                        navToDetailDestination(data)
                                     }
-                                ) {
-                                    val currentTime = System.currentTimeMillis()
-                                    if (currentTime - debouncePreviousTime < 1000)
-                                        return@CourseInfoColumnCard
-                                    debouncePreviousTime = currentTime
-                                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                                    navToDetailDestination(data)
                                 }
                             }
                         }

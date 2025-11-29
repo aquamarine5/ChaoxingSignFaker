@@ -293,10 +293,11 @@ class MainActivity : ComponentActivity() {
                                 "cdn.aquamarine5.vip" to "chaoxingsignfaker_stackbricks_v2_manifest.json",
                             ),
                             referer = "http://cdn.aquamarine5.fun/",
-                            okHttpClient = OkHttpClient().newBuilder()
+                            okHttpClient = OkHttpClient.Builder()
                                 .callTimeout(20, TimeUnit.MINUTES)
                                 .readTimeout(20, TimeUnit.MINUTES)
                                 .writeTimeout(20, TimeUnit.MINUTES)
+                                .retryOnConnectionFailure(true)
                                 .build()
                         ).let {
                             val state = rememberStackbricksStatus()
@@ -334,7 +335,7 @@ class MainActivity : ComponentActivity() {
                                     destination =
                                         when {
                                             !datastore.agreeTerms -> WelcomeDestination
-                                            !datastore.hasLoginSession() -> LoginDestination
+                                            !datastore.hasLoginSession() -> LoginDestination()
                                             else -> {
                                                 runCatching {
                                                     ChaoxingHttpClient.loadFromDataStore(
@@ -350,7 +351,7 @@ class MainActivity : ComponentActivity() {
                                                             Toast.LENGTH_SHORT
                                                         ).show()
                                                     }
-                                                    LoginDestination
+                                                    LoginDestination(isFailureNetworkRedirect = true)
                                                 }
                                             }
                                         }
@@ -397,7 +398,7 @@ class MainActivity : ComponentActivity() {
                                                         restoreState = true
                                                     }
                                                 }) {
-                                                navController.navigate(LoginDestination) {
+                                                navController.navigate(LoginDestination(true)) {
                                                     popUpTo<CourseListDestination> {
                                                         inclusive = true
                                                         saveState = true
@@ -519,7 +520,7 @@ class MainActivity : ComponentActivity() {
                                     navigation<SettingGraphDestination>(startDestination = SettingDestination) {
                                         composable<SettingDestination> {
                                             SettingScreen(stackbricksService, imageLoader) {
-                                                navController.navigate(LoginDestination) {
+                                                navController.navigate(LoginDestination()) {
                                                     popUpTo<SettingDestination> { inclusive = true }
                                                 }
                                             }
@@ -529,14 +530,14 @@ class MainActivity : ComponentActivity() {
 
                                     composable<WelcomeDestination> {
                                         WelcomeScreen {
-                                            navController.navigate(LoginDestination) {
+                                            navController.navigate(LoginDestination()) {
                                                 popUpTo<WelcomeDestination> { inclusive = true }
                                             }
                                         }
                                     }
 
                                     composable<LoginDestination> {
-                                        LoginPage() {
+                                        LoginPage(it.toRoute(),stackbricksService) {
                                             navController.navigate(CourseListDestination) {
                                                 popUpTo<LoginDestination> { inclusive = true }
                                             }

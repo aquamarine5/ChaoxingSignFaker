@@ -18,8 +18,10 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -37,12 +39,12 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.R
 
 @Composable
 fun SponsorCard() {
-    val isShowDialog = remember { mutableStateOf(false) }
+    var isShowDialog by remember { mutableStateOf(false) }
     val hapticFeedback = LocalHapticFeedback.current
     Button(
         onClick = {
             hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-            isShowDialog.value = true
+            isShowDialog = true
         },
         shape = RoundedCornerShape(18.dp),
         modifier = Modifier.fillMaxWidth(),
@@ -77,5 +79,8 @@ fun SponsorCard() {
         }
     }
     Spacer(modifier = Modifier.height(8.dp))
-    SponsorAlertDialog(showDialog = isShowDialog)
+    if (isShowDialog)
+        SponsorAlertDialog {
+            isShowDialog = false
+        }
 }

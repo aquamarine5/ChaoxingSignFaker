@@ -27,7 +27,7 @@ import okhttp3.Request
 import org.aquamarine5.brainspark.chaoxingsignfaker.ChaoxingPredictableException
 import org.aquamarine5.brainspark.chaoxingsignfaker.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
-import org.aquamarine5.brainspark.chaoxingsignfaker.checkResponse
+import org.aquamarine5.brainspark.chaoxingsignfaker.checkResponseThrowException
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCaptchaDataEntity
 import java.util.UUID
 
@@ -79,9 +79,7 @@ abstract class ChaoxingSigner(
                     .build()
             ).build()
         ).execute().use {
-            if (it.checkResponse(client.context)) {
-                throw ChaoxingHttpClient.ChaoxingNetworkException()
-            }
+            it.checkResponseThrowException()
             return@withContext JSONObject.parseObject(it.body.string()).getJSONObject("data")
         }
     }
@@ -99,9 +97,7 @@ abstract class ChaoxingSigner(
                     .build()
             ).build()
         ).execute().use {
-            if (it.checkResponse(client.context)) {
-                throw ChaoxingHttpClient.ChaoxingNetworkException()
-            }
+            it.checkResponseThrowException()
             val body = it.body.string()
             if (it.code == 302 || body.contains("校验失败，未查询到活动数据")) {
                 throw SignActivityNoPermissionException()
@@ -118,9 +114,7 @@ abstract class ChaoxingSigner(
                     .addQueryParameter("aid", activeId.toString()).build()
             ).build()
         ).execute().use {
-            if (it.checkResponse(client.context)) {
-                throw ChaoxingHttpClient.ChaoxingNetworkException()
-            }
+            it.checkResponseThrowException()
             postAfterAnalysis(
                 """code='\+'([a-f0-9]+)'""".toRegex()
                     .find(it.body.string())?.groupValues?.get(1)
@@ -168,9 +162,7 @@ abstract class ChaoxingSigner(
                     .build().toString()
             ).build()
         ).execute().use {
-            if (it.checkResponse(client.context)) {
-                throw ChaoxingHttpClient.ChaoxingNetworkException()
-            }
+            it.checkResponseThrowException()
             val jsonResult = JSONObject.parseObject(
                 it.body.string().replace("cx_captcha_function(", "").replace(")", "")
             )
@@ -195,6 +187,7 @@ abstract class ChaoxingSigner(
                     .addQueryParameter("_", System.currentTimeMillis().toString()).build()
             ).build()
         ).execute().use {
+            it.checkResponseThrowException()
             return@use JSONObject.parseObject(
                 it.body.string().replace("cx_captcha_function(", "").replace(")", "")
             ).getLong("t")
@@ -202,8 +195,8 @@ abstract class ChaoxingSigner(
     }
 
     @Deprecated("Use getCaptchaImageV2 instead", ReplaceWith("getCaptchaImageV2()"))
-    open suspend fun getCaptchaImage(onSuccess: (ChaoxingCaptchaDataEntity) -> Unit) {
-        getCaptchaData(client.context) {
+    open suspend fun getCaptchaImage(context: Context,onSuccess: (ChaoxingCaptchaDataEntity) -> Unit) {
+        getCaptchaData(context) {
             client.newCall(
                 Request.Builder().get().url(it).header(
                     "Referer", URL_PERSIGN.toHttpUrl().newBuilder()
@@ -331,9 +324,7 @@ abstract class ChaoxingSigner(
                     .build()
             ).build()
         ).execute().use {
-            if (it.checkResponse(client.context)) {
-                throw ChaoxingHttpClient.ChaoxingNetworkException()
-            }
+            it.checkResponseThrowException()
             val jsonResult = JSONObject.parseObject(
                 it.body.string().replace("cx_captcha_function(", "").replace(")", "")
             )

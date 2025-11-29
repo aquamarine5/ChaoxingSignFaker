@@ -68,11 +68,6 @@ object ChaoxingCourseHelper {
                 .use { rawResponse ->
                     if (rawResponse.checkResponse(context)) {
                         withContext(Dispatchers.Main) {
-                            Toast.makeText(
-                                context,
-                                "网络异常，请重新登录",
-                                Toast.LENGTH_SHORT
-                            ).show()
                             naviToLogin()
                         }
                         return@withContext emptyList()
@@ -95,11 +90,6 @@ object ChaoxingCourseHelper {
                                 .execute().use {
                                     if (it.checkResponse(context)) {
                                         withContext(Dispatchers.Main) {
-                                            Toast.makeText(
-                                                context,
-                                                "网络异常，请重新登录",
-                                                Toast.LENGTH_SHORT
-                                            ).show()
                                             naviToLogin()
                                         }
                                         return@withContext emptyList()

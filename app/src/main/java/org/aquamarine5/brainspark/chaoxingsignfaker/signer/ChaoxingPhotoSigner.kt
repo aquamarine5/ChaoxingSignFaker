@@ -28,7 +28,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import org.aquamarine5.brainspark.chaoxingsignfaker.ChaoxingPredictableException
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingActivityHelper.NO_SIGN_OFF_EVENT
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
-import org.aquamarine5.brainspark.chaoxingsignfaker.checkResponse
+import org.aquamarine5.brainspark.chaoxingsignfaker.checkResponseThrowException
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignOutEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.ChaoxingPhotoActivityEntity
 import java.io.ByteArrayOutputStream
@@ -77,9 +77,7 @@ class ChaoxingPhotoSigner(
 
     suspend fun getCloudToken(): String = withContext(Dispatchers.IO) {
         client.newCall(Request.Builder().url(URL_CLOUD_TOKEN).build()).execute().use {
-            if (it.checkResponse(client.context)) {
-                throw ChaoxingHttpClient.ChaoxingNetworkException()
-            }
+            it.checkResponseThrowException()
             return@withContext JSONObject.parseObject(it.body.string()).getString("_token")
         }
     }
@@ -96,9 +94,7 @@ class ChaoxingPhotoSigner(
                     .build()
             ).get().build()
         ).execute().use {
-            if (it.checkResponse(client.context)) {
-                throw ChaoxingHttpClient.ChaoxingNetworkException()
-            }
+            it.checkResponseThrowException()
             val result = it.body.string()
             if (result == "您已签到过了") {
                 throw AlreadySignedException()
@@ -129,9 +125,7 @@ class ChaoxingPhotoSigner(
                         .build()
                 ).get().build()
             ).execute().use {
-                if (it.checkResponse(client.context)) {
-                    throw ChaoxingHttpClient.ChaoxingNetworkException()
-                }
+                it.checkResponseThrowException()
                 val result = it.body.string()
                 if (result == "您已签到过了") {
                     throw AlreadySignedException()
@@ -161,9 +155,7 @@ class ChaoxingPhotoSigner(
                     .build()
             ).get().build()
         ).execute().use {
-            if (it.checkResponse(client.context)) {
-                throw ChaoxingHttpClient.ChaoxingNetworkException()
-            }
+            it.checkResponseThrowException()
             val result = it.body.string()
             if (result == "success2")
                 throw SignAlreadyEndedException()
@@ -192,9 +184,7 @@ class ChaoxingPhotoSigner(
                         .build()
                 ).get().build()
             ).execute().use {
-                if (it.checkResponse(client.context)) {
-                    throw ChaoxingHttpClient.ChaoxingNetworkException()
-                }
+                it.checkResponseThrowException()
                 val result = it.body.string()
                 if (result == "success2")
                     throw SignAlreadyEndedException()
@@ -241,9 +231,7 @@ class ChaoxingPhotoSigner(
                             .build()
                     ).build()
                 ).execute().use {
-                    if (it.checkResponse(client.context)) {
-                        throw ChaoxingHttpClient.ChaoxingNetworkException()
-                    }
+                    it.checkResponseThrowException()
                     JSONObject.parseObject(it.body.string()).getString("objectId")
                 }
             }
@@ -267,9 +255,7 @@ class ChaoxingPhotoSigner(
                         .build()
                 ).build()
             ).execute().use {
-                if (it.checkResponse(client.context)) {
-                    throw ChaoxingHttpClient.ChaoxingNetworkException()
-                }
+                it.checkResponseThrowException()
                 JSONObject.parseObject(it.body.string()).getString("objectId")
             }
         }

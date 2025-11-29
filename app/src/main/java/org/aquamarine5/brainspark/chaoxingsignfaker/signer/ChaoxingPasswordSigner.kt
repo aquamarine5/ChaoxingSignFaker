@@ -15,7 +15,7 @@ import okhttp3.Request
 import org.aquamarine5.brainspark.chaoxingsignfaker.ChaoxingPredictableException
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingActivityHelper.NO_SIGN_OFF_EVENT
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
-import org.aquamarine5.brainspark.chaoxingsignfaker.checkResponse
+import org.aquamarine5.brainspark.chaoxingsignfaker.checkResponseThrowException
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignOutEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.PasswordSignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingLocationSigner.ChaoxingLocationSignException
@@ -62,9 +62,7 @@ class ChaoxingPasswordSigner(
                     .build()
             ).build()
         ).execute().use {
-            if (it.checkResponse(client.context)) {
-                throw ChaoxingHttpClient.ChaoxingNetworkException()
-            }
+            it.checkResponseThrowException()
             val body = JSONObject.parseObject(it.body.string())
             return@withContext body.getInteger("result") == 1
         }
@@ -85,9 +83,7 @@ class ChaoxingPasswordSigner(
                     .build()
             ).build()
         ).execute().use {
-            if (it.checkResponse(client.context)) {
-                throw ChaoxingHttpClient.ChaoxingNetworkException()
-            }
+            it.checkResponseThrowException()
             val result = it.body.string()
             if (result == "success2")
                 throw SignAlreadyEndedException()
@@ -123,9 +119,7 @@ class ChaoxingPasswordSigner(
                         .build()
                 ).build()
             ).execute().use {
-                if (it.checkResponse(client.context)) {
-                    throw ChaoxingHttpClient.ChaoxingNetworkException()
-                }
+                it.checkResponseThrowException()
                 val result = it.body.string()
                 if (result == "success2")
                     throw SignAlreadyEndedException()

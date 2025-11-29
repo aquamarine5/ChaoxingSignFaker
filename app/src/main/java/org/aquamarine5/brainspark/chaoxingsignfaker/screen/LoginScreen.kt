@@ -6,16 +6,23 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.screen
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -26,6 +33,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -44,18 +52,25 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
+import org.aquamarine5.brainspark.chaoxingsignfaker.BuildConfig
 import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.displaySnackbar
 import org.aquamarine5.brainspark.chaoxingsignfaker.snackbarReport
+import org.aquamarine5.brainspark.stackbricks.StackbricksComponent
+import org.aquamarine5.brainspark.stackbricks.StackbricksService
 
 @Serializable
-object LoginDestination
+data class LoginDestination(
+    val isFailureNetworkRedirect: Boolean = false
+)
 
 @Composable
 fun LoginPage(
+    destination: LoginDestination,
+    stackbricksService: StackbricksService,
     navToCourseListDestination: () -> Unit
 ) {
     var phoneNumber by remember { mutableStateOf("") }
@@ -155,5 +170,44 @@ fun LoginPage(
             Text("登录")
         }
         Spacer(modifier = Modifier.height(8.dp))
+
+        if (destination.isFailureNetworkRedirect) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(8.dp, 5.dp, 8.dp, 8.dp)
+                    .border(
+                        BorderStroke(2.dp, MaterialTheme.colorScheme.onErrorContainer),
+                        shape = RoundedCornerShape(8.dp)
+                    ),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Card(
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
+                ) {
+                    Column(modifier = Modifier.padding(6.dp)) {
+                        Row {
+                            Icon(painterResource(R.drawable.ic_info), null)
+                            Text(
+                                "如果登录账号持续出现问题，请尝试更新应用版本。",
+                                modifier = Modifier
+                                    .padding(4.dp, 0.dp)
+                                    .fillMaxWidth()
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        StackbricksComponent(stackbricksService)
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            "ChaoxingSignFaker versionName:${BuildConfig.VERSION_NAME}, versionCode: ${BuildConfig.VERSION_CODE}, buildDate: ${BuildConfig.releaseDate}, channel: ${BuildConfig.UMENG_CHANNEL}",
+                            fontSize = 10.sp,
+                            lineHeight = 12.sp,
+                            color = Color.Gray
+                        )
+                    }
+                }
+            }
+        }
     }
 }

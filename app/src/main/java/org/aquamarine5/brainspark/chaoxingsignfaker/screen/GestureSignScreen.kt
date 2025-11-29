@@ -63,6 +63,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.checkIsLast
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.AlreadySignedNotice
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.NetworkExceptionComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.OtherUserSelectorComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SignOutRedirectTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SignPotentialWarningTips
@@ -139,9 +140,10 @@ fun GestureSignScreen(
     val snackbarHost = LocalSnackbarHostState.current
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
+    var isFetchedFailure by remember { mutableStateOf<Result<*>?>(null) }
     val hapticFeedback = LocalHapticFeedback.current
     LaunchedEffect(Unit) {
-        runCatching {
+        isFetchedFailure = runCatching {
             signoffData = signer.getGestureSignInfo()
             isAlreadySigned = signer.preSign()
         }.onFailure {
@@ -151,13 +153,31 @@ fun GestureSignScreen(
                 "获取签到信息失败",
                 hapticFeedback
             )
-            navToCourseDetailDestination()
         }
     }
 
-    Crossfade(isAlreadySigned) { v ->
-        when (v) {
-            true -> {
+    Crossfade(isFetchedFailure) { v ->
+        if (v == null) {
+            CenterCircularProgressIndicator()
+        } else if (v.isFailure) {
+            NetworkExceptionComponent(v.exceptionOrNull()!!) {
+                coroutineScope.launch {
+                    isFetchedFailure = runCatching {
+                        signoffData = signer.getGestureSignInfo()
+                        isAlreadySigned = signer.preSign()
+                    }.onFailure {
+                        it.snackbarReport(
+                            snackbarHost,
+                            coroutineScope,
+                            "获取签到信息失败",
+                            hapticFeedback
+                        )
+                    }
+                }
+                isFetchedFailure = null
+            }
+        } else {
+            if (isAlreadySigned == true) {
                 Box(modifier = Modifier.padding(8.dp)) {
                     AlreadySignedNotice(onSignForOtherUser = {
                         isAlreadySigned = false
@@ -173,9 +193,7 @@ fun GestureSignScreen(
                         isPadding = true
                     )
                 }
-            }
-
-            false -> {
+            } else if (isAlreadySigned == false) {
                 var isCheckingStatus by remember { mutableStateOf(false) }
                 var text by remember { mutableStateOf("") }
                 var isCaptcha = remember { false }
@@ -251,32 +269,42 @@ fun GestureSignScreen(
                                             val currentGestureOrderCode =
                                                 hitIndexList.joinToString("") { (it + 1).toString() }
                                             coroutineScope.launch {
-                                                if (signer.checkSignGesture(
-                                                        currentGestureOrderCode
-                                                    )
-                                                ) {
-                                                    hapticFeedback.performHapticFeedback(
-                                                        HapticFeedbackType.Confirm
-                                                    )
-                                                    text = currentGestureOrderCode
-                                                    isCheckingStatus = true
-                                                    snackbarHost.displaySnackbar(
-                                                        "签到码验证成功",
-                                                        coroutineScope
-                                                    )
-                                                } else {
-                                                    hapticFeedback.performHapticFeedback(
-                                                        HapticFeedbackType.Reject
-                                                    )
-                                                    snackbarHost.displaySnackbar(
-                                                        "签到码错误，请重新输入",
-                                                        coroutineScope
+                                                runCatching {
+                                                    if (signer.checkSignGesture(
+                                                            currentGestureOrderCode
+                                                        )
+                                                    ) {
+                                                        hapticFeedback.performHapticFeedback(
+                                                            HapticFeedbackType.Confirm
+                                                        )
+                                                        text = currentGestureOrderCode
+                                                        isCheckingStatus = true
+                                                        snackbarHost.displaySnackbar(
+                                                            "签到码验证成功",
+                                                            coroutineScope
+                                                        )
+                                                    } else {
+                                                        hapticFeedback.performHapticFeedback(
+                                                            HapticFeedbackType.Reject
+                                                        )
+                                                        snackbarHost.displaySnackbar(
+                                                            "签到码错误，请重新输入",
+                                                            coroutineScope
+                                                        )
+                                                        view.updateStatus(true)
+                                                        coroutineScope.launch {
+                                                            delay(600L)
+                                                            view.clearHitState()
+                                                        }
+                                                    }
+                                                }.onFailure {
+                                                    it.snackbarReport(
+                                                        snackbarHost,
+                                                        coroutineScope,
+                                                        "签到码验证失败",
+                                                        hapticFeedback
                                                     )
                                                     view.updateStatus(true)
-                                                    coroutineScope.launch {
-                                                        delay(600L)
-                                                        view.clearHitState()
-                                                    }
                                                 }
                                             }
                                         }
@@ -553,11 +581,6 @@ fun GestureSignScreen(
                     }
                 }
             }
-
-            null -> {
-                CenterCircularProgressIndicator()
-            }
         }
-
     }
 }

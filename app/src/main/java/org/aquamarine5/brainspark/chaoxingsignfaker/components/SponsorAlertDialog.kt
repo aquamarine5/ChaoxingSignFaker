@@ -32,7 +32,6 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -73,7 +72,7 @@ private const val SPONSOR_IMAGE_FILENAME_BASE = "ChaoxingSignFaker_sponsor"
 @OptIn(ExperimentalPermissionsApi::class)
 @SuppressLint("WrongConstant")
 @Composable
-fun SponsorAlertDialog(showDialog: MutableState<Boolean>) {
+fun SponsorAlertDialog(onDismissRequest: () -> Unit) {
     val context = LocalActivity.current!!.applicationContext
     var sponsorList by remember { mutableStateOf<List<Pair<String, String>>>(listOf()) }
     var updateDate by remember { mutableStateOf("2006/12/15") }
@@ -112,175 +111,174 @@ fun SponsorAlertDialog(showDialog: MutableState<Boolean>) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) rememberPermissionState(
             android.Manifest.permission.WRITE_EXTERNAL_STORAGE
         ) else null
-    var isShowDialog by showDialog
-    if (isShowDialog) {
-        AlertDialog(onDismissRequest = {
-            isShowDialog = false
-        }, confirmButton = {
-            Row {
-                OutlinedButton(onClick = {
-                    isShowDialog = false
-                }) {
-                    Text("下次一定")
-                }
-                Spacer(modifier = Modifier.width(4.dp))
-                Button(onClick = {
-                    if (permissionCheck?.status?.isGranted == false) {
-                        permissionCheck.launchPermissionRequest()
-                    } else
-                        coroutineScope.launch {
-                            withContext(Dispatchers.IO) {
-                                val imageValues = ContentValues().apply {
-                                    put(MediaStore.Images.Media.MIME_TYPE, "image/jpg")
-                                    val date = System.currentTimeMillis() / 1000
-                                    put(MediaStore.Images.Media.DATE_ADDED, date)
-                                    put(MediaStore.Images.Media.DATE_MODIFIED, date)
-                                }
-                                val filename =
-                                    "${SPONSOR_IMAGE_FILENAME_BASE}_${System.currentTimeMillis()}.jpg"
 
-                                var file: File? = null
-                                val collection =
-                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                                        imageValues.apply {
-                                            put(MediaStore.Images.Media.DISPLAY_NAME, filename)
-                                            put(
-                                                MediaStore.Images.Media.RELATIVE_PATH,
-                                                Environment.DIRECTORY_PICTURES
-                                            )
-                                            put(MediaStore.Images.Media.IS_PENDING, 1)
-                                        }
-                                        MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
-                                    } else {
-                                        val dir =
-                                            Environment.getExternalStoragePublicDirectory(
-                                                Environment.DIRECTORY_PICTURES
-                                            )
-                                        if (!dir.exists() && !dir.mkdirs()) {
-                                            return@withContext
-                                        }
-                                        file = File(dir, filename)
-                                        imageValues.apply {
-                                            put(MediaStore.Images.Media.DATA, file.absolutePath)
-                                            put(MediaStore.Images.Media.DISPLAY_NAME, filename)
-                                        }
-                                        MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+    AlertDialog(onDismissRequest = {
+        onDismissRequest()
+    }, confirmButton = {
+        Row {
+            OutlinedButton(onClick = {
+                onDismissRequest()
+            }) {
+                Text("下次一定")
+            }
+            Spacer(modifier = Modifier.width(4.dp))
+            Button(onClick = {
+                if (permissionCheck?.status?.isGranted == false) {
+                    permissionCheck.launchPermissionRequest()
+                } else
+                    coroutineScope.launch {
+                        withContext(Dispatchers.IO) {
+                            val imageValues = ContentValues().apply {
+                                put(MediaStore.Images.Media.MIME_TYPE, "image/jpg")
+                                val date = System.currentTimeMillis() / 1000
+                                put(MediaStore.Images.Media.DATE_ADDED, date)
+                                put(MediaStore.Images.Media.DATE_MODIFIED, date)
+                            }
+                            val filename =
+                                "${SPONSOR_IMAGE_FILENAME_BASE}_${System.currentTimeMillis()}.jpg"
+
+                            var file: File? = null
+                            val collection =
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                                    imageValues.apply {
+                                        put(MediaStore.Images.Media.DISPLAY_NAME, filename)
+                                        put(
+                                            MediaStore.Images.Media.RELATIVE_PATH,
+                                            Environment.DIRECTORY_PICTURES
+                                        )
+                                        put(MediaStore.Images.Media.IS_PENDING, 1)
                                     }
-                                val resultUri =
-                                    context.contentResolver.insert(collection, imageValues)
-                                if (resultUri == null) {
-                                    Toast.makeText(context, "保存失败", Toast.LENGTH_SHORT).show()
+                                    MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
                                 } else {
-                                    context.contentResolver.openOutputStream(resultUri)
-                                        ?.use { outputStream ->
-                                            context.resources.openRawResource(R.raw.img_sponsor)
-                                                .use { inputStream ->
-                                                    inputStream.copyTo(outputStream)
-                                                }
-                                        }
-                                    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
-                                        file?.let {
-                                            imageValues.put(
-                                                MediaStore.Images.Media.SIZE,
-                                                it.length()
-                                            )
-                                        }
-                                        context.contentResolver.update(
-                                            resultUri,
-                                            imageValues,
-                                            null,
-                                            null
+                                    val dir =
+                                        Environment.getExternalStoragePublicDirectory(
+                                            Environment.DIRECTORY_PICTURES
                                         )
-                                        context.sendBroadcast(
-                                            Intent(
-                                                Intent.ACTION_MEDIA_SCANNER_SCAN_FILE,
-                                                resultUri
-                                            )
-                                        )
-                                    } else {
-                                        imageValues.put(MediaStore.Images.Media.IS_PENDING, 0)
-                                        context.contentResolver.update(
-                                            resultUri,
-                                            imageValues,
-                                            null,
-                                            null
+                                    if (!dir.exists() && !dir.mkdirs()) {
+                                        return@withContext
+                                    }
+                                    file = File(dir, filename)
+                                    imageValues.apply {
+                                        put(MediaStore.Images.Media.DATA, file.absolutePath)
+                                        put(MediaStore.Images.Media.DISPLAY_NAME, filename)
+                                    }
+                                    MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+                                }
+                            val resultUri =
+                                context.contentResolver.insert(collection, imageValues)
+                            if (resultUri == null) {
+                                Toast.makeText(context, "保存失败", Toast.LENGTH_SHORT).show()
+                            } else {
+                                context.contentResolver.openOutputStream(resultUri)
+                                    ?.use { outputStream ->
+                                        context.resources.openRawResource(R.raw.img_sponsor)
+                                            .use { inputStream ->
+                                                inputStream.copyTo(outputStream)
+                                            }
+                                    }
+                                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+                                    file?.let {
+                                        imageValues.put(
+                                            MediaStore.Images.Media.SIZE,
+                                            it.length()
                                         )
                                     }
+                                    context.contentResolver.update(
+                                        resultUri,
+                                        imageValues,
+                                        null,
+                                        null
+                                    )
+                                    context.sendBroadcast(
+                                        Intent(
+                                            Intent.ACTION_MEDIA_SCANNER_SCAN_FILE,
+                                            resultUri
+                                        )
+                                    )
+                                } else {
+                                    imageValues.put(MediaStore.Images.Media.IS_PENDING, 0)
+                                    context.contentResolver.update(
+                                        resultUri,
+                                        imageValues,
+                                        null,
+                                        null
+                                    )
                                 }
                             }
-                            Toast.makeText(context, "付款码已保存到相册", Toast.LENGTH_LONG).show()
-                        }.invokeOnCompletion {
-                            hapticFeedback.performHapticFeedback(HapticFeedbackType.Confirm)
-                            runCatching {
-                                context.startActivity(
-                                    Intent(
-                                        Intent.ACTION_VIEW,
-                                        "weixin://".toUri()
-                                    ).apply {
-                                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                    })
-                            }.onFailure {
-                                snackbarState.displaySnackbar(
-                                    "无法打开微信，请确保已安装微信",
-                                    coroutineScope
-                                )
-                            }
-                            UMengHelper.onGotoSponsorWechatEvent(
-                                context,
-                                ChaoxingHttpClient.instance!!.userEntity
+                        }
+                        Toast.makeText(context, "付款码已保存到相册", Toast.LENGTH_LONG).show()
+                    }.invokeOnCompletion {
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.Confirm)
+                        runCatching {
+                            context.startActivity(
+                                Intent(
+                                    Intent.ACTION_VIEW,
+                                    "weixin://".toUri()
+                                ).apply {
+                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                })
+                        }.onFailure {
+                            snackbarState.displaySnackbar(
+                                "无法打开微信，请确保已安装微信",
+                                coroutineScope
                             )
                         }
-                }) {
-                    Text("现在就去")
-                }
-            }
-        }, text = {
-            Column(
-                modifier = Modifier.verticalScroll(rememberScrollState())
-            ) {
-                Image(painterResource(R.drawable.img_sponsor), contentDescription = "sponsor")
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    "捐赠列表：",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Text(
-                    "如需在列表内显示完整名称，请添加备注，微信支付不会显示完整名称。捐赠列表并非实时更新，上次更新时间：$updateDate",
-                    fontStyle = FontStyle.Italic,
-                    lineHeight = 14.sp,
-                    fontSize = 12.sp
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    buildAnnotatedString {
-                        sponsorList.forEachIndexed { index, it ->
-                            withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
-                                append(it.first)
-                            }
-                            append(" 赞赏了 ")
-                            withStyle(
-                                SpanStyle(
-                                    fontWeight = FontWeight.Bold, fontFamily = FontFamily(
-                                        Font(R.font.gilroy)
-                                    )
-                                )
-                            ) {
-                                append(it.second)
-                            }
-                            append(" 元")
-                            if (index != sponsorList.size - 1)
-                                append("\n")
-                        }
-                    }, modifier = Modifier
-                        .border(
-                            1.dp, MaterialTheme.colorScheme.primary,
-                            RoundedCornerShape(4.dp)
+                        UMengHelper.onGotoSponsorWechatEvent(
+                            context,
+                            ChaoxingHttpClient.instance!!.userEntity
                         )
-                        .padding(8.dp)
-                )
+                    }
+            }) {
+                Text("现在就去")
             }
-        })
-    }
+        }
+    }, text = {
+        Column(
+            modifier = Modifier.verticalScroll(rememberScrollState())
+        ) {
+            Image(painterResource(R.drawable.img_sponsor), contentDescription = "sponsor")
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                "捐赠列表：",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Text(
+                "如需在列表内显示完整名称，请添加备注，微信支付不会显示完整名称。捐赠列表并非实时更新，上次更新时间：$updateDate",
+                fontStyle = FontStyle.Italic,
+                lineHeight = 14.sp,
+                fontSize = 12.sp
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                buildAnnotatedString {
+                    sponsorList.forEachIndexed { index, it ->
+                        withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+                            append(it.first)
+                        }
+                        append(" 赞赏了 ")
+                        withStyle(
+                            SpanStyle(
+                                fontWeight = FontWeight.Bold, fontFamily = FontFamily(
+                                    Font(R.font.gilroy)
+                                )
+                            )
+                        ) {
+                            append(it.second)
+                        }
+                        append(" 元")
+                        if (index != sponsorList.size - 1)
+                            append("\n")
+                    }
+                }, modifier = Modifier
+                    .border(
+                        1.dp, MaterialTheme.colorScheme.primary,
+                        RoundedCornerShape(4.dp)
+                    )
+                    .padding(8.dp)
+            )
+        }
+    })
+
 }

@@ -66,7 +66,7 @@ inline fun CourseSignActivityColumnCard(
             }) {
         val currentTime = remember { System.currentTimeMillis() }
         BadgedBox(badge = {
-            if (currentTime - activity.startTime <= 600000) {
+            if (currentTime - activity.startTime <= 600000 && isAvailable) {
                 Box(contentAlignment = Alignment.Center) {
                     Badge(
                         containerColor = MaterialTheme.colorScheme.background,
