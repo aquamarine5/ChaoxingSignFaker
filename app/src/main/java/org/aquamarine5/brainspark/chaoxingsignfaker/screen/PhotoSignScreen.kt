@@ -85,6 +85,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.components.AlreadySignedNoti
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CameraComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.NetworkExceptionComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.OtherUserSelectorComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SignOutRedirectTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SignPotentialWarningTips
@@ -164,8 +165,9 @@ fun PhotoSignScreen(
             })
     }
     val hapticFeedback = LocalHapticFeedback.current
+    var isFetchedFailure by remember { mutableStateOf<Result<*>?>(null) }
     LaunchedEffect(Unit) {
-        runCatching {
+        isFetchedFailure = runCatching {
             val data = signer.ifPhotoRequiredLogin()
             isImage = data.first
             signoffEntity = data.second
@@ -176,12 +178,30 @@ fun PhotoSignScreen(
                 coroutineScope,
                 "获取签到信息失败", hapticFeedback
             )
-            navBack()
         }
     }
-    Crossfade(isAlreadySigned) { v ->
-        when (v) {
-            false -> {
+    Crossfade(isFetchedFailure) { v ->
+        if (v == null) {
+            CenterCircularProgressIndicator()
+        } else if (v.isFailure) {
+            NetworkExceptionComponent(v.exceptionOrNull()!!) {
+                coroutineScope.launch {
+                    isFetchedFailure = runCatching {
+                        val data = signer.ifPhotoRequiredLogin()
+                        isImage = data.first
+                        signoffEntity = data.second
+                        isAlreadySigned = signer.preSign()
+                    }.onFailure {
+                        it.snackbarReport(
+                            snackbarHost,
+                            coroutineScope,
+                            "获取签到信息失败", hapticFeedback
+                        )
+                    }
+                }
+            }
+        } else {
+            if (isAlreadySigned == false) {
                 if (isImage == false) {
                     Column(
                         modifier = Modifier.padding(8.dp)
@@ -1111,9 +1131,7 @@ fun PhotoSignScreen(
                         }
                     }
                 }
-            }
-
-            true -> {
+            } else if (isAlreadySigned == true) {
                 Box(
                     modifier = Modifier.padding(8.dp)
                 ) {
@@ -1132,10 +1150,6 @@ fun PhotoSignScreen(
                         isPadding = true
                     )
                 }
-            }
-
-            null -> {
-                CenterCircularProgressIndicator()
             }
         }
     }

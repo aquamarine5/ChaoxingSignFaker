@@ -7,6 +7,7 @@
 package org.aquamarine5.brainspark.chaoxingsignfaker.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -36,7 +37,10 @@ fun NetworkExceptionComponent(
         val networkExceptionTips = remember(exception) {
             exception.getNetworkExceptionMessage()
         }
-        Column(modifier = Modifier.align(Alignment.Center)) {
+        Column(
+            modifier = Modifier.align(Alignment.Center),
+            verticalArrangement = Arrangement.Center
+        ) {
             Icon(
                 if (networkExceptionTips == null) painterResource(R.drawable.ic_message_circle_x) else painterResource(
                     R.drawable.ic_wifi_off

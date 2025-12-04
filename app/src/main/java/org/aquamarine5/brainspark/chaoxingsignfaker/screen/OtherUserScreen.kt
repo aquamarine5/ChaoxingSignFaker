@@ -768,74 +768,82 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                         .padding(bottom = 4.dp),
                     elevation = CardDefaults.cardElevation(4.dp)
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(3.dp, 0.dp)
-                    ) {
-                        IconButton(onClick = {
-                            isSelectNewTagColorDialog = true
-                        }) {
-                            Icon(
-                                painterResource(R.drawable.ic_palette),
-                                null,
-                                tint = if (newTagColor == null) {
-                                    if (isSystemInDarkTheme()) Color.LightGray else Color.DarkGray
-                                } else newTagColor!!
-                            )
-                        }
-                        BasicTextField(
-                            value = newTagName,
-                            onValueChange = { newTagName = it },
-                            cursorBrush = SolidColor(if (isSystemInDarkTheme()) Color.White else MaterialTheme.colorScheme.primary),
-                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                            keyboardActions = KeyboardActions { createTagAction() },
-                            modifier = Modifier
-                                .focusRequester(focusRequester)
-                                .onFocusChanged {
-                                    if (it.isFocused) keyboardController?.show()
-                                }
-                                .weight(1f)
-                                .drawBehind {
-                                    val strokeWidth = 2.dp.toPx()
-                                    val y = size.height + 3.dp.toPx() - strokeWidth / 2
-                                    drawLine(
-                                        color = Color.Gray,
-                                        start = Offset(0f, y),
-                                        end = Offset(size.width, y),
-                                        strokeWidth = strokeWidth
-                                    )
-                                },
-                            textStyle = TextStyle(
-                                color = LocalContentColor.current,
-                                lineHeight = 16.sp
-                            ),
-                            decorationBox = { innerTextField ->
-                                Box(
-                                    contentAlignment = Alignment.CenterStart
-                                ) {
-                                    if (newTagName.isEmpty()) {
-                                        Text(
-                                            "新标签名称",
-                                            style = LocalTextStyle.current.copy(
-                                                color = LocalContentColor.current.copy(alpha = 0.4f)
-                                            )
-                                        )
-                                    }
-                                    innerTextField()
-                                }
-                            }
+                    Column {
+                        Text(
+                            "创建新标签",
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(6.dp),
+                            fontWeight = FontWeight.Bold
                         )
-                        IconButton(onClick = {
-                            isSelectNewTagUserDialog = true
-                        }) {
-                            Icon(painterResource(R.drawable.ic_user_round_cog), null)
-                        }
-                        IconButton(onClick = {
-                            createTagAction()
-                        }) {
-                            Icon(painterResource(R.drawable.ic_tag_plus_outline), null)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(3.dp, 0.dp)
+                        ) {
+                            IconButton(onClick = {
+                                isSelectNewTagColorDialog = true
+                            }) {
+                                Icon(
+                                    painterResource(R.drawable.ic_palette),
+                                    null,
+                                    tint = if (newTagColor == null) {
+                                        if (isSystemInDarkTheme()) Color.LightGray else Color.DarkGray
+                                    } else newTagColor!!
+                                )
+                            }
+                            BasicTextField(
+                                value = newTagName,
+                                onValueChange = { newTagName = it },
+                                cursorBrush = SolidColor(if (isSystemInDarkTheme()) Color.White else MaterialTheme.colorScheme.primary),
+                                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                                keyboardActions = KeyboardActions { createTagAction() },
+                                modifier = Modifier
+                                    .focusRequester(focusRequester)
+                                    .onFocusChanged {
+                                        if (it.isFocused) keyboardController?.show()
+                                    }
+                                    .weight(1f)
+                                    .drawBehind {
+                                        val strokeWidth = 2.dp.toPx()
+                                        val y = size.height + 3.dp.toPx() - strokeWidth / 2
+                                        drawLine(
+                                            color = Color.Gray,
+                                            start = Offset(0f, y),
+                                            end = Offset(size.width, y),
+                                            strokeWidth = strokeWidth
+                                        )
+                                    },
+                                textStyle = TextStyle(
+                                    color = LocalContentColor.current,
+                                    lineHeight = 16.sp
+                                ),
+                                decorationBox = { innerTextField ->
+                                    Box(
+                                        contentAlignment = Alignment.CenterStart
+                                    ) {
+                                        if (newTagName.isEmpty()) {
+                                            Text(
+                                                "新标签名称",
+                                                style = LocalTextStyle.current.copy(
+                                                    color = LocalContentColor.current.copy(alpha = 0.4f)
+                                                )
+                                            )
+                                        }
+                                        innerTextField()
+                                    }
+                                }
+                            )
+                            IconButton(onClick = {
+                                isSelectNewTagUserDialog = true
+                            }) {
+                                Icon(painterResource(R.drawable.ic_user_round_cog), null)
+                            }
+                            IconButton(onClick = {
+                                createTagAction()
+                            }) {
+                                Icon(painterResource(R.drawable.ic_tag_plus_outline), null)
+                            }
                         }
                     }
                 }
@@ -963,7 +971,9 @@ fun OtherUserScreen(naviBack: () -> Unit) {
         }
         var isSavingDatastore by remember { mutableStateOf(false) }
         AlertDialog(
-            onDismissRequest = {},
+            onDismissRequest = {
+                selectedUserIndexTagDialog = null
+            },
             icon = {
                 Icon(
                     painterResource(R.drawable.ic_tag),
@@ -1014,7 +1024,12 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                     Text("为${otherUserSessions[selectedUserIndexTagDialog!!].name}添加标签")
             }, text = {
                 if (tagsEntityList.isEmpty()) {
-                    Text("暂无可用标签，请先创建标签。", modifier = Modifier.padding(6.dp))
+                    Text(
+                        "暂无可用标签，请先创建标签。",
+                        fontStyle = FontStyle.Italic,
+                        color = Color.Gray,
+                        modifier = Modifier.padding(6.dp)
+                    )
                 } else
                     LazyColumn {
                         itemsIndexed(tagsEntityList) { index, tagEntity ->
@@ -1593,6 +1608,9 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                                 IconButton(
                                                     onClick = {
                                                         selectedUserIndexTagDialog = index
+                                                        hapticFeedback.performHapticFeedback(
+                                                            HapticFeedbackType.ContextClick
+                                                        )
                                                     }
                                                 ) {
                                                     Icon(painterResource(R.drawable.ic_tags), null)

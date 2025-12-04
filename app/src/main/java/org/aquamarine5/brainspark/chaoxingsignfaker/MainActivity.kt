@@ -119,7 +119,6 @@ import kotlin.reflect.typeOf
 class MainActivity : ComponentActivity() {
     companion object {
         const val INTENT_EXTRA_EXIT_FLAG = "intent_extra_exit_flag"
-
         const val CLASS_TAG = "MainActivity"
     }
 
@@ -147,9 +146,12 @@ class MainActivity : ComponentActivity() {
         }
         if (UMengHelper.md5(
                 packageManager.getApplicationLabel(versionData.applicationInfo!!).toString()
-            ) != "181b23fb3bfa29181fcde41f72757e97"
+            ) != "181b23fb3bfa29181fcde41f72757e97" && UMengHelper.md5(
+                packageName
+            ) != "717670698be98532464cfc122894908b"
         ) {
             UMengHelper.onIllegalChannelEvent(this, versionData)
+            MobclickAgent.onKillProcess(this)
             throw ChaoxingPredictableException.ApplicationIllegalChannelException()
         }
         UMengHelper.preInit(this)
@@ -228,12 +230,16 @@ class MainActivity : ComponentActivity() {
                                                     hapticFeedback.performHapticFeedback(
                                                         HapticFeedbackType.ContextClick
                                                     )
-                                                    navController.navigate(item.destination) {
-                                                        popUpTo(navController.graph.findStartDestination().id) {
-                                                            saveState = true
+                                                    runCatching {
+                                                        navController.navigate(item.destination) {
+                                                            popUpTo(navController.graph.findStartDestination().id) {
+                                                                saveState = true
+                                                            }
+                                                            launchSingleTop = true
+                                                            restoreState = true
                                                         }
-                                                        launchSingleTop = true
-                                                        restoreState = true
+                                                    }.onFailure {
+                                                        it.printStackTrace()
                                                     }
                                                 }
                                             },
@@ -537,7 +543,7 @@ class MainActivity : ComponentActivity() {
                                     }
 
                                     composable<LoginDestination> {
-                                        LoginPage(it.toRoute(),stackbricksService) {
+                                        LoginPage(it.toRoute(), stackbricksService) {
                                             navController.navigate(CourseListDestination) {
                                                 popUpTo<LoginDestination> { inclusive = true }
                                             }

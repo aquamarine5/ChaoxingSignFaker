@@ -14,6 +14,7 @@ import androidx.compose.animation.core.VisibilityThreshold
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -40,6 +41,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.toMutableStateList
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
@@ -242,43 +244,7 @@ fun CourseListScreen(
                 .padding(16.dp, 12.dp, 16.dp, 0.dp)
         ) {
             Crossfade(isFetchedFailure) { v ->
-                if (v == null) {
-                    CenterCircularProgressIndicator()
-                } else if (v.isFailure) {
-                    NetworkExceptionComponent(v.exceptionOrNull()!!) {
-                        coroutineScope.launch {
-                            isFetchedFailure = runCatching {
-                                ChaoxingHttpClient.instance?.let { httpClient ->
-                                    ChaoxingCourseHelper.getAllCourse(
-                                        httpClient,
-                                        context,
-                                        navToLoginDestination
-                                    )
-                                        .apply {
-                                            activitiesData.addAll(this.filter {
-                                                preferredClassIds.contains(it.classId)
-                                            }.map {
-                                                it.apply {
-                                                    isPreferred = true
-                                                }
-                                            } + this.filter {
-                                                !preferredClassIds.contains(it.classId)
-                                            })
-                                        }
-
-                                }
-                            }.onFailure {
-                                it.snackbarReport(
-                                    snackbarHost,
-                                    coroutineScope,
-                                    "获取课程列表失败",
-                                    hapticFeedback
-                                )
-                            }
-                        }
-                        isFetchedFailure = null
-                    }
-                } else {
+                if (activitiesData.isNotEmpty()) {
                     Column(modifier = Modifier.fillMaxSize()) {
                         AnimatedVisibility(
                             recommendActivities != null,
@@ -419,6 +385,49 @@ fun CourseListScreen(
                                     }
                                 }
                             }
+                        }
+                    }
+                } else if (v == null) {
+                    CenterCircularProgressIndicator()
+                } else if (v.isFailure) {
+                    NetworkExceptionComponent(v.exceptionOrNull()!!) {
+                        coroutineScope.launch {
+                            isFetchedFailure = runCatching {
+                                ChaoxingHttpClient.instance?.let { httpClient ->
+                                    ChaoxingCourseHelper.getAllCourse(
+                                        httpClient,
+                                        context,
+                                        navToLoginDestination
+                                    )
+                                        .apply {
+                                            activitiesData.addAll(this.filter {
+                                                preferredClassIds.contains(it.classId)
+                                            }.map {
+                                                it.apply {
+                                                    isPreferred = true
+                                                }
+                                            } + this.filter {
+                                                !preferredClassIds.contains(it.classId)
+                                            })
+                                        }
+
+                                }
+                            }.onFailure {
+                                it.snackbarReport(
+                                    snackbarHost,
+                                    coroutineScope,
+                                    "获取课程列表失败",
+                                    hapticFeedback
+                                )
+                            }
+                        }
+                        isFetchedFailure = null
+                    }
+                } else {
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        Column(modifier = Modifier.align(Alignment.Center)) {
+                            Icon(painterResource(R.drawable.ic_circle_question_mark), null)
+                            Text("暂无课程，请检查登录的学习通账号是否正确。")
                         }
                     }
                 }
