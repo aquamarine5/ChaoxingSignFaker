@@ -16,7 +16,7 @@ import okhttp3.Request
 import org.aquamarine5.brainspark.chaoxingsignfaker.ChaoxingPredictableException
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingActivityHelper.NO_SIGN_OFF_EVENT
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
-import org.aquamarine5.brainspark.chaoxingsignfaker.checkResponse
+import org.aquamarine5.brainspark.chaoxingsignfaker.checkResponseThrowException
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationSignEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingQRCodeDetailEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignOutEntity
@@ -89,9 +89,7 @@ class ChaoxingQRCodeSigner(
                         }.build()
                 ).build()
             ).execute().use {
-                if (it.checkResponse(client.context)) {
-                    throw ChaoxingHttpClient.ChaoxingNetworkException()
-                }
+                it.checkResponseThrowException()
                 val result = it.body.string()
 
                 if (result == "您已签到过了") {
@@ -135,9 +133,7 @@ class ChaoxingQRCodeSigner(
                         }.build()
                 ).build()
             ).execute().use {
-                if (it.checkResponse(client.context)) {
-                    throw ChaoxingHttpClient.ChaoxingNetworkException()
-                }
+                it.checkResponseThrowException()
                 val result = it.body.string()
                 if (result.startsWith("validate")) {
                     return@use true

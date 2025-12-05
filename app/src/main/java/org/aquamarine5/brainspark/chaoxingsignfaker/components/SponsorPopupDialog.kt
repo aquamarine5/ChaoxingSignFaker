@@ -55,6 +55,8 @@ fun SponsorPopupDialog() {
             }) { Text("下次一定") }
         })
     if (isShowSponsor.value) {
-        SponsorAlertDialog(isShowSponsor)
+        SponsorAlertDialog{
+            isShowSponsor.value = false
+        }
     }
 }

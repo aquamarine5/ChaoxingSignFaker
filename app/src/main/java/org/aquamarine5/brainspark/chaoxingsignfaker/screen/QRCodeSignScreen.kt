@@ -75,6 +75,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.components.AlreadySignedNoti
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.GetLocationComponent
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.NetworkExceptionComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.OtherUserSelectorComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.QRCodeScanComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SignOutRedirectTips
@@ -142,6 +143,7 @@ fun QRCodeSignScreen(
         )
     }
     val hapticFeedback = LocalHapticFeedback.current
+    var isFetchedFailure by remember { mutableStateOf<Result<*>?>(null) }
     if (captchaValidateParams != null) {
         CaptchaHandlerDialog(
             captchaValidateParams!!.first,
@@ -151,7 +153,7 @@ fun QRCodeSignScreen(
             })
     }
     LaunchedEffect(Unit) {
-        runCatching {
+        isFetchedFailure = runCatching {
             isAlreadySigned = signer.preSign()
             val data = signer.getQRCodeSignInfo()
             isMapRequired = data.first.isPositionRequired
@@ -162,12 +164,30 @@ fun QRCodeSignScreen(
                 coroutineScope,
                 "获取签到信息失败", hapticFeedback
             )
-            navBack()
         }
     }
-    Crossfade(isAlreadySigned) { v ->
-        when (v) {
-            true -> {
+    Crossfade(isFetchedFailure) { v ->
+        if (v == null) {
+            CenterCircularProgressIndicator()
+        } else if (v.isFailure) {
+            NetworkExceptionComponent(v.exceptionOrNull()!!) {
+                coroutineScope.launch {
+                    isFetchedFailure = runCatching {
+                        isAlreadySigned = signer.preSign()
+                        val data = signer.getQRCodeSignInfo()
+                        isMapRequired = data.first.isPositionRequired
+                        signoffData = data.second
+                    }.onFailure {
+                        it.snackbarReport(
+                            snackbarHost,
+                            coroutineScope,
+                            "获取签到信息失败", hapticFeedback
+                        )
+                    }
+                }
+            }
+        } else {
+            if (isAlreadySigned == true) {
                 Box(
                     modifier = Modifier.padding(8.dp)
                 ) {
@@ -184,9 +204,7 @@ fun QRCodeSignScreen(
                         destination.isLate
                     )
                 }
-            }
-
-            false -> {
+            } else if (isAlreadySigned == false) {
                 var isSelfForSign by remember { mutableStateOf(false) }
                 var isQRCodeScanning by remember { mutableStateOf(false) }
                 val isQRCodeScanPause = remember { mutableStateOf(false) }
@@ -673,10 +691,6 @@ fun QRCodeSignScreen(
                         }
                     }
                 }
-            }
-
-            null -> {
-                CenterCircularProgressIndicator()
             }
         }
     }

@@ -46,6 +46,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.components.AlreadySignedNoti
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.GetLocationComponent
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.NetworkExceptionComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.OtherUserSelectorComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SignOutRedirectTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SignPotentialWarningTips
@@ -123,8 +124,9 @@ fun LocationSignScreen(
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val hapticFeedback = LocalHapticFeedback.current
+    var isFetchedFailure by remember { mutableStateOf<Result<*>?>(null) }
     LaunchedEffect(Unit) {
-        runCatching {
+        isFetchedFailure = runCatching {
             val data = signer.getLocationSignInfo()
             signInfo = data.first
             signoffData = data.second
@@ -136,13 +138,32 @@ fun LocationSignScreen(
                 "获取签到信息失败",
                 hapticFeedback
             )
-            navToCourseDetailDestination()
         }
     }
-
-    Crossfade(isAlreadySigned) { v ->
-        when (v) {
-            true -> {
+    Crossfade(isFetchedFailure) { f ->
+        if (f == null) {
+            CenterCircularProgressIndicator()
+        } else if (f.isFailure) {
+            NetworkExceptionComponent(f.exceptionOrNull()!!) {
+                coroutineScope.launch {
+                    isFetchedFailure = runCatching {
+                        val data = signer.getLocationSignInfo()
+                        signInfo = data.first
+                        signoffData = data.second
+                        isAlreadySigned = signer.preSign()
+                    }.onFailure {
+                        it.snackbarReport(
+                            snackbarHost,
+                            coroutineScope,
+                            "获取签到信息失败",
+                            hapticFeedback
+                        )
+                    }
+                }
+                isFetchedFailure = null
+            }
+        } else {
+            if (isAlreadySigned == true) {
                 Box(modifier = Modifier.padding(8.dp)) {
                     AlreadySignedNotice(onSignForOtherUser = {
                         isAlreadySigned = false
@@ -158,9 +179,7 @@ fun LocationSignScreen(
                         isPadding = true
                     )
                 }
-            }
-
-            false -> {
+            } else if (isAlreadySigned == false) {
                 var isGetLocation by remember { mutableStateOf(false) }
                 val signStatus = remember { mutableListOf(ChaoxingSignStatus(hapticFeedback)) }
                 var isSelfForSign by remember { mutableStateOf(false) }
@@ -453,10 +472,6 @@ fun LocationSignScreen(
                         }
                     }
                 }
-            }
-
-            null -> {
-                CenterCircularProgressIndicator()
             }
         }
     }

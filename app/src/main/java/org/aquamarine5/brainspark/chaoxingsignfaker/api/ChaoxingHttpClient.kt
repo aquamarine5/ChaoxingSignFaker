@@ -26,7 +26,7 @@ import okhttp3.ResponseBody.Companion.toResponseBody
 import org.aquamarine5.brainspark.chaoxingsignfaker.ChaoxingPredictableException
 import org.aquamarine5.brainspark.chaoxingsignfaker.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.chaoxingDataStore
-import org.aquamarine5.brainspark.chaoxingsignfaker.checkResponse
+import org.aquamarine5.brainspark.chaoxingsignfaker.checkResponseThrowException
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingLoginSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingSignFakerDataStore
@@ -45,7 +45,6 @@ import javax.crypto.spec.SecretKeySpec
 
 class ChaoxingHttpClient private constructor(
     val okHttpClient: OkHttpClient,
-    val context: Context,
     val userEntity: ChaoxingUserEntity,
     val deviceCode: String = generateDeviceCode()
 ) {
@@ -135,9 +134,13 @@ class ChaoxingHttpClient private constructor(
         private const val URL_USER_INFO = "https://sso.chaoxing.com/apis/login/userLogin4Uname.do"
         private const val URL_LOGIN = "https://passport2.chaoxing.com/fanyalogin"
 
+        @Deprecated("Use OkHttpClient.Builder.retryOnConnectionFailure(true) instead")
         const val HTTP_RESPONSE_CODE_UNKNOWN_ERROR = 990
+        @Deprecated("Use OkHttpClient.Builder.retryOnConnectionFailure(true) instead")
         const val HTTP_RESPONSE_CODE_NETWORK_ON_MAIN_THREAD = 997
+        @Deprecated("Use OkHttpClient.Builder.retryOnConnectionFailure(true) instead")
         const val HTTP_RESPONSE_CODE_UNKNOWN_HOST = 998
+        @Deprecated("Use OkHttpClient.Builder.retryOnConnectionFailure(true) instead")
         const val HTTP_RESPONSE_CODE_SOCKET_TIMEOUT = 999
 
         var instance: ChaoxingHttpClient? = null
@@ -214,7 +217,6 @@ class ChaoxingHttpClient private constructor(
             val userInfo = getInfo(okHttpClient, context, session)
             return ChaoxingHttpClient(
                 okHttpClient,
-                context,
                 userInfo
             )
         }
@@ -262,7 +264,7 @@ class ChaoxingHttpClient private constructor(
                 UMengHelper.profileSignIn(this, phoneNumber)
             }
             return@withContext ChaoxingHttpClient(
-                client, context,
+                client,
                 userInfo
             ).apply {
                 instance = this
@@ -316,7 +318,7 @@ class ChaoxingHttpClient private constructor(
             }
             val userInfo = getInfo(okHttpClient, context)
             return ChaoxingHttpClient(
-                okHttpClient, context,
+                okHttpClient, 
                 userInfo
             ).apply {
                 instance = this
@@ -332,12 +334,7 @@ class ChaoxingHttpClient private constructor(
                 runCatching {
                     client.newCall(Request.Builder().get().url(URL_USER_INFO).build()).execute()
                         .use { response ->
-                            if (response.checkResponse(context)) {
-                                throw ChaoxingGetUserInfoException(
-                                    "获取用户信息失败，网络异常",
-                                    null
-                                )
-                            }
+                            response.checkResponseThrowException()
                             val jsonResult =
                                 JSONObject.parseObject(response.body.string()).getJSONObject("msg")
                             return@withContext ChaoxingUserEntity(
@@ -450,11 +447,7 @@ class ChaoxingHttpClient private constructor(
                         }).retryOnConnectionFailure(true)
                         .build()
                 tempOkHttpClient.newCall(request).execute().use {
-                    if (it.checkResponse(context)) {
-                        throw ChaoxingLoginException(
-                            "网络异常，请检查网络连接或稍后再试"
-                        )
-                    }
+                    it.checkResponseThrowException()
                     val jsonResult = JSONObject.parseObject(it.body.string())
                     if (!jsonResult.getBoolean("status")) {
                         throw ChaoxingLoginException(
@@ -511,11 +504,7 @@ class ChaoxingHttpClient private constructor(
                     .build()
 
                 client.newCall(request).execute().use {
-                    if (it.checkResponse(context)) {
-                        throw ChaoxingLoginException(
-                            "网络异常，请检查网络连接或稍后再试"
-                        )
-                    }
+                    it.checkResponseThrowException()
                     val jsonResult = JSONObject.parseObject(it.body.string())
                     if (!jsonResult.getBoolean("status")) {
                         throw ChaoxingLoginException(

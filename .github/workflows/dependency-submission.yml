@@ -21,10 +21,12 @@ jobs:
         env:
           GHP_TOKEN: ${{ secrets.GHP_TOKEN }}
           UMENG_CHANNEL: GithubRelease
+          SENTRY_AUTH_TOKEN : ${{ secrets.SENTRY_AUTH_TOKEN }}
           keystorePassword: ${{ secrets.KEYSTORE_PASSWORD }}
       - name: Generate and submit dependency graph
         uses: gradle/actions/dependency-submission@v4
         env:
           GHP_TOKEN: ${{ secrets.GHP_TOKEN }}
           UMENG_CHANNEL: GithubRelease
+          SENTRY_AUTH_TOKEN : ${{ secrets.SENTRY_AUTH_TOKEN }}
           keystorePassword: ${{ secrets.KEYSTORE_PASSWORD }}

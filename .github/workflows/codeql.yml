@@ -75,6 +75,7 @@ jobs:
         build-mode: ${{ matrix.build-mode }}
       env:
         GHP_TOKEN: ${{ secrets.GHP_TOKEN }}
+        SENTRY_AUTH_TOKEN : ${{ secrets.SENTRY_AUTH_TOKEN }}
         keystorePassword: ${{ secrets.KEYSTORE_PASSWORD }}
         # If you wish to specify custom queries, you can do so here or in a config file.
         # By default, queries listed here will override any specified in a config file.
@@ -105,4 +106,5 @@ jobs:
         category: "/language:${{matrix.language}}"
       env:
         GHP_TOKEN: ${{ secrets.GHP_TOKEN }}
+        SENTRY_AUTH_TOKEN : ${{ secrets.SENTRY_AUTH_TOKEN }}
         keystorePassword: ${{ secrets.KEYSTORE_PASSWORD }}

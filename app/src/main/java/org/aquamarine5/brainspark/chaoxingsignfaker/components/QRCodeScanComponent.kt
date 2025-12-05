@@ -17,6 +17,8 @@ import androidx.activity.compose.LocalActivity
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
+import androidx.camera.core.resolutionselector.ResolutionSelector
+import androidx.camera.core.resolutionselector.ResolutionStrategy
 import androidx.camera.mlkit.vision.MlKitAnalyzer
 import androidx.camera.view.LifecycleCameraController
 import androidx.camera.view.PreviewView
@@ -85,6 +87,12 @@ fun QRCodeScanComponent(
                     previewView.controller = this
                     setEnabledUseCases(LifecycleCameraController.IMAGE_ANALYSIS)
                     preview.surfaceProvider = previewView.surfaceProvider
+                    ResolutionSelector.Builder()
+                        .setResolutionStrategy(ResolutionStrategy.HIGHEST_AVAILABLE_STRATEGY)
+                        .build().let {
+                            previewResolutionSelector = it
+                            imageAnalysisResolutionSelector = it
+                        }
                     cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
                     setImageAnalysisAnalyzer(
                         cameraExecutor, MlKitAnalyzer(

@@ -6,6 +6,7 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
@@ -29,7 +30,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -49,6 +49,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
@@ -200,17 +201,20 @@ fun OtherUserSelectorComponent(
                             if (tagEntities!!.isEmpty()) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Text(
-                                        "标签列表为空",
-                                        color = if (isSystemInDarkTheme()) Color.LightGray else Color.DarkGray
+                                        "标签列表为空。",
+                                        color = Color.Gray,
+                                        fontSize = 12.sp,
+                                        lineHeight = 14.sp,
+                                        fontStyle = FontStyle.Italic
                                     )
-                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
                                     AssistChip(onClick = {
                                         navToOtherUser()
                                     }, label = {
                                         Text("点击跳转添加")
                                     }, leadingIcon = {
                                         Icon(painterResource(R.drawable.ic_tag_plus_outline), null)
-                                    })
+                                    }, border = BorderStroke(1.5.dp, Color.Gray))
                                 }
                             } else {
                                 FlowRow(
@@ -246,11 +250,7 @@ fun OtherUserSelectorComponent(
                                                     }, modifier = Modifier.size(16.dp)
                                                 )
                                             },
-                                            border = FilterChipDefaults.filterChipBorder(
-                                                true,
-                                                tagClickState[index].value,
-                                                borderWidth = 1.5.dp
-                                            )
+                                            border = BorderStroke(1.5.dp, Color.Gray)
                                         )
                                     }
                                 }

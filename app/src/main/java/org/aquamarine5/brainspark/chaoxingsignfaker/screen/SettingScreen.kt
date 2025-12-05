@@ -480,7 +480,7 @@ fun SettingScreen(
         Spacer(modifier = Modifier.height(8.dp))
         var clickCount by remember { mutableIntStateOf(0) }
         Text(
-            "ChaoxingSignFaker ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE}), buildDate: ${BuildConfig.releaseDate},${if (isBypassBlockedChecking) " BypassBlockedChecking," else ""} developed by @aquamarine5, All Rights Reserved.",
+            "ChaoxingSignFaker ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE}), channel: ${BuildConfig.UMENG_CHANNEL}, buildDate: ${BuildConfig.releaseDate},${if (isBypassBlockedChecking) " BypassBlockedChecking," else ""} developed by @aquamarine5, All Rights Reserved.",
             fontSize = 10.sp,
             lineHeight = 12.sp,
             color = Color.Gray,

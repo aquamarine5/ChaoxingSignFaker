@@ -64,6 +64,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.checkIsLast
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.AlreadySignedNotice
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.NetworkExceptionComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.OtherUserSelectorComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SignOutRedirectTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SignPotentialWarningTips
@@ -145,8 +146,9 @@ fun PasswordSignScreen(
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val hapticFeedback = LocalHapticFeedback.current
+    var isFetchedFailure by remember { mutableStateOf<Result<*>?>(null) }
     LaunchedEffect(Unit) {
-        runCatching {
+        isFetchedFailure = runCatching {
             signer.getPasswordInfo().apply {
                 numberCount = first
                 signoffData = second
@@ -159,12 +161,32 @@ fun PasswordSignScreen(
                 "获取签到信息失败",
                 hapticFeedback
             )
-            navToCourseDetailDestination()
         }
     }
-    Crossfade(isAlreadySigned) { v ->
-        when (v) {
-            true -> {
+    Crossfade(isFetchedFailure) { v ->
+        if (v == null) {
+            CenterCircularProgressIndicator()
+        } else if (v.isFailure) {
+            NetworkExceptionComponent(v.exceptionOrNull()!!) {
+                coroutineScope.launch {
+                    isFetchedFailure = runCatching {
+                        signer.getPasswordInfo().apply {
+                            numberCount = first
+                            signoffData = second
+                        }
+                        isAlreadySigned = signer.preSign()
+                    }.onFailure {
+                        it.snackbarReport(
+                            snackbarHost,
+                            coroutineScope,
+                            "获取签到信息失败",
+                            hapticFeedback
+                        )
+                    }
+                }
+            }
+        } else {
+            if (isAlreadySigned == true) {
                 Box(modifier = Modifier.padding(8.dp)) {
                     AlreadySignedNotice(onSignForOtherUser = {
                         isAlreadySigned = false
@@ -180,9 +202,7 @@ fun PasswordSignScreen(
                         isPadding = true
                     )
                 }
-            }
-
-            false -> {
+            } else if (isAlreadySigned == false) {
                 var text by remember { mutableStateOf("") }
                 val focusManager = LocalFocusManager.current
                 var isCaptcha = remember { false }
@@ -238,20 +258,31 @@ fun PasswordSignScreen(
                                                 text = newText
                                                 if (newText.length == numberCount) {
                                                     coroutineScope.launch {
-                                                        signer.checkSignCode(text.toInt()).let {
-                                                            isCheckingSuccess = it
-                                                            if (it) {
-                                                                isCheckingStatus = true
-                                                                hapticFeedback.performHapticFeedback(
-                                                                    HapticFeedbackType.Confirm
-                                                                )
-                                                                focusManager.clearFocus()
-                                                            } else {
-                                                                isCheckingStatus = false
-                                                                hapticFeedback.performHapticFeedback(
-                                                                    HapticFeedbackType.Reject
-                                                                )
-                                                            }
+                                                        runCatching {
+                                                            signer.checkSignCode(text.toInt())
+                                                                .let {
+                                                                    isCheckingSuccess = it
+                                                                    if (it) {
+                                                                        isCheckingStatus = true
+                                                                        hapticFeedback.performHapticFeedback(
+                                                                            HapticFeedbackType.Confirm
+                                                                        )
+                                                                        focusManager.clearFocus()
+                                                                    } else {
+                                                                        isCheckingStatus = false
+                                                                        hapticFeedback.performHapticFeedback(
+                                                                            HapticFeedbackType.Reject
+                                                                        )
+                                                                    }
+                                                                }
+                                                        }.onFailure {
+                                                            isCheckingStatus = false
+                                                            it.snackbarReport(
+                                                                snackbarHost,
+                                                                coroutineScope,
+                                                                "签到码校验失败",
+                                                                hapticFeedback
+                                                            )
                                                         }
                                                     }
                                                 }
@@ -313,7 +344,9 @@ fun PasswordSignScreen(
                                                                 )
                                                             }
                                                         )
-                                                        val animatedElevation by remember(codeState) {
+                                                        val animatedElevation by remember(
+                                                            codeState
+                                                        ) {
                                                             mutableStateOf(
                                                                 when (codeState) {
                                                                     PasswordCodeStatus.INPUTTING -> 15.dp
@@ -332,9 +365,10 @@ fun PasswordSignScreen(
                                                             CardDefaults.cardElevation(
                                                                 defaultElevation = animatedElevation
                                                             )
-                                                        val cardColors = CardDefaults.cardColors(
-                                                            containerColor = animatedContainerColor
-                                                        )
+                                                        val cardColors =
+                                                            CardDefaults.cardColors(
+                                                                containerColor = animatedContainerColor
+                                                            )
                                                         Card(
                                                             modifier = Modifier.size((276 / numberCount).dp),
                                                             colors = cardColors,
@@ -596,9 +630,6 @@ fun PasswordSignScreen(
                 }
             }
 
-            null -> {
-                CenterCircularProgressIndicator()
-            }
         }
     }
 }

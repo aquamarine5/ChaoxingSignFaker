@@ -73,7 +73,9 @@ import com.baidu.mapapi.SDKInitializer
 import com.umeng.analytics.MobclickAgent
 import io.sentry.android.core.SentryAndroid
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
@@ -119,7 +121,6 @@ import kotlin.reflect.typeOf
 class MainActivity : ComponentActivity() {
     companion object {
         const val INTENT_EXTRA_EXIT_FLAG = "intent_extra_exit_flag"
-
         const val CLASS_TAG = "MainActivity"
     }
 
@@ -144,13 +145,6 @@ class MainActivity : ComponentActivity() {
                 it.isAnrEnabled = false
             } else
                 it.environment = "stable"
-        }
-        if (UMengHelper.md5(
-                packageManager.getApplicationLabel(versionData.applicationInfo!!).toString()
-            ) != "181b23fb3bfa29181fcde41f72757e97"
-        ) {
-            UMengHelper.onIllegalChannelEvent(this, versionData)
-            throw ChaoxingPredictableException.ApplicationIllegalChannelException()
         }
         UMengHelper.preInit(this)
         enableEdgeToEdge()
@@ -228,12 +222,16 @@ class MainActivity : ComponentActivity() {
                                                     hapticFeedback.performHapticFeedback(
                                                         HapticFeedbackType.ContextClick
                                                     )
-                                                    navController.navigate(item.destination) {
-                                                        popUpTo(navController.graph.findStartDestination().id) {
-                                                            saveState = true
+                                                    runCatching {
+                                                        navController.navigate(item.destination) {
+                                                            popUpTo(navController.graph.findStartDestination().id) {
+                                                                saveState = true
+                                                            }
+                                                            launchSingleTop = true
+                                                            restoreState = true
                                                         }
-                                                        launchSingleTop = true
-                                                        restoreState = true
+                                                    }.onFailure {
+                                                        it.printStackTrace()
                                                     }
                                                 }
                                             },
@@ -293,10 +291,11 @@ class MainActivity : ComponentActivity() {
                                 "cdn.aquamarine5.vip" to "chaoxingsignfaker_stackbricks_v2_manifest.json",
                             ),
                             referer = "http://cdn.aquamarine5.fun/",
-                            okHttpClient = OkHttpClient().newBuilder()
+                            okHttpClient = OkHttpClient.Builder()
                                 .callTimeout(20, TimeUnit.MINUTES)
                                 .readTimeout(20, TimeUnit.MINUTES)
                                 .writeTimeout(20, TimeUnit.MINUTES)
+                                .retryOnConnectionFailure(true)
                                 .build()
                         ).let {
                             val state = rememberStackbricksStatus()
@@ -330,17 +329,30 @@ class MainActivity : ComponentActivity() {
                                         LocationClient.setAgreePrivacy(true)
                                         SDKInitializer.setAgreePrivacy(applicationContext, true)
                                     }
-
                                     destination =
                                         when {
                                             !datastore.agreeTerms -> WelcomeDestination
-                                            !datastore.hasLoginSession() -> LoginDestination
+                                            !datastore.hasLoginSession() -> LoginDestination()
                                             else -> {
                                                 runCatching {
                                                     ChaoxingHttpClient.loadFromDataStore(
                                                         datastore,
                                                         applicationContext
                                                     )
+                                                    coroutineScope {
+                                                        launch {
+                                                            if (UMengHelper.md5(
+                                                                    packageManager.getApplicationLabel(versionData.applicationInfo!!).toString()
+                                                                ) != "181b23fb3bfa29181fcde41f72757e97" && UMengHelper.md5(
+                                                                    packageName
+                                                                ) != "717670698be98532464cfc122894908b"
+                                                            ) {
+                                                                UMengHelper.onIllegalChannelEvent(this@MainActivity, versionData)
+                                                                MobclickAgent.onKillProcess(this@MainActivity)
+                                                                throw ChaoxingPredictableException.ApplicationIllegalChannelException()
+                                                            }
+                                                        }
+                                                    }
                                                     return@runCatching SignGraphDestination
                                                 }.getOrElse {
                                                     withContext(Dispatchers.Main) {
@@ -350,7 +362,7 @@ class MainActivity : ComponentActivity() {
                                                             Toast.LENGTH_SHORT
                                                         ).show()
                                                     }
-                                                    LoginDestination
+                                                    LoginDestination(isFailureNetworkRedirect = true)
                                                 }
                                             }
                                         }
@@ -397,7 +409,7 @@ class MainActivity : ComponentActivity() {
                                                         restoreState = true
                                                     }
                                                 }) {
-                                                navController.navigate(LoginDestination) {
+                                                navController.navigate(LoginDestination(true)) {
                                                     popUpTo<CourseListDestination> {
                                                         inclusive = true
                                                         saveState = true
@@ -519,7 +531,7 @@ class MainActivity : ComponentActivity() {
                                     navigation<SettingGraphDestination>(startDestination = SettingDestination) {
                                         composable<SettingDestination> {
                                             SettingScreen(stackbricksService, imageLoader) {
-                                                navController.navigate(LoginDestination) {
+                                                navController.navigate(LoginDestination()) {
                                                     popUpTo<SettingDestination> { inclusive = true }
                                                 }
                                             }
@@ -529,14 +541,14 @@ class MainActivity : ComponentActivity() {
 
                                     composable<WelcomeDestination> {
                                         WelcomeScreen {
-                                            navController.navigate(LoginDestination) {
+                                            navController.navigate(LoginDestination()) {
                                                 popUpTo<WelcomeDestination> { inclusive = true }
                                             }
                                         }
                                     }
 
                                     composable<LoginDestination> {
-                                        LoginPage() {
+                                        LoginPage(it.toRoute(), stackbricksService) {
                                             navController.navigate(CourseListDestination) {
                                                 popUpTo<LoginDestination> { inclusive = true }
                                             }
