@@ -203,11 +203,11 @@ fun OtherUserSelectorComponent(
                                     Text(
                                         "标签列表为空。",
                                         color = Color.Gray,
-                                        fontSize = 10.sp,
-                                        lineHeight = 12.sp,
+                                        fontSize = 12.sp,
+                                        lineHeight = 14.sp,
                                         fontStyle = FontStyle.Italic
                                     )
-                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
                                     AssistChip(onClick = {
                                         navToOtherUser()
                                     }, label = {
