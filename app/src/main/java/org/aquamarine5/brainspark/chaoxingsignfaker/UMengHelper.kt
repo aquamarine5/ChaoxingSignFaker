@@ -82,7 +82,7 @@ object UMengHelper {
                 "name" to (applicationInfo.applicationInfo?.name ?: "Unknown"),
                 "label" to context.packageManager.getApplicationLabel(applicationInfo.applicationInfo!!),
                 "version" to (applicationInfo.versionName ?: ""),
-                "user" to ChaoxingHttpClient.instance!!.userEntity.name
+                "user" to (ChaoxingHttpClient.instance?.userEntity?.name ?: "Unknown")
             )
         )
     }

@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -38,8 +39,9 @@ fun NetworkExceptionComponent(
             exception.getNetworkExceptionMessage()
         }
         Column(
-            modifier = Modifier.align(Alignment.Center),
-            verticalArrangement = Arrangement.Center
+            modifier = Modifier.align(Alignment.Center).fillMaxWidth(),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Icon(
                 if (networkExceptionTips == null) painterResource(R.drawable.ic_message_circle_x) else painterResource(

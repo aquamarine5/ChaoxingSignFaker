@@ -92,7 +92,7 @@ fun CourseDetailScreen(
     }
     Column(
         modifier = Modifier
-            .padding(16.dp, 16.dp, 16.dp, 0.dp)
+            .padding(16.dp, 16.dp, 16.dp, 0.dp).fillMaxSize()
     ) {
         Crossfade(isFetchedFailure) { v ->
             if (v == null) {

@@ -26,6 +26,13 @@
 -keep class com.baidu.vi.** {*;}
 -dontwarn com.baidu.**
 
+-keep class androidx.datastore.*.** {*;}
+-keep class org.aquamarine5.brainspark.chaoxingsignfaker.datastore.** {*;}
+
+-keepclassmembers class * extends com.google.protobuf.GeneratedMessageLite* {
+   <fields>;
+}
+
 -keep class com.umeng.** {*;}
 
 -keep class org.repackage.** {*;}

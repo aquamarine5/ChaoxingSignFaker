@@ -73,7 +73,9 @@ import com.baidu.mapapi.SDKInitializer
 import com.umeng.analytics.MobclickAgent
 import io.sentry.android.core.SentryAndroid
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
@@ -143,16 +145,6 @@ class MainActivity : ComponentActivity() {
                 it.isAnrEnabled = false
             } else
                 it.environment = "stable"
-        }
-        if (UMengHelper.md5(
-                packageManager.getApplicationLabel(versionData.applicationInfo!!).toString()
-            ) != "181b23fb3bfa29181fcde41f72757e97" && UMengHelper.md5(
-                packageName
-            ) != "717670698be98532464cfc122894908b"
-        ) {
-            UMengHelper.onIllegalChannelEvent(this, versionData)
-            MobclickAgent.onKillProcess(this)
-            throw ChaoxingPredictableException.ApplicationIllegalChannelException()
         }
         UMengHelper.preInit(this)
         enableEdgeToEdge()
@@ -337,7 +329,6 @@ class MainActivity : ComponentActivity() {
                                         LocationClient.setAgreePrivacy(true)
                                         SDKInitializer.setAgreePrivacy(applicationContext, true)
                                     }
-
                                     destination =
                                         when {
                                             !datastore.agreeTerms -> WelcomeDestination
@@ -348,6 +339,20 @@ class MainActivity : ComponentActivity() {
                                                         datastore,
                                                         applicationContext
                                                     )
+                                                    coroutineScope {
+                                                        launch {
+                                                            if (UMengHelper.md5(
+                                                                    packageManager.getApplicationLabel(versionData.applicationInfo!!).toString()
+                                                                ) != "181b23fb3bfa29181fcde41f72757e97" && UMengHelper.md5(
+                                                                    packageName
+                                                                ) != "717670698be98532464cfc122894908b"
+                                                            ) {
+                                                                UMengHelper.onIllegalChannelEvent(this@MainActivity, versionData)
+                                                                MobclickAgent.onKillProcess(this@MainActivity)
+                                                                throw ChaoxingPredictableException.ApplicationIllegalChannelException()
+                                                            }
+                                                        }
+                                                    }
                                                     return@runCatching SignGraphDestination
                                                 }.getOrElse {
                                                     withContext(Dispatchers.Main) {
