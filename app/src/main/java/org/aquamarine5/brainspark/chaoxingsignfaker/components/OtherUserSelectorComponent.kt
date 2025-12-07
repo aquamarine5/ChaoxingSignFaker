@@ -107,7 +107,7 @@ fun OtherUserSelectorComponent(
         ) {
             Column(
                 modifier = Modifier
-                    .padding(14.dp, 2.dp)
+                    .padding(8.dp, 0.dp)
                     .verticalScroll(rememberScrollState())
             ) {
                 prefixTipsContent()
@@ -125,7 +125,7 @@ fun OtherUserSelectorComponent(
                     ),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(2.dp, 6.dp)
+                        .padding(0.dp, 6.dp)
                 ) {
                     Row(
                         modifier = Modifier

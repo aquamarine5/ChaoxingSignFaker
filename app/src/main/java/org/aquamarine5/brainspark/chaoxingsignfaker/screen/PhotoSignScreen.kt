@@ -236,7 +236,7 @@ fun PhotoSignScreen(
                                     ),
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(2.dp, 6.dp)
+                                        .padding(0.dp, 6.dp)
                                 ) {
                                     Row(
                                         modifier = Modifier
