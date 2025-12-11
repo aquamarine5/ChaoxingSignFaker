@@ -116,7 +116,7 @@ fun CameraComponent(
                 derivedStateOf {
                     if (takeImage == null) null
                     else {
-                        if (takeImage!!.byteCount > 100 * 1024 * 1024) {
+                        if (takeImage!!.allocationByteCount > 104857600L) {
                             snackbarHost.displaySnackbar("图片过大，无法显示预览", coroutineScope)
                             null
                         } else takeImage!!.asImageBitmap()
