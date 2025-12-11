@@ -71,6 +71,7 @@ import coil3.request.crossfade
 import com.baidu.location.LocationClient
 import com.baidu.mapapi.SDKInitializer
 import com.umeng.analytics.MobclickAgent
+import io.sentry.Sentry
 import io.sentry.android.core.SentryAndroid
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
@@ -231,6 +232,7 @@ class MainActivity : ComponentActivity() {
                                                             restoreState = true
                                                         }
                                                     }.onFailure {
+                                                        Sentry.captureException(it)
                                                         it.printStackTrace()
                                                     }
                                                 }

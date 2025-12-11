@@ -27,7 +27,7 @@ material3 = "1.4.0"
 navigationCompose = "2.9.6"
 okhttp = "5.3.2"
 patternlocker = "2.5.7"
-protobufJavalite = "4.33.1"
+protobufJavalite = "4.33.2"
 reorderable = "3.0.0"
 stackbricks = "2.4.4"
 

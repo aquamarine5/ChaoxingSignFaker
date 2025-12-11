@@ -309,6 +309,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                 Toast.makeText(context, "导入成功", Toast.LENGTH_SHORT).show()
                                 UMengHelper.onAccountOtherUserAddEvent(context, it)
                                 otherUserSessions.add(it)
+                                userTagList.add(mutableStateOf(emptyList()))
                                 isInputDialog = false
                             }.onFailure {
                                 it.snackbarReport(
@@ -1139,6 +1140,8 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                     hapticFeedback.performHapticFeedback(HapticFeedbackType.Confirm)
                                     Toast.makeText(context, "导入成功", Toast.LENGTH_SHORT).show()
                                     UMengHelper.onAccountOtherUserAddEvent(context, it)
+                                    otherUserSessions.add(it)
+                                    userTagList.add(mutableStateOf(emptyList()))
                                     isURLSharedDialog = false
                                 }.onFailure {
                                     it.snackbarReport(
@@ -1703,6 +1706,10 @@ fun OtherUserScreen(naviBack: () -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
+            LaunchedEffect(isQRCodeScanning) {
+                isQRCodeScanPause.value=false
+                isQRCodeParsing.value=false
+            }
             QRCodeScanComponent(isQRCodeScanPause, isQRCodeParsing, onClose = {
                 isQRCodeScanning = false
             }, onScanResult = { qr ->
@@ -1724,6 +1731,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                     isQRCodeImportSuccess = true
                                     hapticFeedback.performHapticFeedback(HapticFeedbackType.Confirm)
                                     otherUserSessions.add(it)
+                                    userTagList.add(mutableStateOf(emptyList()))
                                     UMengHelper.onAccountOtherUserAddEvent(context, it)
                                 }.onFailure {
                                     it.snackbarReport(
@@ -1738,8 +1746,9 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                     qrcodeIllegalText = it.message ?: "二维码解析失败，登录失败。"
                                     job?.cancel()
                                     job = coroutineScope.launch {
-                                        delay(3000)
+                                        delay(1000)
                                         isQRCodeScanPause.value = false
+                                        delay(1000)
                                         isQRCodeIllegal = false
                                     }
                                 }
