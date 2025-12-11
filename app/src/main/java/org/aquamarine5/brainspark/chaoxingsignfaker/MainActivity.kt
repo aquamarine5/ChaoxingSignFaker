@@ -344,12 +344,17 @@ class MainActivity : ComponentActivity() {
                                                     coroutineScope {
                                                         launch {
                                                             if (UMengHelper.md5(
-                                                                    packageManager.getApplicationLabel(versionData.applicationInfo!!).toString()
+                                                                    packageManager.getApplicationLabel(
+                                                                        versionData.applicationInfo!!
+                                                                    ).toString()
                                                                 ) != "181b23fb3bfa29181fcde41f72757e97" && UMengHelper.md5(
                                                                     packageName
                                                                 ) != "717670698be98532464cfc122894908b"
                                                             ) {
-                                                                UMengHelper.onIllegalChannelEvent(this@MainActivity, versionData)
+                                                                UMengHelper.onIllegalChannelEvent(
+                                                                    this@MainActivity,
+                                                                    versionData
+                                                                )
                                                                 MobclickAgent.onKillProcess(this@MainActivity)
                                                                 throw ChaoxingPredictableException.ApplicationIllegalChannelException()
                                                             }

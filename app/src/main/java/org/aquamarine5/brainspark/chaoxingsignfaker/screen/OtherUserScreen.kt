@@ -773,7 +773,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                         Text(
                             "创建新标签",
                             color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(10.dp,6.dp,10.dp,0.dp),
+                            modifier = Modifier.padding(10.dp, 6.dp, 10.dp, 0.dp),
                             fontWeight = FontWeight.Bold
                         )
                         Row(
@@ -1707,8 +1707,8 @@ fun OtherUserScreen(naviBack: () -> Unit) {
             verticalArrangement = Arrangement.Center
         ) {
             LaunchedEffect(isQRCodeScanning) {
-                isQRCodeScanPause.value=false
-                isQRCodeParsing.value=false
+                isQRCodeScanPause.value = false
+                isQRCodeParsing.value = false
             }
             QRCodeScanComponent(isQRCodeScanPause, isQRCodeParsing, onClose = {
                 isQRCodeScanning = false
