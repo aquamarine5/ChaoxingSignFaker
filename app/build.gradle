@@ -10,7 +10,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
-    id("org.aquamarine5.brainspark.stackbricks-gradle-plugin") version "2.2.2"
+    id("org.aquamarine5.brainspark.stackbricks-gradle-plugin") version "2.2.3"
     id("com.google.protobuf") version "0.9.5"
     id "io.sentry.android.gradle" version "5.12.2"
     id("org.jetbrains.kotlin.plugin.serialization") version "2.2.21"
@@ -26,7 +26,7 @@ stackbricksConfig {
     possibleConfigurationPaths = [
             new PossibleConfigurationPath("cdn.aquamarine5.fun", "chaoxingsignfaker_stackbricks_v2_manifest.json")
     ]
-    changelog = "#1.12.4版本更新：\n- 1. 优化了二维码签到的分辨率。\n- 2. 优化了标签系统。\n- 3.网络错误时有提示了。\n# 1.12.3版本更新：\n- 1. 支持了代签用户的标签系统。\n- 2. 优化了程序运行速度和界面操作，修复了BUG。\n# 1.12.2版本更新：\n- 1. 支持签到码和图案九宫格签到。\n- 2. 优化了验证码处理逻辑。\n- 3. 添加的代签用户现在可以重排序了。\n- 4. 提升了签到速度。\n- 5. 修复了影响签到体验的超级多BUG。\n\nlovely lonely, 20251204, @aquamarine5 Brainspark."
+    changelog = "# 1.12.5版本更新：\n- 1.修复了包括标签相关在内的BUG。\n# 1.12.4版本更新：\n- 1. 优化了二维码签到的分辨率。\n- 2. 优化了标签系统。\n- 3.网络错误时有提示了。\n# 1.12.3版本更新：\n- 1. 支持了代签用户的标签系统。\n- 2. 优化了程序运行速度和界面操作，修复了BUG。\n# 1.12.2版本更新：\n- 1. 支持签到码和图案九宫格签到。\n- 2. 优化了验证码处理逻辑。\n- 3. 添加的代签用户现在可以重排序了。\n- 4. 提升了签到速度。\n- 5. 修复了影响签到体验的超级多BUG。\n\nlovely lonely, 20251204, @aquamarine5 Brainspark."
     requiredManifestVersion2MigrateForceInstall = true
     qiniuConfig {
         accessKey = project.findProperty("qiniu.accessKey") ?: ""
@@ -47,8 +47,8 @@ android {
         applicationId = "org.aquamarine5.brainspark.chaoxingsignfaker"
         minSdk = 26
         targetSdk = 36
-        versionCode = 112041215
-        versionName = "1.12.4-stable-251123"
+        versionCode = 112051215
+        versionName = "1.12.5-stable-251211"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

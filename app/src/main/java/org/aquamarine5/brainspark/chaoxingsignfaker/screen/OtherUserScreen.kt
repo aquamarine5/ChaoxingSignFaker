@@ -1310,7 +1310,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        "管理用户标签（测试版）",
+                        "管理用户标签",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.W500
                     )
