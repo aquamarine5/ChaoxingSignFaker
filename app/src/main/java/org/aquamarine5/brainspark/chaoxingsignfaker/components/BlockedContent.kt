@@ -56,18 +56,20 @@ fun BlockedContent(content: @Composable () -> Unit) {
         withContext(Dispatchers.IO) {
             isBypassBlockedChecking = context.chaoxingDataStore.data.first().bypassBlockedChecking
             if (!isBypassBlockedChecking)
-                ChaoxingHttpClient.instance?.okHttpClient?.newCall(
-                    Request.Builder()
-                        .get()
-                        .url("http://cdn.aquamarine5.fun/chaoxingsignfaker_banlist.json")
-                        .build()
-                )?.execute().use {
-                    if (it?.checkResponse(context) == true) {
-                        return@use
+                runCatching {
+                    ChaoxingHttpClient.instance?.okHttpClient?.newCall(
+                        Request.Builder()
+                            .get()
+                            .url("http://cdn.aquamarine5.fun/chaoxingsignfaker_banlist.json")
+                            .build()
+                    )?.execute().use {
+                        if (it?.checkResponse(context) == true) {
+                            return@use
+                        }
+                        bannedFidList =
+                            JSONObject.parseObject(it?.body?.string()).getJSONArray("banfids")
+                                .toList(Int::class.java)
                     }
-                    bannedFidList =
-                        JSONObject.parseObject(it?.body?.string()).getJSONArray("banfids")
-                            .toList(Int::class.java)
                 }
         }
     }

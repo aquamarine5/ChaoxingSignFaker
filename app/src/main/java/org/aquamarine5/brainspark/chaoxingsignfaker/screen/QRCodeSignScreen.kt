@@ -358,6 +358,10 @@ fun QRCodeSignScreen(
                                 isQRCodeScanPause.value = false
                                 isQRCodeIllegal = false
                             }
+                            LaunchedEffect(isQRCodeScanning) {
+                                isQRCodeParsing.value = false
+                                isQRCodeScanPause.value = false
+                            }
                             QRCodeScanComponent(isQRCodeScanPause, isQRCodeParsing, onClose = {
                                 isSigning = false
                                 isQRCodeParsing.value = false
@@ -617,8 +621,9 @@ fun QRCodeSignScreen(
                                                 it.message ?: "二维码解析失败，不是正确码。"
                                             job?.cancel()
                                             job = coroutineScope.launch {
-                                                delay(3000)
+                                                delay(1000)
                                                 isQRCodeScanPause.value = false
+                                                delay(1000)
                                                 isQRCodeIllegal = false
                                             }
                                         }

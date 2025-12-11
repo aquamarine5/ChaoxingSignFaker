@@ -136,10 +136,13 @@ class ChaoxingHttpClient private constructor(
 
         @Deprecated("Use OkHttpClient.Builder.retryOnConnectionFailure(true) instead")
         const val HTTP_RESPONSE_CODE_UNKNOWN_ERROR = 990
+
         @Deprecated("Use OkHttpClient.Builder.retryOnConnectionFailure(true) instead")
         const val HTTP_RESPONSE_CODE_NETWORK_ON_MAIN_THREAD = 997
+
         @Deprecated("Use OkHttpClient.Builder.retryOnConnectionFailure(true) instead")
         const val HTTP_RESPONSE_CODE_UNKNOWN_HOST = 998
+
         @Deprecated("Use OkHttpClient.Builder.retryOnConnectionFailure(true) instead")
         const val HTTP_RESPONSE_CODE_SOCKET_TIMEOUT = 999
 
@@ -318,7 +321,7 @@ class ChaoxingHttpClient private constructor(
             }
             val userInfo = getInfo(okHttpClient, context)
             return ChaoxingHttpClient(
-                okHttpClient, 
+                okHttpClient,
                 userInfo
             ).apply {
                 instance = this

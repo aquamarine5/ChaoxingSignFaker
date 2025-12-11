@@ -195,7 +195,10 @@ abstract class ChaoxingSigner(
     }
 
     @Deprecated("Use getCaptchaImageV2 instead", ReplaceWith("getCaptchaImageV2()"))
-    open suspend fun getCaptchaImage(context: Context,onSuccess: (ChaoxingCaptchaDataEntity) -> Unit) {
+    open suspend fun getCaptchaImage(
+        context: Context,
+        onSuccess: (ChaoxingCaptchaDataEntity) -> Unit
+    ) {
         getCaptchaData(context) {
             client.newCall(
                 Request.Builder().get().url(it).header(
