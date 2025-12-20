@@ -101,16 +101,17 @@ fun QRCodeScanComponent(
                             cameraExecutor,
                         ) {
                             it?.let { result ->
-                                val barcodeResult =
-                                    result.getValue(barcodeScanner) ?: return@MlKitAnalyzer
-                                if (barcodeResult.isNotEmpty()) {
-                                    val barcode = barcodeResult[0]
+                                val barcodeResult = result.getValue(barcodeScanner)
+                                if (barcodeResult.isNullOrEmpty()) {
                                     previewView.overlay.clear()
-                                    previewView.overlay.add(QRCodeDrawable(barcode))
-                                    if (!isPause.value) {
-                                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                                        onScanResult(barcode)
-                                    }
+                                    return@MlKitAnalyzer
+                                }
+                                val barcode = barcodeResult[0]
+                                previewView.overlay.clear()
+                                previewView.overlay.add(QRCodeDrawable(barcode))
+                                if (!isPause.value) {
+                                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                                    onScanResult(barcode)
                                 }
                             }
                         })

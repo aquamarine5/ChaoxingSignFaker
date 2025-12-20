@@ -251,58 +251,57 @@ fun CourseListScreen(
                             enter = fadeIn() + slideInVertically()
                         ) {
                             recommendActivities?.forEachIndexed { index, item ->
-                                runCatching {
-                                    Card(
-                                        onClick = {
-                                            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                                            navToSignActivityDestination(item.destination)
-                                        },
-                                        shape = RoundedCornerShape(18.dp),
-                                        modifier = Modifier.fillMaxWidth()
+                                Card(
+                                    onClick = {
+                                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                                        navToSignActivityDestination(item.destination)
+                                    },
+                                    shape = RoundedCornerShape(18.dp),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .padding(24.dp, 8.dp)
+                                            .padding(3.dp)
                                     ) {
-                                        Row(
-                                            modifier = Modifier
-                                                .padding(24.dp, 8.dp)
-                                                .padding(3.dp)
-                                        ) {
-                                            Icon(painterResource(R.drawable.ic_brain_circuit), null)
-                                            Spacer(modifier = Modifier.width(8.dp))
-                                            Column {
-                                                Text("根据平时的签到习惯推断出可能会点击的签到活动：")
-                                                Text(buildAnnotatedString {
-                                                    withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
-                                                        append(item.className)
-                                                    }
-                                                    append(" 在 ")
-                                                    withStyle(
-                                                        SpanStyle(
-                                                            fontFamily = FontFamily(
-                                                                Font(
-                                                                    R.font.gilroy
-                                                                )
+                                        Icon(painterResource(R.drawable.ic_brain_circuit), null)
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Column {
+                                            Text("根据平时的签到习惯推断出可能会点击的签到活动：")
+                                            Text(buildAnnotatedString {
+                                                withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+                                                    append(item.className)
+                                                }
+                                                append(" 在 ")
+                                                withStyle(
+                                                    SpanStyle(
+                                                        fontFamily = FontFamily(
+                                                            Font(
+                                                                R.font.gilroy
                                                             )
                                                         )
-                                                    ) {
-                                                        append(
-                                                            LocalDateTime.from(
-                                                                Instant.ofEpochMilli(
-                                                                    item.startTime
-                                                                )
-                                                            ).run {
-                                                                "$hour:$minute:$second"
-                                                            })
-                                                    }
-                                                    append(" 的 ")
-                                                    append(item.activityName)
-                                                })
+                                                    )
+                                                ) {
+                                                    append(
+                                                        LocalDateTime.from(
+                                                            Instant.ofEpochMilli(
+                                                                item.startTime
+                                                            )
+                                                        ).run {
+                                                            "$hour:$minute:$second"
+                                                        })
+                                                }
+                                                append(" 的 ")
+                                                append(item.activityName)
+                                            })
 
-                                            }
                                         }
                                     }
-                                    if (index != recommendActivities?.lastIndex) {
-                                        Spacer(modifier = Modifier.padding(vertical = 8.dp))
-                                    }
                                 }
+                                if (index != recommendActivities?.lastIndex) {
+                                    Spacer(modifier = Modifier.padding(vertical = 8.dp))
+                                }
+
                             }
                         }
                         var debouncePreviousTime = 0L

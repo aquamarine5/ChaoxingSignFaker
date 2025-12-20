@@ -301,7 +301,11 @@ fun QRCodeSignScreen(
                             signUserList = otherUserSessionList
                             if (isMapRequired)
                                 isMapGetting = true
-                            else isQRCodeScanning = true
+                            else {
+                                isQRCodeScanPause.value = false
+                                isQRCodeParsing.value = false
+                                isQRCodeScanning = true
+                            }
                         }
                     }
                     Box(
@@ -329,9 +333,9 @@ fun QRCodeSignScreen(
                                 Text("设置")
                             }) {
                                 isMapGetting = false
-                                isQRCodeScanning = true
                                 isQRCodeScanPause.value = false
                                 isQRCodeParsing.value = false
+                                isQRCodeScanning = true
                                 locationData = it
                             }
                             BackHandler(isMapGetting) {
@@ -357,10 +361,6 @@ fun QRCodeSignScreen(
                                 isQRCodeParsing.value = false
                                 isQRCodeScanPause.value = false
                                 isQRCodeIllegal = false
-                            }
-                            LaunchedEffect(isQRCodeScanning) {
-                                isQRCodeParsing.value = false
-                                isQRCodeScanPause.value = false
                             }
                             QRCodeScanComponent(isQRCodeScanPause, isQRCodeParsing, onClose = {
                                 isSigning = false

@@ -1325,7 +1325,10 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                 SegmentedButton(
                     onClick = {
                         hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                        isQRCodeScanPause.value = false
+                        isQRCodeParsing.value = false
                         isQRCodeScanning = true
+
                     }, shape = SegmentedButtonDefaults.itemShape(
                         index = 0,
                         count = 3
@@ -1706,10 +1709,6 @@ fun OtherUserScreen(naviBack: () -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            LaunchedEffect(isQRCodeScanning) {
-                isQRCodeScanPause.value = false
-                isQRCodeParsing.value = false
-            }
             QRCodeScanComponent(isQRCodeScanPause, isQRCodeParsing, onClose = {
                 isQRCodeScanning = false
             }, onScanResult = { qr ->
