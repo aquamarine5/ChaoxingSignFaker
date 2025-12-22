@@ -322,13 +322,14 @@ fun LocationSignScreen(
                                 signStatus[0].failed(it)
                                 it.ifAlreadySigned {
                                     userSelections[0] = false
-                                    if (otherUserSessionForSignList.all { it == null } && userSelections.all { !it }) {
-                                        isSigning = false
+                                }
+                                if (otherUserSessionForSignList.all { it == null }) {
+                                    isSigning = false
+                                    if (userSelections.all { !it })
                                         coroutineScope.launch {
                                             delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)
                                             isSponsor = true
                                         }
-                                    }
                                 }
                                 it.snackbarReport(
                                     snackbarHost,
@@ -455,14 +456,15 @@ fun LocationSignScreen(
                                     )
                                     err.ifAlreadySigned {
                                         userSelections[index + 1] = false
-                                        if (otherUserSessionForSignList.checkIsLast(index + 1) && userSelections.all { !it }) {
-                                            isSigning = false
+                                    }
+                                    if (otherUserSessionForSignList.checkIsLast(index + 1)) {
+                                        isSigning = false
+                                        if (userSelections.all { !it })
                                             coroutineScope.launch {
                                                 delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)
                                                 isSponsor =
                                                     true
                                             }
-                                        }
                                     }
                                     signStatus[index + 1].failed(
                                         err

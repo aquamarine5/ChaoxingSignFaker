@@ -91,7 +91,7 @@ class ChaoxingQRCodeSigner(
             ).execute().use {
                 it.checkResponseThrowException()
                 val result = it.body.string()
-                if(result=="errorLocation2")
+                if (result == "errorLocation2")
                     throw WrongPositionException()
                 if (result == "success2")
                     throw SignAlreadyEndedException()
@@ -141,7 +141,7 @@ class ChaoxingQRCodeSigner(
                 if (result.startsWith("validate")) {
                     return@use true
                 }
-                if(result=="errorLocation2")
+                if (result == "errorLocation2")
                     throw WrongPositionException()
                 if (result == "success2")
                     throw SignAlreadyEndedException()

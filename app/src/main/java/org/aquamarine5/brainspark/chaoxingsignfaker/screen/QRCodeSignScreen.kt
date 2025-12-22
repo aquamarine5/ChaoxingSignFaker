@@ -459,21 +459,22 @@ fun QRCodeSignScreen(
                                                     )
                                                     err.ifAlreadySigned {
                                                         userSelections[0] = false
-                                                        if (signUserList.all { it == null } && userSelections.all { !it }) {
-                                                            isSigning = false
-                                                            coroutineScope.launch {
-                                                                ChaoxingRecommendHelper.recordRecommendEvent(
-                                                                    context,
-                                                                    destination.classId,
-                                                                    destination.courseId,
-                                                                    ChaoxingHttpClient.instance!!
-                                                                )
-                                                            }
+                                                    }
+                                                    if (signUserList.all { it == null }) {
+                                                        isSigning = false
+                                                        coroutineScope.launch {
+                                                            ChaoxingRecommendHelper.recordRecommendEvent(
+                                                                context,
+                                                                destination.classId,
+                                                                destination.courseId,
+                                                                ChaoxingHttpClient.instance!!
+                                                            )
+                                                        }
+                                                        if (userSelections.all { !it })
                                                             coroutineScope.launch {
                                                                 delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)
                                                                 isSponsor = true
                                                             }
-                                                        }
                                                     }
                                                     signStatus[0].failed(err)
                                                 }
@@ -600,14 +601,15 @@ fun QRCodeSignScreen(
                                                     )
                                                     err.ifAlreadySigned {
                                                         userSelections[1 + index] = false
-                                                        if (index == signUserList.size - 1 && userSelections.all { !it }) {
-                                                            isSigning = false
+                                                    }
+                                                    if (index == signUserList.size - 1) {
+                                                        isSigning = false
+                                                        if (userSelections.all { !it })
                                                             coroutineScope.launch {
                                                                 delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)
                                                                 isSponsor =
                                                                     true
                                                             }
-                                                        }
                                                     }
                                                     signStatus[1 + index].failed(err)
                                                 }
