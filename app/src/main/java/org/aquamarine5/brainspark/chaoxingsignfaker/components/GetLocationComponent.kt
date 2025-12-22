@@ -230,7 +230,7 @@ fun GetLocationComponent(
                 }
                 Button(onClick = {
                     if (marker == null) {
-                        snackbarHost?.displaySnackbar("请先点击地图选择位置", coroutineScope)
+                        snackbarHost.displaySnackbar("请先点击地图选择位置", coroutineScope)
 
                         hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
                         return@Button
@@ -241,7 +241,7 @@ fun GetLocationComponent(
                                 CoordUtil.ll2point(locationPosition)
                             ) > locationRange!!
                         ) {
-                            snackbarHost?.displaySnackbar("位置超出范围", coroutineScope)
+                            snackbarHost.displaySnackbar("位置超出范围", coroutineScope)
 
                             hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
                             return@Button

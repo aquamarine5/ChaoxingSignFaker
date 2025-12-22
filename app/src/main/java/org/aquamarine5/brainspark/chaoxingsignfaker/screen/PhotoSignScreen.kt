@@ -362,13 +362,14 @@ fun PhotoSignScreen(
                                     )
                                     it.ifAlreadySigned {
                                         userSelections[0] = false
-                                        if (otherUserSessionList.all { it == null } && userSelections.all { !it }) {
-                                            isSigning = false
+                                    }
+                                    if (otherUserSessionList.all { it == null }) {
+                                        isSigning = false
+                                        if (userSelections.all { !it })
                                             coroutineScope.launch {
                                                 delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)
                                                 isSponsor = true
                                             }
-                                        }
                                     }
                                     signStatus[0].failed(it)
                                 }
@@ -486,14 +487,15 @@ fun PhotoSignScreen(
                                         )
                                         err.ifAlreadySigned {
                                             userSelections[index + 1] = false
-                                            if (otherUserSessionList.checkIsLast(index + 1) && userSelections.all { !it }) {
-                                                isSigning = false
+                                        }
+                                        if (otherUserSessionList.checkIsLast(index + 1)) {
+                                            isSigning = false
+                                            if (userSelections.all { !it })
                                                 coroutineScope.launch {
                                                     delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)
                                                     isSponsor =
                                                         true
                                                 }
-                                            }
                                         }
                                         signStatus[1 + index].failed(err)
                                     }
@@ -820,13 +822,14 @@ fun PhotoSignScreen(
                                                                 )
                                                                 it.ifAlreadySigned {
                                                                     userSelections[0] = false
-                                                                    if (otherUserSessionForSignList.all { it == null } && userSelections.all { !it }) {
-                                                                        isSigning = false
+                                                                }
+                                                                if (otherUserSessionForSignList.all { it == null }) {
+                                                                    isSigning = false
+                                                                    if (userSelections.all { !it })
                                                                         coroutineScope.launch {
                                                                             delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)
                                                                             isSponsor = true
                                                                         }
-                                                                    }
                                                                 }
                                                                 signStatus[0].failed(it)
                                                             }
@@ -970,17 +973,18 @@ fun PhotoSignScreen(
                                                                 it.ifAlreadySigned {
                                                                     userSelections[index + 1] =
                                                                         false
-                                                                    if (otherUserSessionForSignList.checkIsLast(
-                                                                            index + 1
-                                                                        ) && userSelections.all { !it }
-                                                                    ) {
-                                                                        isSigning = false
+                                                                }
+                                                                if (otherUserSessionForSignList.checkIsLast(
+                                                                        index + 1
+                                                                    )
+                                                                ) {
+                                                                    isSigning = false
+                                                                    if (userSelections.all { !it })
                                                                         coroutineScope.launch {
                                                                             delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)
                                                                             isSponsor =
                                                                                 true
                                                                         }
-                                                                    }
                                                                 }
                                                                 signStatus[1 + index].failed(
                                                                     it
