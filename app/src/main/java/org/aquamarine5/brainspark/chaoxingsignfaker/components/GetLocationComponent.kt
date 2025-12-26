@@ -125,7 +125,8 @@ fun GetLocationComponent(
             var locationRange by remember { mutableStateOf<Int?>(null) }
             var locationPosition by remember { mutableStateOf<LatLng?>(null) }
             var clickedName by remember { mutableStateOf("未指定") }
-
+            var mapType = remember{ BaiduMap.MAP_TYPE_NORMAL }
+            var baiduMap=remember<BaiduMap?>{null}
             if (isShowDialog) {
                 AlertDialog(onDismissRequest = {
                     isShowDialog = false
@@ -242,7 +243,6 @@ fun GetLocationComponent(
                             ) > locationRange!!
                         ) {
                             snackbarHost.displaySnackbar("位置超出范围", coroutineScope)
-
                             hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
                             return@Button
                         }
@@ -266,6 +266,20 @@ fun GetLocationComponent(
                         .zIndex(1f)
                         .padding(22.dp)
                 ) {
+                    FloatingActionButton(onClick = {
+                        mapType = if(mapType == BaiduMap.MAP_TYPE_NORMAL){
+                            BaiduMap.MAP_TYPE_SATELLITE
+                        } else {
+                            BaiduMap.MAP_TYPE_NORMAL
+                        }
+                        baiduMap?.mapType=mapType
+                    }) {
+                        Icon(
+                            painterResource(R.drawable.ic_map),
+                            contentDescription = null
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
                     FloatingActionButton(onClick = {
                         isShowDialog = true
                     }) {
@@ -294,8 +308,8 @@ fun GetLocationComponent(
                             compassEnabled(false)
                             zoomControlsEnabled(false)
                         })
-
                             .apply {
+                                baiduMap=map
                                 isClickable = true
                                 map.setMapStatus(
                                     MapStatusUpdateFactory.newMapStatus(
