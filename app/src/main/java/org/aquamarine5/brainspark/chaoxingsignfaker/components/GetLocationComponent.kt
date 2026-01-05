@@ -309,7 +309,6 @@ fun GetLocationComponent(
                             zoomControlsEnabled(false)
                         })
                             .apply {
-                                baiduMap=map
                                 isClickable = true
                                 map.setMapStatus(
                                     MapStatusUpdateFactory.newMapStatus(
@@ -448,6 +447,7 @@ fun GetLocationComponent(
                                     )
                                 }
                                 locationClient.start()
+                                baiduMap=map
                             }
                     }, modifier = Modifier.zIndex(0f), onRelease = {
                         runCatching {
