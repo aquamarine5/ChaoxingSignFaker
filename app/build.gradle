@@ -46,8 +46,8 @@ android {
         applicationId = "org.aquamarine5.brainspark.chaoxingsignfaker"
         minSdk = 26
         targetSdk = 36
-        versionCode = 112070304
-        versionName = "1.12.7-beta1-251226"
+        versionCode = 112071215
+        versionName = "1.12.7-stable-260127"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -93,7 +93,7 @@ android {
 
 protobuf {
     protoc {
-        artifact = "com.google.protobuf:protoc:3.18.0"
+        artifact = "com.google.protobuf:protoc:4.33.4"
     }
 
     generateProtoTasks {

@@ -235,7 +235,7 @@ fun QRCodeSignScreen(
                 ) {
                     Column(
                         modifier = Modifier
-                            .padding(8.dp)
+                            .padding(8.dp,8.dp,8.dp,0.dp)
                     ) {
                         OtherUserSelectorComponent(
                             navToOtherUser = {

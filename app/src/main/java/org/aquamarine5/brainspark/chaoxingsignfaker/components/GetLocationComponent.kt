@@ -56,6 +56,7 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -87,7 +88,6 @@ import com.baidu.mapapi.search.geocode.ReverseGeoCodeResult
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
@@ -229,7 +229,7 @@ fun GetLocationComponent(
                     Text(
                         "经度: ${
                             "%.5f".format(clickedPosition.longitude)
-                        },纬度: ${
+                        }, 纬度: ${
                             "%.5f".format(
                                 clickedPosition.latitude
                             )
@@ -430,19 +430,23 @@ fun GetLocationComponent(
                 ) {
                     val tooltipState = rememberTooltipState(isPersistent = true)
                     LaunchedEffect(Unit) {
-                        if (context.chaoxingDataStore.data.first().learntTooltips.mapSupportNormalSatelliteSwitch.not())
+                        //if (context.chaoxingDataStore.data.first().learntTooltips.mapSupportNormalSatelliteSwitch.not())
                             tooltipState.show()
                     }
                     TooltipBox(
                         positionProvider = TooltipDefaults.rememberTooltipPositionProvider(
-                            TooltipAnchorPosition.Above
+                            TooltipAnchorPosition.Start,
+                            spacingBetweenTooltipAndAnchor = 12.dp
                         ),
                         hasAction = true,
                         tooltip = {
-                            RichTooltip(maxWidth = 200.dp) {
+                            RichTooltip(maxWidth = 200.dp, caretShape = TooltipDefaults.caretShape(
+                                DpSize(14.dp,7.dp)
+                            )) {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.Center
+                                    horizontalArrangement = Arrangement.Center,
+                                    modifier=Modifier.padding(2.dp,6.dp,0.dp,6.dp)
                                 ) {
                                     Text(
                                         "现在可以点击按钮来切换平面地图/卫星地图了。",

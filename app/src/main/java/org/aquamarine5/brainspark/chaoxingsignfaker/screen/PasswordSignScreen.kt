@@ -212,7 +212,7 @@ fun PasswordSignScreen(
                 val signStatus = remember { mutableListOf(ChaoxingSignStatus(hapticFeedback)) }
                 val userSelections = remember { mutableStateListOf(isSignForOther.not()) }
                 var isSigning by remember { mutableStateOf(false) }
-                Column(modifier = Modifier.padding(8.dp)) {
+                Column(modifier = Modifier.padding(8.dp,8.dp,8.dp,0.dp)) {
                     OtherUserSelectorComponent(
                         navToOtherUser = { navToOtherUserDestination() },
                         signStatus = signStatus,
