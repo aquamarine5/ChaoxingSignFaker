@@ -24,6 +24,7 @@ message ChaoxingSignFakerDataStore{
   bool bypassBlockedChecking = 14;
   uint32 tagsIncreaseId = 16;
   repeated OtherUserTagType tagsLibrary = 15;
+  LearntTooltip learntTooltips = 17;
 }
 
 message ChaoxingCourseClass{
@@ -32,8 +33,9 @@ message ChaoxingCourseClass{
 }
 
 message LearntTooltip{
-  bool tagsFeature = 1;
+  bool tagsFeature = 1 [deprecated = true];
   bool cameraSelectedFromGallery = 2;
+  bool mapSupportNormalSatelliteSwitch = 3;
 }
 
 message OtherUserTagType{

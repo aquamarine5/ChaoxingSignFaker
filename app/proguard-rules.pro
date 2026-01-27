@@ -24,7 +24,10 @@
 -keep class com.baidu.** {*;}
 -keep class vi.com.** {*;}
 -keep class com.baidu.vi.** {*;}
+-dontnote com.baidu.**
 -dontwarn com.baidu.**
+-dontnote com.baidu.location.**
+-dontwarn com.baidu.location.**
 
 -keep class androidx.datastore.*.** {*;}
 -keep class org.aquamarine5.brainspark.chaoxingsignfaker.datastore.** {*;}
@@ -34,6 +37,8 @@
 }
 
 -keep class com.umeng.** {*;}
+-dontwarn com.umeng.**
+-dontnote com.umeng.**
 
 -keep class org.repackage.** {*;}
 

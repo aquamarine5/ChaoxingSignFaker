@@ -504,14 +504,14 @@ fun SettingScreen(
                 } else if (clickCount >= 2)
                     Intent(
                         Intent.ACTION_VIEW,
-                        "orpheus://playlist/6765943151".toUri()
+                        "orpheus://playlist/13697614404".toUri()
                     ).apply {
                         flags = Intent.FLAG_ACTIVITY_NEW_TASK
 
                         if (context.packageManager.resolveActivity(this, 0) != null) {
                             context.startActivity(this)
                         } else {
-                            this.data = "https://music.163.com/playlist?id=6765943151".toUri()
+                            this.data = "https://music.163.com/playlist?id=13697614404".toUri()
                             context.startActivity(this)
                         }
                     }

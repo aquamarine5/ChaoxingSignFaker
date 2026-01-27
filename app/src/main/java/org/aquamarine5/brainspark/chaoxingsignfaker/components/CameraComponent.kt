@@ -66,6 +66,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.Font
@@ -80,11 +81,14 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.PermissionStatus
 import com.google.accompanist.permissions.rememberPermissionState
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
+import org.aquamarine5.brainspark.chaoxingsignfaker.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.displaySnackbar
 import org.aquamarine5.brainspark.chaoxingsignfaker.snackbarReport
 
@@ -98,6 +102,7 @@ fun CameraComponent(
 ) {
     val cameraPermission = rememberPermissionState(android.Manifest.permission.CAMERA)
     val hapticFeedback = LocalHapticFeedback.current
+    val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     Box(
         modifier = Modifier
@@ -209,6 +214,10 @@ fun CameraComponent(
                 }
             )
             var showGalleryTooltip by remember { mutableStateOf(true) }
+            LaunchedEffect(Unit) {
+                showGalleryTooltip =
+                    context.chaoxingDataStore.data.first().learntTooltips.cameraSelectedFromGallery.not()
+            }
             Box(modifier = Modifier.fillMaxSize()) {
                 Column(
                     verticalArrangement = Arrangement.Bottom,
@@ -245,7 +254,19 @@ fun CameraComponent(
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 IconButton(
-                                    onClick = { showGalleryTooltip = false },
+                                    onClick = {
+                                        showGalleryTooltip = false
+                                        coroutineScope.launch(Dispatchers.IO) {
+                                            context.chaoxingDataStore.updateData {
+                                                it.toBuilder().setLearntTooltips(
+                                                    it.learntTooltips.toBuilder()
+                                                        .setCameraSelectedFromGallery(
+                                                            true
+                                                        ).build()
+                                                ).build()
+                                            }
+                                        }
+                                    },
                                     modifier = Modifier.size(24.dp)
                                 ) {
                                     Icon(

@@ -110,8 +110,6 @@ fun SignOutRedirectTips(
                             ChaoxingActivityHelper.SignRedirectStatus.SIGN_IN_UNPUBLISHED -> "此签到活动设置了签退活动，将在${
                                 dateFormatter.format(Date(signOffPublishTime!!))
                             }发布，请发布后及时签退。"
-
-                            else -> ""
                         }, color = Color.White,
                         fontSize = 13.sp,
                         lineHeight = 18.sp,

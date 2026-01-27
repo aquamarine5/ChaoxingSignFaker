@@ -6,6 +6,7 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.components
 
+import android.Manifest
 import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -17,18 +18,27 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RichTooltip
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
+import androidx.compose.material3.TooltipAnchorPosition
+import androidx.compose.material3.TooltipBox
+import androidx.compose.material3.TooltipDefaults
+import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -46,6 +56,7 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -76,13 +87,17 @@ import com.baidu.mapapi.search.geocode.ReverseGeoCodeOption
 import com.baidu.mapapi.search.geocode.ReverseGeoCodeResult
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
+import org.aquamarine5.brainspark.chaoxingsignfaker.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.displaySnackbar
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationDetailEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationSignEntity
 
-@OptIn(ExperimentalPermissionsApi::class)
+@OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun GetLocationComponent(
     locationInfo: ChaoxingLocationDetailEntity? = null,
@@ -101,8 +116,8 @@ fun GetLocationComponent(
     ) {
         val locationPermissionsState = rememberMultiplePermissionsState(
             listOf(
-                android.Manifest.permission.ACCESS_FINE_LOCATION,
-                android.Manifest.permission.ACCESS_COARSE_LOCATION
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.ACCESS_COARSE_LOCATION
             )
         )
         if (locationPermissionsState.allPermissionsGranted) {
@@ -215,7 +230,7 @@ fun GetLocationComponent(
                     Text(
                         "经度: ${
                             "%.5f".format(clickedPosition.longitude)
-                        },纬度: ${
+                        }, 纬度: ${
                             "%.5f".format(
                                 clickedPosition.latitude
                             )
@@ -242,7 +257,6 @@ fun GetLocationComponent(
                             ) > locationRange!!
                         ) {
                             snackbarHost.displaySnackbar("位置超出范围", coroutineScope)
-
                             hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
                             return@Button
                         }
@@ -259,6 +273,155 @@ fun GetLocationComponent(
                     confirmButtonText()
                 }
             }
+            var mapType = remember { BaiduMap.MAP_TYPE_NORMAL }
+            val baiduMap = remember {
+                MapView(context, BaiduMapOptions().apply {
+                    rotateGesturesEnabled(false)
+                    overlookingGesturesEnabled(false)
+                    compassEnabled(false)
+                    zoomControlsEnabled(false)
+                })
+                    .apply {
+                        isClickable = true
+                        map.setMapStatus(
+                            MapStatusUpdateFactory.newMapStatus(
+                                MapStatus.Builder()
+                                    .zoom(18f)
+                                    .build()
+                            )
+                        )
+                        map.isMyLocationEnabled = true
+                        locationClient.registerLocationListener(object :
+                            BDAbstractLocationListener() {
+                            override fun onReceiveLocation(location: BDLocation?) {
+                                Log.d("GetLocationPage", "onReceiveLocation: $location")
+                                location?.let {
+                                    locationClient.stop()
+                                    map.setMyLocationData(
+                                        MyLocationData.Builder()
+                                            .accuracy(it.radius)
+                                            .direction(it.direction)
+                                            .latitude(it.latitude)
+                                            .longitude(it.longitude)
+                                            .build()
+                                    )
+
+                                    if (clickedName == "未指定") {
+                                        map.setMapStatus(
+                                            MapStatusUpdateFactory.newLatLng(
+                                                LatLng(
+                                                    it.latitude,
+                                                    it.longitude
+                                                )
+                                            )
+                                        )
+                                        clickedPosition = LatLng(it.latitude, it.longitude)
+                                        clickedName = it.addrStr?.removePrefix("中国") ?: ""
+                                    } else {
+                                        map.animateMapStatus(
+                                            MapStatusUpdateFactory.newLatLngZoom(
+                                                LatLng(
+                                                    it.latitude,
+                                                    it.longitude
+                                                ), 18f
+                                            ), 1000
+                                        )
+                                    }
+                                }
+                            }
+                        })
+                        map.setOnMapClickListener(object : BaiduMap.OnMapClickListener {
+                            override fun onMapClick(p0: LatLng?) {
+                                p0?.let {
+                                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                                    clickedPosition = it
+                                    geoCoder.reverseGeoCode(
+                                        ReverseGeoCodeOption()
+                                            .location(it)
+                                            .newVersion(1)
+                                            .radius(500)
+                                    )
+                                    if (marker == null) {
+                                        val icon =
+                                            BitmapDescriptorFactory.fromResource(R.drawable.ic_geo_alt_fill)
+                                        marker = map.addOverlay(
+                                            MarkerOptions()
+                                                .position(it)
+                                                .icon(icon)
+                                                .draggable(true)
+                                        ) as Marker
+                                    } else {
+                                        marker!!.position = it
+                                    }
+                                }
+                            }
+
+                            override fun onMapPoiClick(p0: MapPoi?) {
+                                p0?.let {
+                                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                                    clickedPosition = it.position
+                                    clickedName = it.name
+                                    isNeedLocationDescribe = true
+                                    geoCoder.reverseGeoCode(
+                                        ReverseGeoCodeOption()
+                                            .location(it.position)
+                                            .newVersion(1)
+                                            .pageSize(2)
+                                            .radius(500)
+                                    )
+                                    if (marker == null) {
+                                        marker = map.addOverlay(
+                                            MarkerOptions()
+                                                .position(it.position)
+                                                .draggable(true)
+                                                .icon(BitmapDescriptorFactory.fromResource(R.drawable.ic_geo_alt_fill))
+                                        ) as Marker
+                                    } else {
+                                        marker!!.position = it.position
+                                    }
+                                }
+                            }
+                        })
+
+                        map.setOnMarkerDragListener(object : BaiduMap.OnMarkerDragListener {
+                            override fun onMarkerDrag(p0: Marker?) {}
+
+                            override fun onMarkerDragEnd(p0: Marker?) {
+                                Log.d("GetLocationPage", "onMarkerDragEnd: $p0")
+                                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                                p0?.let {
+                                    clickedPosition = it.position
+                                    geoCoder.reverseGeoCode(
+                                        ReverseGeoCodeOption()
+                                            .location(it.position)
+                                            .newVersion(1)
+                                            .radius(500)
+                                    )
+                                }
+                            }
+
+                            override fun onMarkerDragStart(p0: Marker?) {}
+                        })
+                        if (locationInfo != null && locationInfo.isAvailable()) {
+                            locationRange = locationInfo.locationRange
+
+                            locationPosition =
+                                LatLng(locationInfo.latitude!!, locationInfo.longitude!!)
+                            map.setMapStatus(
+                                MapStatusUpdateFactory.newLatLng(
+                                    locationPosition
+                                )
+                            )
+                            map.addOverlay(
+                                CircleOptions()
+                                    .center(locationPosition)
+                                    .radius(locationInfo.locationRange!!)
+                                    .fillColor(android.graphics.Color.argb(128, 255, 0, 0))
+                            )
+                        }
+                        locationClient.start()
+                    }
+            }
             Box(modifier = Modifier.fillMaxSize()) {
                 Column(
                     modifier = Modifier
@@ -266,6 +429,74 @@ fun GetLocationComponent(
                         .zIndex(1f)
                         .padding(22.dp)
                 ) {
+                    val tooltipState = rememberTooltipState(isPersistent = true)
+                    LaunchedEffect(Unit) {
+                        if (context.chaoxingDataStore.data.first().learntTooltips.mapSupportNormalSatelliteSwitch.not())
+                            tooltipState.show()
+                    }
+                    TooltipBox(
+                        positionProvider = TooltipDefaults.rememberTooltipPositionProvider(
+                            TooltipAnchorPosition.Start,
+                            spacingBetweenTooltipAndAnchor = 12.dp
+                        ),
+                        hasAction = true,
+                        tooltip = {
+                            RichTooltip(
+                                maxWidth = 200.dp, caretShape = TooltipDefaults.caretShape(
+                                    DpSize(14.dp, 7.dp)
+                                )
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center,
+                                    modifier = Modifier.padding(2.dp, 6.dp, 0.dp, 6.dp)
+                                ) {
+                                    Text(
+                                        "现在可以点击按钮来切换平面地图/卫星地图了。",
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    IconButton(
+                                        onClick = {
+                                            tooltipState.dismiss()
+                                            coroutineScope.launch(Dispatchers.IO) {
+                                                context.chaoxingDataStore.updateData {
+                                                    it.toBuilder().setLearntTooltips(
+                                                        it.learntTooltips.toBuilder()
+                                                            .setMapSupportNormalSatelliteSwitch(
+                                                                true
+                                                            ).build()
+                                                    ).build()
+                                                }
+                                            }
+                                        },
+                                        modifier = Modifier.size(32.dp)
+                                    ) {
+                                        Icon(
+                                            painterResource(R.drawable.ic_x),
+                                            contentDescription = "关闭提示"
+                                        )
+                                    }
+                                }
+
+                            }
+                        },
+                        state = tooltipState,
+                    ) {
+                        FloatingActionButton(onClick = {
+                            mapType = if (mapType == BaiduMap.MAP_TYPE_NORMAL) {
+                                BaiduMap.MAP_TYPE_SATELLITE
+                            } else {
+                                BaiduMap.MAP_TYPE_NORMAL
+                            }
+                            baiduMap.map.mapType = mapType
+                        }) {
+                            Icon(
+                                painterResource(R.drawable.ic_map),
+                                contentDescription = null
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
                     FloatingActionButton(onClick = {
                         isShowDialog = true
                     }) {
@@ -287,154 +518,8 @@ fun GetLocationComponent(
                     }
                 }
                 AndroidView(
-                    factory = {
-                        MapView(context, BaiduMapOptions().apply {
-                            rotateGesturesEnabled(false)
-                            overlookingGesturesEnabled(false)
-                            compassEnabled(false)
-                            zoomControlsEnabled(false)
-                        })
-
-                            .apply {
-                                isClickable = true
-                                map.setMapStatus(
-                                    MapStatusUpdateFactory.newMapStatus(
-                                        MapStatus.Builder()
-                                            .zoom(18f)
-                                            .build()
-                                    )
-                                )
-                                map.isMyLocationEnabled = true
-                                locationClient.registerLocationListener(object :
-                                    BDAbstractLocationListener() {
-                                    override fun onReceiveLocation(location: BDLocation?) {
-                                        Log.d("GetLocationPage", "onReceiveLocation: $location")
-                                        location?.let {
-                                            locationClient.stop()
-                                            map.setMyLocationData(
-                                                MyLocationData.Builder()
-                                                    .accuracy(it.radius)
-                                                    .direction(it.direction)
-                                                    .latitude(it.latitude)
-                                                    .longitude(it.longitude)
-                                                    .build()
-                                            )
-
-                                            if (clickedName == "未指定") {
-                                                map.setMapStatus(
-                                                    MapStatusUpdateFactory.newLatLng(
-                                                        LatLng(
-                                                            it.latitude,
-                                                            it.longitude
-                                                        )
-                                                    )
-                                                )
-                                                clickedPosition = LatLng(it.latitude, it.longitude)
-                                                clickedName = it.addrStr?.removePrefix("中国") ?: ""
-                                            } else {
-                                                map.animateMapStatus(
-                                                    MapStatusUpdateFactory.newLatLngZoom(
-                                                        LatLng(
-                                                            it.latitude,
-                                                            it.longitude
-                                                        ), 18f
-                                                    ), 1000
-                                                )
-                                            }
-                                        }
-                                    }
-                                })
-                                map.setOnMapClickListener(object : BaiduMap.OnMapClickListener {
-                                    override fun onMapClick(p0: LatLng?) {
-                                        p0?.let {
-                                            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                                            clickedPosition = it
-                                            geoCoder.reverseGeoCode(
-                                                ReverseGeoCodeOption()
-                                                    .location(it)
-                                                    .newVersion(1)
-                                                    .radius(500)
-                                            )
-                                            if (marker == null) {
-                                                val icon =
-                                                    BitmapDescriptorFactory.fromResource(R.drawable.ic_geo_alt_fill)
-                                                marker = map.addOverlay(
-                                                    MarkerOptions()
-                                                        .position(it)
-                                                        .icon(icon)
-                                                        .draggable(true)
-                                                ) as Marker
-                                            } else {
-                                                marker!!.position = it
-                                            }
-                                        }
-                                    }
-
-                                    override fun onMapPoiClick(p0: MapPoi?) {
-                                        p0?.let {
-                                            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                                            clickedPosition = it.position
-                                            clickedName = it.name
-                                            isNeedLocationDescribe = true
-                                            geoCoder.reverseGeoCode(
-                                                ReverseGeoCodeOption()
-                                                    .location(it.position)
-                                                    .newVersion(1)
-                                                    .pageSize(2)
-                                                    .radius(500)
-                                            )
-                                            if (marker == null) {
-                                                marker = map.addOverlay(
-                                                    MarkerOptions()
-                                                        .position(it.position)
-                                                        .draggable(true)
-                                                        .icon(BitmapDescriptorFactory.fromResource(R.drawable.ic_geo_alt_fill))
-                                                ) as Marker
-                                            } else {
-                                                marker!!.position = it.position
-                                            }
-                                        }
-                                    }
-                                })
-
-                                map.setOnMarkerDragListener(object : BaiduMap.OnMarkerDragListener {
-                                    override fun onMarkerDrag(p0: Marker?) {}
-
-                                    override fun onMarkerDragEnd(p0: Marker?) {
-                                        Log.d("GetLocationPage", "onMarkerDragEnd: $p0")
-                                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                                        p0?.let {
-                                            clickedPosition = it.position
-                                            geoCoder.reverseGeoCode(
-                                                ReverseGeoCodeOption()
-                                                    .location(it.position)
-                                                    .newVersion(1)
-                                                    .radius(500)
-                                            )
-                                        }
-                                    }
-
-                                    override fun onMarkerDragStart(p0: Marker?) {}
-                                })
-                                if (locationInfo != null && locationInfo.isAvailable()) {
-                                    locationRange = locationInfo.locationRange
-
-                                    locationPosition =
-                                        LatLng(locationInfo.latitude!!, locationInfo.longitude!!)
-                                    map.setMapStatus(
-                                        MapStatusUpdateFactory.newLatLng(
-                                            locationPosition
-                                        )
-                                    )
-                                    map.addOverlay(
-                                        CircleOptions()
-                                            .center(locationPosition)
-                                            .radius(locationInfo.locationRange!!)
-                                            .fillColor(android.graphics.Color.argb(128, 255, 0, 0))
-                                    )
-                                }
-                                locationClient.start()
-                            }
+                    factory = { _ ->
+                        baiduMap
                     }, modifier = Modifier.zIndex(0f), onRelease = {
                         runCatching {
                             it.onDestroy()

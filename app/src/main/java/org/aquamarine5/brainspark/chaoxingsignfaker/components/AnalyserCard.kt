@@ -84,8 +84,7 @@ fun AnalyserCard() {
                                 FlowRow(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.spacedBy(9.dp),
-                                    verticalArrangement = Arrangement.spacedBy(2.dp),
-                                    maxItemsInEachRow = 4
+                                    verticalArrangement = Arrangement.spacedBy(2.dp)
                                 ) {
                                     listOf(
                                         photoSignCount to painterResource(R.drawable.ic_camera),

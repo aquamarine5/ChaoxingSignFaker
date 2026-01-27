@@ -7,9 +7,7 @@
 package org.aquamarine5.brainspark.chaoxingsignfaker.api
 
 import android.content.Context
-import android.os.NetworkOnMainThreadException
 import com.alibaba.fastjson2.JSONObject
-import io.sentry.Sentry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
@@ -19,10 +17,7 @@ import okhttp3.CookieJar
 import okhttp3.FormBody
 import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
-import okhttp3.Protocol
 import okhttp3.Request
-import okhttp3.Response
-import okhttp3.ResponseBody.Companion.toResponseBody
 import org.aquamarine5.brainspark.chaoxingsignfaker.ChaoxingPredictableException
 import org.aquamarine5.brainspark.chaoxingsignfaker.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.chaoxingDataStore
@@ -33,9 +28,6 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingSignFakerD
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.HttpCookie
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingOtherUserSharedEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingUserEntity
-import java.io.IOException
-import java.net.SocketTimeoutException
-import java.net.UnknownHostException
 import java.security.MessageDigest
 import java.util.Base64
 import java.util.UUID
@@ -56,75 +48,6 @@ class ChaoxingHttpClient private constructor(
     class ChaoxingNetworkException(message: String? = null) :
         ChaoxingPredictableException(message ?: "网络错误")
 
-    @Deprecated("Should use okhttp3.HttpClient.Builder.retryOnConnectionFailure(true)")
-    class RetryInterceptor : okhttp3.Interceptor {
-        override fun intercept(chain: okhttp3.Interceptor.Chain): Response {
-            var failureResponse: Response? = null
-            repeat(3) {
-                val request = chain.request()
-                runCatching {
-                    val response = chain.proceed(request)
-                    if (response.isSuccessful) {
-                        return response
-                    } else {
-                        failureResponse = response
-                    }
-                }.onFailure {
-                    when (it) {
-                        is UnknownHostException -> {
-                            it.printStackTrace()
-                            failureResponse =
-                                Response.Builder().request(request).protocol(Protocol.HTTP_2)
-                                    .message("Unknown Host")
-                                    .body("UnknownHostException".toResponseBody())
-                                    .code(HTTP_RESPONSE_CODE_UNKNOWN_HOST).build()
-                        }
-
-                        is SocketTimeoutException -> {
-                            it.printStackTrace()
-                            failureResponse =
-                                Response.Builder().request(request).protocol(Protocol.HTTP_2)
-                                    .message("Socket Timeout")
-                                    .body("Socket Timeout".toResponseBody())
-                                    .code(HTTP_RESPONSE_CODE_SOCKET_TIMEOUT).build()
-                        }
-
-                        is IOException -> {
-                            it.printStackTrace()
-                            failureResponse =
-                                Response.Builder().request(request).protocol(Protocol.HTTP_2)
-                                    .message("IO Exception")
-                                    .body("IOException".toResponseBody())
-                                    .code(HTTP_RESPONSE_CODE_UNKNOWN_ERROR).build()
-                        }
-
-                        is NetworkOnMainThreadException -> {
-                            it.printStackTrace()
-                            failureResponse =
-                                Response.Builder().request(request).protocol(Protocol.HTTP_2)
-                                    .message("Network on main thread")
-                                    .body("network on main thread!".toResponseBody())
-                                    .code(HTTP_RESPONSE_CODE_NETWORK_ON_MAIN_THREAD).build()
-                        }
-
-                        else -> {
-                            Sentry.captureException(it)
-                            it.printStackTrace()
-                            failureResponse =
-                                Response.Builder().request(request).protocol(Protocol.HTTP_2)
-                                    .message("Unknown Error")
-                                    .body("Unknown Error".toResponseBody())
-                                    .code(HTTP_RESPONSE_CODE_UNKNOWN_ERROR).build()
-                        }
-                    }
-                }
-                Thread.sleep(2000L)
-            }
-            return failureResponse ?: Response.Builder()
-                .code(HTTP_RESPONSE_CODE_UNKNOWN_ERROR).build()
-        }
-    }
-
     fun newCall(request: Request): Call = okHttpClient.newCall(request)
 
     companion object {
@@ -133,18 +56,6 @@ class ChaoxingHttpClient private constructor(
         private const val TRANSFER_KEY = "u2oh6Vu^HWe4_AES"
         private const val URL_USER_INFO = "https://sso.chaoxing.com/apis/login/userLogin4Uname.do"
         private const val URL_LOGIN = "https://passport2.chaoxing.com/fanyalogin"
-
-        @Deprecated("Use OkHttpClient.Builder.retryOnConnectionFailure(true) instead")
-        const val HTTP_RESPONSE_CODE_UNKNOWN_ERROR = 990
-
-        @Deprecated("Use OkHttpClient.Builder.retryOnConnectionFailure(true) instead")
-        const val HTTP_RESPONSE_CODE_NETWORK_ON_MAIN_THREAD = 997
-
-        @Deprecated("Use OkHttpClient.Builder.retryOnConnectionFailure(true) instead")
-        const val HTTP_RESPONSE_CODE_UNKNOWN_HOST = 998
-
-        @Deprecated("Use OkHttpClient.Builder.retryOnConnectionFailure(true) instead")
-        const val HTTP_RESPONSE_CODE_SOCKET_TIMEOUT = 999
 
         var instance: ChaoxingHttpClient? = null
 
