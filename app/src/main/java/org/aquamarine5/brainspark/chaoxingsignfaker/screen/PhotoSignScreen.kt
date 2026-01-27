@@ -204,7 +204,7 @@ fun PhotoSignScreen(
             if (isAlreadySigned == false) {
                 if (isImage == false) {
                     Column(
-                        modifier = Modifier.padding(8.dp,8.dp,8.dp,0.dp)
+                        modifier = Modifier.padding(8.dp, 8.dp, 8.dp, 0.dp)
                     ) {
                         var isCaptcha = remember { false }
                         var isFirstOtherUserForSign = remember { true }

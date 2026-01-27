@@ -328,7 +328,7 @@ fun GestureSignScreen(
                     }
                 }
 
-                Column(modifier = Modifier.padding(8.dp,8.dp,8.dp,0.dp)) {
+                Column(modifier = Modifier.padding(8.dp, 8.dp, 8.dp, 0.dp)) {
                     OtherUserSelectorComponent(
                         navToOtherUser = { navToOtherUserDestination() },
                         signStatus = signStatus,

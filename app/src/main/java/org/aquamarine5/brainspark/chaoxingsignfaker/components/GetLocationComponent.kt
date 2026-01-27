@@ -88,6 +88,7 @@ import com.baidu.mapapi.search.geocode.ReverseGeoCodeResult
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
@@ -430,7 +431,7 @@ fun GetLocationComponent(
                 ) {
                     val tooltipState = rememberTooltipState(isPersistent = true)
                     LaunchedEffect(Unit) {
-                        //if (context.chaoxingDataStore.data.first().learntTooltips.mapSupportNormalSatelliteSwitch.not())
+                        if (context.chaoxingDataStore.data.first().learntTooltips.mapSupportNormalSatelliteSwitch.not())
                             tooltipState.show()
                     }
                     TooltipBox(
@@ -440,13 +441,15 @@ fun GetLocationComponent(
                         ),
                         hasAction = true,
                         tooltip = {
-                            RichTooltip(maxWidth = 200.dp, caretShape = TooltipDefaults.caretShape(
-                                DpSize(14.dp,7.dp)
-                            )) {
+                            RichTooltip(
+                                maxWidth = 200.dp, caretShape = TooltipDefaults.caretShape(
+                                    DpSize(14.dp, 7.dp)
+                                )
+                            ) {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.Center,
-                                    modifier=Modifier.padding(2.dp,6.dp,0.dp,6.dp)
+                                    modifier = Modifier.padding(2.dp, 6.dp, 0.dp, 6.dp)
                                 ) {
                                     Text(
                                         "现在可以点击按钮来切换平面地图/卫星地图了。",
