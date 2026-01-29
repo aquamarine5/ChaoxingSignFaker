@@ -222,6 +222,39 @@ fun OtherUserSelectorComponent(
                                     horizontalArrangement = Arrangement.spacedBy(5.dp),
                                     verticalArrangement = Arrangement.spacedBy((-8).dp)
                                 ) {
+                                    FilterChip(
+                                        selected = userSelections.subList(1, userSelections.size)
+                                            .all { it } && (isCurrentAlreadySigned || userSelections[0]),
+                                        onClick = {
+                                            hapticFeedback.performHapticFeedback(
+                                                HapticFeedbackType.ContextClick
+                                            )
+                                            val allSelected =
+                                                userSelections.subList(1, userSelections.size)
+                                                    .all { it } && (isCurrentAlreadySigned || userSelections[0])
+                                            val target = !allSelected
+                                            if (!isCurrentAlreadySigned) {
+                                                userSelections[0] = target
+                                            }
+                                            for (i in 1 until userSelections.size) {
+                                                userSelections[i] = target
+                                            }
+                                            updateTagClickState()
+                                        },
+                                        label = {
+                                            Text("全选")
+                                        },
+                                        leadingIcon = {
+                                            Icon(
+                                                painterResource(R.drawable.ic_list_checks),
+                                                null,
+                                                tint = Color.Gray,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                        },
+                                        border = BorderStroke(1.5.dp, Color.Gray)
+                                    )
+
                                     tagEntities!!.forEachIndexed { index, type ->
                                         FilterChip(
                                             selected = tagClickState[index].value,
@@ -370,6 +403,7 @@ fun OtherUserSelectorComponent(
                 ) {
                     Text("签到")
                 }
+                Spacer(modifier = Modifier.height(12.dp))
             }
         }
     }

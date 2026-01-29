@@ -187,256 +187,288 @@ fun QRCodeSignScreen(
                 }
             }
         } else {
-            if (isAlreadySigned == true) {
-                Box(
-                    modifier = Modifier.padding(8.dp)
-                ) {
-                    AlreadySignedNotice(onSignForOtherUser = {
-                        isAlreadySigned = false
-                        isCurrentAlreadySigned = true
-                    }, onDismiss = {
-                        isAlreadySigned = false
-                    }) { navBack() }
-
-                    SignPotentialWarningTips(
-                        destination.startTime,
-                        destination.endTime,
-                        destination.isLate
-                    )
-                }
-            } else if (isAlreadySigned == false) {
-                var isSelfForSign by remember { mutableStateOf(false) }
-                var isQRCodeScanning by remember { mutableStateOf(false) }
-                val isQRCodeScanPause = remember { mutableStateOf(false) }
-                val isQRCodeParsing = remember { mutableStateOf(false) }
-                var isQRCodeIllegal by remember { mutableStateOf(false) }
-                var isMapGetting by remember { mutableStateOf(false) }
-                var qrcodeIllegalText by remember { mutableStateOf("二维码不合法") }
-                var signUserList by remember {
-                    mutableStateOf<List<ChaoxingOtherUserSession?>>(
-                        emptyList()
-                    )
-                }
-                var isCaptcha = remember { false }
-                var isFirstOtherUserForSign = remember { true }
-                var locationData by remember { mutableStateOf<ChaoxingLocationSignEntity?>(null) }
-                var job by remember { mutableStateOf<Job?>(null) }
-                val userSelections = remember { mutableStateListOf(true) }
-                val signStatus = remember { mutableStateListOf(ChaoxingSignStatus(hapticFeedback)) }
-                var isSigning by remember { mutableStateOf(false) }
-                var isSponsor by remember { mutableStateOf(false) }
-                if (isSponsor) {
-                    SponsorPopupDialog()
-                }
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .zIndex(0f)
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .padding(8.dp, 8.dp, 8.dp, 0.dp)
+            Crossfade(isAlreadySigned) { c ->
+                if (c == true) {
+                    Box(
+                        modifier = Modifier.padding(8.dp)
                     ) {
-                        OtherUserSelectorComponent(
-                            navToOtherUser = {
-                                navToOtherUser()
-                            },
-                            signStatus = signStatus,
-                            isCurrentAlreadySigned = isCurrentAlreadySigned,
-                            userSelections = userSelections,
-                            isSigning = isSigning,
-                            prefixTipsContent = {
-                                if (signoffData != null)
-                                    SignOutRedirectTips(
-                                        signoffData!!
-                                    ) {
-                                        navToOtherSign(it)
-                                    }
-                                Card(
-                                    shape = RoundedCornerShape(18.dp),
-                                    colors = CardDefaults.cardColors(
-                                        containerColor = Color.DarkGray
-                                    ),
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(2.dp, 6.dp)
-                                ) {
-                                    Row(
-                                        modifier = Modifier
-                                            .padding(10.dp, 12.dp)
-                                            .fillMaxWidth(),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Icon(
-                                            painterResource(R.drawable.ic_info),
-                                            contentDescription = "Info",
-                                            tint = Color.White
-                                        )
-                                        Spacer(modifier = Modifier.width(9.dp))
-                                        Text(
-                                            buildAnnotatedString {
-                                                append("通常情况下，")
-                                                withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
-                                                    append("随地大小签")
-                                                }
-                                                append(" 的二维码签到功能是用于给其他用户签到的，而不是用于仅给自己签到。")
-                                            },
-                                            color = Color.White,
-                                            fontSize = 13.sp,
-                                            lineHeight = 18.sp,
-                                            fontWeight = FontWeight.W500
-                                        )
-                                    }
-                                }
-                                SignPotentialWarningTips(
-                                    destination.startTime,
-                                    destination.endTime,
-                                    destination.isLate
-                                )
-                            }
-                        ) { isSelf, otherUserSessionList, indexList ->
-                            isSigning = true
-                            isSelfForSign = isSelf
-                            signUserList = otherUserSessionList
-                            if (isMapRequired)
-                                isMapGetting = true
-                            else {
-                                isQRCodeScanPause.value = false
-                                isQRCodeParsing.value = false
-                                isQRCodeScanning = true
-                            }
-                        }
+                        AlreadySignedNotice(onSignForOtherUser = {
+                            isAlreadySigned = false
+                            isCurrentAlreadySigned = true
+                        }, onDismiss = {
+                            isAlreadySigned = false
+                        }) { navBack() }
+
+                        SignPotentialWarningTips(
+                            destination.startTime,
+                            destination.endTime,
+                            destination.isLate
+                        )
+                    }
+                } else if (c == false) {
+                    var isSelfForSign by remember { mutableStateOf(false) }
+                    var isQRCodeScanning by remember { mutableStateOf(false) }
+                    val isQRCodeScanPause = remember { mutableStateOf(false) }
+                    val isQRCodeParsing = remember { mutableStateOf(false) }
+                    var isQRCodeIllegal by remember { mutableStateOf(false) }
+                    var isMapGetting by remember { mutableStateOf(false) }
+                    var qrcodeIllegalText by remember { mutableStateOf("二维码不合法") }
+                    var signUserList by remember {
+                        mutableStateOf<List<ChaoxingOtherUserSession?>>(
+                            emptyList()
+                        )
+                    }
+                    var isCaptcha = remember { false }
+                    var isFirstOtherUserForSign = remember { true }
+                    var locationData by remember { mutableStateOf<ChaoxingLocationSignEntity?>(null) }
+                    var job by remember { mutableStateOf<Job?>(null) }
+                    val userSelections = remember { mutableStateListOf(true) }
+                    val signStatus =
+                        remember { mutableStateListOf(ChaoxingSignStatus(hapticFeedback)) }
+                    var isSigning by remember { mutableStateOf(false) }
+                    var isSponsor by remember { mutableStateOf(false) }
+                    if (isSponsor) {
+                        SponsorPopupDialog()
                     }
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .zIndex(1f)
+                            .zIndex(0f)
                     ) {
-                        AnimatedVisibility(
-                            isMapGetting,
-                            enter =
-                                slideInHorizontally(
-                                    initialOffsetX = { it },
-                                    animationSpec = tween(300)
-                                ) + fadeIn(
-                                    animationSpec = tween(300)
-                                ),
-                            exit =
-                                slideOutHorizontally(
-                                    animationSpec = tween(300),
-                                    targetOffsetX = { it }) +
-                                        fadeOut(animationSpec = tween(300)),
-                            modifier = Modifier.zIndex(1f)
+                        Column(
+                            modifier = Modifier
+                                .padding(8.dp, 8.dp, 8.dp, 0.dp)
                         ) {
-                            GetLocationComponent(confirmButtonText = {
-                                Text("设置")
-                            }) {
-                                isMapGetting = false
-                                isQRCodeScanPause.value = false
-                                isQRCodeParsing.value = false
-                                isQRCodeScanning = true
-                                locationData = it
-                            }
-                            BackHandler(isMapGetting) {
-                                isSigning = false
-                                isMapGetting = false
+                            OtherUserSelectorComponent(
+                                navToOtherUser = {
+                                    navToOtherUser()
+                                },
+                                signStatus = signStatus,
+                                isCurrentAlreadySigned = isCurrentAlreadySigned,
+                                userSelections = userSelections,
+                                isSigning = isSigning,
+                                prefixTipsContent = {
+                                    if (signoffData != null)
+                                        SignOutRedirectTips(
+                                            signoffData!!
+                                        ) {
+                                            navToOtherSign(it)
+                                        }
+                                    Card(
+                                        shape = RoundedCornerShape(18.dp),
+                                        colors = CardDefaults.cardColors(
+                                            containerColor = Color.DarkGray
+                                        ),
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(2.dp, 6.dp)
+                                    ) {
+                                        Row(
+                                            modifier = Modifier
+                                                .padding(10.dp, 12.dp)
+                                                .fillMaxWidth(),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Icon(
+                                                painterResource(R.drawable.ic_info),
+                                                contentDescription = "Info",
+                                                tint = Color.White
+                                            )
+                                            Spacer(modifier = Modifier.width(9.dp))
+                                            Text(
+                                                buildAnnotatedString {
+                                                    append("通常情况下，")
+                                                    withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
+                                                        append("随地大小签")
+                                                    }
+                                                    append(" 的二维码签到功能是用于给其他用户签到的，而不是用于仅给自己签到。")
+                                                },
+                                                color = Color.White,
+                                                fontSize = 13.sp,
+                                                lineHeight = 18.sp,
+                                                fontWeight = FontWeight.W500
+                                            )
+                                        }
+                                    }
+                                    SignPotentialWarningTips(
+                                        destination.startTime,
+                                        destination.endTime,
+                                        destination.isLate
+                                    )
+                                }
+                            ) { isSelf, otherUserSessionList, indexList ->
+                                isSigning = true
+                                isSelfForSign = isSelf
+                                signUserList = otherUserSessionList
+                                if (isMapRequired)
+                                    isMapGetting = true
+                                else {
+                                    isQRCodeScanPause.value = false
+                                    isQRCodeParsing.value = false
+                                    isQRCodeScanning = true
+                                }
                             }
                         }
-                        AnimatedVisibility(
-                            isQRCodeScanning, enter =
-                                slideInHorizontally(
-                                    initialOffsetX = { it },
-                                    animationSpec = tween(300)
-                                ) + fadeIn(
-                                    animationSpec = tween(300)
-                                ), exit =
-                                scaleOut(targetScale = 0.8f, animationSpec = tween(300)) + fadeOut(
-                                    animationSpec = tween(300)
-                                )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .zIndex(1f)
                         ) {
-                            BackHandler(isQRCodeScanning) {
-                                isSigning = false
-                                isQRCodeScanning = false
-                                isQRCodeParsing.value = false
-                                isQRCodeScanPause.value = false
-                                isQRCodeIllegal = false
+                            AnimatedVisibility(
+                                isMapGetting,
+                                enter =
+                                    slideInHorizontally(
+                                        initialOffsetX = { it },
+                                        animationSpec = tween(300)
+                                    ) + fadeIn(
+                                        animationSpec = tween(300)
+                                    ),
+                                exit =
+                                    slideOutHorizontally(
+                                        animationSpec = tween(300),
+                                        targetOffsetX = { it }) +
+                                            fadeOut(animationSpec = tween(300)),
+                                modifier = Modifier.zIndex(1f)
+                            ) {
+                                GetLocationComponent(confirmButtonText = {
+                                    Text("设置")
+                                }) {
+                                    isMapGetting = false
+                                    isQRCodeScanPause.value = false
+                                    isQRCodeParsing.value = false
+                                    isQRCodeScanning = true
+                                    locationData = it
+                                }
+                                BackHandler(isMapGetting) {
+                                    isSigning = false
+                                    isMapGetting = false
+                                }
                             }
-                            QRCodeScanComponent(isQRCodeScanPause, isQRCodeParsing, onClose = {
-                                isSigning = false
-                                isQRCodeParsing.value = false
-                                isQRCodeScanPause.value = false
-                                isQRCodeIllegal = false
-                                isQRCodeScanning = false
-                            }, onScanResult = {
-                                isSigning = true
-                                isQRCodeScanPause.value = true
-                                isQRCodeParsing.value = true
-                                coroutineScope.launch {
-                                    withContext(Dispatchers.IO) {
-                                        runCatching {
-                                            return@runCatching signer.parseQRCode(it)
-                                        }.onSuccess { enc ->
-                                            isQRCodeScanning = false
-                                            if (isSelfForSign) {
-                                                runCatching {
-                                                    signStatus[0].loading()
-                                                    if (signer.sign(enc, locationData)) {
-                                                        isCaptcha = true
-                                                        suspendCoroutine { continuation ->
-                                                            captchaValidateParams =
-                                                                signer to { validateValue ->
-                                                                    validateValue.onSuccess {
-                                                                        signer.signWithCaptcha(
-                                                                            enc,
-                                                                            locationData,
-                                                                            validateValue.getOrThrow()
-                                                                        )
-                                                                        if (destination.endTime != null && System.currentTimeMillis() > destination.endTime)
-                                                                            signStatus[0].successForLate()
-                                                                        else
-                                                                            signStatus[0].success()
-                                                                        userSelections[0] = false
-                                                                        UMengHelper.onSignQRCodeEvent(
-                                                                            context,
-                                                                            ChaoxingHttpClient.instance!!.userEntity.name
-                                                                        )
-                                                                        if (signUserList.all { it == null }) {
-                                                                            isSigning = false
-                                                                            coroutineScope.launch {
-                                                                                ChaoxingRecommendHelper.recordRecommendEvent(
-                                                                                    context,
-                                                                                    destination.classId,
-                                                                                    destination.courseId,
-                                                                                    ChaoxingHttpClient.instance!!
+                            AnimatedVisibility(
+                                isQRCodeScanning, enter =
+                                    slideInHorizontally(
+                                        initialOffsetX = { it },
+                                        animationSpec = tween(300)
+                                    ) + fadeIn(
+                                        animationSpec = tween(300)
+                                    ), exit =
+                                    scaleOut(
+                                        targetScale = 0.8f,
+                                        animationSpec = tween(300)
+                                    ) + fadeOut(
+                                        animationSpec = tween(300)
+                                    )
+                            ) {
+                                BackHandler(isQRCodeScanning) {
+                                    isSigning = false
+                                    isQRCodeScanning = false
+                                    isQRCodeParsing.value = false
+                                    isQRCodeScanPause.value = false
+                                    isQRCodeIllegal = false
+                                }
+                                QRCodeScanComponent(isQRCodeScanPause, isQRCodeParsing, onClose = {
+                                    isSigning = false
+                                    isQRCodeParsing.value = false
+                                    isQRCodeScanPause.value = false
+                                    isQRCodeIllegal = false
+                                    isQRCodeScanning = false
+                                }, onScanResult = {
+                                    isSigning = true
+                                    isQRCodeScanPause.value = true
+                                    isQRCodeParsing.value = true
+                                    coroutineScope.launch {
+                                        withContext(Dispatchers.IO) {
+                                            runCatching {
+                                                return@runCatching signer.parseQRCode(it)
+                                            }.onSuccess { enc ->
+                                                isQRCodeScanning = false
+                                                if (isSelfForSign) {
+                                                    runCatching {
+                                                        signStatus[0].loading()
+                                                        if (signer.sign(enc, locationData)) {
+                                                            isCaptcha = true
+                                                            suspendCoroutine { continuation ->
+                                                                captchaValidateParams =
+                                                                    signer to { validateValue ->
+                                                                        validateValue.onSuccess {
+                                                                            signer.signWithCaptcha(
+                                                                                enc,
+                                                                                locationData,
+                                                                                validateValue.getOrThrow()
+                                                                            )
+                                                                            if (destination.endTime != null && System.currentTimeMillis() > destination.endTime)
+                                                                                signStatus[0].successForLate()
+                                                                            else
+                                                                                signStatus[0].success()
+                                                                            userSelections[0] =
+                                                                                false
+                                                                            UMengHelper.onSignQRCodeEvent(
+                                                                                context,
+                                                                                ChaoxingHttpClient.instance!!.userEntity.name
+                                                                            )
+                                                                            if (signUserList.all { it == null }) {
+                                                                                isSigning = false
+                                                                                coroutineScope.launch {
+                                                                                    ChaoxingRecommendHelper.recordRecommendEvent(
+                                                                                        context,
+                                                                                        destination.classId,
+                                                                                        destination.courseId,
+                                                                                        ChaoxingHttpClient.instance!!
+                                                                                    )
+                                                                                }
+                                                                                delay(
+                                                                                    ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED
                                                                                 )
+                                                                                isSponsor = true
                                                                             }
-                                                                            delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)
-                                                                            isSponsor = true
+                                                                        }.onFailure {
+                                                                            it.snackbarReport(
+                                                                                snackbarHost,
+                                                                                coroutineScope,
+                                                                                "验证码校验失败",
+                                                                                hapticFeedback
+                                                                            )
+                                                                            signStatus[0].failed(it)
                                                                         }
-                                                                    }.onFailure {
-                                                                        it.snackbarReport(
-                                                                            snackbarHost,
-                                                                            coroutineScope,
-                                                                            "验证码校验失败",
-                                                                            hapticFeedback
-                                                                        )
-                                                                        signStatus[0].failed(it)
+                                                                        continuation.resume(Unit)
                                                                     }
-                                                                    continuation.resume(Unit)
+                                                            }
+                                                        } else {
+                                                            if (destination.endTime != null && System.currentTimeMillis() > destination.endTime)
+                                                                signStatus[0].successForLate()
+                                                            else
+                                                                signStatus[0].success()
+                                                            userSelections[0] = false
+                                                            UMengHelper.onSignQRCodeEvent(
+                                                                context,
+                                                                ChaoxingHttpClient.instance!!.userEntity.name
+                                                            )
+                                                            if (signUserList.isEmpty()) {
+                                                                isSigning = false
+                                                                coroutineScope.launch {
+                                                                    ChaoxingRecommendHelper.recordRecommendEvent(
+                                                                        context,
+                                                                        destination.classId,
+                                                                        destination.courseId,
+                                                                        ChaoxingHttpClient.instance!!
+                                                                    )
                                                                 }
+                                                                delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)
+                                                                isSponsor = true
+                                                            }
                                                         }
-                                                    } else {
-                                                        if (destination.endTime != null && System.currentTimeMillis() > destination.endTime)
-                                                            signStatus[0].successForLate()
-                                                        else
-                                                            signStatus[0].success()
-                                                        userSelections[0] = false
-                                                        UMengHelper.onSignQRCodeEvent(
-                                                            context,
-                                                            ChaoxingHttpClient.instance!!.userEntity.name
+                                                    }.onFailure { err ->
+                                                        err.snackbarReport(
+                                                            snackbarHost,
+                                                            coroutineScope,
+                                                            "为${ChaoxingHttpClient.instance!!.userEntity.name}签到失败",
+                                                            hapticFeedback
                                                         )
-                                                        if (signUserList.isEmpty()) {
+                                                        err.ifAlreadySigned {
+                                                            userSelections[0] = false
+                                                        }
+                                                        if (signUserList.all { it == null }) {
                                                             isSigning = false
                                                             coroutineScope.launch {
                                                                 ChaoxingRecommendHelper.recordRecommendEvent(
@@ -446,249 +478,233 @@ fun QRCodeSignScreen(
                                                                     ChaoxingHttpClient.instance!!
                                                                 )
                                                             }
-                                                            delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)
-                                                            isSponsor = true
+                                                            if (userSelections.all { !it })
+                                                                coroutineScope.launch {
+                                                                    delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)
+                                                                    isSponsor = true
+                                                                }
                                                         }
+                                                        signStatus[0].failed(err)
                                                     }
-                                                }.onFailure { err ->
-                                                    err.snackbarReport(
-                                                        snackbarHost,
-                                                        coroutineScope,
-                                                        "为${ChaoxingHttpClient.instance!!.userEntity.name}签到失败",
-                                                        hapticFeedback
-                                                    )
-                                                    err.ifAlreadySigned {
-                                                        userSelections[0] = false
-                                                    }
-                                                    if (signUserList.all { it == null }) {
-                                                        isSigning = false
-                                                        coroutineScope.launch {
-                                                            ChaoxingRecommendHelper.recordRecommendEvent(
-                                                                context,
-                                                                destination.classId,
-                                                                destination.courseId,
-                                                                ChaoxingHttpClient.instance!!
-                                                            )
-                                                        }
-                                                        if (userSelections.all { !it })
-                                                            coroutineScope.launch {
-                                                                delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)
-                                                                isSponsor = true
-                                                            }
-                                                    }
-                                                    signStatus[0].failed(err)
                                                 }
-                                            }
 
-                                            signUserList.forEachIndexed { index, session ->
-                                                if (session == null) return@forEachIndexed
-                                                runCatching {
-                                                    signStatus[1 + index].loading()
-                                                    if (!isCaptcha || (isSelfForSign && isFirstOtherUserForSign))
-                                                        delay(ChaoxingOtherUserHelper.TIMEOUT_NEXT_SIGN)
-                                                    isFirstOtherUserForSign = false
-                                                    ChaoxingHttpClient.loadFromOtherUserSession(
-                                                        session, context
-                                                    ).also { client ->
-                                                        ChaoxingQRCodeSigner(
-                                                            client, destination
-                                                        ).apply {
-                                                            if (preSign()) {
-                                                                throw ChaoxingSigner.AlreadySignedException()
-                                                            } else {
-                                                                if (ChaoxingCourseHelper.checkClassValid(
-                                                                        client,
-                                                                        destination.classId
-                                                                    ) == false
-                                                                )
-                                                                    throw ChaoxingSigner.SignActivityNoPermissionException()
-                                                                if (sign(enc, locationData)) {
-                                                                    isCaptcha = true
-                                                                    suspendCoroutine { continuation ->
-                                                                        captchaValidateParams =
-                                                                            this@apply to { validateValue ->
-                                                                                validateValue.onSuccess {
-                                                                                    signWithCaptcha(
-                                                                                        enc,
-                                                                                        locationData,
-                                                                                        validateValue.getOrThrow()
-                                                                                    )
-                                                                                    if (destination.endTime != null && System.currentTimeMillis() > destination.endTime)
-                                                                                        signStatus[1 + index].successForLate()
-                                                                                    else
-                                                                                        signStatus[1 + index].success()
-                                                                                    UMengHelper.onSignQRCodeEvent(
-                                                                                        context,
-                                                                                        session.name,
-                                                                                        true
-                                                                                    )
-                                                                                    userSelections[1 + index] =
-                                                                                        false
-                                                                                    if (signUserList.checkIsLast(
-                                                                                            index + 1
+                                                signUserList.forEachIndexed { index, session ->
+                                                    if (session == null) return@forEachIndexed
+                                                    runCatching {
+                                                        signStatus[1 + index].loading()
+                                                        if (!isCaptcha || (isSelfForSign && isFirstOtherUserForSign))
+                                                            delay(ChaoxingOtherUserHelper.TIMEOUT_NEXT_SIGN)
+                                                        isFirstOtherUserForSign = false
+                                                        ChaoxingHttpClient.loadFromOtherUserSession(
+                                                            session, context
+                                                        ).also { client ->
+                                                            ChaoxingQRCodeSigner(
+                                                                client, destination
+                                                            ).apply {
+                                                                if (preSign()) {
+                                                                    throw ChaoxingSigner.AlreadySignedException()
+                                                                } else {
+                                                                    if (ChaoxingCourseHelper.checkClassValid(
+                                                                            client,
+                                                                            destination.classId
+                                                                        ) == false
+                                                                    )
+                                                                        throw ChaoxingSigner.SignActivityNoPermissionException()
+                                                                    if (sign(enc, locationData)) {
+                                                                        isCaptcha = true
+                                                                        suspendCoroutine { continuation ->
+                                                                            captchaValidateParams =
+                                                                                this@apply to { validateValue ->
+                                                                                    validateValue.onSuccess {
+                                                                                        signWithCaptcha(
+                                                                                            enc,
+                                                                                            locationData,
+                                                                                            validateValue.getOrThrow()
                                                                                         )
-                                                                                    ) {
-                                                                                        isSigning =
-                                                                                            false
-                                                                                        coroutineScope.launch {
-                                                                                            ChaoxingRecommendHelper.recordRecommendEvent(
-                                                                                                context,
-                                                                                                destination.classId,
-                                                                                                destination.courseId,
-                                                                                                client
-                                                                                            )
-                                                                                        }
-                                                                                        delay(
-                                                                                            ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED
-                                                                                        )
-                                                                                        isSponsor =
+                                                                                        if (destination.endTime != null && System.currentTimeMillis() > destination.endTime)
+                                                                                            signStatus[1 + index].successForLate()
+                                                                                        else
+                                                                                            signStatus[1 + index].success()
+                                                                                        UMengHelper.onSignQRCodeEvent(
+                                                                                            context,
+                                                                                            session.name,
                                                                                             true
+                                                                                        )
+                                                                                        userSelections[1 + index] =
+                                                                                            false
+                                                                                        if (signUserList.checkIsLast(
+                                                                                                index + 1
+                                                                                            )
+                                                                                        ) {
+                                                                                            isSigning =
+                                                                                                false
+                                                                                            coroutineScope.launch {
+                                                                                                ChaoxingRecommendHelper.recordRecommendEvent(
+                                                                                                    context,
+                                                                                                    destination.classId,
+                                                                                                    destination.courseId,
+                                                                                                    client
+                                                                                                )
+                                                                                            }
+                                                                                            delay(
+                                                                                                ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED
+                                                                                            )
+                                                                                            isSponsor =
+                                                                                                true
+                                                                                        }
+                                                                                    }.onFailure {
+                                                                                        it.snackbarReport(
+                                                                                            snackbarHost,
+                                                                                            coroutineScope,
+                                                                                            "验证码校验失败",
+                                                                                            hapticFeedback
+                                                                                        )
+                                                                                        signStatus[1 + index].failed(
+                                                                                            it
+                                                                                        )
                                                                                     }
-                                                                                }.onFailure {
-                                                                                    it.snackbarReport(
-                                                                                        snackbarHost,
-                                                                                        coroutineScope,
-                                                                                        "验证码校验失败",
-                                                                                        hapticFeedback
-                                                                                    )
-                                                                                    signStatus[1 + index].failed(
-                                                                                        it
+                                                                                    continuation.resume(
+                                                                                        Unit
                                                                                     )
                                                                                 }
-                                                                                continuation.resume(
-                                                                                    Unit
+                                                                        }
+                                                                    } else {
+                                                                        if (destination.endTime != null && System.currentTimeMillis() > destination.endTime)
+                                                                            signStatus[1 + index].successForLate()
+                                                                        else
+                                                                            signStatus[1 + index].success()
+                                                                        UMengHelper.onSignQRCodeEvent(
+                                                                            context,
+                                                                            session.name,
+                                                                            true
+                                                                        )
+                                                                        userSelections[1 + index] =
+                                                                            false
+                                                                        if (signUserList.checkIsLast(
+                                                                                index + 1
+                                                                            )
+                                                                        ) {
+                                                                            isSigning = false
+                                                                            coroutineScope.launch {
+                                                                                ChaoxingRecommendHelper.recordRecommendEvent(
+                                                                                    context,
+                                                                                    destination.classId,
+                                                                                    destination.courseId,
+                                                                                    client
                                                                                 )
                                                                             }
-                                                                    }
-                                                                } else {
-                                                                    if (destination.endTime != null && System.currentTimeMillis() > destination.endTime)
-                                                                        signStatus[1 + index].successForLate()
-                                                                    else
-                                                                        signStatus[1 + index].success()
-                                                                    UMengHelper.onSignQRCodeEvent(
-                                                                        context,
-                                                                        session.name,
-                                                                        true
-                                                                    )
-                                                                    userSelections[1 + index] =
-                                                                        false
-                                                                    if (signUserList.checkIsLast(
-                                                                            index + 1
-                                                                        )
-                                                                    ) {
-                                                                        isSigning = false
-                                                                        coroutineScope.launch {
-                                                                            ChaoxingRecommendHelper.recordRecommendEvent(
-                                                                                context,
-                                                                                destination.classId,
-                                                                                destination.courseId,
-                                                                                client
-                                                                            )
+                                                                            delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)
+                                                                            isSponsor =
+                                                                                true
                                                                         }
-                                                                        delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)
-                                                                        isSponsor =
-                                                                            true
                                                                     }
                                                                 }
                                                             }
                                                         }
+                                                    }.onFailure { err ->
+                                                        err.snackbarReport(
+                                                            snackbarHost,
+                                                            coroutineScope,
+                                                            "为${session.name}签到失败",
+                                                            hapticFeedback
+                                                        )
+                                                        err.ifAlreadySigned {
+                                                            userSelections[1 + index] = false
+                                                        }
+                                                        if (index == signUserList.size - 1) {
+                                                            isSigning = false
+                                                            if (userSelections.all { !it })
+                                                                coroutineScope.launch {
+                                                                    delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)
+                                                                    isSponsor =
+                                                                        true
+                                                                }
+                                                        }
+                                                        signStatus[1 + index].failed(err)
                                                     }
-                                                }.onFailure { err ->
-                                                    err.snackbarReport(
-                                                        snackbarHost,
-                                                        coroutineScope,
-                                                        "为${session.name}签到失败", hapticFeedback
-                                                    )
-                                                    err.ifAlreadySigned {
-                                                        userSelections[1 + index] = false
-                                                    }
-                                                    if (index == signUserList.size - 1) {
-                                                        isSigning = false
-                                                        if (userSelections.all { !it })
-                                                            coroutineScope.launch {
-                                                                delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)
-                                                                isSponsor =
-                                                                    true
-                                                            }
-                                                    }
-                                                    signStatus[1 + index].failed(err)
                                                 }
-                                            }
-                                            isSigning = false
-                                        }.onFailure {
-                                            it.printStackTrace()
-                                            isQRCodeIllegal = true
-                                            isQRCodeScanPause.value = true
-                                            qrcodeIllegalText =
-                                                it.message ?: "二维码解析失败，不是正确码。"
-                                            job?.cancel()
-                                            job = coroutineScope.launch {
-                                                delay(1000)
-                                                isQRCodeScanPause.value = false
-                                                delay(1000)
-                                                isQRCodeIllegal = false
+                                                isSigning = false
+                                            }.onFailure {
+                                                it.printStackTrace()
+                                                isQRCodeIllegal = true
+                                                isQRCodeScanPause.value = true
+                                                qrcodeIllegalText =
+                                                    it.message ?: "二维码解析失败，不是正确码。"
+                                                job?.cancel()
+                                                job = coroutineScope.launch {
+                                                    delay(1000)
+                                                    isQRCodeScanPause.value = false
+                                                    delay(1000)
+                                                    isQRCodeIllegal = false
+                                                }
                                             }
                                         }
                                     }
-                                }
-                            }) {
-                                Column(
-                                    modifier = Modifier
-                                        .offset(y = Dp(resources.displayMetrics.run {
-                                            0.75f * heightPixels / density
-                                        }))
-                                        .zIndex(2f)
-                                        .fillMaxWidth(),
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.Center
-                                ) {
-                                    Crossfade(isQRCodeIllegal) {
-                                        when (it) {
-                                            true -> {
-                                                Row(
-                                                    modifier = Modifier
-                                                        .background(
-                                                            Color(0x72F1441D),
-                                                            RoundedCornerShape(8.dp)
+                                }) {
+                                    Column(
+                                        modifier = Modifier
+                                            .offset(y = Dp(resources.displayMetrics.run {
+                                                0.75f * heightPixels / density
+                                            }))
+                                            .zIndex(2f)
+                                            .fillMaxWidth(),
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.Center
+                                    ) {
+                                        Crossfade(isQRCodeIllegal) {
+                                            when (it) {
+                                                true -> {
+                                                    Row(
+                                                        modifier = Modifier
+                                                            .background(
+                                                                Color(0x72F1441D),
+                                                                RoundedCornerShape(8.dp)
+                                                            )
+                                                            .border(
+                                                                BorderStroke(
+                                                                    2.dp,
+                                                                    Color(0xFFF1441D)
+                                                                ),
+                                                                RoundedCornerShape(8.dp)
+                                                            )
+                                                            .padding(10.dp),
+                                                        verticalAlignment = Alignment.CenterVertically,
+                                                        horizontalArrangement = Arrangement.Center
+                                                    ) {
+                                                        Icon(
+                                                            painterResource(R.drawable.ic_octagon_alert),
+                                                            contentDescription = "Illegal QR Code"
                                                         )
-                                                        .border(
-                                                            BorderStroke(2.dp, Color(0xFFF1441D)),
-                                                            RoundedCornerShape(8.dp)
-                                                        )
-                                                        .padding(10.dp),
-                                                    verticalAlignment = Alignment.CenterVertically,
-                                                    horizontalArrangement = Arrangement.Center
-                                                ) {
-                                                    Icon(
-                                                        painterResource(R.drawable.ic_octagon_alert),
-                                                        contentDescription = "Illegal QR Code"
-                                                    )
-                                                    Spacer(modifier = Modifier.width(5.dp))
-                                                    Text(qrcodeIllegalText)
+                                                        Spacer(modifier = Modifier.width(5.dp))
+                                                        Text(qrcodeIllegalText)
+                                                    }
                                                 }
-                                            }
 
-                                            false -> {
-                                                Row(
-                                                    modifier = Modifier
-                                                        .background(
-                                                            Color(0x88888888),
-                                                            RoundedCornerShape(8.dp)
+                                                false -> {
+                                                    Row(
+                                                        modifier = Modifier
+                                                            .background(
+                                                                Color(0x88888888),
+                                                                RoundedCornerShape(8.dp)
+                                                            )
+                                                            .border(
+                                                                BorderStroke(
+                                                                    2.dp,
+                                                                    Color(0xFF444444)
+                                                                ),
+                                                                RoundedCornerShape(8.dp)
+                                                            )
+                                                            .padding(10.dp),
+                                                        verticalAlignment = Alignment.CenterVertically,
+                                                        horizontalArrangement = Arrangement.Center
+                                                    ) {
+                                                        Icon(
+                                                            painterResource(R.drawable.ic_scan_qr_code),
+                                                            contentDescription = "Scan QR Code"
                                                         )
-                                                        .border(
-                                                            BorderStroke(2.dp, Color(0xFF444444)),
-                                                            RoundedCornerShape(8.dp)
-                                                        )
-                                                        .padding(10.dp),
-                                                    verticalAlignment = Alignment.CenterVertically,
-                                                    horizontalArrangement = Arrangement.Center
-                                                ) {
-                                                    Icon(
-                                                        painterResource(R.drawable.ic_scan_qr_code),
-                                                        contentDescription = "Scan QR Code"
-                                                    )
-                                                    Spacer(modifier = Modifier.width(5.dp))
-                                                    Text("扫描签到二维码")
+                                                        Spacer(modifier = Modifier.width(5.dp))
+                                                        Text("扫描签到二维码")
+                                                    }
                                                 }
                                             }
                                         }

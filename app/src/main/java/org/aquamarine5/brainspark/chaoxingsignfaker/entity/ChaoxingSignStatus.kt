@@ -68,12 +68,16 @@ data class ChaoxingSignStatus(
 
             false -> {
                 Text(
-                    error.value, color = if (error.value == "您已签到过了") {
-                        LocalContentColor.current
-                    } else if (error.value == "疑似迟到") {
-                        Orange
-                    } else {
-                        Color(0xFFF43E06)
+                    error.value, color = when (error.value) {
+                        "您已签到过了" -> {
+                            LocalContentColor.current
+                        }
+                        "疑似迟到" -> {
+                            Orange
+                        }
+                        else -> {
+                            Color(0xFFF43E06)
+                        }
                     }
                 )
             }

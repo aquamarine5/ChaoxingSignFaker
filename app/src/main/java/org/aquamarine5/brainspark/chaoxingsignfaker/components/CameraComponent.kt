@@ -20,7 +20,6 @@ import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -41,15 +40,20 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RichTooltip
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TooltipAnchorPosition
+import androidx.compose.material3.TooltipBox
+import androidx.compose.material3.TooltipDefaults
+import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -72,6 +76,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -92,7 +97,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.displaySnackbar
 import org.aquamarine5.brainspark.chaoxingsignfaker.snackbarReport
 
-@OptIn(ExperimentalPermissionsApi::class)
+@OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun CameraComponent(
     pictureCount: Int = 1,
@@ -213,10 +218,11 @@ fun CameraComponent(
                     }
                 }
             )
-            var showGalleryTooltip by remember { mutableStateOf(true) }
+            val tooltipState =
+                rememberTooltipState(isPersistent = true)
             LaunchedEffect(Unit) {
-                showGalleryTooltip =
-                    context.chaoxingDataStore.data.first().learntTooltips.cameraSelectedFromGallery.not()
+                if(!context.chaoxingDataStore.data.first().learntTooltips.cameraSelectedFromGallery)
+                tooltipState.show()
             }
             Box(modifier = Modifier.fillMaxSize()) {
                 Column(
@@ -227,64 +233,63 @@ fun CameraComponent(
                         .zIndex(1f)
                         .padding(22.dp)
                 ) {
-                    AnimatedVisibility(visible = showGalleryTooltip) {
-                        Surface(
-                            modifier = Modifier.padding(bottom = 4.dp),
-                            shape = TooltipShape(
-                                cornerRadius = 8.dp,
-                                tipSize = 12.dp,
-                                tipXPadding = 16.dp
-                            ),
-                            color = MaterialTheme.colorScheme.surfaceVariant,
-                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(
-                                    start = 12.dp,
-                                    end = 4.dp,
-                                    top = 6.dp,
-                                    bottom = 18.dp
-                                ),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.Center
-                            ) {
-                                Text(
-                                    text = "点击可以从图库选择现有图片",
-                                    style = MaterialTheme.typography.bodySmall
+                    TooltipBox(
+                        onDismissRequest = {},
+                        positionProvider = TooltipDefaults.rememberTooltipPositionProvider(
+                            TooltipAnchorPosition.Above,
+                            13.dp
+                        ), modifier = Modifier.zIndex(2f),
+                        tooltip = {
+                            RichTooltip(
+                                maxWidth = 200.dp, caretShape = TooltipDefaults.caretShape(
+                                    DpSize(14.dp, 7.dp)
                                 )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                IconButton(
-                                    onClick = {
-                                        showGalleryTooltip = false
-                                        coroutineScope.launch(Dispatchers.IO) {
-                                            context.chaoxingDataStore.updateData {
-                                                it.toBuilder().setLearntTooltips(
-                                                    it.learntTooltips.toBuilder()
-                                                        .setCameraSelectedFromGallery(
-                                                            true
-                                                        ).build()
-                                                ).build()
-                                            }
-                                        }
-                                    },
-                                    modifier = Modifier.size(24.dp)
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center,
+                                    modifier = Modifier.padding(2.dp, 6.dp, 0.dp, 6.dp)
                                 ) {
-                                    Icon(
-                                        painterResource(R.drawable.ic_x),
-                                        contentDescription = "关闭提示"
+                                    Text(
+                                        "点击可以从图库选择现有图片",
+                                        modifier = Modifier.weight(1f)
                                     )
+                                    IconButton(
+                                        onClick = {
+                                            tooltipState.dismiss()
+                                            coroutineScope.launch(Dispatchers.IO) {
+                                                context.chaoxingDataStore.updateData {
+                                                    it.toBuilder().setLearntTooltips(
+                                                        it.learntTooltips.toBuilder()
+                                                            .setCameraSelectedFromGallery(
+                                                                true
+                                                            ).build()
+                                                    ).build()
+                                                }
+                                            }
+                                        },
+                                        modifier = Modifier.size(32.dp)
+                                    ) {
+                                        Icon(
+                                            painterResource(R.drawable.ic_x),
+                                            contentDescription = "关闭提示"
+                                        )
+                                    }
                                 }
                             }
+                        },
+                        state = tooltipState
+                    ) {
+                        FloatingActionButton(onClick = {
+                            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                            gallery.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                        }) {
+                            Icon(
+                                painterResource(R.drawable.ic_images), null
+                            )
                         }
                     }
-                    FloatingActionButton(onClick = {
-                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                        gallery.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-                    }) {
-                        Icon(
-                            painterResource(R.drawable.ic_images), null
-                        )
-                    }
+
                 }
             }
             Box(
