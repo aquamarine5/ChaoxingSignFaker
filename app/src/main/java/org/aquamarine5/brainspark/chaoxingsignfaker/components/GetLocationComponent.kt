@@ -435,6 +435,7 @@ fun GetLocationComponent(
                             tooltipState.show()
                     }
                     TooltipBox(
+                        onDismissRequest = {},
                         positionProvider = TooltipDefaults.rememberTooltipPositionProvider(
                             TooltipAnchorPosition.Start,
                             spacingBetweenTooltipAndAnchor = 12.dp
