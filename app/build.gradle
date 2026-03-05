@@ -9,7 +9,7 @@ import org.aquamarine5.brainspark.stackbricks.gradleplugin.PossibleConfiguration
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
-    id("org.aquamarine5.brainspark.stackbricks-gradle-plugin") version "2.2.3"
+    id("org.aquamarine5.brainspark.stackbricks-gradle-plugin") version "2.2.4"
     id("com.google.protobuf") version "0.9.6"
     id "io.sentry.android.gradle" version "6.1.0"
     id("org.jetbrains.kotlin.plugin.serialization") version "2.3.10"
@@ -27,6 +27,7 @@ stackbricksConfig {
     ]
     changelog = "# 1.12.9更新：\n- 1. 修复了二维码签到、扫码添加代签用户等扫描二维码场景时出现的异常崩溃。\n\nlovely but not lonely, 20260129, @aquamarine5 Brainspark."
     requiredManifestVersion2MigrateForceInstall = true
+    forceInstallLessVersion = 112081216
     qiniuConfig {
         accessKey = project.findProperty("qiniu.accessKey") ?: ""
         secretKey = project.findProperty("qiniu.secretKey") ?: ""
@@ -46,8 +47,8 @@ android {
         applicationId = "org.aquamarine5.brainspark.chaoxingsignfaker"
         minSdk = 26
         targetSdk = 36
-        versionCode = 112091215
-        versionName = "1.12.9-stable-260305"
+        versionCode = 112091216
+        versionName = "1.12.9-stable-patch1-260305"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
