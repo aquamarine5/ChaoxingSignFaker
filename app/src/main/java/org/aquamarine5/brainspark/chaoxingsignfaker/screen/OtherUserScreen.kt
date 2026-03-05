@@ -1733,12 +1733,6 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                     userTagList.add(mutableStateOf(emptyList()))
                                     UMengHelper.onAccountOtherUserAddEvent(context, it)
                                 }.onFailure {
-                                    it.snackbarReport(
-                                        snackbarHost,
-                                        coroutineScope,
-                                        "导入失败",
-                                        hapticFeedback
-                                    )
                                     isQRCodeIllegal = true
                                     isQRCodeParsing.value = false
                                     hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
@@ -1753,12 +1747,6 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                 }
                             }
                         }.onFailure {
-                            it.snackbarReport(
-                                snackbarHost,
-                                coroutineScope,
-                                "二维码解析失败",
-                                hapticFeedback
-                            )
                             isQRCodeIllegal = true
                             isQRCodeScanPause.value = true
                             hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
