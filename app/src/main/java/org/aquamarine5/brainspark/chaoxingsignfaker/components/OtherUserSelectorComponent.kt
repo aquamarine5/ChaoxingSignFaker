@@ -265,8 +265,9 @@ fun OtherUserSelectorComponent(
                                                     HapticFeedbackType.ContextClick
                                                 )
                                                 tagContainedUserIndexList!![index].forEach { userIndex ->
-                                                    userSelections[userIndex + 1] =
-                                                        tagClickState[index].value
+                                                    if (userIndex + 1 < userSelections.size)
+                                                        userSelections[userIndex + 1] =
+                                                            tagClickState[index].value
                                                 }
                                             },
                                             label = {
