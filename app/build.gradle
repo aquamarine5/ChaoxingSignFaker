@@ -11,8 +11,8 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     id("org.aquamarine5.brainspark.stackbricks-gradle-plugin") version "2.2.3"
     id("com.google.protobuf") version "0.9.6"
-    id "io.sentry.android.gradle" version "5.12.2"
-    id("org.jetbrains.kotlin.plugin.serialization") version "2.3.0"
+    id "io.sentry.android.gradle" version "6.1.0"
+    id("org.jetbrains.kotlin.plugin.serialization") version "2.3.10"
 }
 
 sentry {
@@ -25,7 +25,7 @@ stackbricksConfig {
     possibleConfigurationPaths = [
             new PossibleConfigurationPath("cdn.aquamarine5.fun", "chaoxingsignfaker_stackbricks_v2_manifest.json")
     ]
-    changelog = "# 1.12.8版本更新：\n- 1. 加入了全选功能。\n# 1.12.7版本更新：\n- 1. 加入了查看卫星地图功能。\n# 1.12.6版本更新：\n- 1. 修复了扫描二维码重复签到的问题。\n# 1.12.5版本更新：\n- 1. 修复了包括标签相关在内的BUG。\n# 1.12.4版本更新：\n- 1. 优化了二维码签到的分辨率。\n- 2. 优化了标签系统。\n- 3.网络错误时有提示了。\n# 1.12.3版本更新：\n- 1. 支持了代签用户的标签系统。\n- 2. 优化了程序运行速度和界面操作，修复了BUG。\n# 1.12.2版本更新：\n- 1. 支持签到码和图案九宫格签到。\n- 2. 优化了验证码处理逻辑。\n- 3. 添加的代签用户现在可以重排序了。\n- 4. 提升了签到速度。\n- 5. 修复了影响签到体验的超级多BUG。\n\nlovely but not lonely, 20260129, @aquamarine5 Brainspark."
+    changelog = "# 1.12.9更新：\n- 1. 修复了二维码签到、扫码添加代签用户等扫描二维码场景时出现的异常崩溃。\n\nlovely but not lonely, 20260129, @aquamarine5 Brainspark."
     requiredManifestVersion2MigrateForceInstall = true
     qiniuConfig {
         accessKey = project.findProperty("qiniu.accessKey") ?: ""
@@ -47,7 +47,7 @@ android {
         minSdk = 26
         targetSdk = 36
         versionCode = 112081215
-        versionName = "1.12.8-stable-260129"
+        versionName = "1.12.9-alpha1-260131"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -93,7 +93,7 @@ android {
 
 protobuf {
     protoc {
-        artifact = "com.google.protobuf:protoc:4.33.4"
+        artifact = "com.google.protobuf:protoc:4.34.0"
     }
 
     generateProtoTasks {

@@ -102,3 +102,5 @@
 -keep public class org.aquamarine5.brainspark.chaoxingsignfaker.R$*{
 public static final int *;
 }
+
+-keep class com.google.mlkit.** { *; }

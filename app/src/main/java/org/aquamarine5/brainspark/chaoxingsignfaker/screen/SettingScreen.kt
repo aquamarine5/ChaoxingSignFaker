@@ -235,7 +235,6 @@ fun SettingScreen(
                         .clip(
                             RoundedCornerShape(5.dp)
                         )
-
                 )
                 Text(
                     "登录用户：${ChaoxingHttpClient.instance!!.userEntity.name}",

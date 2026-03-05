@@ -117,7 +117,7 @@ fun CameraComponent(
         val snackbarHost = LocalSnackbarHostState.current
         if (cameraPermission.status == PermissionStatus.Granted) {
             val application = LocalActivity.current!!
-            val future = ProcessCameraProvider.getInstance(application)
+            val future = remember { ProcessCameraProvider.getInstance(application) }
             val imageCapture = remember { ImageCapture.Builder().build() }
             val previewView = remember { PreviewView(application) }
             val preview = remember { Preview.Builder().build() }
@@ -218,11 +218,10 @@ fun CameraComponent(
                     }
                 }
             )
-            val tooltipState =
-                rememberTooltipState(isPersistent = true)
+            val tooltipState = rememberTooltipState(isPersistent = true)
             LaunchedEffect(Unit) {
-                if(!context.chaoxingDataStore.data.first().learntTooltips.cameraSelectedFromGallery)
-                tooltipState.show()
+                if (!context.chaoxingDataStore.data.first().learntTooltips.cameraSelectedFromGallery)
+                    tooltipState.show()
             }
             Box(modifier = Modifier.fillMaxSize()) {
                 Column(
