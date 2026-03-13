@@ -1071,7 +1071,7 @@ fun PhotoSignScreen(
                                                                                 )
                                                                             }
                                                                         }
-                                                                }
+                                                                } else isSignSuccess = true
                                                                 UMengHelper.onSignPhotoEvent(
                                                                     context,
                                                                     ChaoxingHttpClient.instance!!.userEntity.name

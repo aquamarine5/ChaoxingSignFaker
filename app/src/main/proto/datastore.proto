@@ -36,6 +36,7 @@ message LearntTooltip{
   bool tagsFeature = 1 [deprecated = true];
   bool cameraSelectedFromGallery = 2;
   bool mapSupportNormalSatelliteSwitch = 3;
+  bool supportFavoriteLocation = 4;
 }
 
 message OtherUserTagType{
@@ -55,9 +56,10 @@ message ChaoxingAnalysis{
 }
 
 message ChaoxingLocation{
-  float latitude = 1;
-  float longitude = 2;
   string address = 3;
+  string label=6;
+  double latitude = 4;
+  double longitude = 5;
 }
 
 message ChaoxingLoginSession{

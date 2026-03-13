@@ -48,10 +48,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -277,13 +274,7 @@ fun QRCodeSignScreen(
                                             )
                                             Spacer(modifier = Modifier.width(9.dp))
                                             Text(
-                                                buildAnnotatedString {
-                                                    append("通常情况下，")
-                                                    withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
-                                                        append("随地大小签")
-                                                    }
-                                                    append(" 的二维码签到功能是用于给其他用户签到的，而不是用于仅给自己签到。")
-                                                },
+                                                "为很多人进行二维码代签时，可能会出现部分用户因为二维码超时失效导致的签到失败，请尝试多次扫码完成签到。",
                                                 color = Color.White,
                                                 fontSize = 13.sp,
                                                 lineHeight = 18.sp,
