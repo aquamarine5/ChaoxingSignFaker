@@ -23,6 +23,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -42,6 +44,7 @@ fun NetworkExceptionComponent(
         val networkExceptionTips = remember(exception) {
             exception.getNetworkExceptionMessage()
         }
+        val hapticFeedback = LocalHapticFeedback.current
         Column(
             modifier = Modifier
                 .align(Alignment.Center)
@@ -64,7 +67,10 @@ fun NetworkExceptionComponent(
                 fontSize = 14.sp
             )
             Spacer(modifier = Modifier.height(5.dp))
-            Button(onClick = { onRetry() }) {
+            Button(onClick = {
+                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                onRetry()
+            }) {
                 Text("重试")
             }
         }
