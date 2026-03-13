@@ -12,7 +12,6 @@ import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.BorderStroke
@@ -343,13 +342,12 @@ fun QRCodeSignScreen(
                                         animationSpec = tween(300)
                                     ) + fadeIn(
                                         animationSpec = tween(300)
-                                    ), exit =
-                                    scaleOut(
-                                        targetScale = 0.8f,
-                                        animationSpec = tween(300)
-                                    ) + fadeOut(
-                                        animationSpec = tween(300)
-                                    )
+                                    ),
+                                exit =
+                                    slideOutHorizontally(
+                                        animationSpec = tween(300),
+                                        targetOffsetX = { it }) +
+                                            fadeOut(animationSpec = tween(300))
                             ) {
                                 BackHandler(isQRCodeScanning) {
                                     isSigning = false

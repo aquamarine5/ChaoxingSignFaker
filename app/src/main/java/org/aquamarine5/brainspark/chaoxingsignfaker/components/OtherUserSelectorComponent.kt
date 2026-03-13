@@ -198,63 +198,66 @@ fun OtherUserSelectorComponent(
                 ) {
                     Row {
                         if (tagEntities != null && tagContainedUserIndexList != null)
-                            if (tagEntities!!.isEmpty()) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text(
-                                        "标签列表为空。",
-                                        color = Color.Gray,
-                                        fontSize = 12.sp,
-                                        lineHeight = 14.sp,
-                                        fontStyle = FontStyle.Italic
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    AssistChip(onClick = {
-                                        navToOtherUser()
-                                    }, label = {
-                                        Text("点击跳转添加")
-                                    }, leadingIcon = {
-                                        Icon(painterResource(R.drawable.ic_tag_plus_outline), null)
-                                    }, border = BorderStroke(1.5.dp, Color.Gray))
-                                }
-                            } else {
-                                FlowRow(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(5.dp),
-                                    verticalArrangement = Arrangement.spacedBy((-8).dp)
-                                ) {
-                                    FilterChip(
-                                        selected = userSelections.subList(1, userSelections.size)
-                                            .all { it } && (isCurrentAlreadySigned || userSelections[0]),
-                                        onClick = {
-                                            hapticFeedback.performHapticFeedback(
-                                                HapticFeedbackType.ContextClick
-                                            )
-                                            val allSelected =
-                                                userSelections.subList(1, userSelections.size)
-                                                    .all { it } && (isCurrentAlreadySigned || userSelections[0])
-                                            val target = !allSelected
-                                            if (!isCurrentAlreadySigned) {
-                                                userSelections[0] = target
-                                            }
-                                            for (i in 1 until userSelections.size) {
-                                                userSelections[i] = target
-                                            }
-                                            updateTagClickState()
-                                        },
-                                        label = {
-                                            Text("全选")
-                                        },
-                                        leadingIcon = {
-                                            Icon(
-                                                painterResource(R.drawable.ic_list_checks),
-                                                null,
-                                                tint = Color.Gray,
-                                                modifier = Modifier.size(16.dp)
-                                            )
-                                        },
-                                        border = BorderStroke(1.5.dp, Color.Gray)
-                                    )
 
+                            FlowRow(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(5.dp),
+                                verticalArrangement = Arrangement.spacedBy((-8).dp)
+                            ) {
+                                FilterChip(
+                                    selected = userSelections.subList(1, userSelections.size)
+                                        .all { it } && (isCurrentAlreadySigned || userSelections[0]),
+                                    onClick = {
+                                        hapticFeedback.performHapticFeedback(
+                                            HapticFeedbackType.ContextClick
+                                        )
+                                        val allSelected =
+                                            userSelections.subList(1, userSelections.size)
+                                                .all { it } && (isCurrentAlreadySigned || userSelections[0])
+                                        val target = !allSelected
+                                        if (!isCurrentAlreadySigned) {
+                                            userSelections[0] = target
+                                        }
+                                        for (i in 1 until userSelections.size) {
+                                            userSelections[i] = target
+                                        }
+                                        updateTagClickState()
+                                    },
+                                    label = {
+                                        Text("全选")
+                                    },
+                                    leadingIcon = {
+                                        Icon(
+                                            painterResource(R.drawable.ic_list_checks),
+                                            null,
+                                            tint = Color.Gray,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    },
+                                    border = BorderStroke(1.5.dp, Color.Gray)
+                                )
+                                if (tagEntities!!.isEmpty()) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text(
+                                            "标签列表为空。",
+                                            color = Color.Gray,
+                                            fontSize = 12.sp,
+                                            lineHeight = 14.sp,
+                                            fontStyle = FontStyle.Italic
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        AssistChip(onClick = {
+                                            navToOtherUser()
+                                        }, label = {
+                                            Text("点击跳转添加")
+                                        }, leadingIcon = {
+                                            Icon(
+                                                painterResource(R.drawable.ic_tag_plus_outline),
+                                                null
+                                            )
+                                        }, border = BorderStroke(1.5.dp, Color.Gray))
+                                    }
+                                } else {
                                     tagEntities!!.forEachIndexed { index, type ->
                                         FilterChip(
                                             selected = tagClickState[index].value,

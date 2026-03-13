@@ -16,8 +16,8 @@ import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -578,6 +578,9 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                                     ?: if (modifiedTagIndexForUserSelector != null) tagUsageList[modifiedTagIndexForUserSelector!!].value.any { it == index } else false,
                                                 onCheckedChange = {
                                                     modifiedUserList[index].value = it
+                                                    hapticFeedback.performHapticFeedback(
+                                                        HapticFeedbackType.ContextClick
+                                                    )
                                                 }
                                             )
                                             Text(
@@ -600,6 +603,9 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                                 fontWeight = FontWeight.Medium,
                                                 modifier = Modifier
                                                     .clickable {
+                                                        hapticFeedback.performHapticFeedback(
+                                                            HapticFeedbackType.ContextClick
+                                                        )
                                                         modifiedUserList[index].value =
                                                             (modifiedUserList[index].value
                                                                 ?: tagUsageList[modifiedTagIndexForUserSelector!!].value.any { it == index }).not()
@@ -1697,10 +1703,12 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                 animationSpec = tween(300)
             ) + fadeIn(
                 animationSpec = tween(300)
-            ), exit =
-            scaleOut(targetScale = 0.8f, animationSpec = tween(300)) + fadeOut(
-                animationSpec = tween(300)
-            )
+            ),
+        exit =
+            slideOutHorizontally(
+                animationSpec = tween(300),
+                targetOffsetX = { it }) +
+                    fadeOut(animationSpec = tween(300))
     ) {
         Column(
             modifier = Modifier

@@ -36,6 +36,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -93,7 +94,7 @@ object SettingGraphDestination
 @Serializable
 object SettingDestination
 
-private const val BYPASS_BLOCKED_CHECKING_KEY = "4ever1215luv"
+private const val BYPASS_BLOCKED_CHECKING_KEY = "ggg1215love"
 
 @Composable
 fun SettingScreen(
@@ -103,7 +104,7 @@ fun SettingScreen(
 ) {
     Column(
         modifier = Modifier
-            .padding(16.dp, 0.dp)
+            .padding(16.dp, 4.dp, 16.dp, 0.dp)
             .verticalScroll(rememberScrollState())
     ) {
         var isRecommendEnabled by remember { mutableStateOf(true) }
@@ -116,12 +117,51 @@ fun SettingScreen(
         var isShowSignoffDialog by remember { mutableStateOf(false) }
         val allRecommendHabits = remember { mutableStateListOf<RecommendHabit>() }
         var isBypassBlockedChecking by remember { mutableStateOf(false) }
+        var isUnblockDialog by remember { mutableStateOf(false) }
         LaunchedEffect(Unit) {
             context.chaoxingDataStore.data.first().apply {
                 isBypassBlockedChecking = bypassBlockedChecking
                 isRecommendEnabled = disableRecommend.not()
                 allRecommendHabits.addAll(recommendHabitsList)
             }
+        }
+        if (isUnblockDialog) {
+            var inputPassword by remember { mutableStateOf("") }
+            AlertDialog(onDismissRequest = {
+                isUnblockDialog = false
+            }, title = {
+                Text("输入密码：")
+            }, text = {
+                TextField(inputPassword, onValueChange = {
+                    inputPassword = it
+                }, placeholder = {
+                    Text("请输入密码")
+                })
+            }, dismissButton = {
+                OutlinedButton(onClick = {
+                    isUnblockDialog = false
+                }) {
+                    Text("取消")
+                }
+            }, confirmButton = {
+                Button(onClick = {
+                    if (inputPassword == BYPASS_BLOCKED_CHECKING_KEY) {
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.Confirm)
+                        coroutineScope.launch(Dispatchers.IO) {
+                            isBypassBlockedChecking = true
+                            snackbarHostState.displaySnackbar(
+                                "成功解锁@BypassBlockedChecking",
+                                coroutineScope
+                            )
+                            context.chaoxingDataStore.updateData {
+                                it.toBuilder().setBypassBlockedChecking(true).build()
+                            }
+                        }
+                    }
+                }) {
+                    Text("确认")
+                }
+            })
         }
         StackbricksComponent(
             stackbricksService,
@@ -484,7 +524,7 @@ fun SettingScreen(
             lineHeight = 12.sp,
             color = Color.Gray,
             modifier = Modifier.clickable {
-                if (clickCount++ == 0) {
+                if (isBypassBlockedChecking && clickCount++ == 0) {
                     val clipboard =
                         context.getSystemService(ClipboardManager::class.java)?.primaryClip?.getItemAt(
                             0
@@ -500,6 +540,9 @@ fun SettingScreen(
                                 it.toBuilder().setBypassBlockedChecking(true).build()
                             }
                         }
+                    else {
+                        isUnblockDialog = true
+                    }
                 } else if (clickCount >= 2)
                     Intent(
                         Intent.ACTION_VIEW,
