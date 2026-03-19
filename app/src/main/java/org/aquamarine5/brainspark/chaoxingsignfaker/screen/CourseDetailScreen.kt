@@ -174,7 +174,7 @@ fun CourseDetailScreen(
                                         hapticFeedback
                                     )
                                 }
-                                withTimeout(500){
+                                withTimeout(500) {
                                     pullToRefreshState = false
                                 }
                             }

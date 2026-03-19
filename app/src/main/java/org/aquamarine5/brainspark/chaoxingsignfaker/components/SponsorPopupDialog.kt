@@ -48,7 +48,7 @@ fun SponsorPopupDialog() {
         }, text = {
             Text(buildAnnotatedString {
                 append("随地大小签虽然每次使用不需要付费，但是用于更新的服务器资源还是需要")
-                withStyle(SpanStyle(fontWeight = FontWeight.Bold)){
+                withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
                     append("持续花费很多钱的！")
                 }
                 append(":(")

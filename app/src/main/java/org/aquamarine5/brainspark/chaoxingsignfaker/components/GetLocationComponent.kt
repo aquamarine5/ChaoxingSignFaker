@@ -166,7 +166,7 @@ fun GetLocationComponent(
                     }) {
 
                     }
-                },icon={
+                }, icon = {
                     Icon(
                         painterResource(R.drawable.ic_map_pin), null,
                         modifier = Modifier.size(40.dp),

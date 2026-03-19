@@ -27,7 +27,7 @@ stackbricksConfig {
     ]
     changelog = "# 1.12.9更新：\n- 1. 修复了二维码签到、扫码添加代签用户等扫描二维码场景时出现的异常崩溃。\n\nlovely but not lonely, 20260305, @aquamarine5 Brainspark."
     requiredManifestVersion2MigrateForceInstall = true
-    forceInstallLessVersion = 112081216
+    forceInstallLessVersion = 1_1208_1216
     qiniuConfig {
         accessKey = project.findProperty("qiniu.accessKey") ?: ""
         secretKey = project.findProperty("qiniu.secretKey") ?: ""
@@ -47,8 +47,8 @@ android {
         applicationId = "org.aquamarine5.brainspark.chaoxingsignfaker"
         minSdk = 26
         targetSdk = 36
-        versionCode = 112091314
-        versionName = "1.12.9-stable-patch1-260305"
+        versionCode = 1_1210_0313
+        versionName = "1.12.10-beta1-260313"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

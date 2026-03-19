@@ -60,6 +60,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.OtherUserTagType
@@ -87,6 +88,7 @@ fun OtherUserSelectorComponent(
         var tagEntities by remember { mutableStateOf<List<OtherUserTagType>?>(null) }
         var tagContainedUserIndexList by remember { mutableStateOf<List<List<Int>>?>(null) }
         val tagClickState = remember { mutableListOf<MutableState<Boolean>>() }
+        var selfPhoneNumber by remember { mutableStateOf<String?>(null) }
         var success by signStatus[0].isSuccess
 
         fun updateTagClickState() {
@@ -97,6 +99,12 @@ fun OtherUserSelectorComponent(
                     }
                     tagClickState[tagIndex].value = allChecked
                 }
+            }
+        }
+
+        LaunchedEffect(Unit) {
+            context.chaoxingDataStore.data.first().let {
+                selfPhoneNumber = it.loginSession.phoneNumber
             }
         }
 
@@ -314,11 +322,18 @@ fun OtherUserSelectorComponent(
                             userSelections[0] = userSelections[0].not()
                         }, verticalAlignment = Alignment.CenterVertically) {
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                "给自己签到",
-                                fontWeight = FontWeight.Bold,
-                                textDecoration = if (success != true) TextDecoration.None else TextDecoration.LineThrough
-                            )
+                            Row {
+                                Text(
+                                    "给自己签到",
+                                    fontWeight = FontWeight.Bold,
+                                    textDecoration = if (success != true) TextDecoration.None else TextDecoration.LineThrough
+                                )
+                                Text(
+                                    "${ChaoxingHttpClient.instance?.userEntity?.name} ($selfPhoneNumber)",
+                                    color = Color.Gray,
+                                    fontSize = 10.sp
+                                )
+                            }
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.End,
@@ -355,10 +370,18 @@ fun OtherUserSelectorComponent(
                                     updateTagClickState()
                                 }, verticalAlignment = Alignment.CenterVertically) {
                                     Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                        text = userSelection.name,
-                                        textDecoration = if (successForOtherUser != true) TextDecoration.None else TextDecoration.LineThrough
-                                    )
+                                    Row{
+                                        Text(
+                                            text = userSelection.name,
+                                            textDecoration = if (successForOtherUser != true) TextDecoration.None else TextDecoration.LineThrough
+                                        )
+                                        Text(
+                                            userSelection.phoneNumber,
+                                            color = Color.Gray,
+                                            fontSize = 10.sp
+                                        )
+                                    }
+
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.End,
