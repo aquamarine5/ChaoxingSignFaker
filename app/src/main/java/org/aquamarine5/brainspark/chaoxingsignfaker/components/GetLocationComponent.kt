@@ -640,19 +640,15 @@ fun GetLocationComponent(
                         state = satelliteTooltipState,
                     ) {
                         FloatingActionButton(onClick = {
-                            mapType = if (mapType == BaiduMap.MAP_TYPE_NORMAL) {
-                                BaiduMap.MAP_TYPE_SATELLITE
-                            } else {
-                                BaiduMap.MAP_TYPE_NORMAL
-                            }
-                            baiduMap.map.mapType = mapType
+                            isShowFavoriteLocationDialog = true
                         }) {
                             Icon(
-                                painterResource(R.drawable.ic_map),
+                                painterResource(R.drawable.ic_map_pinned),
                                 contentDescription = null
                             )
                         }
                     }
+                    Spacer(modifier = Modifier.height(8.dp))
                     TooltipBox(
                         onDismissRequest = {},
                         positionProvider = TooltipDefaults.rememberTooltipPositionProvider(

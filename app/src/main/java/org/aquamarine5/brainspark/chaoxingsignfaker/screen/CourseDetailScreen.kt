@@ -42,8 +42,8 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withTimeout
 import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingActivityHelper
@@ -174,9 +174,9 @@ fun CourseDetailScreen(
                                         hapticFeedback
                                     )
                                 }
-                                withTimeout(500) {
-                                    pullToRefreshState = false
-                                }
+                                delay(500)
+                                pullToRefreshState = false
+
                             }
                             isFetchedFailure = null
                         }

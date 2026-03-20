@@ -322,7 +322,7 @@ fun OtherUserSelectorComponent(
                             userSelections[0] = userSelections[0].not()
                         }, verticalAlignment = Alignment.CenterVertically) {
                             Spacer(modifier = Modifier.width(8.dp))
-                            Row {
+                            Column {
                                 Text(
                                     "给自己签到",
                                     fontWeight = FontWeight.Bold,
@@ -331,7 +331,8 @@ fun OtherUserSelectorComponent(
                                 Text(
                                     "${ChaoxingHttpClient.instance?.userEntity?.name} ($selfPhoneNumber)",
                                     color = Color.Gray,
-                                    fontSize = 10.sp
+                                    fontSize = 10.sp,
+                                    lineHeight = 12.sp
                                 )
                             }
                             Row(
@@ -370,7 +371,7 @@ fun OtherUserSelectorComponent(
                                     updateTagClickState()
                                 }, verticalAlignment = Alignment.CenterVertically) {
                                     Spacer(modifier = Modifier.width(8.dp))
-                                    Row{
+                                    Column {
                                         Text(
                                             text = userSelection.name,
                                             textDecoration = if (successForOtherUser != true) TextDecoration.None else TextDecoration.LineThrough
@@ -378,7 +379,8 @@ fun OtherUserSelectorComponent(
                                         Text(
                                             userSelection.phoneNumber,
                                             color = Color.Gray,
-                                            fontSize = 10.sp
+                                            fontSize = 10.sp,
+                                            lineHeight = 12.sp
                                         )
                                     }
 

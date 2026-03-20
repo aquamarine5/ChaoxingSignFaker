@@ -61,10 +61,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.ImageLoader
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.Serializable
 import org.aquamarine5.brainspark.chaoxingsignfaker.BuildConfig
 import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
@@ -266,7 +266,7 @@ fun CourseListScreen(
                                             navToLoginDestination
                                         )
                                             .apply {
-                                                activitiesData.addAll(this.filter {
+                                                val newActivities = this.filter {
                                                     preferredClassIds.contains(it.classId)
                                                 }.map {
                                                     it.apply {
@@ -274,7 +274,29 @@ fun CourseListScreen(
                                                     }
                                                 } + this.filter {
                                                     !preferredClassIds.contains(it.classId)
-                                                })
+                                                }
+
+                                                activitiesData.removeAll { old ->
+                                                    newActivities.none { it.classId == old.classId }
+                                                }
+
+                                                newActivities.forEachIndexed { index, item ->
+                                                    val existingIndex = activitiesData.indexOfFirst { it.classId == item.classId }
+                                                    if (existingIndex != -1) {
+                                                        if (activitiesData[existingIndex] != item) {
+                                                            activitiesData[existingIndex] = item
+                                                        }
+                                                        if (existingIndex != index) {
+                                                            activitiesData.add(index, activitiesData.removeAt(existingIndex))
+                                                        }
+                                                    } else {
+                                                        if (index <= activitiesData.size) {
+                                                            activitiesData.add(index, item)
+                                                        } else {
+                                                            activitiesData.add(item)
+                                                        }
+                                                    }
+                                                }
                                             }
                                     }
                                 }.onFailure {
@@ -285,9 +307,8 @@ fun CourseListScreen(
                                         hapticFeedback
                                     )
                                 }
-                                withTimeout(500) {
-                                    pullToRefreshState = false
-                                }
+                                delay(500)
+                                pullToRefreshState = false
                             }
                         }
                     ) {
@@ -391,11 +412,11 @@ fun CourseListScreen(
                                             imageLoader,
                                             modifier = Modifier.animateItem(
                                                 placementSpec = spring(
-                                                    stiffness = Spring.StiffnessLow,
+                                                    stiffness = Spring.StiffnessVeryLow,
                                                     visibilityThreshold = IntOffset.VisibilityThreshold
                                                 ),
-                                                fadeInSpec = spring(Spring.StiffnessLow),
-                                                fadeOutSpec = spring(Spring.StiffnessLow)
+                                                fadeInSpec = spring(Spring.StiffnessVeryLow),
+                                                fadeOutSpec = spring(Spring.StiffnessVeryLow)
                                             ),
                                             onPreferredResort = { isPreferred ->
                                                 hapticFeedback.performHapticFeedback(
