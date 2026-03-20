@@ -65,6 +65,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.Serializable
 import org.aquamarine5.brainspark.chaoxingsignfaker.BuildConfig
 import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
@@ -123,16 +124,20 @@ fun CourseListScreen(
     val coroutineScope = rememberCoroutineScope()
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
-            runCatching {
-                if (stackbricksService.internalVersionData == null && !isNewVersionDialogDisplayed) {
-                    newestVersionData = stackbricksService.isNeedUpdate()
-                    newestVersionData?.forceInstallLessVersion?.let {
-                        isForceInstall =
-                            (it > BuildConfig.VERSION_CODE)
+            launch {
+                runCatching {
+                    withTimeout(2000L){
+                        if (stackbricksService.internalVersionData == null && !isNewVersionDialogDisplayed) {
+                            newestVersionData = stackbricksService.isNeedUpdate()
+                            newestVersionData?.forceInstallLessVersion?.let {
+                                isForceInstall =
+                                    (it > BuildConfig.VERSION_CODE)
+                            }
+                        }
                     }
+                }.onFailure {
+                    it.snackbarReport(snackbarHost, coroutineScope, "检查更新失败", hapticFeedback)
                 }
-            }.onFailure {
-                it.snackbarReport(snackbarHost, coroutineScope, "检查更新失败", hapticFeedback)
             }
             recommendActivities =
                 ChaoxingRecommendHelper.checkRecommendedActivities(context, snackbarHost)
@@ -163,6 +168,7 @@ fun CourseListScreen(
                             }
                         }
                     } //TODO: Recommend preferred class
+
                     preferredClassIds =
                         context.chaoxingDataStore.data.first().preferClassIdList.toMutableStateList()
                             .apply {
@@ -275,28 +281,8 @@ fun CourseListScreen(
                                                 } + this.filter {
                                                     !preferredClassIds.contains(it.classId)
                                                 }
-
-                                                activitiesData.removeAll { old ->
-                                                    newActivities.none { it.classId == old.classId }
-                                                }
-
-                                                newActivities.forEachIndexed { index, item ->
-                                                    val existingIndex = activitiesData.indexOfFirst { it.classId == item.classId }
-                                                    if (existingIndex != -1) {
-                                                        if (activitiesData[existingIndex] != item) {
-                                                            activitiesData[existingIndex] = item
-                                                        }
-                                                        if (existingIndex != index) {
-                                                            activitiesData.add(index, activitiesData.removeAt(existingIndex))
-                                                        }
-                                                    } else {
-                                                        if (index <= activitiesData.size) {
-                                                            activitiesData.add(index, item)
-                                                        } else {
-                                                            activitiesData.add(item)
-                                                        }
-                                                    }
-                                                }
+                                                activitiesData.clear()
+                                                activitiesData.addAll(newActivities)
                                             }
                                     }
                                 }.onFailure {
