@@ -25,7 +25,7 @@ stackbricksConfig {
     possibleConfigurationPaths = [
             new PossibleConfigurationPath("cdn.aquamarine5.fun", "chaoxingsignfaker_stackbricks_v2_manifest.json")
     ]
-    changelog = "# 1.12.9更新：\n- 1. 修复了二维码签到、扫码添加代签用户等扫描二维码场景时出现的异常崩溃。\n\nlovely but not lonely, 20260305, @aquamarine5 Brainspark."
+    changelog = "# 1.12.10 更新：\n- 优化了界面表现，修复了部分已知问题。\n\nlovely but not lonely, 20260324, @aquamarine5 Brainspark."
     requiredManifestVersion2MigrateForceInstall = true
     forceInstallLessVersion = 1_1208_1216
     qiniuConfig {
@@ -47,8 +47,8 @@ android {
         applicationId = "org.aquamarine5.brainspark.chaoxingsignfaker"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1_1210_0321
-        versionName = "1.12.10-beta3-260321"
+        versionCode = 1_1210_1215
+        versionName = "1.12.10-stable-260324"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

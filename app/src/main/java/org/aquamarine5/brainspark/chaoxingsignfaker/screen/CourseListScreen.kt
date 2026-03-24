@@ -95,7 +95,7 @@ object SignGraphDestination
 
 private const val SORT_TOP = 100
 private const val SORT_STAR = 10
-private const val SORT_UNORDERED = 5
+private const val SORT_UNFAVOURED = 5
 private const val SORT_COMMON = 0
 
 @Composable
@@ -187,7 +187,6 @@ fun CourseListScreen(
                                     !preferredClassIds.contains(it.classId)
                                 })
                             }
-
                     }
                 }.onFailure {
                     it.snackbarReport(
@@ -263,7 +262,7 @@ fun CourseListScreen(
                         isRefreshing = pullToRefreshState,
                         onRefresh = {
                             pullToRefreshState = true
-                            coroutineScope.launch {
+                            coroutineScope.launch(Dispatchers.IO) {
                                 isFetchedFailure = runCatching {
                                     ChaoxingHttpClient.instance?.let { httpClient ->
                                         ChaoxingCourseHelper.getAllCourse(
@@ -437,6 +436,15 @@ fun CourseListScreen(
                                                             }.build()
                                                         }
                                                         preferredClassIds.remove(data.classId)
+                                                        activitiesData.sortByDescending {
+                                                            if (it.classId == data.classId)
+                                                                return@sortByDescending SORT_UNFAVOURED
+                                                            if (preferredClassIds.contains(
+                                                                    it.classId
+                                                                )
+                                                            ) return@sortByDescending SORT_STAR
+                                                            else return@sortByDescending SORT_COMMON
+                                                        }
                                                     }
                                                 }
                                             }

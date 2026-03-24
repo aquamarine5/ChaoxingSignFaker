@@ -104,8 +104,17 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.displaySnackbar
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationDetailEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationSignEntity
 
-private const val FAVORITE_MARKER_BUNDLE_ADDRESS = "address"
-private const val FAVORITE_MARKER_BUNDLE_LABEL = "label"
+private const val MARKER_BUNDLE_ADDRESS = "address"
+private const val MARKER_BUNDLE_LABEL = "label"
+private const val MARKER_BUNDLE_TYPE = "type"
+
+private enum class MarkerBundleType(val value: String) {
+    LOCATION("location"), FAVORITE("favorite");
+
+    override fun toString(): String {
+        return value
+    }
+}
 
 @OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -155,6 +164,9 @@ fun GetLocationComponent(
             val favoriteLocations = remember { mutableStateListOf<ChaoxingLocation>() }
             val favoriteLocationMarkers = remember { mutableListOf<Marker>() }
             var lastClickedFavoriteLocationMarker: Marker? = remember { null }
+            val markerPositionIcon = remember {
+                BitmapDescriptorFactory.fromResource(R.drawable.ic_geo_alt_fill)
+            }
             if (selectedLocation != null) {
                 AlertDialog(onDismissRequest = {
                     selectedLocation = null
@@ -180,6 +192,7 @@ fun GetLocationComponent(
                 }, title = {
                     Text("管理收藏的签到位置")
                 }, text = {
+                    Text("暂不可用，请期待后续更新。")
                     Column(modifier = Modifier.selectableGroup()) {
                         favoriteLocations.forEachIndexed { index, it ->
                             Row(
@@ -440,13 +453,18 @@ fun GetLocationComponent(
                                             .radius(500)
                                     )
                                     if (marker == null) {
-                                        val icon =
-                                            BitmapDescriptorFactory.fromResource(R.drawable.ic_geo_alt_fill)
+
                                         marker = map.addOverlay(
                                             MarkerOptions()
                                                 .position(it)
-                                                .icon(icon)
+                                                .icon(markerPositionIcon)
                                                 .draggable(true)
+                                                .extraInfo(Bundle().apply {
+                                                    putString(
+                                                        MARKER_BUNDLE_TYPE,
+                                                        MarkerBundleType.LOCATION.value
+                                                    )
+                                                })
                                         ) as Marker
                                     } else {
                                         marker!!.position = it
@@ -472,7 +490,13 @@ fun GetLocationComponent(
                                             MarkerOptions()
                                                 .position(it.position)
                                                 .draggable(true)
-                                                .icon(BitmapDescriptorFactory.fromResource(R.drawable.ic_geo_alt_fill))
+                                                .icon(markerPositionIcon)
+                                                .extraInfo(Bundle().apply {
+                                                    putString(
+                                                        MARKER_BUNDLE_TYPE,
+                                                        MarkerBundleType.LOCATION.value
+                                                    )
+                                                })
                                         ) as Marker
                                     } else {
                                         marker!!.position = it.position
@@ -483,9 +507,12 @@ fun GetLocationComponent(
                         map.setOnMarkerClickListener { p0 ->
                             p0?.let { favoriteMarker ->
                                 favoriteMarker.extraInfo.let {
+                                    if (it.getString(MARKER_BUNDLE_TYPE) != MarkerBundleType.FAVORITE.toString()) {
+                                        return@setOnMarkerClickListener false
+                                    }
                                     clickedPosition = favoriteMarker.position
                                     clickedName =
-                                        it.getString(FAVORITE_MARKER_BUNDLE_ADDRESS) ?: run {
+                                        it.getString(MARKER_BUNDLE_ADDRESS) ?: run {
                                             isNeedLocationDescribe = true
                                             geoCoder.reverseGeoCode(
                                                 ReverseGeoCodeOption()
@@ -497,7 +524,7 @@ fun GetLocationComponent(
                                             "加载中..."
                                         }
                                     favoriteMarker.titleOptions = TitleOptions().text(
-                                        it.getString(FAVORITE_MARKER_BUNDLE_LABEL) ?: "收藏点"
+                                        it.getString(MARKER_BUNDLE_LABEL) ?: "收藏点"
                                     )
                                     lastClickedFavoriteLocationMarker?.titleOptions = TitleOptions()
                                     lastClickedFavoriteLocationMarker = favoriteMarker
@@ -506,7 +533,13 @@ fun GetLocationComponent(
                                             MarkerOptions()
                                                 .position(clickedPosition)
                                                 .draggable(true)
-                                                .icon(BitmapDescriptorFactory.fromResource(R.drawable.ic_geo_alt_fill))
+                                                .icon(markerPositionIcon)
+                                                .extraInfo(Bundle().apply {
+                                                    putString(
+                                                        MARKER_BUNDLE_TYPE,
+                                                        MarkerBundleType.LOCATION.value
+                                                    )
+                                                })
                                         ) as Marker
                                     } else {
                                         marker!!.position = clickedPosition
@@ -565,8 +598,12 @@ fun GetLocationComponent(
                                     .icon(BitmapDescriptorFactory.fromResource(R.drawable.ic_map_star))
                                     .titleOptions(TitleOptions().text(it.label))
                                     .extraInfo(Bundle().apply {
-                                        putString(FAVORITE_MARKER_BUNDLE_LABEL, it.label)
-                                        putString(FAVORITE_MARKER_BUNDLE_ADDRESS, it.address)
+                                        putString(
+                                            MARKER_BUNDLE_TYPE,
+                                            MarkerBundleType.FAVORITE.value
+                                        )
+                                        putString(MARKER_BUNDLE_LABEL, it.label)
+                                        putString(MARKER_BUNDLE_ADDRESS, it.address)
                                     })
                             }
                         ) as Marker
@@ -614,7 +651,7 @@ fun GetLocationComponent(
                                     )
                                     IconButton(
                                         onClick = {
-                                            satelliteTooltipState.dismiss()
+                                            favoriteLocationTooltipState.dismiss()
                                             coroutineScope.launch(Dispatchers.IO) {
                                                 context.chaoxingDataStore.updateData {
                                                     it.toBuilder().setLearntTooltips(
@@ -634,10 +671,9 @@ fun GetLocationComponent(
                                         )
                                     }
                                 }
-
                             }
                         },
-                        state = satelliteTooltipState,
+                        state = favoriteLocationTooltipState,
                     ) {
                         FloatingActionButton(onClick = {
                             isShowFavoriteLocationDialog = true

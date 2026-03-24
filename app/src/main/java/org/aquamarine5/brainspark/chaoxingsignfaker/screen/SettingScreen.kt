@@ -524,22 +524,24 @@ fun SettingScreen(
             lineHeight = 12.sp,
             color = Color.Gray,
             modifier = Modifier.clickable {
-                if (isBypassBlockedChecking && clickCount++ == 0) {
+                if (isBypassBlockedChecking || clickCount++ == 0) {
                     val clipboard =
                         context.getSystemService(ClipboardManager::class.java)?.primaryClip?.getItemAt(
                             0
                         )?.text
                     if (clipboard == BYPASS_BLOCKED_CHECKING_KEY)
+                    {
+                        isBypassBlockedChecking = true
+                        snackbarHostState.displaySnackbar(
+                            "成功解锁@BypassBlockedChecking",
+                            coroutineScope
+                        )
                         coroutineScope.launch(Dispatchers.IO) {
-                            isBypassBlockedChecking = true
-                            snackbarHostState.displaySnackbar(
-                                "成功解锁@BypassBlockedChecking",
-                                coroutineScope
-                            )
                             context.chaoxingDataStore.updateData {
                                 it.toBuilder().setBypassBlockedChecking(true).build()
                             }
                         }
+                    }
                     else {
                         isUnblockDialog = true
                     }
