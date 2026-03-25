@@ -12,7 +12,6 @@ import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.BorderStroke
@@ -48,10 +47,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -277,13 +273,7 @@ fun QRCodeSignScreen(
                                             )
                                             Spacer(modifier = Modifier.width(9.dp))
                                             Text(
-                                                buildAnnotatedString {
-                                                    append("通常情况下，")
-                                                    withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
-                                                        append("随地大小签")
-                                                    }
-                                                    append(" 的二维码签到功能是用于给其他用户签到的，而不是用于仅给自己签到。")
-                                                },
+                                                "通常情况下，随地大小签的二维码签到功能是用于给其他用户签到的，而不是用于仅给自己签到。\n自己不在场时，必须需要另一名在场的用户为你代签，随地大小签不支持破解二维码签到。\n为很多人进行二维码代签时，可能会出现部分用户因为二维码超时失效导致的签到失败，请尝试多次扫码以完成签到。",
                                                 color = Color.White,
                                                 fontSize = 13.sp,
                                                 lineHeight = 18.sp,
@@ -352,13 +342,12 @@ fun QRCodeSignScreen(
                                         animationSpec = tween(300)
                                     ) + fadeIn(
                                         animationSpec = tween(300)
-                                    ), exit =
-                                    scaleOut(
-                                        targetScale = 0.8f,
-                                        animationSpec = tween(300)
-                                    ) + fadeOut(
-                                        animationSpec = tween(300)
-                                    )
+                                    ),
+                                exit =
+                                    slideOutHorizontally(
+                                        animationSpec = tween(300),
+                                        targetOffsetX = { it }) +
+                                            fadeOut(animationSpec = tween(300))
                             ) {
                                 BackHandler(isQRCodeScanning) {
                                     isSigning = false

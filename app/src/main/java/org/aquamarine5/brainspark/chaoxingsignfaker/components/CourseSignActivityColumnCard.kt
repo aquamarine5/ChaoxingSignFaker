@@ -89,18 +89,20 @@ inline fun CourseSignActivityColumnCard(
                 tint = if (isAvailable) LocalContentColor.current else Color.Gray
             )
         }
-        val formatter =
-            remember { DateTimeFormatter.ofPattern("MM-dd HH:mm", Locale.getDefault()) }
+        val startTimeZoned = remember(activity.startTime) {
+            Instant.ofEpochMilli(activity.startTime).atZone(ZoneId.systemDefault())
+        }
+        val formatter = remember(startTimeZoned) {
+            val currentYear = java.time.LocalDate.now().year
+            val pattern = if (startTimeZoned.year != currentYear) "yyyy-MM-dd HH:mm:ss" else "MM-dd HH:mm"
+            DateTimeFormatter.ofPattern(pattern, Locale.getDefault())
+        }
 
         Spacer(modifier = Modifier.width(4.dp))
         Column {
             Text(activity.nameOne, fontWeight = FontWeight.Bold)
             Text(
-                "开始时间：${
-                    formatter.format(
-                        Instant.ofEpochMilli(activity.startTime).atZone(ZoneId.systemDefault())
-                    )
-                }",
+                "开始时间：${formatter.format(startTimeZoned)}",
                 fontSize = 12.sp,
                 lineHeight = 14.sp,
                 color = Color.Gray

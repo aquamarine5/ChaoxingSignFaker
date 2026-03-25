@@ -176,6 +176,7 @@ fun CourseDetailScreen(
                                 }
                                 delay(500)
                                 pullToRefreshState = false
+
                             }
                             isFetchedFailure = null
                         }

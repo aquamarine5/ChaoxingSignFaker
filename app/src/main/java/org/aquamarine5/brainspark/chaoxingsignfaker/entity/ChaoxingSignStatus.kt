@@ -72,9 +72,11 @@ data class ChaoxingSignStatus(
                         "您已签到过了" -> {
                             LocalContentColor.current
                         }
+
                         "疑似迟到" -> {
                             Orange
                         }
+
                         else -> {
                             Color(0xFFF43E06)
                         }

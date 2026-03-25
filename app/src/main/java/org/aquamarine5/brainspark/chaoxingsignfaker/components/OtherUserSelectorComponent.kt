@@ -60,6 +60,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.OtherUserTagType
@@ -87,6 +88,7 @@ fun OtherUserSelectorComponent(
         var tagEntities by remember { mutableStateOf<List<OtherUserTagType>?>(null) }
         var tagContainedUserIndexList by remember { mutableStateOf<List<List<Int>>?>(null) }
         val tagClickState = remember { mutableListOf<MutableState<Boolean>>() }
+        var selfPhoneNumber by remember { mutableStateOf<String?>(null) }
         var success by signStatus[0].isSuccess
 
         fun updateTagClickState() {
@@ -97,6 +99,12 @@ fun OtherUserSelectorComponent(
                     }
                     tagClickState[tagIndex].value = allChecked
                 }
+            }
+        }
+
+        LaunchedEffect(Unit) {
+            context.chaoxingDataStore.data.first().let {
+                selfPhoneNumber = it.loginSession.phoneNumber
             }
         }
 
@@ -198,63 +206,66 @@ fun OtherUserSelectorComponent(
                 ) {
                     Row {
                         if (tagEntities != null && tagContainedUserIndexList != null)
-                            if (tagEntities!!.isEmpty()) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text(
-                                        "标签列表为空。",
-                                        color = Color.Gray,
-                                        fontSize = 12.sp,
-                                        lineHeight = 14.sp,
-                                        fontStyle = FontStyle.Italic
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    AssistChip(onClick = {
-                                        navToOtherUser()
-                                    }, label = {
-                                        Text("点击跳转添加")
-                                    }, leadingIcon = {
-                                        Icon(painterResource(R.drawable.ic_tag_plus_outline), null)
-                                    }, border = BorderStroke(1.5.dp, Color.Gray))
-                                }
-                            } else {
-                                FlowRow(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(5.dp),
-                                    verticalArrangement = Arrangement.spacedBy((-8).dp)
-                                ) {
-                                    FilterChip(
-                                        selected = userSelections.subList(1, userSelections.size)
-                                            .all { it } && (isCurrentAlreadySigned || userSelections[0]),
-                                        onClick = {
-                                            hapticFeedback.performHapticFeedback(
-                                                HapticFeedbackType.ContextClick
-                                            )
-                                            val allSelected =
-                                                userSelections.subList(1, userSelections.size)
-                                                    .all { it } && (isCurrentAlreadySigned || userSelections[0])
-                                            val target = !allSelected
-                                            if (!isCurrentAlreadySigned) {
-                                                userSelections[0] = target
-                                            }
-                                            for (i in 1 until userSelections.size) {
-                                                userSelections[i] = target
-                                            }
-                                            updateTagClickState()
-                                        },
-                                        label = {
-                                            Text("全选")
-                                        },
-                                        leadingIcon = {
-                                            Icon(
-                                                painterResource(R.drawable.ic_list_checks),
-                                                null,
-                                                tint = Color.Gray,
-                                                modifier = Modifier.size(16.dp)
-                                            )
-                                        },
-                                        border = BorderStroke(1.5.dp, Color.Gray)
-                                    )
 
+                            FlowRow(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(5.dp),
+                                verticalArrangement = Arrangement.spacedBy((-8).dp)
+                            ) {
+                                FilterChip(
+                                    selected = userSelections.subList(1, userSelections.size)
+                                        .all { it } && (isCurrentAlreadySigned || userSelections[0]),
+                                    onClick = {
+                                        hapticFeedback.performHapticFeedback(
+                                            HapticFeedbackType.ContextClick
+                                        )
+                                        val allSelected =
+                                            userSelections.subList(1, userSelections.size)
+                                                .all { it } && (isCurrentAlreadySigned || userSelections[0])
+                                        val target = !allSelected
+                                        if (!isCurrentAlreadySigned) {
+                                            userSelections[0] = target
+                                        }
+                                        for (i in 1 until userSelections.size) {
+                                            userSelections[i] = target
+                                        }
+                                        updateTagClickState()
+                                    },
+                                    label = {
+                                        Text("全选")
+                                    },
+                                    leadingIcon = {
+                                        Icon(
+                                            painterResource(R.drawable.ic_list_checks),
+                                            null,
+                                            tint = Color.Gray,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    },
+                                    border = BorderStroke(1.5.dp, Color.Gray)
+                                )
+                                if (tagEntities!!.isEmpty()) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text(
+                                            "标签列表为空。",
+                                            color = Color.Gray,
+                                            fontSize = 12.sp,
+                                            lineHeight = 14.sp,
+                                            fontStyle = FontStyle.Italic
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        AssistChip(onClick = {
+                                            navToOtherUser()
+                                        }, label = {
+                                            Text("点击跳转添加")
+                                        }, leadingIcon = {
+                                            Icon(
+                                                painterResource(R.drawable.ic_tag_plus_outline),
+                                                null
+                                            )
+                                        }, border = BorderStroke(1.5.dp, Color.Gray))
+                                    }
+                                } else {
                                     tagEntities!!.forEachIndexed { index, type ->
                                         FilterChip(
                                             selected = tagClickState[index].value,
@@ -311,11 +322,19 @@ fun OtherUserSelectorComponent(
                             userSelections[0] = userSelections[0].not()
                         }, verticalAlignment = Alignment.CenterVertically) {
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                "给自己签到",
-                                fontWeight = FontWeight.Bold,
-                                textDecoration = if (success != true) TextDecoration.None else TextDecoration.LineThrough
-                            )
+                            Column {
+                                Text(
+                                    "给自己签到",
+                                    fontWeight = FontWeight.Bold,
+                                    textDecoration = if (success != true) TextDecoration.None else TextDecoration.LineThrough
+                                )
+                                Text(
+                                    "${ChaoxingHttpClient.instance?.userEntity?.name} ($selfPhoneNumber)",
+                                    color = Color.Gray,
+                                    fontSize = 10.sp,
+                                    lineHeight = 12.sp
+                                )
+                            }
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.End,
@@ -352,10 +371,19 @@ fun OtherUserSelectorComponent(
                                     updateTagClickState()
                                 }, verticalAlignment = Alignment.CenterVertically) {
                                     Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                        text = userSelection.name,
-                                        textDecoration = if (successForOtherUser != true) TextDecoration.None else TextDecoration.LineThrough
-                                    )
+                                    Column {
+                                        Text(
+                                            text = userSelection.name,
+                                            textDecoration = if (successForOtherUser != true) TextDecoration.None else TextDecoration.LineThrough
+                                        )
+                                        Text(
+                                            userSelection.phoneNumber,
+                                            color = Color.Gray,
+                                            fontSize = 10.sp,
+                                            lineHeight = 12.sp
+                                        )
+                                    }
+
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.End,

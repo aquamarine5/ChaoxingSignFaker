@@ -72,13 +72,15 @@ fun QRCodeScanComponent(
     if (cameraPermission.status == PermissionStatus.Granted) {
         val application = LocalActivity.current!!
         val lifecycleOwner = LocalLifecycleOwner.current
-        val cameraExecutor = ContextCompat.getMainExecutor(application)
+        val cameraExecutor = remember { ContextCompat.getMainExecutor(application) }
         LocalContext.current.let { context ->
-            val barcodeScanner = BarcodeScanning.getClient(
-                BarcodeScannerOptions.Builder().setBarcodeFormats(
-                    Barcode.FORMAT_QR_CODE
-                ).build()
-            )
+            val barcodeScanner = remember {
+                BarcodeScanning.getClient(
+                    BarcodeScannerOptions.Builder().setBarcodeFormats(
+                        Barcode.FORMAT_QR_CODE
+                    ).build()
+                )
+            }
             val previewView = remember { PreviewView(context) }
             val preview = remember { Preview.Builder().build() }
             val controller = remember {
@@ -134,7 +136,7 @@ fun QRCodeScanComponent(
                     modifier = Modifier
                         .align(Alignment.TopStart)
                         .padding(8.dp)
-                        .offset(y = 38.dp)
+                        .offset(y = 20.dp)
                 ) {
                     Icon(painterResource(R.drawable.ic_arrow_left), "返回")
                 }

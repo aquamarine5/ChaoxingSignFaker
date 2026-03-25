@@ -20,6 +20,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import kotlin.random.Random
 
@@ -42,7 +46,13 @@ fun SponsorPopupDialog() {
         }, title = {
             Text("应用还好用嘛？")
         }, text = {
-            Text("随地大小签虽然每次使用不需要付费，但是用于更新的服务器资源还是需要持续付费的 :(")
+            Text(buildAnnotatedString {
+                append("随地大小签虽然每次使用不需要付费，但是用于更新的服务器资源还是需要")
+                withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+                    append("持续花费很多钱的！")
+                }
+                append(":(")
+            })
         }, confirmButton = {
             Button(onClick = {
                 hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
