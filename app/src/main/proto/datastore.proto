@@ -37,6 +37,7 @@ message LearntTooltip{
   bool cameraSelectedFromGallery = 2;
   bool mapSupportNormalSatelliteSwitch = 3;
   bool supportFavoriteLocation = 4;
+  bool qrcodeSupportScanFromGallery = 5;
 }
 
 message OtherUserTagType{
