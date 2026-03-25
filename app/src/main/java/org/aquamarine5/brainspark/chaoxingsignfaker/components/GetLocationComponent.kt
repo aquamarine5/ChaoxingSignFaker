@@ -651,6 +651,7 @@ fun GetLocationComponent(
                                     )
                                     IconButton(
                                         onClick = {
+                                            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                                             favoriteLocationTooltipState.dismiss()
                                             coroutineScope.launch(Dispatchers.IO) {
                                                 context.chaoxingDataStore.updateData {
@@ -676,6 +677,7 @@ fun GetLocationComponent(
                         state = favoriteLocationTooltipState,
                     ) {
                         FloatingActionButton(onClick = {
+                            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                             isShowFavoriteLocationDialog = true
                         }) {
                             Icon(
@@ -709,6 +711,7 @@ fun GetLocationComponent(
                                     )
                                     IconButton(
                                         onClick = {
+                                            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                                             satelliteTooltipState.dismiss()
                                             coroutineScope.launch(Dispatchers.IO) {
                                                 context.chaoxingDataStore.updateData {
@@ -735,6 +738,7 @@ fun GetLocationComponent(
                         state = satelliteTooltipState,
                     ) {
                         FloatingActionButton(onClick = {
+                            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                             mapType = if (mapType == BaiduMap.MAP_TYPE_NORMAL) {
                                 BaiduMap.MAP_TYPE_SATELLITE
                             } else {
@@ -750,6 +754,7 @@ fun GetLocationComponent(
                     }
                     Spacer(modifier = Modifier.height(8.dp))
                     FloatingActionButton(onClick = {
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                         isShowDialog = true
                     }) {
                         Icon(
@@ -759,7 +764,6 @@ fun GetLocationComponent(
                     }
                     Spacer(modifier = Modifier.height(8.dp))
                     FloatingActionButton(onClick = {
-                        Log.d("GetLocationPage", "onClick: ")
                         hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                         locationClient.start()
                     }) {

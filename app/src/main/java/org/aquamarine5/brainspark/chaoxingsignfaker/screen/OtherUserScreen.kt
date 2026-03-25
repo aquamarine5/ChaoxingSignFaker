@@ -1773,7 +1773,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                     modifier = Modifier
                         .offset(y = Dp(resources.displayMetrics.run {
                             0.75f * heightPixels / density
-                        }))
+                        }) - 48.dp)
                         .zIndex(2f)
                         .fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally,
