@@ -43,7 +43,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -110,8 +109,8 @@ fun CourseListScreen(
 ) {
     val activitiesData =
         rememberSaveable(saver = ChaoxingCourseEntity.Saver) { mutableStateListOf() }
-    var preferredClassIds = remember {
-        mutableStateListOf<Int>()
+    val preferredClassIds = rememberSaveable {
+        mutableListOf<Int>()
     }
     val hapticFeedback = LocalHapticFeedback.current
     val context = LocalContext.current
@@ -126,7 +125,7 @@ fun CourseListScreen(
         withContext(Dispatchers.IO) {
             launch {
                 runCatching {
-                    withTimeout(2000L){
+                    withTimeout(2000L) {
                         if (stackbricksService.internalVersionData == null && !isNewVersionDialogDisplayed) {
                             newestVersionData = stackbricksService.isNeedUpdate()
                             newestVersionData?.forceInstallLessVersion?.let {
@@ -169,11 +168,9 @@ fun CourseListScreen(
                         }
                     } //TODO: Recommend preferred class
 
-                    preferredClassIds =
-                        context.chaoxingDataStore.data.first().preferClassIdList.toMutableStateList()
-                            .apply {
-                                reverse()
-                            }
+                    preferredClassIds.addAll(
+                        context.chaoxingDataStore.data.first().preferClassIdList.reversed()
+                    )
                     ChaoxingHttpClient.instance?.let { httpClient ->
                         ChaoxingCourseHelper.getAllCourse(
                             httpClient,
