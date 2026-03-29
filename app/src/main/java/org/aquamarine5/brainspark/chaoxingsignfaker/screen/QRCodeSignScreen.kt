@@ -56,6 +56,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
@@ -87,7 +88,6 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingQRCodeSigner
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSigner
 import org.aquamarine5.brainspark.chaoxingsignfaker.snackbarReport
 import kotlin.coroutines.resume
-import kotlin.coroutines.suspendCoroutine
 
 @Serializable
 data class QRCodeSignDestination(
@@ -273,7 +273,7 @@ fun QRCodeSignScreen(
                                             )
                                             Spacer(modifier = Modifier.width(9.dp))
                                             Text(
-                                                "通常情况下，随地大小签的二维码签到功能是用于给其他用户签到的，而不是用于仅给自己签到。\n自己不在场时，必须需要另一名在场的用户为你代签，随地大小签不支持破解二维码签到。\n为很多人进行二维码代签时，可能会出现部分用户因为二维码超时失效导致的签到失败，请尝试多次扫码以完成签到。",
+                                                "自己不在课堂现场时，必须需要另一名在场的用户为你代签，随地大小签不支持破解二维码签到。\n为很多人进行二维码代签时，可能会出现部分用户因为二维码超时失效导致的签到失败，请尝试多次扫码以完成签到。",
                                                 color = Color.White,
                                                 fontSize = 13.sp,
                                                 lineHeight = 18.sp,
@@ -287,7 +287,7 @@ fun QRCodeSignScreen(
                                         destination.isLate
                                     )
                                 }
-                            ) { isSelf, otherUserSessionList, indexList ->
+                            ) { isSelf, otherUserSessionList, _ ->
                                 isSigning = true
                                 isSelfForSign = isSelf
                                 signUserList = otherUserSessionList
@@ -377,7 +377,7 @@ fun QRCodeSignScreen(
                                                         signStatus[0].loading()
                                                         if (signer.sign(enc, locationData)) {
                                                             isCaptcha = true
-                                                            suspendCoroutine { continuation ->
+                                                            suspendCancellableCoroutine { continuation ->
                                                                 captchaValidateParams =
                                                                     signer to { validateValue ->
                                                                         validateValue.onSuccess {
@@ -501,7 +501,7 @@ fun QRCodeSignScreen(
                                                                         throw ChaoxingSigner.SignActivityNoPermissionException()
                                                                     if (sign(enc, locationData)) {
                                                                         isCaptcha = true
-                                                                        suspendCoroutine { continuation ->
+                                                                        suspendCancellableCoroutine { continuation ->
                                                                             captchaValidateParams =
                                                                                 this@apply to { validateValue ->
                                                                                     validateValue.onSuccess {
@@ -634,7 +634,7 @@ fun QRCodeSignScreen(
                                         modifier = Modifier
                                             .offset(y = Dp(resources.displayMetrics.run {
                                                 0.75f * heightPixels / density
-                                            }))
+                                            }) - 48.dp)
                                             .zIndex(2f)
                                             .fillMaxWidth(),
                                         horizontalAlignment = Alignment.CenterHorizontally,

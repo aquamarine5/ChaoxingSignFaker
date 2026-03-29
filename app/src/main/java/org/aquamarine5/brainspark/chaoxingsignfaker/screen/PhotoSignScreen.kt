@@ -71,6 +71,7 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.serialization.Serializable
 import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
@@ -99,7 +100,6 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingPhotoSigner
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSigner
 import org.aquamarine5.brainspark.chaoxingsignfaker.snackbarReport
 import kotlin.coroutines.resume
-import kotlin.coroutines.suspendCoroutine
 
 typealias ChaoxingPhotoActivityEntity = PhotoSignDestination
 
@@ -290,7 +290,7 @@ fun PhotoSignScreen(
                                         signStatus[0].loading()
                                         if (signer.signByClick()) {
                                             isCaptcha = true
-                                            suspendCoroutine { continuation ->
+                                            suspendCancellableCoroutine { continuation ->
                                                 captchaValidateParams =
                                                     signer to { validateValue ->
                                                         validateValue.onSuccess {
@@ -401,7 +401,7 @@ fun PhotoSignScreen(
                                                             throw ChaoxingSigner.SignActivityNoPermissionException()
                                                         if (signByClick()) {
                                                             isCaptcha = true
-                                                            suspendCoroutine { continuation ->
+                                                            suspendCancellableCoroutine { continuation ->
                                                                 captchaValidateParams =
                                                                     this@apply to { validateValue ->
                                                                         validateValue.onSuccess {
@@ -741,7 +741,7 @@ fun PhotoSignScreen(
                                                                                     )
                                                                                 ) {
                                                                                     isCaptcha = true
-                                                                                    suspendCoroutine { continuation ->
+                                                                                    suspendCancellableCoroutine { continuation ->
                                                                                         captchaValidateParams =
                                                                                             signer to { validateValue ->
                                                                                                 validateValue.onSuccess {
@@ -886,7 +886,7 @@ fun PhotoSignScreen(
                                                                                     )
                                                                                 ) {
                                                                                     isCaptcha = true
-                                                                                    suspendCoroutine { continuation ->
+                                                                                    suspendCancellableCoroutine { continuation ->
                                                                                         captchaValidateParams =
                                                                                             this to { validateValue ->
                                                                                                 validateValue.onSuccess {
