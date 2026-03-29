@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.serialization.Serializable
 import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.UMengHelper
@@ -61,7 +62,6 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingLocationSigne
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSigner
 import org.aquamarine5.brainspark.chaoxingsignfaker.snackbarReport
 import kotlin.coroutines.resume
-import kotlin.coroutines.suspendCoroutine
 
 @Serializable
 data class GetLocationDestination(
@@ -247,7 +247,7 @@ fun LocationSignScreen(
                                         signStatus[0].loading()
                                         if (signer.sign(result)) {
                                             isCaptcha = true
-                                            suspendCoroutine { continuation ->
+                                            suspendCancellableCoroutine { continuation ->
                                                 captchaValidateParams =
                                                     signer to { captchaValidate ->
                                                         if (captchaValidate.isSuccess) {
@@ -363,7 +363,7 @@ fun LocationSignScreen(
                                                         throw ChaoxingSigner.SignActivityNoPermissionException()
                                                     if (sign(result)) {
                                                         isCaptcha = true
-                                                        suspendCoroutine { continuation ->
+                                                        suspendCancellableCoroutine { continuation ->
                                                             captchaValidateParams =
                                                                 this@apply to { captchaValidate ->
                                                                     if (captchaValidate.isSuccess) {

@@ -52,6 +52,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.serialization.Serializable
 import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.UMengHelper
@@ -77,7 +78,6 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingPasswordSigne
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSigner
 import org.aquamarine5.brainspark.chaoxingsignfaker.snackbarReport
 import kotlin.coroutines.resume
-import kotlin.coroutines.suspendCoroutine
 
 
 @Serializable
@@ -419,7 +419,7 @@ fun PasswordSignScreen(
                                         signStatus[0].loading()
                                         if (signer.sign(code)) {
                                             isCaptcha = true
-                                            suspendCoroutine { continuation ->
+                                            suspendCancellableCoroutine { continuation ->
                                                 captchaValidateParams =
                                                     signer to { captchaValue ->
                                                         captchaValue.onSuccess {
@@ -526,7 +526,7 @@ fun PasswordSignScreen(
                                                     )
                                                         throw ChaoxingSigner.SignActivityNoPermissionException()
                                                     if (sign(code)) {
-                                                        suspendCoroutine { continuation ->
+                                                        suspendCancellableCoroutine { continuation ->
                                                             captchaValidateParams =
                                                                 this@apply to { captchaValidate ->
                                                                     if (captchaValidate.isSuccess) {
