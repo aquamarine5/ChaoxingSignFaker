@@ -94,7 +94,8 @@ inline fun CourseSignActivityColumnCard(
         }
         val formatter = remember(startTimeZoned) {
             val currentYear = java.time.LocalDate.now().year
-            val pattern = if (startTimeZoned.year != currentYear) "yyyy-MM-dd HH:mm:ss" else "MM-dd HH:mm"
+            val pattern =
+                if (startTimeZoned.year != currentYear) "yyyy-MM-dd HH:mm:ss" else "MM-dd HH:mm"
             DateTimeFormatter.ofPattern(pattern, Locale.getDefault())
         }
 

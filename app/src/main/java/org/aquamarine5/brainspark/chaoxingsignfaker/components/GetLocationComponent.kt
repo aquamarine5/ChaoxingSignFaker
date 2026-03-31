@@ -140,7 +140,8 @@ fun GetLocationComponent(
             )
         )
         if (locationPermissionsState.allPermissionsGranted) {
-            if (!SDKInitializer.isInitialized()) {
+            val isInitialized = remember { SDKInitializer.isInitialized() }
+            if (!isInitialized) {
                 SDKInitializer.initialize(context.applicationContext)
             }
             val locationClient = remember {
@@ -170,13 +171,15 @@ fun GetLocationComponent(
             if (selectedLocation != null) {
                 AlertDialog(onDismissRequest = {
                     selectedLocation = null
+                }, title = {
+                    Text("设置位置 \"${selectedLocation!!.second.label}\" ")
                 }, text = {
 
                 }, confirmButton = {
                     Button(onClick = {
                         selectedLocation = null
                     }) {
-
+                        Text("关闭")
                     }
                 }, icon = {
                     Icon(
