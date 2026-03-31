@@ -529,8 +529,7 @@ fun SettingScreen(
                         context.getSystemService(ClipboardManager::class.java)?.primaryClip?.getItemAt(
                             0
                         )?.text
-                    if (clipboard == BYPASS_BLOCKED_CHECKING_KEY)
-                    {
+                    if (clipboard == BYPASS_BLOCKED_CHECKING_KEY) {
                         isBypassBlockedChecking = true
                         snackbarHostState.displaySnackbar(
                             "成功解锁@BypassBlockedChecking",
@@ -541,8 +540,7 @@ fun SettingScreen(
                                 it.toBuilder().setBypassBlockedChecking(true).build()
                             }
                         }
-                    }
-                    else {
+                    } else {
                         isUnblockDialog = true
                     }
                 } else if (clickCount >= 2)

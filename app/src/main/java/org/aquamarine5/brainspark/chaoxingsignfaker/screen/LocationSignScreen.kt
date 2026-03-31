@@ -103,6 +103,7 @@ fun LocationSignScreen(
     var signInfo by remember { mutableStateOf<ChaoxingLocationDetailEntity?>(null) }
     val signer = remember { ChaoxingLocationSigner(ChaoxingHttpClient.instance!!, destination) }
     var isSponsor by remember { mutableStateOf(false) }
+    var isFavoriteLocationDialog by remember { mutableStateOf(false) }
     if (isSponsor) {
         SponsorPopupDialog()
     }

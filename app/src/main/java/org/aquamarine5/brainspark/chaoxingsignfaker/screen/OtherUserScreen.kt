@@ -730,7 +730,9 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                     ) {
                                         Checkbox(
                                             isSelected, onCheckedChange = {
-                                                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                                                hapticFeedback.performHapticFeedback(
+                                                    HapticFeedbackType.ContextClick
+                                                )
                                                 isSelected = it
                                                 if (it)
                                                     newTagUserIndexList.add(index)
