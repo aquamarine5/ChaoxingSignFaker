@@ -16,10 +16,7 @@
         <exclude .../>
         -->
     </cloud-backup>
-    <!--
     <device-transfer>
-        <include .../>
-        <exclude .../>
+        <include domain="file" path="/datastore/."/>
     </device-transfer>
-    -->
 </data-extraction-rules>
