@@ -97,6 +97,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
+import org.aquamarine5.brainspark.chaoxingsignfaker.MARKER_BUNDLE_ADDRESS
+import org.aquamarine5.brainspark.chaoxingsignfaker.MARKER_BUNDLE_LABEL
+import org.aquamarine5.brainspark.chaoxingsignfaker.MARKER_BUNDLE_TYPE
+import org.aquamarine5.brainspark.chaoxingsignfaker.MarkerBundleType
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingLocation
@@ -104,17 +108,6 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.displaySnackbar
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationDetailEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationSignEntity
 
-private const val MARKER_BUNDLE_ADDRESS = "address"
-private const val MARKER_BUNDLE_LABEL = "label"
-private const val MARKER_BUNDLE_TYPE = "type"
-
-private enum class MarkerBundleType(val value: String) {
-    LOCATION("location"), FAVORITE("favorite");
-
-    override fun toString(): String {
-        return value
-    }
-}
 
 @OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -155,7 +148,7 @@ fun GetLocationComponent(
                 }
             }
             var marker by remember { mutableStateOf<Marker?>(null) }
-            var isNeedLocationDescribe by remember { mutableStateOf(false) }
+            var isNeedLocationDescribe = remember { false }
             var clickedPosition by remember { mutableStateOf(LatLng(0.0, 0.0)) }
             var locationRange by remember { mutableStateOf<Int?>(null) }
             var locationPosition by remember { mutableStateOf<LatLng?>(null) }
@@ -396,6 +389,24 @@ fun GetLocationComponent(
                     zoomControlsEnabled(false)
                 })
                     .apply {
+                        val setMarkerPositionOrCreate = { position: LatLng ->
+                            if (marker == null) {
+                                marker = map.addOverlay(
+                                    MarkerOptions()
+                                        .position(position)
+                                        .icon(markerPositionIcon)
+                                        .draggable(true)
+                                        .extraInfo(Bundle().apply {
+                                            putString(
+                                                MARKER_BUNDLE_TYPE,
+                                                MarkerBundleType.LOCATION.value
+                                            )
+                                        })
+                                ) as Marker
+                            } else {
+                                marker!!.position = position
+                            }
+                        }
                         isClickable = true
                         map.setMapStatus(
                             MapStatusUpdateFactory.newMapStatus(
@@ -455,23 +466,7 @@ fun GetLocationComponent(
                                             .newVersion(1)
                                             .radius(500)
                                     )
-                                    if (marker == null) {
-
-                                        marker = map.addOverlay(
-                                            MarkerOptions()
-                                                .position(it)
-                                                .icon(markerPositionIcon)
-                                                .draggable(true)
-                                                .extraInfo(Bundle().apply {
-                                                    putString(
-                                                        MARKER_BUNDLE_TYPE,
-                                                        MarkerBundleType.LOCATION.value
-                                                    )
-                                                })
-                                        ) as Marker
-                                    } else {
-                                        marker!!.position = it
-                                    }
+                                    setMarkerPositionOrCreate(it)
                                 }
                             }
 
@@ -488,22 +483,7 @@ fun GetLocationComponent(
                                             .pageSize(2)
                                             .radius(500)
                                     )
-                                    if (marker == null) {
-                                        marker = map.addOverlay(
-                                            MarkerOptions()
-                                                .position(it.position)
-                                                .draggable(true)
-                                                .icon(markerPositionIcon)
-                                                .extraInfo(Bundle().apply {
-                                                    putString(
-                                                        MARKER_BUNDLE_TYPE,
-                                                        MarkerBundleType.LOCATION.value
-                                                    )
-                                                })
-                                        ) as Marker
-                                    } else {
-                                        marker!!.position = it.position
-                                    }
+                                    setMarkerPositionOrCreate(it.position)
                                 }
                             }
                         })
@@ -531,22 +511,7 @@ fun GetLocationComponent(
                                     )
                                     lastClickedFavoriteLocationMarker?.titleOptions = TitleOptions()
                                     lastClickedFavoriteLocationMarker = favoriteMarker
-                                    if (marker == null) {
-                                        marker = map.addOverlay(
-                                            MarkerOptions()
-                                                .position(clickedPosition)
-                                                .draggable(true)
-                                                .icon(markerPositionIcon)
-                                                .extraInfo(Bundle().apply {
-                                                    putString(
-                                                        MARKER_BUNDLE_TYPE,
-                                                        MarkerBundleType.LOCATION.value
-                                                    )
-                                                })
-                                        ) as Marker
-                                    } else {
-                                        marker!!.position = clickedPosition
-                                    }
+                                    setMarkerPositionOrCreate(clickedPosition)
                                 }
                             }
                             true
@@ -591,6 +556,7 @@ fun GetLocationComponent(
                     }
             }
             LaunchedEffect(Unit) {
+                val starBitmap = BitmapDescriptorFactory.fromResource(R.drawable.ic_map_star)
                 favoriteLocations.addAll(context.chaoxingDataStore.data.first().locationsList)
                 favoriteLocations.forEach {
                     favoriteLocationMarkers.add(
@@ -598,7 +564,7 @@ fun GetLocationComponent(
                             LatLng(it.latitude, it.longitude).let { pos ->
                                 MarkerOptions()
                                     .position(pos)
-                                    .icon(BitmapDescriptorFactory.fromResource(R.drawable.ic_map_star))
+                                    .icon(starBitmap)
                                     .titleOptions(TitleOptions().text(it.label))
                                     .extraInfo(Bundle().apply {
                                         putString(
