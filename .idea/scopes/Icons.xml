@@ -1,0 +1,3 @@
+<component name="DependencyValidationManager">
+  <scope name="Icons" pattern="file[ChaoxingSignFaker.app.main]:res/drawable/*||file[ChaoxingSignFaker.app.main]:res/font/*" />
+</component>

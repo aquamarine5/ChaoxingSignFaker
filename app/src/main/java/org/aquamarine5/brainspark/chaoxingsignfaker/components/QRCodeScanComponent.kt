@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, @aquamarine5 (@海蓝色的咕咕鸽). All Rights Reserved.
+ * Copyright (c) 2025-2026, @aquamarine5 (@海蓝色的咕咕鸽). All Rights Reserved.
  * Author: aquamarine5@163.com (Github: https://github.com/aquamarine5) and Brainspark (previously RenegadeCreation)
  * Repository: https://github.com/aquamarine5/ChaoxingSignFaker
  */
@@ -13,7 +13,11 @@ import android.graphics.Paint
 import android.graphics.PixelFormat
 import android.graphics.RectF
 import android.graphics.drawable.Drawable
+import android.net.Uri
 import androidx.activity.compose.LocalActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
@@ -27,26 +31,40 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RichTooltip
 import androidx.compose.material3.Text
+import androidx.compose.material3.TooltipAnchorPosition
+import androidx.compose.material3.TooltipBox
+import androidx.compose.material3.TooltipDefaults
+import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisallowComposableCalls
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.zIndex
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
@@ -55,10 +73,19 @@ import com.google.accompanist.permissions.rememberPermissionState
 import com.google.accompanist.permissions.shouldShowRationale
 import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.barcode.BarcodeScanning
+import com.google.mlkit.vision.barcode.ZoomSuggestionOptions
 import com.google.mlkit.vision.barcode.common.Barcode
+import com.google.mlkit.vision.common.InputImage
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
+import org.aquamarine5.brainspark.chaoxingsignfaker.chaoxingDataStore
+import org.aquamarine5.brainspark.chaoxingsignfaker.displaySnackbar
+import org.aquamarine5.brainspark.chaoxingsignfaker.snackbarReport
 
-@OptIn(ExperimentalPermissionsApi::class)
+@OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun QRCodeScanComponent(
     isPause: MutableState<Boolean>,
@@ -67,20 +94,16 @@ fun QRCodeScanComponent(
     onScanResult: @DisallowComposableCalls (Barcode) -> Unit,
     content: @Composable BoxScope.() -> Unit
 ) {
+    val coroutineScope = rememberCoroutineScope()
     val cameraPermission = rememberPermissionState(android.Manifest.permission.CAMERA)
     val hapticFeedback = LocalHapticFeedback.current
+    val snackbarHostState = LocalSnackbarHostState.current
     if (cameraPermission.status == PermissionStatus.Granted) {
         val application = LocalActivity.current!!
         val lifecycleOwner = LocalLifecycleOwner.current
         val cameraExecutor = remember { ContextCompat.getMainExecutor(application) }
         LocalContext.current.let { context ->
-            val barcodeScanner = remember {
-                BarcodeScanning.getClient(
-                    BarcodeScannerOptions.Builder().setBarcodeFormats(
-                        Barcode.FORMAT_QR_CODE
-                    ).build()
-                )
-            }
+
             val previewView = remember { PreviewView(context) }
             val preview = remember { Preview.Builder().build() }
             val controller = remember {
@@ -96,28 +119,77 @@ fun QRCodeScanComponent(
                             imageAnalysisResolutionSelector = it
                         }
                     cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
-                    setImageAnalysisAnalyzer(
-                        cameraExecutor, MlKitAnalyzer(
-                            listOf(barcodeScanner),
-                            ImageAnalysis.COORDINATE_SYSTEM_VIEW_REFERENCED,
-                            cameraExecutor,
-                        ) {
-                            it?.let { result ->
-                                val barcodeResult = result.getValue(barcodeScanner)
-                                if (barcodeResult.isNullOrEmpty()) {
-                                    previewView.overlay.clear()
-                                    return@MlKitAnalyzer
-                                }
-                                val barcode = barcodeResult[0]
-                                previewView.overlay.clear()
-                                previewView.overlay.add(QRCodeDrawable(barcode))
-                                if (!isPause.value) {
-                                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                                    onScanResult(barcode)
+
+                }
+            }
+            val barcodeScanner = remember {
+                BarcodeScanning.getClient(
+                    BarcodeScannerOptions.Builder().setBarcodeFormats(
+                        Barcode.FORMAT_QR_CODE
+                    ).setZoomSuggestionOptions(ZoomSuggestionOptions.Builder { ratio ->
+                        controller.setZoomRatio(ratio)
+                        return@Builder true
+                    }.build())
+                        .build()
+                )
+            }
+            val photoPickerLauncher = rememberLauncherForActivityResult(
+                contract = ActivityResultContracts.PickVisualMedia()
+            ) { uri: Uri? ->
+                if (uri != null) {
+                    runCatching {
+                        barcodeScanner.process(InputImage.fromFilePath(context, uri))
+                            .addOnSuccessListener { barcodes ->
+                                if (barcodes.isNotEmpty()) {
+                                    onScanResult(barcodes[0])
+                                } else {
+                                    hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
+                                    snackbarHostState.displaySnackbar(
+                                        "未能识别出二维码",
+                                        coroutineScope
+                                    )
                                 }
                             }
-                        })
+                            .addOnFailureListener {
+                                it.snackbarReport(
+                                    snackbarHostState,
+                                    coroutineScope,
+                                    "无法处理选中的图片",
+                                    hapticFeedback
+                                )
+                            }
+                    }.onFailure {
+                        it.snackbarReport(
+                            snackbarHostState,
+                            coroutineScope,
+                            "无法处理选中的图片",
+                            hapticFeedback
+                        )
+                    }
                 }
+            }
+            LaunchedEffect(Unit) {
+                controller.setImageAnalysisAnalyzer(
+                    cameraExecutor, MlKitAnalyzer(
+                        listOf(barcodeScanner),
+                        ImageAnalysis.COORDINATE_SYSTEM_VIEW_REFERENCED,
+                        cameraExecutor,
+                    ) {
+                        it?.let { result ->
+                            val barcodeResult = result.getValue(barcodeScanner)
+                            if (barcodeResult.isNullOrEmpty()) {
+                                previewView.overlay.clear()
+                                return@MlKitAnalyzer
+                            }
+                            val barcode = barcodeResult[0]
+                            previewView.overlay.clear()
+                            previewView.overlay.add(QRCodeDrawable(barcode))
+                            if (!isPause.value) {
+                                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                                onScanResult(barcode)
+                            }
+                        }
+                    })
             }
             Box(
                 modifier = Modifier
@@ -127,9 +199,89 @@ fun QRCodeScanComponent(
                 if (isLoading.value) {
                     CenterCircularProgressIndicator()
                 }
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .zIndex(1f)
+                        .padding(22.dp)
+                ) {
+                    val qrcodeSupportScanFromGalleryTooltipState =
+                        rememberTooltipState(isPersistent = true)
+                    LaunchedEffect(Unit) {
+                        context.chaoxingDataStore.data.first().let {
+                            if (it.learntTooltips.qrcodeSupportScanFromGallery.not()) {
+                                qrcodeSupportScanFromGalleryTooltipState.show()
+                            }
+                        }
+                    }
+                    TooltipBox(
+                        onDismissRequest = {},
+                        positionProvider = TooltipDefaults.rememberTooltipPositionProvider(
+                            TooltipAnchorPosition.Start,
+                            spacingBetweenTooltipAndAnchor = 12.dp
+                        ),
+                        hasAction = true,
+                        tooltip = {
+                            RichTooltip(
+                                maxWidth = 200.dp, caretShape = TooltipDefaults.caretShape(
+                                    DpSize(14.dp, 7.dp)
+                                )
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center,
+                                    modifier = Modifier.padding(2.dp, 6.dp, 0.dp, 6.dp)
+                                ) {
+                                    Text(
+                                        "现在可以从相册扫描二维码了。",
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    IconButton(
+                                        onClick = {
+                                            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                                            qrcodeSupportScanFromGalleryTooltipState.dismiss()
+                                            coroutineScope.launch(Dispatchers.IO) {
+                                                context.chaoxingDataStore.updateData {
+                                                    it.toBuilder().setLearntTooltips(
+                                                        it.learntTooltips.toBuilder()
+                                                            .setQrcodeSupportScanFromGallery(
+                                                                true
+                                                            ).build()
+                                                    ).build()
+                                                }
+                                            }
+                                        },
+                                        modifier = Modifier.size(32.dp)
+                                    ) {
+                                        Icon(
+                                            painterResource(R.drawable.ic_x),
+                                            contentDescription = "关闭提示"
+                                        )
+                                    }
+                                }
+                            }
+                        }, state = qrcodeSupportScanFromGalleryTooltipState
+                    ) {
+                        FloatingActionButton(
+                            onClick = {
+                                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                                photoPickerLauncher.launch(
+                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                )
+                            },
+                        ) {
+                            Icon(
+                                painterResource(R.drawable.ic_images),
+                                contentDescription = "Scan from Gallery"
+                            )
+                        }
+                    }
+                }
                 AndroidView(
                     factory = { previewView },
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .zIndex(0f)
                 )
                 Button(
                     onClick = onClose,

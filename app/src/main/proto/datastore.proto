@@ -3,7 +3,7 @@ syntax = "proto3";
 option java_package = "org.aquamarine5.brainspark.chaoxingsignfaker.datastore";
 option java_multiple_files = true;
 
-// Copyright (c) 2025, @aquamarine5 (@海蓝色的咕咕鸽). All Rights Reserved.
+// Copyright (c) 2025-2026, @aquamarine5 (@海蓝色的咕咕鸽). All Rights Reserved.
 // Author: aquamarine5@163.com (Github: https://github.com/aquamarine5) and Brainspark (previously RenegadeCreation)
 // Repository: https://github.com/aquamarine5/ChaoxingSignFaker
 
@@ -25,6 +25,11 @@ message ChaoxingSignFakerDataStore{
   uint32 tagsIncreaseId = 16;
   repeated OtherUserTagType tagsLibrary = 15;
   LearntTooltip learntTooltips = 17;
+  Preferences preferences = 18;
+}
+
+message Preferences{
+  bool neverAskSaveFavoriteLocation = 1;
 }
 
 message ChaoxingCourseClass{
@@ -37,6 +42,7 @@ message LearntTooltip{
   bool cameraSelectedFromGallery = 2;
   bool mapSupportNormalSatelliteSwitch = 3;
   bool supportFavoriteLocation = 4;
+  bool qrcodeSupportScanFromGallery = 5;
 }
 
 message OtherUserTagType{
@@ -57,7 +63,7 @@ message ChaoxingAnalysis{
 
 message ChaoxingLocation{
   string address = 3;
-  string label=6;
+  string label = 6;
   double latitude = 4;
   double longitude = 5;
 }

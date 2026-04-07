@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, @aquamarine5 (@海蓝色的咕咕鸽). All Rights Reserved.
+ * Copyright (c) 2025-2026, @aquamarine5 (@海蓝色的咕咕鸽). All Rights Reserved.
  * Author: aquamarine5@163.com (Github: https://github.com/aquamarine5) and Brainspark (previously RenegadeCreation)
  * Repository: https://github.com/aquamarine5/ChaoxingSignFaker
  */
@@ -50,6 +50,7 @@ import com.github.ihsg.patternlocker.OnPatternChangeListener
 import com.github.ihsg.patternlocker.PatternLockerView
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.serialization.Serializable
 import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
@@ -77,7 +78,6 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingGestureSigner
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSigner
 import org.aquamarine5.brainspark.chaoxingsignfaker.snackbarReport
 import kotlin.coroutines.resume
-import kotlin.coroutines.suspendCoroutine
 
 
 @Serializable
@@ -371,7 +371,7 @@ fun GestureSignScreen(
                                         signStatus[0].loading()
                                         if (signer.sign(code)) {
                                             isCaptcha = true
-                                            suspendCoroutine { continuation ->
+                                            suspendCancellableCoroutine { continuation ->
                                                 captchaValidateParams =
                                                     signer to { captchaValue ->
                                                         captchaValue.onSuccess {
@@ -478,7 +478,7 @@ fun GestureSignScreen(
                                                     )
                                                         throw ChaoxingSigner.SignActivityNoPermissionException()
                                                     if (sign(code)) {
-                                                        suspendCoroutine { continuation ->
+                                                        suspendCancellableCoroutine { continuation ->
                                                             captchaValidateParams =
                                                                 this@apply to { captchaValidate ->
                                                                     if (captchaValidate.isSuccess) {

@@ -1,6 +1,7 @@
 <component name="CopyrightManager">
-  <settings default="aquamarine5.chaoxingsignfaker">
+  <settings>
     <module2copyright>
+      <element module="Icons" copyright="nocopyright" />
       <element module="Project Files" copyright="aquamarine5.chaoxingsignfaker" />
     </module2copyright>
   </settings>

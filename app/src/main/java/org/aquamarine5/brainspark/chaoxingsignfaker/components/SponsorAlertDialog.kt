@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, @aquamarine5 (@海蓝色的咕咕鸽). All Rights Reserved.
+ * Copyright (c) 2025-2026, @aquamarine5 (@海蓝色的咕咕鸽). All Rights Reserved.
  * Author: aquamarine5@163.com (Github: https://github.com/aquamarine5) and Brainspark (previously RenegadeCreation)
  * Repository: https://github.com/aquamarine5/ChaoxingSignFaker
  */
@@ -9,6 +9,7 @@ package org.aquamarine5.brainspark.chaoxingsignfaker.components
 import android.annotation.SuppressLint
 import android.content.ContentValues
 import android.content.Intent
+import android.graphics.BitmapFactory
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
@@ -39,9 +40,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.Font
@@ -237,7 +238,16 @@ fun SponsorAlertDialog(onDismissRequest: () -> Unit) {
         Column(
             modifier = Modifier.verticalScroll(rememberScrollState())
         ) {
-            Image(painterResource(R.drawable.img_sponsor), contentDescription = "sponsor")
+            val imageBitmap = remember {
+                runCatching {
+                    context.resources.openRawResource(R.raw.img_sponsor).use {
+                        BitmapFactory.decodeStream(it)
+                    }?.asImageBitmap()
+                }.getOrNull()
+            }
+            if (imageBitmap != null) {
+                Image(bitmap = imageBitmap, contentDescription = "sponsor")
+            }
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 "捐赠列表：",
@@ -246,7 +256,7 @@ fun SponsorAlertDialog(onDismissRequest: () -> Unit) {
                 color = MaterialTheme.colorScheme.primary
             )
             Text(
-                "如需在列表内显示完整名称，请添加备注，微信支付不会显示完整名称。捐赠列表并非实时更新，上次更新时间：$updateDate",
+                "如需在列表内显示自定义名称，请添加备注。捐赠列表并非实时更新，上次更新时间：$updateDate",
                 fontStyle = FontStyle.Italic,
                 lineHeight = 14.sp,
                 fontSize = 12.sp

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, @aquamarine5 (@海蓝色的咕咕鸽). All Rights Reserved.
+ * Copyright (c) 2025-2026, @aquamarine5 (@海蓝色的咕咕鸽). All Rights Reserved.
  * Author: aquamarine5@163.com (Github: https://github.com/aquamarine5) and Brainspark (previously RenegadeCreation)
  * Repository: https://github.com/aquamarine5/ChaoxingSignFaker
  */
@@ -94,7 +94,8 @@ inline fun CourseSignActivityColumnCard(
         }
         val formatter = remember(startTimeZoned) {
             val currentYear = java.time.LocalDate.now().year
-            val pattern = if (startTimeZoned.year != currentYear) "yyyy-MM-dd HH:mm:ss" else "MM-dd HH:mm"
+            val pattern =
+                if (startTimeZoned.year != currentYear) "yyyy-MM-dd HH:mm:ss" else "MM-dd HH:mm"
             DateTimeFormatter.ofPattern(pattern, Locale.getDefault())
         }
 

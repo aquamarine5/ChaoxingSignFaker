@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, @aquamarine5 (@海蓝色的咕咕鸽). All Rights Reserved.
+ * Copyright (c) 2025-2026, @aquamarine5 (@海蓝色的咕咕鸽). All Rights Reserved.
  * Author: aquamarine5@163.com (Github: https://github.com/aquamarine5) and Brainspark (previously RenegadeCreation)
  * Repository: https://github.com/aquamarine5/ChaoxingSignFaker
  */
@@ -11,7 +11,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     id("org.aquamarine5.brainspark.stackbricks-gradle-plugin") version "2.2.4"
     id("com.google.protobuf") version "0.9.6"
-    id "io.sentry.android.gradle" version "6.2.0"
+    id "io.sentry.android.gradle" version "6.3.0"
     id("org.jetbrains.kotlin.plugin.serialization") version "2.3.20"
 }
 
@@ -25,7 +25,7 @@ stackbricksConfig {
     possibleConfigurationPaths = [
             new PossibleConfigurationPath("cdn.aquamarine5.fun", "chaoxingsignfaker_stackbricks_v2_manifest.json")
     ]
-    changelog = "# 1.12.10 更新：\n- 优化了界面表现，修复了部分已知问题。\n\nlovely but not lonely, 20260324, @aquamarine5 Brainspark."
+    changelog = "# 1.12.11 更新：\n- 优化了界面表现，修复了部分已知问题。\n\nlovely but not lonely, 20260407, @aquamarine5 Brainspark."
     requiredManifestVersion2MigrateForceInstall = true
     forceInstallLessVersion = 1_1208_1216
     qiniuConfig {
@@ -47,8 +47,8 @@ android {
         applicationId = "org.aquamarine5.brainspark.chaoxingsignfaker"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1_1210_1215
-        versionName = "1.12.10-stable-260324"
+        versionCode = 1_1211_0407
+        versionName = "1.12.11-stable-260407"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -94,7 +94,7 @@ android {
 
 protobuf {
     protoc {
-        artifact = "com.google.protobuf:protoc:4.34.0"
+        artifact = "com.google.protobuf:protoc:4.34.1"
     }
 
     generateProtoTasks {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, @aquamarine5 (@海蓝色的咕咕鸽). All Rights Reserved.
+ * Copyright (c) 2025-2026, @aquamarine5 (@海蓝色的咕咕鸽). All Rights Reserved.
  * Author: aquamarine5@163.com (Github: https://github.com/aquamarine5) and Brainspark (previously RenegadeCreation)
  * Repository: https://github.com/aquamarine5/ChaoxingSignFaker
  */
@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.serialization.Serializable
 import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.UMengHelper
@@ -61,7 +62,6 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingLocationSigne
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSigner
 import org.aquamarine5.brainspark.chaoxingsignfaker.snackbarReport
 import kotlin.coroutines.resume
-import kotlin.coroutines.suspendCoroutine
 
 @Serializable
 data class GetLocationDestination(
@@ -103,6 +103,7 @@ fun LocationSignScreen(
     var signInfo by remember { mutableStateOf<ChaoxingLocationDetailEntity?>(null) }
     val signer = remember { ChaoxingLocationSigner(ChaoxingHttpClient.instance!!, destination) }
     var isSponsor by remember { mutableStateOf(false) }
+    var isFavoriteLocationDialog by remember { mutableStateOf(false) }
     if (isSponsor) {
         SponsorPopupDialog()
     }
@@ -247,7 +248,7 @@ fun LocationSignScreen(
                                         signStatus[0].loading()
                                         if (signer.sign(result)) {
                                             isCaptcha = true
-                                            suspendCoroutine { continuation ->
+                                            suspendCancellableCoroutine { continuation ->
                                                 captchaValidateParams =
                                                     signer to { captchaValidate ->
                                                         if (captchaValidate.isSuccess) {
@@ -363,7 +364,7 @@ fun LocationSignScreen(
                                                         throw ChaoxingSigner.SignActivityNoPermissionException()
                                                     if (sign(result)) {
                                                         isCaptcha = true
-                                                        suspendCoroutine { continuation ->
+                                                        suspendCancellableCoroutine { continuation ->
                                                             captchaValidateParams =
                                                                 this@apply to { captchaValidate ->
                                                                     if (captchaValidate.isSuccess) {

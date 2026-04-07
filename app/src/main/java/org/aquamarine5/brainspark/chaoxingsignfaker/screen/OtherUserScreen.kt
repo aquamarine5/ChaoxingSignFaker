@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, @aquamarine5 (@海蓝色的咕咕鸽). All Rights Reserved.
+ * Copyright (c) 2025-2026, @aquamarine5 (@海蓝色的咕咕鸽). All Rights Reserved.
  * Author: aquamarine5@163.com (Github: https://github.com/aquamarine5) and Brainspark (previously RenegadeCreation)
  * Repository: https://github.com/aquamarine5/ChaoxingSignFaker
  */
@@ -205,6 +205,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
             isInputDialog = false
         }, confirmButton = {
             OutlinedButton(onClick = {
+                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                 isInputDialog = false
             }) {
                 Text("关闭")
@@ -331,6 +332,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
             isTagsSettingDialog = false
         }, confirmButton = {
             OutlinedButton(onClick = {
+                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                 isTagsSettingDialog = false
             }) { Text("关闭") }
         }, icon = {
@@ -421,6 +423,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                     },
                     confirmButton = {
                         Button(onClick = {
+                            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                             coroutineScope.launch(Dispatchers.IO) {
                                 val tagId = tagsEntityList[delectTagIndexForSecondaryConfirm!!].id
                                 mutex.withLock {
@@ -455,6 +458,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                     },
                     dismissButton = {
                         OutlinedButton(onClick = {
+                            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                             delectTagIndexForSecondaryConfirm = null
                         }) {
                             Text("取消")
@@ -708,7 +712,12 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                         tint = MaterialTheme.colorScheme.primary
                     )
                 }, text = {
-                    LazyColumn {
+                    LazyColumn(
+                        modifier = Modifier.border(
+                            1.dp, MaterialTheme.colorScheme.primary,
+                            RoundedCornerShape(4.dp)
+                        )
+                    ) {
                         otherUserSessions.forEachIndexed { index, session ->
                             item {
                                 key(session.phoneNumber) {
@@ -721,6 +730,9 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                     ) {
                                         Checkbox(
                                             isSelected, onCheckedChange = {
+                                                hapticFeedback.performHapticFeedback(
+                                                    HapticFeedbackType.ContextClick
+                                                )
                                                 isSelected = it
                                                 if (it)
                                                     newTagUserIndexList.add(index)
@@ -748,6 +760,9 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                             fontWeight = FontWeight.Medium,
                                             modifier = Modifier
                                                 .clickable {
+                                                    hapticFeedback.performHapticFeedback(
+                                                        HapticFeedbackType.ContextClick
+                                                    )
                                                     isSelected = !isSelected
                                                     if (isSelected)
                                                         newTagUserIndexList.add(index)
@@ -767,6 +782,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
             Column {
                 Card(
                     onClick = {
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                         focusRequester.requestFocus()
                     },
                     shape = RoundedCornerShape(8.dp),
@@ -789,6 +805,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                 .padding(3.dp, 0.dp)
                         ) {
                             IconButton(onClick = {
+                                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                                 isSelectNewTagColorDialog = true
                             }) {
                                 Icon(
@@ -842,6 +859,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                 }
                             )
                             IconButton(onClick = {
+                                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                                 isSelectNewTagUserDialog = true
                             }) {
                                 Icon(painterResource(R.drawable.ic_user_round_cog), null)
@@ -1114,7 +1132,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                             hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
                             Toast.makeText(context, "读取剪切板失败", Toast.LENGTH_SHORT).show()
                         } else {
-                            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                            hapticFeedback.performHapticFeedback(HapticFeedbackType.Confirm)
                             inputUrl = result.toString()
                         }
                     }) {
@@ -1122,7 +1140,8 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                     }
                     FilledTonalButton(onClick = {
                         if (inputUrl.isNotBlank()) {
-                            val url = inputUrl.toHttpUrlOrNull()
+                            val url =
+                                Regex("""https?://[^\s，。、]+""").find(inputUrl)?.value?.toHttpUrlOrNull()
                             if (url == null) {
                                 hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
                                 Toast.makeText(context, "链接格式错误", Toast.LENGTH_SHORT).show()
@@ -1186,7 +1205,12 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                             type = "text/plain"
                             putExtra(
                                 Intent.EXTRA_TEXT,
-                                ChaoxingOtherUserHelper.getSharedUrl(context, importSharedEntity)
+                                "${ChaoxingHttpClient.instance!!.userEntity.name} 的用户数据链接：${
+                                    ChaoxingOtherUserHelper.getSharedUrl(
+                                        context,
+                                        importSharedEntity
+                                    )
+                                }，点击链接下载随地大小签或复制文本打开软件即可将此账号添加并为他代签。"
                             )
                             putExtra(
                                 Intent.EXTRA_TITLE,
@@ -1223,7 +1247,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                 .fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            val qrcodeSize = ChaoxingOtherUserHelper.getQRCodeDpSize(context)
+            val qrcodeSize = remember { ChaoxingOtherUserHelper.getQRCodeDpSize(context) }
             Spacer(modifier = Modifier.height(8.dp))
             Box(
                 modifier = Modifier
@@ -1507,6 +1531,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                     ReorderableColumn(list = otherUserSessions.toList(), onMove = {
                         hapticFeedback.performHapticFeedback(HapticFeedbackType.SegmentFrequentTick)
                     }, onSettle = { from, to ->
+                        snackbarHost.displaySnackbar("正在保存新顺序...", coroutineScope)
                         userTagList.add(to, userTagList.removeAt(from))
                         otherUserSessions.add(to, otherUserSessions.removeAt(from))
                         coroutineScope.launch(Dispatchers.IO) {
@@ -1773,7 +1798,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                     modifier = Modifier
                         .offset(y = Dp(resources.displayMetrics.run {
                             0.75f * heightPixels / density
-                        }))
+                        }) - 48.dp)
                         .zIndex(2f)
                         .fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally,

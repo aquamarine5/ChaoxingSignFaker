@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, @aquamarine5 (@海蓝色的咕咕鸽). All Rights Reserved.
+ * Copyright (c) 2025-2026, @aquamarine5 (@海蓝色的咕咕鸽). All Rights Reserved.
  * Author: aquamarine5@163.com (Github: https://github.com/aquamarine5) and Brainspark (previously RenegadeCreation)
  * Repository: https://github.com/aquamarine5/ChaoxingSignFaker
  */
@@ -97,6 +97,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
+import org.aquamarine5.brainspark.chaoxingsignfaker.MARKER_BUNDLE_ADDRESS
+import org.aquamarine5.brainspark.chaoxingsignfaker.MARKER_BUNDLE_LABEL
+import org.aquamarine5.brainspark.chaoxingsignfaker.MARKER_BUNDLE_TYPE
+import org.aquamarine5.brainspark.chaoxingsignfaker.MarkerBundleType
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingLocation
@@ -104,17 +108,6 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.displaySnackbar
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationDetailEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationSignEntity
 
-private const val MARKER_BUNDLE_ADDRESS = "address"
-private const val MARKER_BUNDLE_LABEL = "label"
-private const val MARKER_BUNDLE_TYPE = "type"
-
-private enum class MarkerBundleType(val value: String) {
-    LOCATION("location"), FAVORITE("favorite");
-
-    override fun toString(): String {
-        return value
-    }
-}
 
 @OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -140,7 +133,8 @@ fun GetLocationComponent(
             )
         )
         if (locationPermissionsState.allPermissionsGranted) {
-            if (!SDKInitializer.isInitialized()) {
+            val isInitialized = remember { SDKInitializer.isInitialized() }
+            if (!isInitialized) {
                 SDKInitializer.initialize(context.applicationContext)
             }
             val locationClient = remember {
@@ -154,7 +148,7 @@ fun GetLocationComponent(
                 }
             }
             var marker by remember { mutableStateOf<Marker?>(null) }
-            var isNeedLocationDescribe by remember { mutableStateOf(false) }
+            var isNeedLocationDescribe = remember { false }
             var clickedPosition by remember { mutableStateOf(LatLng(0.0, 0.0)) }
             var locationRange by remember { mutableStateOf<Int?>(null) }
             var locationPosition by remember { mutableStateOf<LatLng?>(null) }
@@ -170,13 +164,15 @@ fun GetLocationComponent(
             if (selectedLocation != null) {
                 AlertDialog(onDismissRequest = {
                     selectedLocation = null
+                }, title = {
+                    Text("设置位置 \"${selectedLocation!!.second.label}\" ")
                 }, text = {
 
                 }, confirmButton = {
                     Button(onClick = {
                         selectedLocation = null
                     }) {
-
+                        Text("关闭")
                     }
                 }, icon = {
                     Icon(
@@ -393,6 +389,24 @@ fun GetLocationComponent(
                     zoomControlsEnabled(false)
                 })
                     .apply {
+                        val setMarkerPositionOrCreate = { position: LatLng ->
+                            if (marker == null) {
+                                marker = map.addOverlay(
+                                    MarkerOptions()
+                                        .position(position)
+                                        .icon(markerPositionIcon)
+                                        .draggable(true)
+                                        .extraInfo(Bundle().apply {
+                                            putString(
+                                                MARKER_BUNDLE_TYPE,
+                                                MarkerBundleType.LOCATION.value
+                                            )
+                                        })
+                                ) as Marker
+                            } else {
+                                marker!!.position = position
+                            }
+                        }
                         isClickable = true
                         map.setMapStatus(
                             MapStatusUpdateFactory.newMapStatus(
@@ -452,23 +466,7 @@ fun GetLocationComponent(
                                             .newVersion(1)
                                             .radius(500)
                                     )
-                                    if (marker == null) {
-
-                                        marker = map.addOverlay(
-                                            MarkerOptions()
-                                                .position(it)
-                                                .icon(markerPositionIcon)
-                                                .draggable(true)
-                                                .extraInfo(Bundle().apply {
-                                                    putString(
-                                                        MARKER_BUNDLE_TYPE,
-                                                        MarkerBundleType.LOCATION.value
-                                                    )
-                                                })
-                                        ) as Marker
-                                    } else {
-                                        marker!!.position = it
-                                    }
+                                    setMarkerPositionOrCreate(it)
                                 }
                             }
 
@@ -485,22 +483,7 @@ fun GetLocationComponent(
                                             .pageSize(2)
                                             .radius(500)
                                     )
-                                    if (marker == null) {
-                                        marker = map.addOverlay(
-                                            MarkerOptions()
-                                                .position(it.position)
-                                                .draggable(true)
-                                                .icon(markerPositionIcon)
-                                                .extraInfo(Bundle().apply {
-                                                    putString(
-                                                        MARKER_BUNDLE_TYPE,
-                                                        MarkerBundleType.LOCATION.value
-                                                    )
-                                                })
-                                        ) as Marker
-                                    } else {
-                                        marker!!.position = it.position
-                                    }
+                                    setMarkerPositionOrCreate(it.position)
                                 }
                             }
                         })
@@ -528,22 +511,7 @@ fun GetLocationComponent(
                                     )
                                     lastClickedFavoriteLocationMarker?.titleOptions = TitleOptions()
                                     lastClickedFavoriteLocationMarker = favoriteMarker
-                                    if (marker == null) {
-                                        marker = map.addOverlay(
-                                            MarkerOptions()
-                                                .position(clickedPosition)
-                                                .draggable(true)
-                                                .icon(markerPositionIcon)
-                                                .extraInfo(Bundle().apply {
-                                                    putString(
-                                                        MARKER_BUNDLE_TYPE,
-                                                        MarkerBundleType.LOCATION.value
-                                                    )
-                                                })
-                                        ) as Marker
-                                    } else {
-                                        marker!!.position = clickedPosition
-                                    }
+                                    setMarkerPositionOrCreate(clickedPosition)
                                 }
                             }
                             true
@@ -588,6 +556,7 @@ fun GetLocationComponent(
                     }
             }
             LaunchedEffect(Unit) {
+                val starBitmap = BitmapDescriptorFactory.fromResource(R.drawable.ic_map_star)
                 favoriteLocations.addAll(context.chaoxingDataStore.data.first().locationsList)
                 favoriteLocations.forEach {
                     favoriteLocationMarkers.add(
@@ -595,7 +564,7 @@ fun GetLocationComponent(
                             LatLng(it.latitude, it.longitude).let { pos ->
                                 MarkerOptions()
                                     .position(pos)
-                                    .icon(BitmapDescriptorFactory.fromResource(R.drawable.ic_map_star))
+                                    .icon(starBitmap)
                                     .titleOptions(TitleOptions().text(it.label))
                                     .extraInfo(Bundle().apply {
                                         putString(
@@ -627,63 +596,68 @@ fun GetLocationComponent(
                                 favoriteLocationTooltipState.show()
                         }
                     }
-                    TooltipBox(
-                        onDismissRequest = {},
-                        positionProvider = TooltipDefaults.rememberTooltipPositionProvider(
-                            TooltipAnchorPosition.Start,
-                            spacingBetweenTooltipAndAnchor = 12.dp
-                        ),
-                        hasAction = true,
-                        tooltip = {
-                            RichTooltip(
-                                maxWidth = 200.dp, caretShape = TooltipDefaults.caretShape(
-                                    DpSize(14.dp, 7.dp)
-                                )
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.Center,
-                                    modifier = Modifier.padding(2.dp, 6.dp, 0.dp, 6.dp)
-                                ) {
-                                    Text(
-                                        "现在可以收藏常用的位置签到点位了。",
-                                        modifier = Modifier.weight(1f)
+                    if (false)
+                        TooltipBox(
+                            onDismissRequest = {},
+                            positionProvider = TooltipDefaults.rememberTooltipPositionProvider(
+                                TooltipAnchorPosition.Start,
+                                spacingBetweenTooltipAndAnchor = 12.dp
+                            ),
+                            hasAction = true,
+                            tooltip = {
+                                RichTooltip(
+                                    maxWidth = 200.dp, caretShape = TooltipDefaults.caretShape(
+                                        DpSize(14.dp, 7.dp)
                                     )
-                                    IconButton(
-                                        onClick = {
-                                            favoriteLocationTooltipState.dismiss()
-                                            coroutineScope.launch(Dispatchers.IO) {
-                                                context.chaoxingDataStore.updateData {
-                                                    it.toBuilder().setLearntTooltips(
-                                                        it.learntTooltips.toBuilder()
-                                                            .setSupportFavoriteLocation(
-                                                                true
-                                                            ).build()
-                                                    ).build()
-                                                }
-                                            }
-                                        },
-                                        modifier = Modifier.size(32.dp)
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.Center,
+                                        modifier = Modifier.padding(2.dp, 6.dp, 0.dp, 6.dp)
                                     ) {
-                                        Icon(
-                                            painterResource(R.drawable.ic_x),
-                                            contentDescription = "关闭提示"
+                                        Text(
+                                            "现在可以收藏常用的位置签到点位了。",
+                                            modifier = Modifier.weight(1f)
                                         )
+                                        IconButton(
+                                            onClick = {
+                                                hapticFeedback.performHapticFeedback(
+                                                    HapticFeedbackType.ContextClick
+                                                )
+                                                favoriteLocationTooltipState.dismiss()
+                                                coroutineScope.launch(Dispatchers.IO) {
+                                                    context.chaoxingDataStore.updateData {
+                                                        it.toBuilder().setLearntTooltips(
+                                                            it.learntTooltips.toBuilder()
+                                                                .setSupportFavoriteLocation(
+                                                                    true
+                                                                ).build()
+                                                        ).build()
+                                                    }
+                                                }
+                                            },
+                                            modifier = Modifier.size(32.dp)
+                                        ) {
+                                            Icon(
+                                                painterResource(R.drawable.ic_x),
+                                                contentDescription = "关闭提示"
+                                            )
+                                        }
                                     }
                                 }
+                            },
+                            state = favoriteLocationTooltipState,
+                        ) {
+                            FloatingActionButton(onClick = {
+                                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                                isShowFavoriteLocationDialog = true
+                            }) {
+                                Icon(
+                                    painterResource(R.drawable.ic_map_pinned),
+                                    contentDescription = null
+                                )
                             }
-                        },
-                        state = favoriteLocationTooltipState,
-                    ) {
-                        FloatingActionButton(onClick = {
-                            isShowFavoriteLocationDialog = true
-                        }) {
-                            Icon(
-                                painterResource(R.drawable.ic_map_pinned),
-                                contentDescription = null
-                            )
                         }
-                    }
                     Spacer(modifier = Modifier.height(8.dp))
                     TooltipBox(
                         onDismissRequest = {},
@@ -709,6 +683,7 @@ fun GetLocationComponent(
                                     )
                                     IconButton(
                                         onClick = {
+                                            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                                             satelliteTooltipState.dismiss()
                                             coroutineScope.launch(Dispatchers.IO) {
                                                 context.chaoxingDataStore.updateData {
@@ -735,6 +710,7 @@ fun GetLocationComponent(
                         state = satelliteTooltipState,
                     ) {
                         FloatingActionButton(onClick = {
+                            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                             mapType = if (mapType == BaiduMap.MAP_TYPE_NORMAL) {
                                 BaiduMap.MAP_TYPE_SATELLITE
                             } else {
@@ -750,6 +726,7 @@ fun GetLocationComponent(
                     }
                     Spacer(modifier = Modifier.height(8.dp))
                     FloatingActionButton(onClick = {
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                         isShowDialog = true
                     }) {
                         Icon(
@@ -759,7 +736,6 @@ fun GetLocationComponent(
                     }
                     Spacer(modifier = Modifier.height(8.dp))
                     FloatingActionButton(onClick = {
-                        Log.d("GetLocationPage", "onClick: ")
                         hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                         locationClient.start()
                     }) {
