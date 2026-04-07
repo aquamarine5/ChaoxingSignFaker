@@ -596,65 +596,68 @@ fun GetLocationComponent(
                                 favoriteLocationTooltipState.show()
                         }
                     }
-                    TooltipBox(
-                        onDismissRequest = {},
-                        positionProvider = TooltipDefaults.rememberTooltipPositionProvider(
-                            TooltipAnchorPosition.Start,
-                            spacingBetweenTooltipAndAnchor = 12.dp
-                        ),
-                        hasAction = true,
-                        tooltip = {
-                            RichTooltip(
-                                maxWidth = 200.dp, caretShape = TooltipDefaults.caretShape(
-                                    DpSize(14.dp, 7.dp)
-                                )
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.Center,
-                                    modifier = Modifier.padding(2.dp, 6.dp, 0.dp, 6.dp)
-                                ) {
-                                    Text(
-                                        "现在可以收藏常用的位置签到点位了。",
-                                        modifier = Modifier.weight(1f)
+                    if (false)
+                        TooltipBox(
+                            onDismissRequest = {},
+                            positionProvider = TooltipDefaults.rememberTooltipPositionProvider(
+                                TooltipAnchorPosition.Start,
+                                spacingBetweenTooltipAndAnchor = 12.dp
+                            ),
+                            hasAction = true,
+                            tooltip = {
+                                RichTooltip(
+                                    maxWidth = 200.dp, caretShape = TooltipDefaults.caretShape(
+                                        DpSize(14.dp, 7.dp)
                                     )
-                                    IconButton(
-                                        onClick = {
-                                            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                                            favoriteLocationTooltipState.dismiss()
-                                            coroutineScope.launch(Dispatchers.IO) {
-                                                context.chaoxingDataStore.updateData {
-                                                    it.toBuilder().setLearntTooltips(
-                                                        it.learntTooltips.toBuilder()
-                                                            .setSupportFavoriteLocation(
-                                                                true
-                                                            ).build()
-                                                    ).build()
-                                                }
-                                            }
-                                        },
-                                        modifier = Modifier.size(32.dp)
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.Center,
+                                        modifier = Modifier.padding(2.dp, 6.dp, 0.dp, 6.dp)
                                     ) {
-                                        Icon(
-                                            painterResource(R.drawable.ic_x),
-                                            contentDescription = "关闭提示"
+                                        Text(
+                                            "现在可以收藏常用的位置签到点位了。",
+                                            modifier = Modifier.weight(1f)
                                         )
+                                        IconButton(
+                                            onClick = {
+                                                hapticFeedback.performHapticFeedback(
+                                                    HapticFeedbackType.ContextClick
+                                                )
+                                                favoriteLocationTooltipState.dismiss()
+                                                coroutineScope.launch(Dispatchers.IO) {
+                                                    context.chaoxingDataStore.updateData {
+                                                        it.toBuilder().setLearntTooltips(
+                                                            it.learntTooltips.toBuilder()
+                                                                .setSupportFavoriteLocation(
+                                                                    true
+                                                                ).build()
+                                                        ).build()
+                                                    }
+                                                }
+                                            },
+                                            modifier = Modifier.size(32.dp)
+                                        ) {
+                                            Icon(
+                                                painterResource(R.drawable.ic_x),
+                                                contentDescription = "关闭提示"
+                                            )
+                                        }
                                     }
                                 }
+                            },
+                            state = favoriteLocationTooltipState,
+                        ) {
+                            FloatingActionButton(onClick = {
+                                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                                isShowFavoriteLocationDialog = true
+                            }) {
+                                Icon(
+                                    painterResource(R.drawable.ic_map_pinned),
+                                    contentDescription = null
+                                )
                             }
-                        },
-                        state = favoriteLocationTooltipState,
-                    ) {
-                        FloatingActionButton(onClick = {
-                            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                            isShowFavoriteLocationDialog = true
-                        }) {
-                            Icon(
-                                painterResource(R.drawable.ic_map_pinned),
-                                contentDescription = null
-                            )
                         }
-                    }
                     Spacer(modifier = Modifier.height(8.dp))
                     TooltipBox(
                         onDismissRequest = {},

@@ -11,6 +11,7 @@
 -->
 <data-extraction-rules>
     <cloud-backup>
+        <include domain="file" path="/datastore/."/>
         <!-- TODO: Use <include> and <exclude> to control what is backed up.
         <include .../>
         <exclude .../>
