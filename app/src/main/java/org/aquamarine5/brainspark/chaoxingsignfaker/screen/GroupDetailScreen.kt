@@ -13,7 +13,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -23,20 +22,20 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import com.hyphenate.chat.EMGroup
+import com.hyphenate.chat.EMMessage
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
-import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingIMHelper
 
 @Serializable
-object GroupListDestination
+data class GroupDetailDestination(
+    val groupId: String
+)
 
 @Composable
-fun GroupListScreen(
-    navToGroupDetail: (GroupDetailDestination) -> Unit
+fun GroupDetailScreen(
+    groupDetail: GroupDetailDestination
 ) {
     Column(
         modifier = Modifier
@@ -45,25 +44,16 @@ fun GroupListScreen(
             .verticalScroll(rememberScrollState())
     ) {
         val coroutineScope = rememberCoroutineScope()
-        val context = LocalContext.current
-        var group by remember { mutableStateOf<List<EMGroup>>(emptyList()) }
+        var messages by remember { mutableStateOf<List<EMMessage>>(emptyList()) }
         LaunchedEffect(Unit) {
             coroutineScope.launch {
-                ChaoxingIMHelper.loginIM(
-                    ChaoxingHttpClient.instance!!,
-                    context,
-                    ChaoxingIMHelper.getIMConfig(ChaoxingHttpClient.instance!!)
-                )
-                group = ChaoxingIMHelper.getIMGroups()
+                messages = ChaoxingIMHelper.getIMGroupHistoryMessages(groupDetail.groupId).data
             }
         }
-        LazyColumn() {
-            items(group) { item ->
-                Button(onClick = {
-                    navToGroupDetail(GroupDetailDestination(item.groupId))
-                }) {
-                    Text("${item.groupId} ${item.groupName} ${item.extension}")
-                }
+        LazyColumn {
+            items(messages) { message ->
+                Text(message.body.toString())
+                Text(message.ext().toString())
             }
         }
     }

@@ -19,7 +19,8 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
-
+-keep class com.hyphenate.** {*;}
+-dontwarn  com.hyphenate.**
 -keep class com.baidu.location.** {*;}
 -keep class com.baidu.** {*;}
 -keep class vi.com.** {*;}

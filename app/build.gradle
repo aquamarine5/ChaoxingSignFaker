@@ -109,6 +109,7 @@ protobuf {
 }
 
 dependencies {
+    implementation libs.hyphenate.sdk.lite
     implementation(libs.reorderable)
     implementation(libs.lbsyun.base)
     implementation libs.patternlocker

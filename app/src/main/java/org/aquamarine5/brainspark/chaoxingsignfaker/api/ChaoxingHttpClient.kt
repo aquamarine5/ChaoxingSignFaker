@@ -16,6 +16,7 @@ import okhttp3.Cookie
 import okhttp3.CookieJar
 import okhttp3.FormBody
 import okhttp3.HttpUrl
+import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.aquamarine5.brainspark.chaoxingsignfaker.ChaoxingPredictableException
@@ -54,8 +55,8 @@ class ChaoxingHttpClient private constructor(
         const val CHAOXING_USER_AGENT =
             "Dalvik/2.1.0 (Linux; U; Android 12; SM-N9006 Build/8aba9e4.0) (schild:ce31140dfcdc2fcd113ccdd86f89a9aa) (device:SM-N9006) Language/zh_CN com.chaoxing.mobile/ChaoXingStudy_3_6.5.1_android_phone_10837_265 (@Kalimdor)_68f184fd763546c1a04ab3a09b3deebb"
         private const val TRANSFER_KEY = "u2oh6Vu^HWe4_AES"
-        private const val URL_USER_INFO = "https://sso.chaoxing.com/apis/login/userLogin4Uname.do"
-        private const val URL_LOGIN = "https://passport2.chaoxing.com/fanyalogin"
+        private val URL_USER_INFO = "https://sso.chaoxing.com/apis/login/userLogin4Uname.do".toHttpUrl()
+        private val URL_LOGIN = "https://passport2.chaoxing.com/fanyalogin".toHttpUrl()
 
         var instance: ChaoxingHttpClient? = null
 

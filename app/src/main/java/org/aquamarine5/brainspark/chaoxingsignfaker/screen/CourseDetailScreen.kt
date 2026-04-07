@@ -61,7 +61,7 @@ typealias CourseDetailDestination = ChaoxingCourseEntity
 fun CourseDetailScreen(
     courseEntity: ChaoxingCourseEntity,
     navToSignerDestination: (Any) -> Unit,
-    navToListDestination: () -> Unit,
+    navToListDestination: () -> Unit
 ) {
     var activitiesData by remember { mutableStateOf<ChaoxingCourseActivitiesEntity?>(null) }
     val context = LocalContext.current

@@ -90,6 +90,10 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.screen.CourseListScreen
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.GestureSignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.GestureSignScreen
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.GetLocationDestination
+import org.aquamarine5.brainspark.chaoxingsignfaker.screen.GroupDetailDestination
+import org.aquamarine5.brainspark.chaoxingsignfaker.screen.GroupDetailScreen
+import org.aquamarine5.brainspark.chaoxingsignfaker.screen.GroupListDestination
+import org.aquamarine5.brainspark.chaoxingsignfaker.screen.GroupListScreen
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.LocationSignScreen
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.LoginDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.LoginPage
@@ -415,15 +419,31 @@ class MainActivity : ComponentActivity() {
                                                         }
                                                         restoreState = true
                                                     }
-                                                }) {
-                                                navController.navigate(LoginDestination(true)) {
+                                                }, navToLoginDestination = {navController.navigate(LoginDestination(true)) {
                                                     popUpTo<CourseListDestination> {
                                                         inclusive = true
                                                         saveState = true
                                                     }
                                                     restoreState = true
-                                                }
+                                                }}, navToGroupDestination = {
+                                                    navController.navigate(GroupListDestination) {
+                                                        popUpTo<CourseListDestination> {
+                                                            inclusive = true
+                                                            saveState = true
+                                                        }
+                                                        restoreState = true
+                                                    }
+                                                })
+                                        }
+
+                                        composable<GroupListDestination> {
+                                            GroupListScreen { destination ->
+                                                navController.navigate(destination)
                                             }
+                                        }
+
+                                        composable<GroupDetailDestination> {
+                                            GroupDetailScreen(it.toRoute())
                                         }
 
                                         composable<QRCodeSignDestination> { entry ->

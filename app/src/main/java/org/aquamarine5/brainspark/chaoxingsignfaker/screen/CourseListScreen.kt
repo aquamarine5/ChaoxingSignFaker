@@ -105,7 +105,8 @@ fun CourseListScreen(
     onNewVersionAvailable: () -> Unit,
     navToSettingDestination: () -> Unit,
     navToSignActivityDestination: (Any) -> Unit,
-    navToLoginDestination: () -> Unit
+    navToLoginDestination: () -> Unit,
+    navToGroupDestination: () -> Unit
 ) {
     val activitiesData =
         rememberSaveable(saver = ChaoxingCourseEntity.Saver) { mutableStateListOf() }
@@ -362,31 +363,33 @@ fun CourseListScreen(
                             } //TODO: Recommend
                             var debouncePreviousTime = 0L
                             LazyColumn {
-                                if (false) {
-                                    item {
-                                        OutlinedButton(
-                                            onClick = {
-
-                                            },
-                                            shape = RoundedCornerShape(18.dp),
-                                            modifier = Modifier
-                                                .fillMaxWidth()
+                                item {
+                                    OutlinedButton(
+                                        onClick = {
+                                            hapticFeedback.performHapticFeedback(
+                                                HapticFeedbackType.ContextClick
+                                            )
+                                            navToGroupDestination()
+                                        },
+                                        shape = RoundedCornerShape(18.dp),
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                    ) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.Start,
+                                            modifier = Modifier.fillMaxWidth()
                                         ) {
-                                            Row(
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.Start,
-                                                modifier = Modifier.fillMaxWidth()
-                                            ) {
-                                                Icon(
-                                                    painter = painterResource(R.drawable.ic_users_round),
-                                                    ""
-                                                )
-                                                Spacer(modifier = Modifier.width(14.dp))
-                                                Text("为群聊签到")
-                                            }
+                                            Icon(
+                                                painter = painterResource(R.drawable.ic_users_round),
+                                                ""
+                                            )
+                                            Spacer(modifier = Modifier.width(14.dp))
+                                            Text("为群聊签到")
                                         }
                                     }
-                                } // TODO: Group sign
+                                }
+
                                 items(activitiesData) { data ->
                                     key(data.classId) {
                                         CourseInfoColumnCard(

@@ -14,7 +14,6 @@ import androidx.compose.ui.res.painterResource
 import com.alibaba.fastjson2.JSONObject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Request
 import org.aquamarine5.brainspark.chaoxingsignfaker.ChaoxingPredictableException
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
@@ -76,7 +75,7 @@ object ChaoxingSignHelper {
         withContext(Dispatchers.IO) {
             ChaoxingHttpClient.instance!!.newCall(
                 Request.Builder().get().url(
-                    ChaoxingSigner.URL_SIGN_INFO.toHttpUrl().newBuilder()
+                    ChaoxingSigner.URL_SIGN_INFO.newBuilder()
                         .addQueryParameter("activeId", activeId.toString())
                         .build()
                 ).build()
