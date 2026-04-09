@@ -10,6 +10,13 @@ import android.content.Context
 import android.util.Base64
 import android.util.Log
 import com.alibaba.fastjson2.JSON
+import com.hyphenate.EMCallBack
+import com.hyphenate.chat.EMClient
+import com.hyphenate.chat.EMConversation
+import com.hyphenate.chat.EMCursorResult
+import com.hyphenate.chat.EMGroup
+import com.hyphenate.chat.EMMessage
+import com.hyphenate.chat.EMOptions
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
@@ -66,9 +73,6 @@ object ChaoxingIMHelper {
                     appKey = IM_APPKEY
                     restServer = "https://a1-vip6.easecdn.com"
 //                    setFixedHBInterval(4500)
-                    customOSPlatform = 16
-                    customDeviceName = "webim"
-                    webSocketServer = "im-api-vip6-v2.easecdn.com"
                     imPort = 443
                 })
                 conn.setDebugMode(true)
