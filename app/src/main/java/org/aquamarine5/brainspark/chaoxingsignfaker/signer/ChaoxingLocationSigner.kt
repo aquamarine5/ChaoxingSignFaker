@@ -9,7 +9,6 @@ package org.aquamarine5.brainspark.chaoxingsignfaker.signer
 import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Request
 import org.aquamarine5.brainspark.chaoxingsignfaker.ChaoxingPredictableException
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingActivityHelper.NO_SIGN_OFF_EVENT
@@ -61,7 +60,7 @@ class ChaoxingLocationSigner(
         withContext(Dispatchers.IO) {
             client.newCall(
                 Request.Builder().url(
-                    URL_SIGN.toHttpUrl().newBuilder()
+                    URL_SIGN.newBuilder()
                         .addQueryParameter("latitude", signLocation.latitude.toString())
                         .addQueryParameter("longitude", signLocation.longitude.toString())
                         .addQueryParameter("address", signLocation.address)
@@ -96,7 +95,7 @@ class ChaoxingLocationSigner(
         withContext(Dispatchers.IO) {
             client.newCall(
                 Request.Builder().url(
-                    URL_SIGN.toHttpUrl().newBuilder()
+                    URL_SIGN.newBuilder()
                         .addQueryParameter("latitude", signLocation.latitude.toString())
                         .addQueryParameter("longitude", signLocation.longitude.toString())
                         .addQueryParameter("address", signLocation.address)

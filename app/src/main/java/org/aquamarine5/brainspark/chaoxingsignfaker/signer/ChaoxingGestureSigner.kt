@@ -30,8 +30,8 @@ class ChaoxingGestureSigner(
     destination.extContent,
 ) {
     companion object {
-        const val URL_CHECK_GESTURE =
-            "https://mobilelearn.chaoxing.com/widget/sign/pcStuSignController/checkSignCode"
+        private val URL_CHECK_GESTURE =
+            "https://mobilelearn.chaoxing.com/widget/sign/pcStuSignController/checkSignCode".toHttpUrl()
     }
 
     suspend fun getGestureSignInfo(): ChaoxingSignOutEntity = withContext(Dispatchers.IO) {
@@ -51,7 +51,7 @@ class ChaoxingGestureSigner(
     suspend fun checkSignGesture(gestureOrderCode: String): Boolean = withContext(Dispatchers.IO) {
         client.newCall(
             Request.Builder().url(
-                URL_CHECK_GESTURE.toHttpUrl().newBuilder()
+                URL_CHECK_GESTURE.newBuilder()
                     .addQueryParameter("activeId", activeId.toString())
                     .addQueryParameter("signCode", gestureOrderCode)
                     .build()
@@ -65,7 +65,7 @@ class ChaoxingGestureSigner(
     suspend fun sign(gestureOrderCode: Int): Boolean = withContext(Dispatchers.IO) {
         client.newCall(
             Request.Builder().url(
-                URL_SIGN.toHttpUrl().newBuilder()
+                URL_SIGN.newBuilder()
                     .addQueryParameter("latitude", "")
                     .addQueryParameter("longitude", "")
                     .addQueryParameter("activeId", destination.activeId.toString())
@@ -100,7 +100,7 @@ class ChaoxingGestureSigner(
         withContext(Dispatchers.IO) {
             client.newCall(
                 Request.Builder().url(
-                    URL_SIGN.toHttpUrl().newBuilder()
+                    URL_SIGN.newBuilder()
                         .addQueryParameter("latitude", "")
                         .addQueryParameter("longitude", "")
                         .addQueryParameter("activeId", destination.activeId.toString())

@@ -31,8 +31,8 @@ class ChaoxingPasswordSigner(
     destination.extContent,
 ) {
     companion object {
-        const val URL_CHECK_SIGN_CODE =
-            "https://mobilelearn.chaoxing.com/widget/sign/pcStuSignController/checkSignCode"
+        private val URL_CHECK_SIGN_CODE =
+            "https://mobilelearn.chaoxing.com/widget/sign/pcStuSignController/checkSignCode".toHttpUrl()
     }
 
     override suspend fun checkAlreadySign(response: String): Boolean {
@@ -53,12 +53,12 @@ class ChaoxingPasswordSigner(
         }
     }
 
-    suspend fun checkSignCode(signCode: Int): Boolean = withContext(Dispatchers.IO) {
+    suspend fun checkSignCode(signCode: String): Boolean = withContext(Dispatchers.IO) {
         client.newCall(
             Request.Builder().url(
-                URL_CHECK_SIGN_CODE.toHttpUrl().newBuilder()
+                URL_CHECK_SIGN_CODE.newBuilder()
                     .addQueryParameter("activeId", activeId.toString())
-                    .addQueryParameter("signCode", signCode.toString())
+                    .addQueryParameter("signCode", signCode)
                     .build()
             ).build()
         ).execute().use {
@@ -71,7 +71,7 @@ class ChaoxingPasswordSigner(
     suspend fun sign(signCode: Int): Boolean = withContext(Dispatchers.IO) {
         client.newCall(
             Request.Builder().url(
-                URL_SIGN.toHttpUrl().newBuilder()
+                URL_SIGN.newBuilder()
                     .addQueryParameter("latitude", "")
                     .addQueryParameter("longitude", "")
                     .addQueryParameter("activeId", destination.activeId.toString())
@@ -106,7 +106,7 @@ class ChaoxingPasswordSigner(
         withContext(Dispatchers.IO) {
             client.newCall(
                 Request.Builder().url(
-                    URL_SIGN.toHttpUrl().newBuilder()
+                    URL_SIGN.newBuilder()
                         .addQueryParameter("latitude", "")
                         .addQueryParameter("longitude", "")
                         .addQueryParameter("activeId", destination.activeId.toString())

@@ -61,7 +61,7 @@ class ChaoxingQRCodeSigner(
         withContext(Dispatchers.IO) {
             client.newCall(
                 Request.Builder().url(
-                    URL_SIGN.toHttpUrl().newBuilder()
+                    URL_SIGN.newBuilder()
                         .addQueryParameter("enc", enc)
                         .addQueryParameter("latitude", "-1")
                         .addQueryParameter("longitude", "-1")
@@ -109,7 +109,7 @@ class ChaoxingQRCodeSigner(
         withContext(Dispatchers.IO) {
             client.newCall(
                 Request.Builder().url(
-                    URL_SIGN.toHttpUrl().newBuilder()
+                    URL_SIGN.newBuilder()
                         .addQueryParameter("enc", enc)
                         .addQueryParameter("latitude", "-1")
                         .addQueryParameter("longitude", "-1")

@@ -53,7 +53,7 @@ class ChaoxingPhotoSigner(
 
     companion object {
         const val CLASSTAG = "ChaoxingPhotoSigner"
-        const val URL_CLOUD_TOKEN = "https://pan-yz.chaoxing.com/api/token/uservalid"
+        val URL_CLOUD_TOKEN = "https://pan-yz.chaoxing.com/api/token/uservalid".toHttpUrl()
         const val URL_CLOUD_UPLOAD = "https://pan-yz.chaoxing.com/upload?_from=mobilelearn&_token="
     }
 
@@ -85,7 +85,7 @@ class ChaoxingPhotoSigner(
     suspend fun signByClick(): Boolean = withContext(Dispatchers.IO) {
         client.newCall(
             Request.Builder().url(
-                URL_SIGN.toHttpUrl().newBuilder()
+                URL_SIGN.newBuilder()
                     .addQueryParameter("activeId", photoActivityEntity.activeId.toString())
                     .addQueryParameter("uid", client.userEntity.puid.toString())
                     .addQueryParameter("name", client.userEntity.name)
@@ -115,7 +115,7 @@ class ChaoxingPhotoSigner(
         withContext(Dispatchers.IO) {
             client.newCall(
                 Request.Builder().url(
-                    URL_SIGN.toHttpUrl().newBuilder()
+                    URL_SIGN.newBuilder()
                         .addQueryParameter("objectId", objectId)
                         .addQueryParameter("activeId", photoActivityEntity.activeId.toString())
                         .addQueryParameter("uid", client.userEntity.puid.toString())
@@ -145,7 +145,7 @@ class ChaoxingPhotoSigner(
     suspend fun signByClickWithCaptcha(validateValue: String) = withContext(Dispatchers.IO) {
         client.newCall(
             Request.Builder().url(
-                URL_SIGN.toHttpUrl().newBuilder()
+                URL_SIGN.newBuilder()
                     .addQueryParameter("activeId", photoActivityEntity.activeId.toString())
                     .addQueryParameter("uid", client.userEntity.puid.toString())
                     .addQueryParameter("name", client.userEntity.name)
@@ -173,7 +173,7 @@ class ChaoxingPhotoSigner(
         withContext(Dispatchers.IO) {
             client.newCall(
                 Request.Builder().url(
-                    URL_SIGN.toHttpUrl().newBuilder()
+                    URL_SIGN.newBuilder()
                         .addQueryParameter("objectId", objectId)
                         .addQueryParameter("activeId", photoActivityEntity.activeId.toString())
                         .addQueryParameter("uid", client.userEntity.puid.toString())

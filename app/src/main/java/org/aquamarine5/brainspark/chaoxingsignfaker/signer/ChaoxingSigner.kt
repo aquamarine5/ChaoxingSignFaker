@@ -39,21 +39,22 @@ abstract class ChaoxingSigner(
     val extContent: String
 ) {
     companion object {
-        const val URL_PERSIGN =
-            "https://mobilelearn.chaoxing.com/newsign/preSign?&general=1&sys=1&ls=1&appType=15&isTeacherViewOpen=0"
-        const val URL_SIGN_INFO =
-            "https://mobilelearn.chaoxing.com/v2/apis/active/getPPTActiveInfo"
-        const val URL_ANALYSIS =
-            "https://mobilelearn.chaoxing.com/pptSign/analysis?vs=1&DB_STRATEGY=RANDOM"
-        const val URL_AFTER_ANALYSIS2 =
-            "https://mobilelearn.chaoxing.com/pptSign/analysis2?DB_STRATEGY=RANDOM"
-        const val URL_CAPTCHA_CONF =
-            "https://captcha.chaoxing.com/captcha/get/conf?callback=cx_captcha_function"
-        const val URL_CAPTCHA_RESULT =
-            "https://captcha.chaoxing.com/captcha/check/verification/result?callback=cx_captcha_function"
-        const val URL_CAPTCHA_IMAGE = "https://captcha.chaoxing.com/captcha/get/verification/image"
-        const val URL_SIGN =
-            "https://mobilelearn.chaoxing.com/pptSign/stuSignajax?&clientip=&appType=15&ifTiJiao=1&vpProbability=-1&vpStrategy="
+        val URL_PERSIGN =
+            "https://mobilelearn.chaoxing.com/newsign/preSign?&general=1&sys=1&ls=1&appType=15&isTeacherViewOpen=0".toHttpUrl()
+        val URL_SIGN_INFO =
+            "https://mobilelearn.chaoxing.com/v2/apis/active/getPPTActiveInfo".toHttpUrl()
+        val URL_ANALYSIS =
+            "https://mobilelearn.chaoxing.com/pptSign/analysis?vs=1&DB_STRATEGY=RANDOM".toHttpUrl()
+        val URL_AFTER_ANALYSIS2 =
+            "https://mobilelearn.chaoxing.com/pptSign/analysis2?DB_STRATEGY=RANDOM".toHttpUrl()
+        val URL_CAPTCHA_CONF =
+            "https://captcha.chaoxing.com/captcha/get/conf?callback=cx_captcha_function".toHttpUrl()
+        val URL_CAPTCHA_RESULT =
+            "https://captcha.chaoxing.com/captcha/check/verification/result?callback=cx_captcha_function".toHttpUrl()
+        val URL_CAPTCHA_IMAGE =
+            "https://captcha.chaoxing.com/captcha/get/verification/image".toHttpUrl()
+        val URL_SIGN =
+            "https://mobilelearn.chaoxing.com/pptSign/stuSignajax?&clientip=&appType=15&ifTiJiao=1&vpProbability=-1&vpStrategy=".toHttpUrl()
     }
 
     class SignAlreadyEndedException : ChaoxingPredictableException("迟到或签到已结束")
@@ -76,7 +77,7 @@ abstract class ChaoxingSigner(
     open suspend fun getSignInfo(): JSONObject = withContext(Dispatchers.IO) {
         client.newCall(
             Request.Builder().get().url(
-                URL_SIGN_INFO.toHttpUrl().newBuilder()
+                URL_SIGN_INFO.newBuilder()
                     .addQueryParameter("activeId", activeId.toString())
                     .build()
             ).build()
@@ -91,7 +92,7 @@ abstract class ChaoxingSigner(
             Request.Builder().post(
                 FormBody.Builder().addEncoded("ext", extContent).build()
             ).url(
-                URL_PERSIGN.toHttpUrl().newBuilder()
+                URL_PERSIGN.newBuilder()
                     .addQueryParameter("courseId", courseId.toString())
                     .addQueryParameter("classId", classId.toString())
                     .addQueryParameter("activePrimaryId", activeId.toString())
@@ -112,7 +113,7 @@ abstract class ChaoxingSigner(
     open suspend fun postAnalysis() = withContext(Dispatchers.IO) {
         client.newCall(
             Request.Builder().get().url(
-                URL_ANALYSIS.toHttpUrl().newBuilder()
+                URL_ANALYSIS.newBuilder()
                     .addQueryParameter("aid", activeId.toString()).build()
             ).build()
         ).execute().use {
@@ -128,7 +129,7 @@ abstract class ChaoxingSigner(
     open suspend fun postAfterAnalysis(code: String) = withContext(Dispatchers.IO) {
         client.newCall(
             Request.Builder().get().url(
-                URL_AFTER_ANALYSIS2.toHttpUrl().newBuilder()
+                URL_AFTER_ANALYSIS2.newBuilder()
                     .addQueryParameter("code", code)
                     .build()
             ).build()
@@ -143,7 +144,7 @@ abstract class ChaoxingSigner(
     ): String? = withContext(Dispatchers.IO) {
         client.newCall(
             Request.Builder().get().url(
-                URL_CAPTCHA_RESULT.toHttpUrl().newBuilder()
+                URL_CAPTCHA_RESULT.newBuilder()
                     .addQueryParameter("captchaId", dataEntity.captchaId)
                     .addQueryParameter("type", dataEntity.type)
                     .addQueryParameter("token", dataEntity.token)
@@ -156,7 +157,7 @@ abstract class ChaoxingSigner(
                     .addQueryParameter("_", System.currentTimeMillis().toString())
                     .build()
             ).header(
-                "Referer", URL_PERSIGN.toHttpUrl().newBuilder()
+                "Referer", URL_PERSIGN.newBuilder()
                     .addQueryParameter("courseId", courseId.toString())
                     .addQueryParameter("classId", classId.toString())
                     .addQueryParameter("activePrimaryId", activeId.toString())
@@ -184,7 +185,7 @@ abstract class ChaoxingSigner(
     open suspend fun getCaptchaConf(): Long = withContext(Dispatchers.IO) {
         client.newCall(
             Request.Builder().get().url(
-                URL_CAPTCHA_CONF.toHttpUrl().newBuilder()
+                URL_CAPTCHA_CONF.newBuilder()
                     .addQueryParameter("captchaId", getCaptchaId())
                     .addQueryParameter("_", System.currentTimeMillis().toString()).build()
             ).build()
@@ -204,7 +205,7 @@ abstract class ChaoxingSigner(
         getCaptchaData(context) {
             client.newCall(
                 Request.Builder().get().url(it).header(
-                    "Referer", URL_PERSIGN.toHttpUrl().newBuilder()
+                    "Referer", URL_PERSIGN.newBuilder()
                         .addQueryParameter("courseId", courseId.toString())
                         .addQueryParameter("classId", classId.toString())
                         .addQueryParameter("activePrimaryId", activeId.toString())
@@ -277,7 +278,7 @@ abstract class ChaoxingSigner(
                         }
                     }
                     webview?.loadUrl(
-                        URL_PERSIGN.toHttpUrl().newBuilder()
+                        URL_PERSIGN.newBuilder()
                             .addQueryParameter("courseId", courseId.toString())
                             .addQueryParameter("classId", classId.toString())
                             .addQueryParameter("activePrimaryId", activeId.toString())
@@ -309,7 +310,7 @@ abstract class ChaoxingSigner(
         val token = UMengHelper.md5("$t${getCaptchaId()}$type$captchaKey") + ":${t + 300000L}"
         client.newCall(
             Request.Builder().get().url(
-                URL_CAPTCHA_IMAGE.toHttpUrl().newBuilder()
+                URL_CAPTCHA_IMAGE.newBuilder()
                     .addQueryParameter("callback", "cx_captcha_function")
                     .addQueryParameter("captchaId", getCaptchaId())
                     .addQueryParameter("type", "slide")
@@ -317,7 +318,7 @@ abstract class ChaoxingSigner(
                     .addQueryParameter("captchaKey", captchaKey)
                     .addQueryParameter("token", token)
                     .addQueryParameter(
-                        "referer", URL_PERSIGN.toHttpUrl().newBuilder()
+                        "referer", URL_PERSIGN.newBuilder()
                             .addQueryParameter("courseId", courseId.toString())
                             .addQueryParameter("classId", classId.toString())
                             .addQueryParameter("activePrimaryId", activeId.toString())

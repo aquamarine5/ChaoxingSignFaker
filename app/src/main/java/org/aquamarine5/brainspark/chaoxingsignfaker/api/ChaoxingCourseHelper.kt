@@ -17,18 +17,18 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.checkResponse
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCourseEntity
 
 object ChaoxingCourseHelper {
-    private const val URL_COURSE_LIST =
-        "https://mooc1-api.chaoxing.com/mycourse/backclazzdata?view=json&rss=1"
+    private val URL_COURSE_LIST =
+        "https://mooc1-api.chaoxing.com/mycourse/backclazzdata?view=json&rss=1".toHttpUrl()
 
-    private const val URL_COURSE_QUERY_NAME =
-        "https://mooc1-api.chaoxing.com/gas/clazz?fields=name&view=json"
+    private val URL_COURSE_QUERY_NAME =
+        "https://mooc1-api.chaoxing.com/gas/clazz?fields=name&view=json".toHttpUrl()
 
     suspend fun queryClassName(client: ChaoxingHttpClient, classId: Int): String = withContext(
         Dispatchers.IO
     ) {
         client.newCall(
             Request.Builder().get().url(
-                URL_COURSE_QUERY_NAME.toHttpUrl().newBuilder()
+                URL_COURSE_QUERY_NAME.newBuilder()
                     .addQueryParameter("id", classId.toString()).build()
             ).build()
         ).execute().use {

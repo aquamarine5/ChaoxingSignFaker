@@ -16,8 +16,8 @@ import okhttp3.Request
 import org.aquamarine5.brainspark.chaoxingsignfaker.checkResponse
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCourseActivitiesEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCourseEntity
-import org.aquamarine5.brainspark.chaoxingsignfaker.entity.RecommendActivityEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.RecommendActivityEntity
 
 object ChaoxingActivityHelper {
     enum class SignRedirectStatus {
@@ -27,8 +27,8 @@ object ChaoxingActivityHelper {
         SIGN_IN_UNPUBLISHED
     }
 
-    private const val URL_ACTIVITY_LOAD =
-        "https://mobilelearn.chaoxing.com/v2/apis/active/student/activelist?fid=0&showNotStartedActive=0"
+    private val URL_ACTIVITY_LOAD =
+        "https://mobilelearn.chaoxing.com/v2/apis/active/student/activelist?fid=0&showNotStartedActive=0".toHttpUrl()
 
     const val NO_SIGN_OFF_EVENT = 4999L
 
@@ -43,7 +43,7 @@ object ChaoxingActivityHelper {
     ): RecommendActivityEntity? = withContext(Dispatchers.IO) {
         client.newCall(
             Request.Builder().get().url(
-                URL_ACTIVITY_LOAD.toHttpUrl().newBuilder()
+                URL_ACTIVITY_LOAD.newBuilder()
                     .addQueryParameter("courseId", courseId.toString())
                     .addQueryParameter("classId", classId.toString())
                     .build()
@@ -86,7 +86,7 @@ object ChaoxingActivityHelper {
         withContext(Dispatchers.IO) {
             client.newCall(
                 Request.Builder().get().url(
-                    URL_ACTIVITY_LOAD.toHttpUrl().newBuilder()
+                    URL_ACTIVITY_LOAD.newBuilder()
                         .addQueryParameter("courseId", course.courseId.toString())
                         .addQueryParameter("classId", course.classId.toString())
                         .build()

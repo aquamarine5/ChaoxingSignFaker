@@ -237,8 +237,10 @@ fun PasswordSignScreen(
                                 var isCheckingStatus by remember { mutableStateOf<Boolean?>(null) }
                                 LaunchedEffect(isCheckingStatus) {
                                     delay(1000L)
-                                    if (isCheckingStatus == false)
+                                    if (isCheckingStatus == false){
                                         isCheckingStatus = null
+                                        text=""
+                                    }
                                 }
                                 Column {
                                     Text(
@@ -260,7 +262,7 @@ fun PasswordSignScreen(
                                                     if (newText.length == numberCount) {
                                                         coroutineScope.launch {
                                                             runCatching {
-                                                                signer.checkSignCode(text.toInt())
+                                                                signer.checkSignCode(text)
                                                                     .let {
                                                                         isCheckingSuccess = it
                                                                         if (it) {
@@ -313,7 +315,8 @@ fun PasswordSignScreen(
                                                         key(i) {
                                                             val codeState by remember(
                                                                 isCheckingStatus,
-                                                                i
+                                                                i,
+                                                                text
                                                             ) {
                                                                 mutableStateOf(
                                                                     when {
