@@ -7,6 +7,7 @@
 package org.aquamarine5.brainspark.chaoxingsignfaker.api
 
 import android.content.Context
+import android.util.Log
 import com.hyphenate.EMCallBack
 import com.hyphenate.chat.EMClient
 import com.hyphenate.chat.EMConversation
@@ -15,6 +16,7 @@ import com.hyphenate.chat.EMGroup
 import com.hyphenate.chat.EMMessage
 import com.hyphenate.chat.EMOptions
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Request
@@ -33,7 +35,6 @@ object ChaoxingIMHelper {
             httpClient.newCall(Request.Builder().url(URL_IM_ME).build()).execute().use { response ->
                 val responseBody = response.body.string()
 
-                // 通用提取函数
                 fun extractSpan(id: String): String {
                     runCatching {
                         return """<span\s+id="$id"[^>]*>(.*?)</span>""".toRegex(RegexOption.DOT_MATCHES_ALL)
@@ -42,12 +43,12 @@ object ChaoxingIMHelper {
                 }
 
                 val tuid = extractSpan("myTuid")
-                val img = extractSpan("myImg")
+//                val img = extractSpan("myImg")
                 val name = extractSpan("myName")
                 val token = extractSpan("myToken")
                 val puid = extractSpan("myPuid")
                 val fid = extractSpan("myFid")
-                return@use ChaoxingIMConfig(tuid, img, name, token, puid, fid)
+                return@use ChaoxingIMConfig("", name, token, tuid, puid, fid)
             }
         }
     }
@@ -57,18 +58,24 @@ object ChaoxingIMHelper {
         context: Context,
         imConfig: ChaoxingIMConfig
     ) {
-        withContext(Dispatchers.IO) {
+        suspendCancellableCoroutine { continuation ->
             EMClient.getInstance().let { conn ->
                 conn.init(context, EMOptions().apply {
-                    autoLogin = true
+//                    enableDNSConfig(false)
+//                    autoLogin = true
                     usingHttpsOnly = true
                     appKey = IM_APPKEY
                     restServer = "https://a1-vip6.easecdn.com"
-                    setIMServer("https://im-api-vip6-v2.easecdn.com/ws")
+                    setFixedHBInterval(4500)
+                    setIMServer("im-api-vip6-v2.easecdn.com")
+                    imPort=443
                 })
-                conn.loginWithToken(imConfig.imTuid,imConfig.imToken, object : EMCallBack {
+                conn.setDebugMode(true)
+                Log.d("ChaoxingIMHelper", "开始IM登录，用户ID: ${imConfig.imTuid}, 用户名: ${imConfig.imName}, Token: ${imConfig.imToken}")
+                conn.loginWithToken(imConfig.imTuid, imConfig.imToken, object : EMCallBack {
                     override fun onSuccess() {
-                        // 登录成功
+                        Log.d("ChaoxingIMHelper", "IM登录成功，用户ID: ${conn.currentUser}")
+                        continuation.resumeWith(Result.success(Unit))
                     }
 
                     override fun onError(code: Int, error: String?) {
@@ -81,12 +88,14 @@ object ChaoxingIMHelper {
                 })
             }
         }
+
+
     }
 
     suspend fun getIMGroups(
     ): List<EMGroup> {
         return withContext(Dispatchers.IO) {
-            EMClient.getInstance().groupManager().joinedGroupsFromServer
+            EMClient.getInstance().groupManager().getJoinedGroupsFromServer()
         }
     }
 
@@ -97,7 +106,12 @@ object ChaoxingIMHelper {
     ): EMCursorResult<EMMessage> {
         return withContext(Dispatchers.IO) {
             EMClient.getInstance().chatManager()
-                .fetchHistoryMessages(groupId, EMConversation.EMConversationType.GroupChat,pageSize,lastMessageId)
+                .fetchHistoryMessages(
+                    groupId,
+                    EMConversation.EMConversationType.GroupChat,
+                    pageSize,
+                    lastMessageId
+                )
         }
     }
 }

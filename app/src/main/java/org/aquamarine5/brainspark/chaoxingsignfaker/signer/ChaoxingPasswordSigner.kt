@@ -53,12 +53,12 @@ class ChaoxingPasswordSigner(
         }
     }
 
-    suspend fun checkSignCode(signCode: Int): Boolean = withContext(Dispatchers.IO) {
+    suspend fun checkSignCode(signCode: String): Boolean = withContext(Dispatchers.IO) {
         client.newCall(
             Request.Builder().url(
                 URL_CHECK_SIGN_CODE.newBuilder()
                     .addQueryParameter("activeId", activeId.toString())
-                    .addQueryParameter("signCode", signCode.toString())
+                    .addQueryParameter("signCode", signCode)
                     .build()
             ).build()
         ).execute().use {

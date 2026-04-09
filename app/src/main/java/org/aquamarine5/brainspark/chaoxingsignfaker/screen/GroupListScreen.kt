@@ -11,8 +11,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -42,7 +40,6 @@ fun GroupListScreen(
         modifier = Modifier
             .padding(16.dp, 16.dp, 16.dp, 0.dp)
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
     ) {
         val coroutineScope = rememberCoroutineScope()
         val context = LocalContext.current
@@ -62,7 +59,7 @@ fun GroupListScreen(
                 Button(onClick = {
                     navToGroupDetail(GroupDetailDestination(item.groupId))
                 }) {
-                    Text("${item.groupId} ${item.groupName} ${item.extension}")
+                    Text("${item.groupId} ${item.groupName}")
                 }
             }
         }

@@ -11,8 +11,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -26,7 +24,6 @@ import androidx.compose.ui.unit.dp
 import com.hyphenate.chat.EMMessage
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
-import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingIMHelper
 
 @Serializable
 data class GroupDetailDestination(
@@ -41,13 +38,13 @@ fun GroupDetailScreen(
         modifier = Modifier
             .padding(16.dp, 16.dp, 16.dp, 0.dp)
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
+//            .verticalScroll(rememberScrollState())
     ) {
         val coroutineScope = rememberCoroutineScope()
         var messages by remember { mutableStateOf<List<EMMessage>>(emptyList()) }
         LaunchedEffect(Unit) {
             coroutineScope.launch {
-                messages = ChaoxingIMHelper.getIMGroupHistoryMessages(groupDetail.groupId).data
+//                messages = ChaoxingIMHelper.getIMGroupHistoryMessages(groupDetail.groupId).data
             }
         }
         LazyColumn {
