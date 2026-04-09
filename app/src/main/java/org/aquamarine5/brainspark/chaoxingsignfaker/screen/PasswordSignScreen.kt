@@ -315,7 +315,8 @@ fun PasswordSignScreen(
                                                         key(i) {
                                                             val codeState by remember(
                                                                 isCheckingStatus,
-                                                                i
+                                                                i,
+                                                                text
                                                             ) {
                                                                 mutableStateOf(
                                                                     when {
