@@ -103,6 +103,7 @@ fun CameraComponent(
     pictureCount: Int = 1,
     content: @Composable (() -> Unit)? = null,
     onNextPhoto: (() -> Unit)? = null,
+    isDefaultBackCamera: Boolean = true,
     onPictureResult: (List<Bitmap>) -> Unit
 ) {
     val cameraPermission = rememberPermissionState(android.Manifest.permission.CAMERA)
@@ -133,7 +134,7 @@ fun CameraComponent(
                     }
                 }
             }
-            var isBackCamera = remember { true }
+            var isBackCamera = remember { isDefaultBackCamera }
             val lifecycleOwner = LocalLifecycleOwner.current
             val photoList = remember { mutableListOf<Bitmap>() }
             var needTakePictureCount by remember { mutableIntStateOf(pictureCount) }
@@ -143,7 +144,7 @@ fun CameraComponent(
                     preview.surfaceProvider = previewView.surfaceProvider
                     cameraProvider.bindToLifecycle(
                         lifecycleOwner,
-                        CameraSelector.DEFAULT_BACK_CAMERA,
+                        if (isDefaultBackCamera) CameraSelector.DEFAULT_BACK_CAMERA else CameraSelector.DEFAULT_FRONT_CAMERA,
                         preview,
                         imageCapture
                     )

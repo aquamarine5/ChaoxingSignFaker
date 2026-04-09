@@ -7,19 +7,16 @@
 package org.aquamarine5.brainspark.chaoxingsignfaker.api
 
 import android.content.Context
+import android.util.Base64
 import android.util.Log
-import com.hyphenate.EMCallBack
-import com.hyphenate.chat.EMClient
-import com.hyphenate.chat.EMConversation
-import com.hyphenate.chat.EMCursorResult
-import com.hyphenate.chat.EMGroup
-import com.hyphenate.chat.EMMessage
-import com.hyphenate.chat.EMOptions
+import com.alibaba.fastjson2.JSON
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Request
+import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.easemob.MessageBody
+import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.easemob.Meta
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingIMConfig
 
 object ChaoxingIMHelper {
@@ -28,6 +25,8 @@ object ChaoxingIMHelper {
 
     val URL_IM_ME = "https://im.chaoxing.com/webim/me".toHttpUrl()
 
+    const val URL_MESSAGE_ROAMING =
+        "https://a1-vip6.easecdn.com/cx-dev/cxstudy/users/%d/messageroaming"
     const val IM_APPKEY = "cx-dev#cxstudy"
 
     suspend fun getIMConfig(httpClient: ChaoxingHttpClient): ChaoxingIMConfig {
@@ -66,12 +65,17 @@ object ChaoxingIMHelper {
                     usingHttpsOnly = true
                     appKey = IM_APPKEY
                     restServer = "https://a1-vip6.easecdn.com"
-                    setFixedHBInterval(4500)
-                    setIMServer("im-api-vip6-v2.easecdn.com")
-                    imPort=443
+//                    setFixedHBInterval(4500)
+                    customOSPlatform = 16
+                    customDeviceName = "webim"
+                    webSocketServer = "im-api-vip6-v2.easecdn.com"
+                    imPort = 443
                 })
                 conn.setDebugMode(true)
-                Log.d("ChaoxingIMHelper", "开始IM登录，用户ID: ${imConfig.imTuid}, 用户名: ${imConfig.imName}, Token: ${imConfig.imToken}")
+                Log.d(
+                    "ChaoxingIMHelper",
+                    "开始IM登录，用户ID: ${imConfig.imTuid}, 用户名: ${imConfig.imName}, Token: ${imConfig.imToken}"
+                )
                 conn.loginWithToken(imConfig.imTuid, imConfig.imToken, object : EMCallBack {
                     override fun onSuccess() {
                         Log.d("ChaoxingIMHelper", "IM登录成功，用户ID: ${conn.currentUser}")
@@ -96,6 +100,40 @@ object ChaoxingIMHelper {
     ): List<EMGroup> {
         return withContext(Dispatchers.IO) {
             EMClient.getInstance().groupManager().getJoinedGroupsFromServer()
+        }
+    }
+
+    suspend fun fetchIMHistoryMessages(
+        conversationId: String,
+        httpClient: ChaoxingHttpClient,
+        imConfig: ChaoxingIMConfig
+    ): List<MessageBody> {
+        return withContext(Dispatchers.IO) {
+            httpClient.newCall(
+                Request.Builder().get().url(URL_MESSAGE_ROAMING.format(imConfig.imTuid)).build()
+            ).execute().use { response ->
+                val responseBody = response.body.string() ?: return@use emptyList()
+                val json = JSON.parseObject(responseBody)
+                val data = json.getJSONObject("data")
+                val msgs = data.getJSONArray("msgs")
+                val resultList = mutableListOf<MessageBody>()
+
+                for (i in 0 until msgs.size) {
+                    val msgObj = msgs.getJSONObject(i)
+                    val msgStr = msgObj.getString("msg")
+
+                    val msgBytes = Base64.decode(msgStr, Base64.DEFAULT)
+                    val meta = Meta.parseFrom(msgBytes)
+
+                    val field6Str = meta.field6.toStringUtf8()
+                    val field6Bytes = Base64.decode(field6Str, Base64.DEFAULT)
+                    val messageBody = MessageBody.parseFrom(field6Bytes)
+
+                    resultList.add(messageBody)
+                }
+
+                return@use resultList
+            }
         }
     }
 

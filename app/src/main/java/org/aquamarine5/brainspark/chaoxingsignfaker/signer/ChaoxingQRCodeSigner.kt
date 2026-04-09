@@ -24,13 +24,15 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.screen.QRCodeSignDestination
 
 class ChaoxingQRCodeSigner(
     client: ChaoxingHttpClient,
-    qrCodeActivityEntity: QRCodeSignDestination
+    qrCodeActivityEntity: QRCodeSignDestination,
+    baseSignInfo: JSONObject? =null
 ) : ChaoxingSigner(
     client,
     qrCodeActivityEntity.activeId,
     qrCodeActivityEntity.classId,
     qrCodeActivityEntity.courseId,
-    qrCodeActivityEntity.extContent
+    qrCodeActivityEntity.extContent,
+    baseSignInfo
 ) {
     companion object {
         const val CLASSTAG = "ChaoxingQRCodeSigner"
@@ -107,6 +109,7 @@ class ChaoxingQRCodeSigner(
 
     suspend fun sign(enc: String, position: ChaoxingLocationSignEntity?): Boolean =
         withContext(Dispatchers.IO) {
+            if (isCaptchaRequired()) return@withContext true
             client.newCall(
                 Request.Builder().url(
                     URL_SIGN.newBuilder()

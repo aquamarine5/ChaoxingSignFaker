@@ -21,13 +21,16 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingLocationSigne
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingLocationSigner.Companion.CLASSTAG
 
 class ChaoxingGestureSigner(
-    client: ChaoxingHttpClient, private val destination: GestureSignDestination
+    client: ChaoxingHttpClient,
+    private val destination: GestureSignDestination,
+    baseSignInfo: JSONObject? = null
 ) : ChaoxingSigner(
     client,
     destination.activeId,
     destination.classId,
     destination.courseId,
     destination.extContent,
+    baseSignInfo
 ) {
     companion object {
         private val URL_CHECK_GESTURE =
@@ -63,6 +66,7 @@ class ChaoxingGestureSigner(
     }
 
     suspend fun sign(gestureOrderCode: Int): Boolean = withContext(Dispatchers.IO) {
+        if (isCaptchaRequired()) return@withContext true
         client.newCall(
             Request.Builder().url(
                 URL_SIGN.newBuilder()

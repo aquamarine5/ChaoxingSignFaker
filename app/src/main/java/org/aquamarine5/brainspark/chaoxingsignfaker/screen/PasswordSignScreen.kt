@@ -237,9 +237,9 @@ fun PasswordSignScreen(
                                 var isCheckingStatus by remember { mutableStateOf<Boolean?>(null) }
                                 LaunchedEffect(isCheckingStatus) {
                                     delay(1000L)
-                                    if (isCheckingStatus == false){
+                                    if (isCheckingStatus == false) {
                                         isCheckingStatus = null
-                                        text=""
+                                        text = ""
                                     }
                                 }
                                 Column {
@@ -518,7 +518,11 @@ fun PasswordSignScreen(
                                             session,
                                             context
                                         ).also { client ->
-                                            ChaoxingPasswordSigner(client, destination).apply {
+                                            ChaoxingPasswordSigner(
+                                                client,
+                                                destination,
+                                                signer.getSignInfo()
+                                            ).apply {
                                                 if (preSign()) {
                                                     throw ChaoxingSigner.AlreadySignedException()
                                                 } else {

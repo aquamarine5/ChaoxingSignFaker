@@ -7,6 +7,7 @@
 package org.aquamarine5.brainspark.chaoxingsignfaker.signer
 
 import android.util.Log
+import com.alibaba.fastjson2.JSONObject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.Request
@@ -21,13 +22,15 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.screen.GetLocationDestinatio
 
 class ChaoxingLocationSigner(
     client: ChaoxingHttpClient,
-    private val destination: GetLocationDestination
+    private val destination: GetLocationDestination,
+    baseSignInfo: JSONObject? = null
 ) : ChaoxingSigner(
     client,
     destination.activeId,
     destination.classId,
     destination.courseId,
     destination.extContent,
+    baseSignInfo
 ) {
 
     companion object {
@@ -56,8 +59,10 @@ class ChaoxingLocationSigner(
 
     suspend fun sign(
         signLocation: ChaoxingLocationSignEntity,
+        faceImageObjectId: String? = null
     ): Boolean =
         withContext(Dispatchers.IO) {
+            if (isCaptchaRequired()) return@withContext true
             client.newCall(
                 Request.Builder().url(
                     URL_SIGN.newBuilder()
@@ -69,6 +74,12 @@ class ChaoxingLocationSigner(
                         .addQueryParameter("name", client.userEntity.name)
                         .addQueryParameter("fid", client.userEntity.fid.toString())
                         .addQueryParameter("deviceCode", client.deviceCode)
+                        .apply {
+                            if (faceImageObjectId != null) {
+                                addQueryParameter("currentFaceId", faceImageObjectId)
+                                addQueryParameter("ifCFP", "0")
+                            }
+                        }
                         .build()
                 ).get().build()
             ).execute().use {
@@ -91,7 +102,11 @@ class ChaoxingLocationSigner(
             }
         }
 
-    suspend fun signWithCaptcha(signLocation: ChaoxingLocationSignEntity, validateValue: String) =
+    suspend fun signWithCaptcha(
+        signLocation: ChaoxingLocationSignEntity,
+        validateValue: String,
+        faceImageObjectId: String? = null
+    ) =
         withContext(Dispatchers.IO) {
             client.newCall(
                 Request.Builder().url(
@@ -105,6 +120,12 @@ class ChaoxingLocationSigner(
                         .addQueryParameter("fid", client.userEntity.fid.toString())
                         .addQueryParameter("deviceCode", client.deviceCode)
                         .addQueryParameter("validate", validateValue)
+                        .apply {
+                            if (faceImageObjectId != null) {
+                                addQueryParameter("currentFaceId", faceImageObjectId)
+                                addQueryParameter("ifCFP", "0")
+                            }
+                        }
                         .build()
                 ).get().build()
             ).execute().use {

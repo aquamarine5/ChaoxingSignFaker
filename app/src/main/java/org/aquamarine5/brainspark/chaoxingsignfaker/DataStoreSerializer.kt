@@ -17,6 +17,8 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingSignFakerD
 import java.io.InputStream
 import java.io.OutputStream
 
+var isDevelopedMode = false
+
 object DataStoreSerializer : Serializer<ChaoxingSignFakerDataStore> {
     override val defaultValue: ChaoxingSignFakerDataStore
         get() = ChaoxingSignFakerDataStore.newBuilder()

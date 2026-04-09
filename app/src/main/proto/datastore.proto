@@ -30,6 +30,7 @@ message ChaoxingSignFakerDataStore{
 
 message Preferences{
   bool neverAskSaveFavoriteLocation = 1;
+  bool isDevelopedMode = 2;
 }
 
 message ChaoxingCourseClass{
@@ -72,6 +73,7 @@ message ChaoxingLoginSession{
   repeated HttpCookie cookies = 1;
   string phoneNumber = 2;
   string password = 3;
+  string faceImageObjectId = 4;
 }
 
 message ChaoxingOtherUserSession{
@@ -80,6 +82,7 @@ message ChaoxingOtherUserSession{
   string password = 3;
   string name = 4;
   repeated uint32 tags = 5;
+  string faceImageObjectId = 6;
 }
 
 message HttpCookie{

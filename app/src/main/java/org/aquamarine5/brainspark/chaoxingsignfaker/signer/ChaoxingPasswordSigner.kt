@@ -22,13 +22,16 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingLocationSigne
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingLocationSigner.Companion.CLASSTAG
 
 class ChaoxingPasswordSigner(
-    client: ChaoxingHttpClient, private val destination: PasswordSignDestination
+    client: ChaoxingHttpClient,
+    private val destination: PasswordSignDestination,
+    baseSignInfo: JSONObject? = null
 ) : ChaoxingSigner(
     client,
     destination.activeId,
     destination.classId,
     destination.courseId,
     destination.extContent,
+    baseSignInfo
 ) {
     companion object {
         private val URL_CHECK_SIGN_CODE =
@@ -69,6 +72,7 @@ class ChaoxingPasswordSigner(
     }
 
     suspend fun sign(signCode: Int): Boolean = withContext(Dispatchers.IO) {
+        if (isCaptchaRequired()) return@withContext true
         client.newCall(
             Request.Builder().url(
                 URL_SIGN.newBuilder()
