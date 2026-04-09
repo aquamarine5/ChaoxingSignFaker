@@ -25,7 +25,7 @@ stackbricksConfig {
     possibleConfigurationPaths = [
             new PossibleConfigurationPath("cdn.aquamarine5.fun", "chaoxingsignfaker_stackbricks_v2_manifest.json")
     ]
-    changelog = "# 1.12.11 更新：\n- 优化了界面表现，修复了部分已知问题。\n\nlovely but not lonely, 20260407, @aquamarine5 Brainspark."
+    changelog = "# 1.13.0 更新：\n- 修复了签到码输入时当签到码是0开头时无法识别的错误。\n\n# 1.12.11 更新：\n- 优化了界面表现，修复了部分已知问题。\n\nlovely but not lonely, 20260409, @aquamarine5 Brainspark."
     requiredManifestVersion2MigrateForceInstall = true
     forceInstallLessVersion = 1_1208_1216
     qiniuConfig {
@@ -47,8 +47,8 @@ android {
         applicationId = "org.aquamarine5.brainspark.chaoxingsignfaker"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1_1300_0001
-        versionName = "1.13.0-alpha1-260407"
+        versionCode = 1_1300_0409
+        versionName = "1.13.0-stable-260409"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
