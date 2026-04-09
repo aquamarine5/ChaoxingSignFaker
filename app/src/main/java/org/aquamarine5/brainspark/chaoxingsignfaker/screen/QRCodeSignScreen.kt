@@ -127,7 +127,7 @@ fun QRCodeSignScreen(
     var isAlreadySigned by remember { mutableStateOf<Boolean?>(null) }
     var isCurrentAlreadySigned by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
-    val signer = ChaoxingQRCodeSigner(ChaoxingHttpClient.instance!!, destination)
+    val signer = remember { ChaoxingQRCodeSigner(ChaoxingHttpClient.instance!!, destination) }
     val context = LocalContext.current
     val resources = LocalResources.current
     val snackbarHost = LocalSnackbarHostState.current
@@ -488,7 +488,9 @@ fun QRCodeSignScreen(
                                                             session, context
                                                         ).also { client ->
                                                             ChaoxingQRCodeSigner(
-                                                                client, destination
+                                                                client,
+                                                                destination,
+                                                                signer.getSignInfo()
                                                             ).apply {
                                                                 if (preSign()) {
                                                                     throw ChaoxingSigner.AlreadySignedException()

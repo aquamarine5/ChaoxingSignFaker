@@ -6,46 +6,31 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.signer
 
-import android.content.Context
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
-import android.net.Uri
 import android.util.Log
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.PickVisualMediaRequest
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import com.alibaba.fastjson2.JSONObject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import okhttp3.HttpUrl.Companion.toHttpUrl
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.MultipartBody
 import okhttp3.Request
-import okhttp3.RequestBody
-import okhttp3.RequestBody.Companion.toRequestBody
 import org.aquamarine5.brainspark.chaoxingsignfaker.ChaoxingPredictableException
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingActivityHelper.NO_SIGN_OFF_EVENT
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.checkResponseThrowException
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignOutEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.ChaoxingPhotoActivityEntity
-import java.io.ByteArrayOutputStream
-import java.util.UUID
 
 
 class ChaoxingPhotoSigner(
     client: ChaoxingHttpClient,
-    private val photoActivityEntity: ChaoxingPhotoActivityEntity
+    private val photoActivityEntity: ChaoxingPhotoActivityEntity,
+    baseSignInfo: JSONObject? =null
 ) : ChaoxingSigner(
     client,
     photoActivityEntity.activeId,
     photoActivityEntity.classId,
     photoActivityEntity.courseId,
-    photoActivityEntity.extContent
+    photoActivityEntity.extContent,
+    baseSignInfo
 ) {
-
     class ChaoxingPhotoSignException(message: String) : ChaoxingPredictableException(message)
 
     class ChaoxingIncorrectSignTypeException :
@@ -53,7 +38,6 @@ class ChaoxingPhotoSigner(
 
     companion object {
         const val CLASSTAG = "ChaoxingPhotoSigner"
-        val URL_CLOUD_TOKEN = "https://pan-yz.chaoxing.com/api/token/uservalid".toHttpUrl()
         const val URL_CLOUD_UPLOAD = "https://pan-yz.chaoxing.com/upload?_from=mobilelearn&_token="
     }
 
@@ -75,14 +59,8 @@ class ChaoxingPhotoSigner(
             )
         }
 
-    suspend fun getCloudToken(): String = withContext(Dispatchers.IO) {
-        client.newCall(Request.Builder().url(URL_CLOUD_TOKEN).build()).execute().use {
-            it.checkResponseThrowException()
-            return@withContext JSONObject.parseObject(it.body.string()).getString("_token")
-        }
-    }
-
     suspend fun signByClick(): Boolean = withContext(Dispatchers.IO) {
+        if (isCaptchaRequired()) return@withContext true
         client.newCall(
             Request.Builder().url(
                 URL_SIGN.newBuilder()
@@ -113,6 +91,7 @@ class ChaoxingPhotoSigner(
 
     suspend fun signByImage(objectId: String): Boolean =
         withContext(Dispatchers.IO) {
+            if (isCaptchaRequired()) return@withContext true
             client.newCall(
                 Request.Builder().url(
                     URL_SIGN.newBuilder()
@@ -198,83 +177,9 @@ class ChaoxingPhotoSigner(
             }
         }
 
-    private fun uriToFile(context: Context, uri: Uri): RequestBody {
-        val contentResolver = context.contentResolver
-        return runCatching {
-            contentResolver.openInputStream(uri).use result@{
-                val bitmap = BitmapFactory.decodeStream(it)
-                ByteArrayOutputStream().use { out ->
-                    bitmap.compress(
-                        Bitmap.CompressFormat.JPEG,
-                        50, out
-                    )
-                    return@use out.toByteArray().toRequestBody("image/jpeg".toMediaType())
-                }
-            }
-        }.getOrElse { throw ChaoxingPhotoSignException("文件转换失败") }
-    }
-
-    suspend fun uploadImage(image: Bitmap, token: String): String =
-        withContext(Dispatchers.IO) {
-            val filename = "${UUID.randomUUID()}.jpg"
-            ByteArrayOutputStream().use { out ->
-                image.compress(Bitmap.CompressFormat.JPEG, 50, out)
-                client.newCall(
-                    Request.Builder().url(URL_CLOUD_UPLOAD + token).post(
-                        MultipartBody.Builder().setType(MultipartBody.FORM)
-                            .addFormDataPart("puid", client.userEntity.puid.toString())
-                            .addFormDataPart(
-                                "file",
-                                filename,
-                                out.toByteArray().toRequestBody("image/jpeg".toMediaType())
-                            )
-                            .build()
-                    ).build()
-                ).execute().use {
-                    it.checkResponseThrowException()
-                    JSONObject.parseObject(it.body.string()).getString("objectId")
-                }
-            }
-        }
-
-    suspend fun uploadImage(context: Context, uri: Uri, token: String): String =
-        withContext(Dispatchers.IO) {
-            val filename = "${UUID.randomUUID()}.jpg"
-            client.newCall(
-                Request.Builder().url(URL_CLOUD_UPLOAD + token).post(
-                    MultipartBody.Builder().setType(MultipartBody.FORM)
-                        .addFormDataPart("puid", client.userEntity.puid.toString())
-                        .addFormDataPart(
-                            "file",
-                            filename,
-                            uriToFile(
-                                context,
-                                uri
-                            )
-                        )
-                        .build()
-                ).build()
-            ).execute().use {
-                it.checkResponseThrowException()
-                JSONObject.parseObject(it.body.string()).getString("objectId")
-            }
-        }
 
     suspend fun ifPhotoRequiredLogin(): Pair<Boolean, ChaoxingSignOutEntity> {
         val json = getSignInfo()
         return Pair(json.getInteger("ifphoto") == 1, getSignoffEntity(json))
-    }
-
-    @Composable
-    fun GetPhotoFromMediaStore(onResult: (Uri?) -> Unit) {
-        val gallery = rememberLauncherForActivityResult(
-            contract = ActivityResultContracts.PickVisualMedia(),
-            onResult = { uri ->
-                onResult(uri)
-            }
-        )
-        LaunchedEffect(Unit) {
-            gallery.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-        }
     }
 }

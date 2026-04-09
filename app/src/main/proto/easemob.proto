@@ -1,0 +1,81 @@
+syntax = "proto3";
+
+option java_package = "org.aquamarine5.brainspark.chaoxingsignfaker.datastore.easemob";
+option java_multiple_files = true;
+
+enum NameSpace {
+  NAMESPACE_UNKNOWN = 0;
+}
+
+enum RouteType {
+  ROUTETYPE_UNKNOWN = 0;
+}
+
+message Meta {
+  uint64 field1 = 1;
+  JID field2 = 2;
+  JID field3 = 3;
+  uint64 field4 = 4;
+  NameSpace field5 = 5;
+  bytes field6 = 6;
+  RouteType field7 = 7;
+}
+
+message Size {
+  double width = 1;
+  double height = 2;
+}
+
+message JID {
+  string name = 1;
+  string field2 = 2;
+  string field3 = 3;
+  string field4 = 4;
+}
+
+message KeyValue {
+  string key = 1;
+  int32 type = 2;           // ValueType as int32
+  int64 lValue = 3;
+  float fValue = 4;
+  double dValue = 5;
+  string stringValue = 6;  // Used as a.ext[0].stringValue
+}
+
+message MessageConfig {
+  bool field1 = 1;
+}
+
+message Content {
+  int32 type = 1;          // Content Type enum (0: text, 1: pic, 2: video, etc.)
+  string text = 2;         // text
+  double latitude = 3;     // latitude
+  double longitude = 4;    // longitude
+  string address = 5;      // address
+  string remotePath = 6;   // remotePath
+  string secretKey = 7;    // secretKey
+  string displayName = 8;  // displayName
+  int32 fileLength = 9;    // fileLength
+  string thumbnailRemotePath = 10; // thumbnailRemotePath
+  repeated KeyValue customExts = 11;
+  int32 duration = 12;     // duration
+  Size size = 13;          // size
+  string filetype = 14;    // filetype
+  string thumbnailSecretKey = 15; // thumbnailSecretKey
+  string action = 16;      // action
+  int32 field17 = 17;
+  Size field18 = 18;
+  string customEvent = 19; // customEvent
+  repeated KeyValue params = 20;
+}
+
+message MessageBody {
+  int32 type = 1;          // Message Type (1: chat, 2: groupchat, 3: chatroom, 4: read_ack, etc.)
+  JID from = 2;
+  JID to = 3;
+  repeated Content contents = 4;
+  repeated KeyValue ext = 5;
+  uint64 ackMessageId = 6;
+  MessageConfig msgConfig = 7;
+  string ackContent = 8;
+}

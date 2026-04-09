@@ -6,37 +6,60 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.screen
 
+import android.graphics.Bitmap
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.serialization.Serializable
 import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
+import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.UMengHelper
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCloudDriveHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCourseHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingOtherUserHelper
@@ -44,6 +67,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingRecommendHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingSignHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.checkIsLast
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.AlreadySignedNotice
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.CameraComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.GetLocationComponent
@@ -191,7 +215,31 @@ fun LocationSignScreen(
                     val userSelections = remember { mutableStateListOf(isSignForOther.not()) }
                     var isCaptcha = remember { false }
                     var isFirstOtherUserForSign = remember { true }
+
+                    // future will be edited.
+                    var isFaceRequired by remember { mutableStateOf(false) }
+                    var isFaceImageCaptured by remember { mutableStateOf(false) }
+                    var faceImageCapturedIndex by remember { mutableIntStateOf(0) }
+                    var faceImageUploadIndex by remember { mutableIntStateOf(0) }
+                    val combinedUserList = remember(otherUserSessionForSignList) {
+                        if (isSelfForSign) {
+                            listOf(
+                                ChaoxingHttpClient.instance!!.userEntity.name,
+                            ) + otherUserSessionForSignList.filterNotNull()
+                                .map { it.name }
+                        } else {
+                            otherUserSessionForSignList.filterNotNull()
+                                .map { it.name }
+                        }
+                    }
+                    var faceImageBitmaps by remember { mutableStateOf<List<Bitmap>>(emptyList()) }
+                    LaunchedEffect(Unit) {
+                        isFaceRequired = signer.isFaceRequired()
+                    }
+
+
                     Column(modifier = Modifier.padding(8.dp, 8.dp, 8.dp, 0.dp)) {
+                        Spacer(modifier = Modifier.height(6.dp))
                         OtherUserSelectorComponent(
                             navToOtherUser = { navToOtherUserDestination() },
                             signStatus = signStatus,
@@ -210,12 +258,99 @@ fun LocationSignScreen(
                                     destination.endTime,
                                     destination.isLate
                                 )
+
+                                if (isFaceRequired)
+                                    Card(
+                                        shape = RoundedCornerShape(18.dp),
+                                        colors = CardDefaults.cardColors(
+                                            containerColor = Color(0xFF12AA9C)
+                                        ),
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(2.dp, 6.dp)
+                                    ) {
+                                        Row(
+                                            modifier = Modifier
+                                                .padding(10.dp, 12.dp)
+                                                .fillMaxWidth(),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Icon(
+                                                painterResource(R.drawable.ic_scan_face),
+                                                contentDescription = "Help",
+                                                tint = Color.White
+                                            )
+                                            Spacer(modifier = Modifier.width(9.dp))
+                                            Text(
+                                                "已经临时破解人脸识别签到，以下人脸识别签到方法并不是最优解，仅供临时使用。\n为自己签到时，调用前置摄像头为自己拍摄一张正脸照片（睁眼），随后正常设置位置以签到。\n为其他人代签时，可以提前保存一张他的正脸照，随后在拍摄页面点击右下角按钮选择图片上传，随后正常设置位置以签到。",
+                                                color = Color.White,
+                                                fontSize = 13.sp,
+                                                lineHeight = 18.sp,
+                                                fontWeight = FontWeight.W500,
+                                                modifier = Modifier.fillMaxWidth()
+                                            )
+                                        }
+                                    }
                             }
                         ) { isSelf, otherUserSessionList, _ ->
                             isSigning = true
                             isSelfForSign = isSelf
                             otherUserSessionForSignList = otherUserSessionList
+                            coroutineScope.launch {
+                                if (signer.isFaceRequired())
+                                    isFaceImageCaptured = true
+                                else
+                                    isGetLocation = true
+                            }
+                        }
+                    }
+                    AnimatedVisibility(
+                        isFaceImageCaptured, enter = slideInHorizontally(
+                            initialOffsetX = { it },
+                            animationSpec = tween(300)
+                        ) + fadeIn(
+                            animationSpec = tween(300)
+                        ), exit = slideOutHorizontally(
+                            targetOffsetX = { -it },
+                            animationSpec = tween(300)
+                        ) + fadeOut(
+                            animationSpec = tween(300)
+                        )
+                    ) {
+                        BackHandler(isFaceImageCaptured) {
+                            isSigning = false
+                            isFaceImageCaptured = false
+                        }
+                        CameraComponent(
+                            otherUserSessionForSignList.filterNotNull().size,
+                            isDefaultBackCamera = false,
+                            onNextPhoto = {
+                                faceImageCapturedIndex++
+                            }, content = {
+                                Row(
+                                    modifier = Modifier
+                                        .animateContentSize()
+                                        .background(
+                                            Color(0x88888888),
+                                            RoundedCornerShape(14.dp)
+                                        )
+                                        .border(
+                                            BorderStroke(
+                                                2.dp, Color(0xFF444444)
+                                            ), RoundedCornerShape(14.dp)
+                                        )
+                                        .padding(10.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center
+                                ) {
+                                    Text("拍摄给 ${combinedUserList[faceImageCapturedIndex]} 签到的图片")
+                                }
+                            }) {
+                            faceImageBitmaps = it
                             isGetLocation = true
+                            isFaceImageCaptured = false
+
                         }
                     }
                     AnimatedVisibility(
@@ -246,7 +381,20 @@ fun LocationSignScreen(
                                 runCatching {
                                     if (isSelfForSign) {
                                         signStatus[0].loading()
-                                        if (signer.sign(result)) {
+                                        val faceImageUploadedObjectId =
+                                            if (signer.isFaceRequired()) {
+                                                ChaoxingCloudDriveHelper.uploadImage(
+                                                    ChaoxingHttpClient.instance!!,
+                                                    faceImageBitmaps[faceImageUploadIndex]
+                                                ).apply {
+                                                    faceImageUploadIndex++
+                                                }
+                                            } else null
+                                        if (signer.sign(
+                                                result,
+                                                faceImageUploadedObjectId
+                                            )
+                                        ) {
                                             isCaptcha = true
                                             suspendCancellableCoroutine { continuation ->
                                                 captchaValidateParams =
@@ -254,7 +402,8 @@ fun LocationSignScreen(
                                                         if (captchaValidate.isSuccess) {
                                                             signer.signWithCaptcha(
                                                                 result,
-                                                                captchaValidate.getOrThrow()
+                                                                captchaValidate.getOrThrow(),
+                                                                faceImageUploadedObjectId
                                                             )
                                                             userSelections[0] = false
                                                             if (destination.endTime != null && System.currentTimeMillis() > destination.endTime)
@@ -352,7 +501,11 @@ fun LocationSignScreen(
                                             userSession,
                                             context
                                         ).also { client ->
-                                            ChaoxingLocationSigner(client, destination).apply {
+                                            ChaoxingLocationSigner(
+                                                client,
+                                                destination,
+                                                signer.getSignInfo()
+                                            ).apply {
                                                 if (preSign()) {
                                                     throw ChaoxingSigner.AlreadySignedException()
                                                 } else {
@@ -362,7 +515,14 @@ fun LocationSignScreen(
                                                         ) == false
                                                     )
                                                         throw ChaoxingSigner.SignActivityNoPermissionException()
-                                                    if (sign(result)) {
+                                                    val faceImageUploadedObjectId =
+                                                        if (isFaceRequired()) {
+                                                            ChaoxingCloudDriveHelper.uploadImage(
+                                                                client,
+                                                                faceImageBitmaps[faceImageUploadIndex]
+                                                            ).apply { faceImageUploadIndex++ }
+                                                        } else null
+                                                    if (sign(result, faceImageUploadedObjectId)) {
                                                         isCaptcha = true
                                                         suspendCancellableCoroutine { continuation ->
                                                             captchaValidateParams =
@@ -370,7 +530,8 @@ fun LocationSignScreen(
                                                                     if (captchaValidate.isSuccess) {
                                                                         this@apply.signWithCaptcha(
                                                                             result,
-                                                                            captchaValidate.getOrThrow()
+                                                                            captchaValidate.getOrThrow(),
+                                                                            faceImageUploadedObjectId
                                                                         )
                                                                         if (destination.endTime != null && System.currentTimeMillis() > destination.endTime)
                                                                             signStatus[1 + index].successForLate()

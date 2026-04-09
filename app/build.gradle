@@ -25,7 +25,7 @@ stackbricksConfig {
     possibleConfigurationPaths = [
             new PossibleConfigurationPath("cdn.aquamarine5.fun", "chaoxingsignfaker_stackbricks_v2_manifest.json")
     ]
-    changelog = "# 1.13.0 更新：\n- 修复了签到码输入时当签到码是0开头时无法识别的错误。\n\n# 1.12.11 更新：\n- 优化了界面表现，修复了部分已知问题。\n\nlovely but not lonely, 20260409, @aquamarine5 Brainspark."
+    changelog = "# 1.13.1 更新：\n- 测试性的支持了有人脸识别的位置签到。\n\n# 1.13.0 更新：\n- 修复了签到码输入时当签到码是0开头时无法识别的错误。\n\n# 1.12.11 更新：\n- 优化了界面表现，修复了部分已知问题。\n\nlovely but not lonely, 20260410, @aquamarine5 Brainspark."
     requiredManifestVersion2MigrateForceInstall = true
     forceInstallLessVersion = 1_1208_1216
     qiniuConfig {
@@ -47,8 +47,8 @@ android {
         applicationId = "org.aquamarine5.brainspark.chaoxingsignfaker"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1_1300_0409
-        versionName = "1.13.0-stable-260409"
+        versionCode = 1_1301_1215
+        versionName = "1.13.1-stable-260410"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -109,7 +109,11 @@ protobuf {
 }
 
 dependencies {
-    implementation 'io.hyphenate:hyphenate-chat:4.18.1'
+    // Source: https://mvnrepository.com/artifact/io.hyphenate/hyphenate-sdk-lite
+    implementation("io.hyphenate:hyphenate-sdk-lite:3.6.9.1")
+//    implementation 'io.hyphenate:hyphenate-chat:3.9.1'
+//    implementation 'io.hyphenate:hyphenate-chat:4.18.1'
+
     implementation(libs.reorderable)
     implementation(libs.lbsyun.base)
     implementation libs.patternlocker

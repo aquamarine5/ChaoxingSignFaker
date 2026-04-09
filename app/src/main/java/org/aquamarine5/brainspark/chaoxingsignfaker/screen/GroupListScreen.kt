@@ -26,8 +26,6 @@ import androidx.compose.ui.unit.dp
 import com.hyphenate.chat.EMGroup
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
-import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
-import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingIMHelper
 
 @Serializable
 object GroupListDestination
@@ -46,14 +44,15 @@ fun GroupListScreen(
         var group by remember { mutableStateOf<List<EMGroup>>(emptyList()) }
         LaunchedEffect(Unit) {
             coroutineScope.launch {
-                ChaoxingIMHelper.loginIM(
-                    ChaoxingHttpClient.instance!!,
-                    context,
-                    ChaoxingIMHelper.getIMConfig(ChaoxingHttpClient.instance!!)
-                )
-                group = ChaoxingIMHelper.getIMGroups()
+//                ChaoxingIMHelper.loginIM(
+//                    ChaoxingHttpClient.instance!!,
+//                    context,
+//                    ChaoxingIMHelper.getIMConfig(ChaoxingHttpClient.instance!!)
+//                )
+//                group = ChaoxingIMHelper.getIMGroups()
             }
         }
+        Text("暂未完成开发")
         LazyColumn() {
             items(group) { item ->
                 Button(onClick = {

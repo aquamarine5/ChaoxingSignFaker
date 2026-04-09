@@ -36,7 +36,8 @@ abstract class ChaoxingSigner(
     val activeId: Long,
     val classId: Int,
     val courseId: Int,
-    val extContent: String
+    val extContent: String,
+    baseSignInfo: JSONObject? =null
 ) {
     companion object {
         val URL_PERSIGN =
@@ -57,6 +58,8 @@ abstract class ChaoxingSigner(
             "https://mobilelearn.chaoxing.com/pptSign/stuSignajax?&clientip=&appType=15&ifTiJiao=1&vpProbability=-1&vpStrategy=".toHttpUrl()
     }
 
+    private var storageSignInfo: JSONObject? = baseSignInfo
+
     class SignAlreadyEndedException : ChaoxingPredictableException("迟到或签到已结束")
 
     class SignActivityNoPermissionException : ChaoxingPredictableException("此用户不在班级")
@@ -75,6 +78,7 @@ abstract class ChaoxingSigner(
     abstract suspend fun checkAlreadySign(response: String): Boolean
 
     open suspend fun getSignInfo(): JSONObject = withContext(Dispatchers.IO) {
+        storageSignInfo?.let { return@withContext it }
         client.newCall(
             Request.Builder().get().url(
                 URL_SIGN_INFO.newBuilder()
@@ -84,7 +88,19 @@ abstract class ChaoxingSigner(
         ).execute().use {
             it.checkResponseThrowException()
             return@withContext JSONObject.parseObject(it.body.string()).getJSONObject("data")
+                .apply {
+                    storageSignInfo = this
+                }
         }
+    }
+
+    open suspend fun isCaptchaRequired(): Boolean {
+        return getSignInfo().getInteger("ifNeedVCode") == 1
+    }
+
+    open suspend fun isFaceRequired(): Boolean {
+        val a=getSignInfo().getInteger("openCheckFaceFlag")
+        return getSignInfo().getInteger("openCheckFaceFlag") == 1
     }
 
     open suspend fun preSign(): Boolean = withContext(Dispatchers.IO) {

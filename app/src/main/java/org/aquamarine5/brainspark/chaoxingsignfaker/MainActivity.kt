@@ -335,6 +335,7 @@ class MainActivity : ComponentActivity() {
                                         LocationClient.setAgreePrivacy(true)
                                         SDKInitializer.setAgreePrivacy(applicationContext, true)
                                     }
+                                    isDevelopedMode = datastore.preferences.isDevelopedMode
                                     destination =
                                         when {
                                             !datastore.agreeTerms -> WelcomeDestination
@@ -419,13 +420,15 @@ class MainActivity : ComponentActivity() {
                                                         }
                                                         restoreState = true
                                                     }
-                                                }, navToLoginDestination = {navController.navigate(LoginDestination(true)) {
-                                                    popUpTo<CourseListDestination> {
-                                                        inclusive = true
-                                                        saveState = true
+                                                }, navToLoginDestination = {
+                                                    navController.navigate(LoginDestination(true)) {
+                                                        popUpTo<CourseListDestination> {
+                                                            inclusive = true
+                                                            saveState = true
+                                                        }
+                                                        restoreState = true
                                                     }
-                                                    restoreState = true
-                                                }}, navToGroupDestination = {
+                                                }, navToGroupDestination = {
                                                     navController.navigate(GroupListDestination) {
                                                         popUpTo<CourseListDestination> {
                                                             inclusive = true

@@ -54,6 +54,11 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.components.NetworkExceptionC
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCourseActivitiesEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCourseEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.snackbarReport
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 typealias CourseDetailDestination = ChaoxingCourseEntity
 
@@ -150,6 +155,17 @@ fun CourseDetailScreen(
                     }
                     Spacer(modifier = Modifier.height(12.dp))
                     var pullToRefreshState by remember { mutableStateOf(false) }
+                    val nowYear = remember {
+                        LocalDate.now().year
+                    }
+                    val yearDateFormatter = remember {
+                        DateTimeFormatter.ofPattern(
+                            "yyyy-MM-dd HH:mm:ss",
+                            Locale.getDefault()
+                        )
+                    }
+                    val normalDateFormatter =
+                        remember { DateTimeFormatter.ofPattern("MM-dd HH:mm", Locale.getDefault()) }
                     PullToRefreshBox(
                         isRefreshing = pullToRefreshState,
                         onRefresh = {
@@ -197,7 +213,16 @@ fun CourseDetailScreen(
                             LazyColumn(modifier = Modifier.fillMaxSize()) {
                                 items(activitiesData!!.signActivities) {
                                     key(it.id) {
-                                        CourseSignActivityColumnCard(it) { destination ->
+                                        CourseSignActivityColumnCard(it, { startTimestamp ->
+                                            Instant.ofEpochMilli(startTimestamp)
+                                                .atZone(ZoneId.systemDefault()).let {
+                                                    if (it.year == nowYear) {
+                                                        normalDateFormatter.format(it)
+                                                    } else {
+                                                        yearDateFormatter.format(it)
+                                                    }
+                                                }
+                                        }) { destination ->
                                             navToSignerDestination(destination)
                                         }
                                     }

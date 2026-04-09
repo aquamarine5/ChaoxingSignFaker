@@ -467,7 +467,11 @@ fun GestureSignScreen(
                                             session,
                                             context
                                         ).also { client ->
-                                            ChaoxingGestureSigner(client, destination).apply {
+                                            ChaoxingGestureSigner(
+                                                client,
+                                                destination,
+                                                signer.getSignInfo()
+                                            ).apply {
                                                 if (preSign()) {
                                                     throw ChaoxingSigner.AlreadySignedException()
                                                 } else {

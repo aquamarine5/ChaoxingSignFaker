@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -38,6 +39,7 @@ import coil3.ImageLoader
 import coil3.compose.AsyncImage
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCourseEntity
+import org.aquamarine5.brainspark.chaoxingsignfaker.isDevelopedMode
 
 @Composable
 fun CourseInfoColumnCard(
@@ -54,56 +56,65 @@ fun CourseInfoColumnCard(
             .fillMaxWidth()
             .then(modifier)
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Start,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            AsyncImage(
-                course.imageUrl.replace("http://", "https://"),
-                imageLoader = imageLoader,
-                contentScale = ContentScale.FillHeight,
-                contentDescription = null,
-                modifier = Modifier
-                    .height(55.dp)
-                    .width(55.dp)
-                    .clip(
-                        RoundedCornerShape(3.dp)
-                    ),
-                onError = {
-                    Log.w("CourseInfoColumnCard", "Error loading image: ${it.result}")
-                }
-            )
-            Spacer(modifier = Modifier.width(14.dp))
-            Column(horizontalAlignment = Alignment.Start, modifier = Modifier.weight(1f)) {
-                Text(
-                    course.courseName.replace("\n", ""),
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold
+        Column {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Start,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                AsyncImage(
+                    course.imageUrl.replace("http://", "https://"),
+                    imageLoader = imageLoader,
+                    contentScale = ContentScale.FillHeight,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .height(55.dp)
+                        .width(55.dp)
+                        .clip(
+                            RoundedCornerShape(3.dp)
+                        ),
+                    onError = {
+                        Log.w("CourseInfoColumnCard", "Error loading image: ${it.result}")
+                    }
                 )
-                Text(course.teacherName.replace("\n", ""))
-                if (!course.schools.isNullOrBlank()) {
-                    Text(course.schools.replace("\n", ""), fontSize = 12.sp)
+                Spacer(modifier = Modifier.width(14.dp))
+                Column(horizontalAlignment = Alignment.Start, modifier = Modifier.weight(1f)) {
+                    Text(
+                        course.courseName.replace("\n", ""),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(course.teacherName.replace("\n", ""))
+                    if (!course.schools.isNullOrBlank()) {
+                        Text(course.schools.replace("\n", ""), fontSize = 12.sp)
+                    }
                 }
+                var isPreferred by remember { mutableStateOf(course.isPreferred) }
+                val animTint by animateColorAsState(
+                    targetValue = if (isPreferred) {
+                        Color.Yellow
+                    } else {
+                        Color.Gray
+                    }
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Icon(
+                    painterResource(R.drawable.ic_star_fill),
+                    null,
+                    tint = animTint,
+                    modifier = Modifier.clickable {
+                        isPreferred = !isPreferred
+                        course.isPreferred = isPreferred
+                        onPreferredResort(isPreferred)
+                    })
             }
-            var isPreferred by remember { mutableStateOf(course.isPreferred) }
-            val animTint by animateColorAsState(
-                targetValue = if (isPreferred) {
-                    Color.Yellow
-                } else {
-                    Color.Gray
-                }
-            )
-            Spacer(modifier = Modifier.width(6.dp))
-            Icon(
-                painterResource(R.drawable.ic_star_fill),
-                null,
-                tint = animTint,
-                modifier = Modifier.clickable {
-                    isPreferred = !isPreferred
-                    course.isPreferred = isPreferred
-                    onPreferredResort(isPreferred)
-                })
+            if (isDevelopedMode)
+                Text(
+                    "classId: ${course.classId}, courseId：${course.courseId}",
+                    fontSize = 10.sp,
+                    color = Color.Gray,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
 
         }
     }

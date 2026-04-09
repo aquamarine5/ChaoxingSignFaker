@@ -83,6 +83,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.components.AnalyserCard
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SponsorCard
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.RecommendHabit
 import org.aquamarine5.brainspark.chaoxingsignfaker.displaySnackbar
+import org.aquamarine5.brainspark.chaoxingsignfaker.isDevelopedMode
 import org.aquamarine5.brainspark.stackbricks.StackbricksComponent
 import org.aquamarine5.brainspark.stackbricks.StackbricksEventTrigger
 import org.aquamarine5.brainspark.stackbricks.StackbricksService
@@ -560,5 +561,20 @@ fun SettingScreen(
             }
         )
         Spacer(modifier = Modifier.height(8.dp))
+        var isUiDevelopedMode by remember { mutableStateOf(isDevelopedMode) }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Switch(isUiDevelopedMode, onCheckedChange = { value ->
+                isUiDevelopedMode = value
+                isDevelopedMode = value
+                coroutineScope.launch(Dispatchers.IO) {
+                    context.chaoxingDataStore.updateData {
+                        it.toBuilder().setPreferences(
+                            it.preferences.toBuilder().setIsDevelopedMode(value).build()
+                        ).build()
+                    }
+                }
+            })
+            Text("启用开发模式")
+        }
     }
 }
