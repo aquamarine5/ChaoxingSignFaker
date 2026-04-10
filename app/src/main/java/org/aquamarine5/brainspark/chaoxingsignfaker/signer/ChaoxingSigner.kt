@@ -81,7 +81,7 @@ abstract class ChaoxingSigner(
     abstract suspend fun checkAlreadySign(response: String): Boolean
 
     open suspend fun checkExpiredSign(response: String): Boolean {
-        return response.contains("已过教师设置的截止时间")
+        return response.contains("下次早点哦")
     }
 
     open suspend fun getSignInfo(): JSONObject = withContext(Dispatchers.IO) {
@@ -128,10 +128,10 @@ abstract class ChaoxingSigner(
                 throw SignActivityNoPermissionException()
             }
             postAnalysis()
-            return@withContext if (checkAlreadySign(body)) {
-                ChaoxingSignActivityStatus.ALREADY_SIGNED
-            } else if (checkExpiredSign(body)) {
+            return@withContext if (checkExpiredSign(body)) {
                 ChaoxingSignActivityStatus.EXPIRED
+            } else if (checkAlreadySign(body)) {
+                ChaoxingSignActivityStatus.ALREADY_SIGNED
             } else {
                 ChaoxingSignActivityStatus.READY_TO_SIGN
             }
