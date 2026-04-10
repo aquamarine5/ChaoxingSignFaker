@@ -440,17 +440,17 @@ class MainActivity : ComponentActivity() {
                                                 })
                                         }
 
-                                        composable<GroupListDestination>(
-                                            typeMap = mapOf(
-                                                typeOf<ChaoxingIMGroup>() to ChaoxingIMGroup.ChaoxingIMGroupNavType
-                                            )
-                                        ) {
+                                        composable<GroupListDestination> {
                                             GroupListScreen { destination ->
                                                 navController.navigate(destination)
                                             }
                                         }
 
-                                        composable<GroupDetailDestination> {
+                                        composable<GroupDetailDestination>(
+                                            typeMap = mapOf(
+                                                typeOf<ChaoxingIMGroup>() to ChaoxingIMGroup.ChaoxingIMGroupNavType
+                                            )
+                                        ) {
                                             GroupDetailScreen(it.toRoute())
                                         }
 
