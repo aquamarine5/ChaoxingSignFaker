@@ -219,8 +219,8 @@ fun LocationSignScreen(
                     // future will be edited.
                     var isFaceRequired by remember { mutableStateOf(false) }
                     var isFaceImageCaptured by remember { mutableStateOf(false) }
-                    var faceImageCapturedIndex by remember { mutableIntStateOf(0) }
-                    var faceImageUploadIndex by remember { mutableIntStateOf(0) }
+                    var faceImageCapturedIndex by remember(otherUserSessionForSignList) { mutableIntStateOf(0) }
+                    var faceImageUploadIndex by remember(otherUserSessionForSignList) { mutableIntStateOf(0) }
                     val combinedUserList = remember(otherUserSessionForSignList) {
                         if (isSelfForSign) {
                             listOf(
@@ -323,7 +323,7 @@ fun LocationSignScreen(
                             isFaceImageCaptured = false
                         }
                         CameraComponent(
-                            otherUserSessionForSignList.filterNotNull().size,
+                            combinedUserList.size,
                             isDefaultBackCamera = false,
                             onNextPhoto = {
                                 faceImageCapturedIndex++

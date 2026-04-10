@@ -99,7 +99,6 @@ abstract class ChaoxingSigner(
     }
 
     open suspend fun isFaceRequired(): Boolean {
-        val a=getSignInfo().getInteger("openCheckFaceFlag")
         return getSignInfo().getInteger("openCheckFaceFlag") == 1
     }
 

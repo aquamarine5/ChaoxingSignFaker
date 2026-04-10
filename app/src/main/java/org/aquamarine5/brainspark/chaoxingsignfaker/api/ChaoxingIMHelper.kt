@@ -22,6 +22,7 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Request
+import org.aquamarine5.brainspark.chaoxingsignfaker.checkResponseThrowException
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.easemob.MessageBody
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.easemob.Meta
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingIMConfig
@@ -33,7 +34,7 @@ object ChaoxingIMHelper {
     val URL_IM_ME = "https://im.chaoxing.com/webim/me".toHttpUrl()
 
     const val URL_MESSAGE_ROAMING =
-        "https://a1-vip6.easecdn.com/cx-dev/cxstudy/users/%d/messageroaming"
+        "https://a1-vip6.easecdn.com/cx-dev/cxstudy/users/%s/messageroaming"
     const val IM_APPKEY = "cx-dev#cxstudy"
 
     suspend fun getIMConfig(httpClient: ChaoxingHttpClient): ChaoxingIMConfig {
@@ -116,7 +117,8 @@ object ChaoxingIMHelper {
             httpClient.newCall(
                 Request.Builder().get().url(URL_MESSAGE_ROAMING.format(imConfig.imTuid)).build()
             ).execute().use { response ->
-                val responseBody = response.body.string() ?: return@use emptyList()
+                response.checkResponseThrowException()
+                val responseBody = response.body.string()
                 val json = JSON.parseObject(responseBody)
                 val data = json.getJSONObject("data")
                 val msgs = data.getJSONArray("msgs")
