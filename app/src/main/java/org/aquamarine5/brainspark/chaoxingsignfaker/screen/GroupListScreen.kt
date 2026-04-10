@@ -23,9 +23,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import com.hyphenate.chat.EMGroup
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingIMHelper
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingIMGroup
 
 @Serializable
 object GroupListDestination
@@ -41,24 +43,21 @@ fun GroupListScreen(
     ) {
         val coroutineScope = rememberCoroutineScope()
         val context = LocalContext.current
-        var group by remember { mutableStateOf<List<EMGroup>>(emptyList()) }
+        var group by remember { mutableStateOf<List<ChaoxingIMGroup>>(emptyList()) }
         LaunchedEffect(Unit) {
             coroutineScope.launch {
-//                ChaoxingIMHelper.loginIM(
-//                    ChaoxingHttpClient.instance!!,
-//                    context,
-//                    ChaoxingIMHelper.getIMConfig(ChaoxingHttpClient.instance!!)
-//                )
-//                group = ChaoxingIMHelper.getIMGroups()
+                group = ChaoxingIMHelper.getIMGroups(
+                    ChaoxingHttpClient.instance!!,
+                    ChaoxingIMHelper.getIMConfig(ChaoxingHttpClient.instance!!)
+                )
             }
         }
-        Text("暂未完成开发")
         LazyColumn() {
             items(group) { item ->
                 Button(onClick = {
-                    navToGroupDetail(GroupDetailDestination(item.groupId))
+                    navToGroupDetail(GroupDetailDestination(item))
                 }) {
-                    Text("${item.groupId} ${item.groupName}")
+                    Text("${item.chatName} isGroup: ${item.isGroup}")
                 }
             }
         }

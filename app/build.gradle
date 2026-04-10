@@ -47,8 +47,8 @@ android {
         applicationId = "org.aquamarine5.brainspark.chaoxingsignfaker"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1_1301_1215
-        versionName = "1.13.1-stable-260410"
+        versionCode = 1_1302_0001
+        versionName = "1.13.2-beta1-260410"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -109,11 +109,6 @@ protobuf {
 }
 
 dependencies {
-    // Source: https://mvnrepository.com/artifact/io.hyphenate/hyphenate-sdk-lite
-    implementation("io.hyphenate:hyphenate-sdk-lite:3.6.9.1")
-//    implementation 'io.hyphenate:hyphenate-chat:3.9.1'
-//    implementation 'io.hyphenate:hyphenate-chat:4.18.1'
-
     implementation(libs.reorderable)
     implementation(libs.lbsyun.base)
     implementation libs.patternlocker

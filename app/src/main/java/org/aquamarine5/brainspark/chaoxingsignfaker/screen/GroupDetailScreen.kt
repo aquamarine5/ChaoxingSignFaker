@@ -23,11 +23,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingIMHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.easemob.MessageBody
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingIMGroup
 
 @Serializable
 data class GroupDetailDestination(
-    val groupId: String
+    val groupEntity: ChaoxingIMGroup
 )
 
 @Composable
@@ -44,7 +47,9 @@ fun GroupDetailScreen(
         var messages by remember { mutableStateOf<List<MessageBody>>(emptyList()) }
         LaunchedEffect(Unit) {
             coroutineScope.launch {
-//                messages = ChaoxingIMHelper.getIMGroupHistoryMessages(groupDetail.groupId).data
+                messages = ChaoxingIMHelper.fetchIMHistoryMessages(groupDetail.groupEntity,
+                    ChaoxingHttpClient.instance!!,
+                    ChaoxingIMHelper.getIMConfig(ChaoxingHttpClient.instance!!))
             }
         }
         LazyColumn {
