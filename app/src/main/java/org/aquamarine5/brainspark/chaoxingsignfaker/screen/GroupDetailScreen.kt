@@ -21,9 +21,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.hyphenate.chat.EMMessage
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
+import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.easemob.MessageBody
 
 @Serializable
 data class GroupDetailDestination(
@@ -41,7 +41,7 @@ fun GroupDetailScreen(
 //            .verticalScroll(rememberScrollState())
     ) {
         val coroutineScope = rememberCoroutineScope()
-        var messages by remember { mutableStateOf<List<EMMessage>>(emptyList()) }
+        var messages by remember { mutableStateOf<List<MessageBody>>(emptyList()) }
         LaunchedEffect(Unit) {
             coroutineScope.launch {
 //                messages = ChaoxingIMHelper.getIMGroupHistoryMessages(groupDetail.groupId).data
@@ -49,8 +49,7 @@ fun GroupDetailScreen(
         }
         LazyColumn {
             items(messages) { message ->
-                Text(message.body.toString())
-                Text(message.ext().toString())
+                Text(message.toString())
             }
         }
     }
