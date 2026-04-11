@@ -27,6 +27,7 @@ import kotlinx.serialization.Serializable
 import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingIMHelper
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.easemob.MessageBody
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingIMGroup
 import org.aquamarine5.brainspark.chaoxingsignfaker.snackbarReport
@@ -47,17 +48,18 @@ fun GroupDetailScreen(
 //            .verticalScroll(rememberScrollState())
     ) {
         val coroutineScope = rememberCoroutineScope()
-        var messages by remember { mutableStateOf<List<MessageBody>>(emptyList()) }
+        var messages by remember { mutableStateOf<List<MessageBody>?>(null) }
         val snackbarHostState = LocalSnackbarHostState.current
         val hapticFeedback = LocalHapticFeedback.current
         LaunchedEffect(Unit) {
             coroutineScope.launch {
                 runCatching {
-                    messages = ChaoxingIMHelper.fetchIMHistoryMessages(
-                        groupDetail.groupEntity,
-                        ChaoxingHttpClient.instance!!,
-                        ChaoxingHttpClient.instance!!.getIMConfig()
-                    )
+                    if (messages == null)
+                        messages = ChaoxingIMHelper.fetchIMHistoryMessages(
+                            groupDetail.groupEntity,
+                            ChaoxingHttpClient.instance!!,
+                            ChaoxingHttpClient.instance!!.getIMConfig()
+                        )
                 }.onFailure {
                     it.snackbarReport(
                         snackbarHostState,
@@ -69,10 +71,13 @@ fun GroupDetailScreen(
 
             }
         }
-        LazyColumn {
-            items(messages) { message ->
-                Text(message.toString())
+        if (messages == null)
+            CenterCircularProgressIndicator()
+        else
+            LazyColumn {
+                items(messages!!) { message ->
+                    Text(message.toString())
+                }
             }
-        }
     }
 }

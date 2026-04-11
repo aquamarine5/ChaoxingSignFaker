@@ -36,10 +36,6 @@
         android:usesCleartextTraffic="true"
         tools:targetApi="33">
 
-        <uses-library
-            android:name="org.apache.http.legacy"
-            android:required="false" />
-
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -81,9 +77,6 @@
             android:enabled="true"
             android:process=":remote" />
 
-        <meta-data
-            android:name="EASEMOB_APPKEY"
-            android:value="cx-dev#cxstudy" />
         <meta-data
             android:name="com.baidu.lbsapi.API_KEY"
             android:value="vPf3wCC9gDszB86rRqrXxo2BYRoTM2DR" />

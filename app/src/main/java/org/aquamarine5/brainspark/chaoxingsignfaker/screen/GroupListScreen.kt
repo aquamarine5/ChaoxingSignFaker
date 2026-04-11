@@ -21,6 +21,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
@@ -29,6 +30,7 @@ import kotlinx.serialization.Serializable
 import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingIMHelper
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingIMGroup
 import org.aquamarine5.brainspark.chaoxingsignfaker.snackbarReport
 
@@ -48,11 +50,11 @@ fun GroupListScreen(
         val context = LocalContext.current
         val snackbarHostState = LocalSnackbarHostState.current
         val hapticFeedback = LocalHapticFeedback.current
-        var imGroupsInfo by rememberSaveable { mutableStateOf<List<ChaoxingIMGroup>>(emptyList()) }
+        var imGroupsInfo by rememberSaveable { mutableStateOf<List<ChaoxingIMGroup>?>(null) }
         LaunchedEffect(Unit) {
             coroutineScope.launch {
                 runCatching {
-                    if (imGroupsInfo.isEmpty())
+                    if (imGroupsInfo == null)
                         imGroupsInfo = ChaoxingIMHelper.getIMGroups(
                             ChaoxingHttpClient.instance!!,
                             ChaoxingHttpClient.instance!!.getIMConfig()
@@ -67,14 +69,18 @@ fun GroupListScreen(
                 }
             }
         }
-        LazyColumn() {
-            items(imGroupsInfo) { item ->
-                Button(onClick = {
-                    navToGroupDetail(GroupDetailDestination(item))
-                }) {
-                    Text("${item.chatName} isGroup: ${item.isGroup}")
+        if (imGroupsInfo == null) {
+            CenterCircularProgressIndicator()
+        } else
+            LazyColumn() {
+                items(imGroupsInfo!!) { item ->
+                    Button(onClick = {
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                        navToGroupDetail(GroupDetailDestination(item))
+                    }) {
+                        Text("${item.chatName} isGroup: ${item.isGroup} chatId: ${item.chatId}")
+                    }
                 }
             }
-        }
     }
 }

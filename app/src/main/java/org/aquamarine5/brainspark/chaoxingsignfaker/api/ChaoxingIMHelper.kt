@@ -81,6 +81,17 @@ object ChaoxingIMHelper {
         }
     }
 
+    fun parseIMMessageBody(imMessages:List<MessageBody>){
+        imMessages.forEach {
+            it.extList?.forEach { ext->
+                if(ext.key=="attachment"){
+                    val attachObject= JSONObject.parseObject(ext.stringValue)
+                    
+                }
+            }
+        }
+    }
+
     suspend fun fetchIMHistoryMessages(
         imGroup: ChaoxingIMGroup,
         httpClient: ChaoxingHttpClient,
@@ -123,7 +134,7 @@ object ChaoxingIMHelper {
 
                     resultList.add(messageBody)
                 }
-
+                parseIMMessageBody(resultList)
                 return@use resultList
             }
         }
