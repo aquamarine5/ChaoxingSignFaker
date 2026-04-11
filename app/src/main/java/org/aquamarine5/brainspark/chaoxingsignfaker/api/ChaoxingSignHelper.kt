@@ -66,6 +66,62 @@ object ChaoxingSignHelper {
             }
         }
 
+    fun getIMSignDestination(atypeName: String, activeId: Long, classId: Int, courseId: Int): Any? {
+        return when (atypeName) {
+            "密码签到" -> PasswordSignDestination(
+                activeId,
+                classId,
+                courseId,
+                "",
+                null,
+                null,
+                false
+            )
+
+            "位置签到" -> GetLocationDestination(
+                activeId,
+                classId,
+                courseId,
+                "",
+                null,
+                null,
+                false
+            )
+
+            "二维码签到" -> QRCodeSignDestination(
+                activeId,
+                classId,
+                courseId,
+                "",
+                null,
+                null,
+                false
+            )
+
+            "拍照签到" -> PhotoSignDestination(
+                activeId,
+                classId,
+                courseId,
+                "",
+                null,
+                null,
+                false
+            )
+
+            "手势签到" -> GestureSignDestination(
+                activeId,
+                classId,
+                courseId,
+                "",
+                null,
+                null,
+                false
+            )
+
+            else -> null
+        }
+    }
+
     suspend fun getRedirectDestination(
         activeId: Long,
         classId: Int,

@@ -45,7 +45,6 @@ fun GroupDetailScreen(
         modifier = Modifier
             .padding(16.dp, 16.dp, 16.dp, 0.dp)
             .fillMaxSize()
-//            .verticalScroll(rememberScrollState())
     ) {
         val coroutineScope = rememberCoroutineScope()
         var messages by remember { mutableStateOf<List<MessageBody>?>(null) }

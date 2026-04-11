@@ -111,7 +111,7 @@ data class PhotoSignDestination(
     val classId: Int,
     val courseId: Int,
     val extContent: String,
-    val startTime: Long,
+    val startTime: Long?,
     val endTime: Long?,
     val isLate: Boolean
 ) {
@@ -279,11 +279,12 @@ fun PhotoSignScreen(
                                         ) {
                                             navToOtherSign(it)
                                         }
-                                    SignPotentialWarningTips(
-                                        destination.startTime,
-                                        destination.endTime,
-                                        destination.isLate
-                                    )
+                                    if (destination.startTime != null)
+                                        SignPotentialWarningTips(
+                                            destination.startTime,
+                                            destination.endTime,
+                                            destination.isLate
+                                        )
                                 }
                             ) { isSelf, otherUserSessionList, _ ->
                                 isSigning = true
@@ -618,11 +619,12 @@ fun PhotoSignScreen(
                                                         ) {
                                                             navToOtherSign(it)
                                                         }
-                                                    SignPotentialWarningTips(
-                                                        destination.startTime,
-                                                        destination.endTime,
-                                                        destination.isLate
-                                                    )
+                                                    if (destination.startTime != null)
+                                                        SignPotentialWarningTips(
+                                                            destination.startTime,
+                                                            destination.endTime,
+                                                            destination.isLate
+                                                        )
                                                 },
                                                 userContent = { index ->
                                                     var isShowDialog by remember {
@@ -1193,7 +1195,7 @@ fun PhotoSignScreen(
                             }
                         }
                     }
-                } else if (c != null && c != ChaoxingSignActivityStatus.READY_TO_SIGN) {
+                } else if (c != null) {
                     Box(
                         modifier = Modifier.padding(8.dp)
                     ) {
@@ -1205,12 +1207,13 @@ fun PhotoSignScreen(
                         }) {
                             navBack()
                         }
-                        SignPotentialWarningTips(
-                            destination.startTime,
-                            destination.endTime,
-                            destination.isLate,
-                            isPadding = true
-                        )
+                        if (destination.startTime != null)
+                            SignPotentialWarningTips(
+                                destination.startTime,
+                                destination.endTime,
+                                destination.isLate,
+                                isPadding = true
+                            )
                     }
                 } else {
                     CenterCircularProgressIndicator()

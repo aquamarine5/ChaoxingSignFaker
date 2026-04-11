@@ -87,7 +87,7 @@ data class GestureSignDestination(
     val classId: Int,
     val courseId: Int,
     val extContent: String,
-    val startTime: Long,
+    val startTime: Long?,
     val endTime: Long?,
     val isLate: Boolean
 ) {
@@ -183,19 +183,20 @@ fun GestureSignScreen(
                     Box(modifier = Modifier.padding(8.dp)) {
                         NotReadyToSignNoticeComponent(
                             onSignForOtherUser = {
-                            signActivityStatus = ChaoxingSignActivityStatus.READY_TO_SIGN
-                            isSignForOther = true
-                        }, onDismiss = {
-                            signActivityStatus = ChaoxingSignActivityStatus.READY_TO_SIGN
-                        }, isExpiredSign = c == ChaoxingSignActivityStatus.EXPIRED
+                                signActivityStatus = ChaoxingSignActivityStatus.READY_TO_SIGN
+                                isSignForOther = true
+                            }, onDismiss = {
+                                signActivityStatus = ChaoxingSignActivityStatus.READY_TO_SIGN
+                            }, isExpiredSign = c == ChaoxingSignActivityStatus.EXPIRED
                         ) { navToCourseDetailDestination() }
 
-                        SignPotentialWarningTips(
-                            destination.startTime,
-                            destination.endTime,
-                            destination.isLate,
-                            isPadding = true
-                        )
+                        if (destination.startTime != null)
+                            SignPotentialWarningTips(
+                                destination.startTime,
+                                destination.endTime,
+                                destination.isLate,
+                                isPadding = true
+                            )
                     }
                 } else if (c == ChaoxingSignActivityStatus.READY_TO_SIGN) {
                     var isCheckingStatus by remember { mutableStateOf(false) }
@@ -346,11 +347,12 @@ fun GestureSignScreen(
                                     ) {
                                         navToOtherSign(it)
                                     }
-                                SignPotentialWarningTips(
-                                    destination.startTime,
-                                    destination.endTime,
-                                    destination.isLate
-                                )
+                                if (destination.startTime != null)
+                                    SignPotentialWarningTips(
+                                        destination.startTime,
+                                        destination.endTime,
+                                        destination.isLate
+                                    )
                             },
                             suffixContent = {
 

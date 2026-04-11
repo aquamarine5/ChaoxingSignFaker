@@ -19,6 +19,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import org.aquamarine5.brainspark.chaoxingsignfaker.checkResponseThrowException
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.easemob.MessageBody
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.easemob.Meta
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingGroupSignActivityEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingIMConfig
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingIMGroup
 
@@ -81,12 +82,36 @@ object ChaoxingIMHelper {
         }
     }
 
-    fun parseIMMessageBody(imMessages:List<MessageBody>){
+    fun parseIMMessageBody(imMessages: List<MessageBody>) {
+        val signActivities = mutableListOf<ChaoxingGroupSignActivityEntity>()
         imMessages.forEach {
-            it.extList?.forEach { ext->
-                if(ext.key=="attachment"){
-                    val attachObject= JSONObject.parseObject(ext.stringValue)
-                    
+            it.extList?.forEach { ext ->
+                if (ext.key == "attachment") {
+                    val attachObject = JSONObject.parseObject(ext.stringValue)
+                    if (attachObject.getInteger("attachmentType") == 15) {
+                        val signInfo = attachObject.getJSONObject("att_chat_course")
+                        val courseInfo = signInfo.getJSONObject("courseInfo")
+                        val activeId = signInfo.getLong("aid")
+                        val classId = courseInfo.getInteger("classid")
+                        val courseId = courseInfo.getString("courseid").toInt()
+                        signActivities.add(
+                            ChaoxingGroupSignActivityEntity(
+                                ChaoxingSignHelper.getIMSignDestination(
+                                    signInfo.getString("atypeName"),
+                                    activeId,
+                                    classId,
+                                    courseId
+                                )!!,
+                                signInfo.getString("title"),
+                                activeId,
+                                classId,
+                                courseId,
+                                courseInfo.getString("coursename"),
+                                signInfo.getString("subTitle")
+                            )
+                        )
+                    }
+                    return@forEach
                 }
             }
         }

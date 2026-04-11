@@ -87,7 +87,7 @@ data class PasswordSignDestination(
     val classId: Int,
     val courseId: Int,
     val extContent: String,
-    val startTime: Long,
+    val startTime: Long?,
     val endTime: Long?,
     val isLate: Boolean
 ) {
@@ -199,12 +199,13 @@ fun PasswordSignScreen(
                             }, isExpiredSign = c == ChaoxingSignActivityStatus.EXPIRED
                         ) { navToCourseDetailDestination() }
 
-                        SignPotentialWarningTips(
-                            destination.startTime,
-                            destination.endTime,
-                            destination.isLate,
-                            isPadding = true
-                        )
+                        if (destination.startTime != null)
+                            SignPotentialWarningTips(
+                                destination.startTime,
+                                destination.endTime,
+                                destination.isLate,
+                                isPadding = true
+                            )
                     }
                 } else if (c == ChaoxingSignActivityStatus.READY_TO_SIGN) {
                     var text by remember { mutableStateOf("") }
@@ -230,11 +231,12 @@ fun PasswordSignScreen(
                                     ) {
                                         navToOtherSign(it)
                                     }
-                                SignPotentialWarningTips(
-                                    destination.startTime,
-                                    destination.endTime,
-                                    destination.isLate
-                                )
+                                if (destination.startTime != null)
+                                    SignPotentialWarningTips(
+                                        destination.startTime,
+                                        destination.endTime,
+                                        destination.isLate
+                                    )
                             },
                             suffixContent = {
                                 var isCheckingStatus by remember { mutableStateOf<Boolean?>(null) }
