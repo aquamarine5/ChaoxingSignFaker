@@ -439,19 +439,18 @@ class MainActivity : ComponentActivity() {
                                                     }
                                                 })
                                         }
-
-                                        composable<GroupListDestination> {
-                                            GroupListScreen { destination ->
-                                                navController.navigate(destination)
-                                            }
-                                        }
-
                                         composable<GroupDetailDestination>(
                                             typeMap = mapOf(
                                                 typeOf<ChaoxingIMGroup>() to ChaoxingIMGroup.ChaoxingIMGroupNavType
                                             )
                                         ) {
                                             GroupDetailScreen(it.toRoute())
+                                        }
+
+                                        composable<GroupListDestination> {
+                                            GroupListScreen { destination ->
+                                                navController.navigate(destination)
+                                            }
                                         }
 
                                         composable<QRCodeSignDestination> { entry ->

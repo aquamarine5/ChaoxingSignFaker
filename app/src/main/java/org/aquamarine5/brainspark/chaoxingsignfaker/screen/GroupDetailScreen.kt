@@ -20,13 +20,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
+import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingIMHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.easemob.MessageBody
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingIMGroup
+import org.aquamarine5.brainspark.chaoxingsignfaker.snackbarReport
 
 @Serializable
 data class GroupDetailDestination(
@@ -45,11 +48,25 @@ fun GroupDetailScreen(
     ) {
         val coroutineScope = rememberCoroutineScope()
         var messages by remember { mutableStateOf<List<MessageBody>>(emptyList()) }
+        val snackbarHostState = LocalSnackbarHostState.current
+        val hapticFeedback = LocalHapticFeedback.current
         LaunchedEffect(Unit) {
             coroutineScope.launch {
-                messages = ChaoxingIMHelper.fetchIMHistoryMessages(groupDetail.groupEntity,
-                    ChaoxingHttpClient.instance!!,
-                    ChaoxingIMHelper.getIMConfig(ChaoxingHttpClient.instance!!))
+                runCatching {
+                    messages = ChaoxingIMHelper.fetchIMHistoryMessages(
+                        groupDetail.groupEntity,
+                        ChaoxingHttpClient.instance!!,
+                        ChaoxingHttpClient.instance!!.getIMConfig()
+                    )
+                }.onFailure {
+                    it.snackbarReport(
+                        snackbarHostState,
+                        coroutineScope,
+                        "获取消息记录失败",
+                        hapticFeedback
+                    )
+                }
+
             }
         }
         LazyColumn {

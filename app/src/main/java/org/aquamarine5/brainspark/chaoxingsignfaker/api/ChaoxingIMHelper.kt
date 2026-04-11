@@ -13,7 +13,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.FormBody
 import okhttp3.HttpUrl.Companion.toHttpUrl
+import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 import org.aquamarine5.brainspark.chaoxingsignfaker.checkResponseThrowException
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.easemob.MessageBody
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.easemob.Meta
@@ -43,7 +45,9 @@ object ChaoxingIMHelper {
                         .add("puid", config.imPuid)
                         .add("token", config.imToken)
                         .build()
-                ).build()
+                )
+                    .header("Accept", "application/json, text/javascript, */*; q=0.01")
+                    .build()
             ).execute().use { response ->
                 response.checkResponseThrowException()
                 val responseBody = response.body.string()
@@ -85,18 +89,21 @@ object ChaoxingIMHelper {
         return withContext(Dispatchers.IO) {
             httpClient.newCall(
                 Request.Builder().post(
-                    FormBody.Builder()
-                        .add("end", "-1")
-                        .add(
+                    JSONObject()
+                        .fluentPut("end", "-1")
+                        .fluentPut(
                             "queue", if (imGroup.isGroup) {
                                 "${imGroup.chatId}@conference.easemob.com"
                             } else {
                                 "${imGroup.chatId}@easemob.com"
                             }
                         )
-                        .add("start", "-1")
-                        .build()
-                ).url(URL_MESSAGE_ROAMING.format(imConfig.imTuid)).build()
+                        .fluentPut("start", "-1").toString()
+                        .toRequestBody("text/plain;charset=UTF-8".toMediaType())
+                )
+                    .addHeader("Authorization", "Bearer ${imConfig.imToken}")
+                    .url(URL_MESSAGE_ROAMING.format(imConfig.imTuid))
+                    .build()
             ).execute().use { response ->
                 response.checkResponseThrowException()
                 val responseBody = response.body.string()
@@ -112,9 +119,7 @@ object ChaoxingIMHelper {
                     val msgBytes = Base64.decode(msgStr, Base64.DEFAULT)
                     val meta = Meta.parseFrom(msgBytes)
 
-                    val field6Str = meta.field6.toStringUtf8()
-                    val field6Bytes = Base64.decode(field6Str, Base64.DEFAULT)
-                    val messageBody = MessageBody.parseFrom(field6Bytes)
+                    val messageBody = MessageBody.parseFrom(meta.field6)
 
                     resultList.add(messageBody)
                 }

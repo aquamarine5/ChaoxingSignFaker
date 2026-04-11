@@ -6,6 +6,7 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.entity
 
+import android.net.Uri
 import android.os.Bundle
 import androidx.navigation.NavType
 import com.alibaba.fastjson2.JSONObject
@@ -25,7 +26,11 @@ data class ChaoxingIMGroup(
         }
 
         override fun parseValue(value: String): ChaoxingIMGroup {
-            return Json.decodeFromString(value)
+            return Json.decodeFromString(Uri.decode(value))
+        }
+
+        override fun serializeAsValue(value: ChaoxingIMGroup): String {
+            return Uri.encode(Json.encodeToString(value))
         }
 
         override fun put(bundle: Bundle, key: String, value: ChaoxingIMGroup) {
@@ -36,10 +41,12 @@ data class ChaoxingIMGroup(
     companion object {
         fun fromJson(jsonObject: JSONObject): ChaoxingIMGroup {
             return ChaoxingIMGroup(
-                jsonObject.getJSONArray("picArray").map { it.toString() },
+                jsonObject.getJSONArray("picArray")?.let { array -> array.map { it.toString() } } ?: listOf(
+                    jsonObject.getString("chatIco")
+                ),
                 jsonObject.getString("chatId"),
                 jsonObject.getString("chatName"),
-                jsonObject.getInteger("isGroup") == 1
+                jsonObject.getInteger("isGroup") == 0
             )
         }
     }
