@@ -363,6 +363,7 @@ fun CourseListScreen(
                             } //TODO: Recommend
                             var debouncePreviousTime = 0L
                             LazyColumn {
+                                if (false)
                                 item {
                                     OutlinedButton(
                                         onClick = {

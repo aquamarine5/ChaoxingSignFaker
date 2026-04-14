@@ -81,6 +81,7 @@ import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingIMGroup
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.NavigationBarItemData
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.CourseDetailDestination
@@ -438,15 +439,18 @@ class MainActivity : ComponentActivity() {
                                                     }
                                                 })
                                         }
+                                        composable<GroupDetailDestination>(
+                                            typeMap = mapOf(
+                                                typeOf<ChaoxingIMGroup>() to ChaoxingIMGroup.ChaoxingIMGroupNavType
+                                            )
+                                        ) {
+                                            GroupDetailScreen(it.toRoute())
+                                        }
 
                                         composable<GroupListDestination> {
                                             GroupListScreen { destination ->
                                                 navController.navigate(destination)
                                             }
-                                        }
-
-                                        composable<GroupDetailDestination> {
-                                            GroupDetailScreen(it.toRoute())
                                         }
 
                                         composable<QRCodeSignDestination> { entry ->

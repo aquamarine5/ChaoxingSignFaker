@@ -61,7 +61,6 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -216,18 +215,7 @@ fun SettingScreen(
                 onDismissRequest = { isShowSignoffDialog = false },
                 title = { Text("确定要登出吗？") },
                 text = {
-                    Text(buildAnnotatedString {
-                        append("当你登出时，你的签到统计数据不会丢失，但是星标课程")
-                        withStyle(
-                            SpanStyle(
-                                fontWeight = FontWeight.Bold,
-                                textDecoration = TextDecoration.Underline
-                            )
-                        ) {
-                            append("会被清除")
-                        }
-                        append("。")
-                    })
+                    Text("当你登出时，你的签到统计数据和代签用户不会丢失。")
                 },
                 dismissButton = {
                     OutlinedButton(onClick = { isShowSignoffDialog = false }) {
@@ -241,7 +229,6 @@ fun SettingScreen(
                             coroutineScope.launch {
                                 context.chaoxingDataStore.updateData {
                                     it.toBuilder()
-                                        .clearPreferClassId()
                                         .clearLoginSession()
                                         .build()
                                 }

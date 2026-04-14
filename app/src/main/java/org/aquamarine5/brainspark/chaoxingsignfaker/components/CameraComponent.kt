@@ -144,7 +144,7 @@ fun CameraComponent(
                     preview.surfaceProvider = previewView.surfaceProvider
                     cameraProvider.bindToLifecycle(
                         lifecycleOwner,
-                        if (isDefaultBackCamera) CameraSelector.DEFAULT_BACK_CAMERA else CameraSelector.DEFAULT_FRONT_CAMERA,
+                        if (isBackCamera) CameraSelector.DEFAULT_BACK_CAMERA else CameraSelector.DEFAULT_FRONT_CAMERA,
                         preview,
                         imageCapture
                     )
@@ -159,7 +159,7 @@ fun CameraComponent(
                 factory = { previewView },
                 modifier = Modifier.fillMaxSize()
             )
-            var job: Job? = null
+            var job: Job? = remember { null }
             Box(modifier = Modifier.align(Alignment.Center)) {
                 AnimatedContent(
                     takeProcessedImage,

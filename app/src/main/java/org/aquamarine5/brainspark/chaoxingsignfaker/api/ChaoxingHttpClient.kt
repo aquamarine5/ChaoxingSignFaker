@@ -27,6 +27,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingLoginSessi
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingSignFakerDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.HttpCookie
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingIMConfig
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingOtherUserSharedEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingUserEntity
 import java.security.MessageDigest
@@ -51,7 +52,16 @@ class ChaoxingHttpClient private constructor(
 
     var storageCloudToken: String? = null
 
+    private var storageIMConfig: ChaoxingIMConfig? = null
+
     fun newCall(request: Request): Call = okHttpClient.newCall(request)
+
+    suspend fun getIMConfig(): ChaoxingIMConfig {
+        if (storageIMConfig != null) return storageIMConfig!!
+        return ChaoxingIMHelper.getIMConfig(this).also {
+            storageIMConfig = it
+        }
+    }
 
     companion object {
         const val CHAOXING_USER_AGENT =

@@ -171,7 +171,11 @@ fun OtherUserScreen(naviBack: () -> Unit) {
         withContext(Dispatchers.IO) {
             context.chaoxingDataStore.data.first().let { datastore ->
                 tagsEntityList.addAll(datastore.tagsLibraryList)
-                otherUserSessions.addAll(datastore.otherUsersList)
+                otherUserSessions.addAll(datastore.otherUsersList.run {
+                    indexOfFirst { it.phoneNumber == datastore.loginSession.phoneNumber }.let {
+                        if (it != -1) drop(it) else this
+                    }
+                })
                 userTagList.addAll(buildList {
                     otherUserSessions.forEach { session ->
                         add(mutableStateOf(buildList {

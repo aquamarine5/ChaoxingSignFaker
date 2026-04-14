@@ -29,6 +29,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.checkResponseThrowException
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCaptchaDataEntity
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityStatus
 import java.util.UUID
 
 abstract class ChaoxingSigner(
@@ -37,7 +38,7 @@ abstract class ChaoxingSigner(
     val classId: Int,
     val courseId: Int,
     val extContent: String,
-    baseSignInfo: JSONObject? =null
+    baseSignInfo: JSONObject? = null
 ) {
     companion object {
         val URL_PERSIGN =
@@ -60,6 +61,8 @@ abstract class ChaoxingSigner(
 
     private var storageSignInfo: JSONObject? = baseSignInfo
 
+    class SignExpiredException : ChaoxingPredictableException("签到已截止")
+
     class SignAlreadyEndedException : ChaoxingPredictableException("迟到或签到已结束")
 
     class SignActivityNoPermissionException : ChaoxingPredictableException("此用户不在班级")
@@ -76,6 +79,10 @@ abstract class ChaoxingSigner(
     class WrongPositionException : ChaoxingPredictableException("位置不在设置范围内")
 
     abstract suspend fun checkAlreadySign(response: String): Boolean
+
+    open suspend fun checkExpiredSign(response: String): Boolean {
+        return response.contains("下次早点哦")
+    }
 
     open suspend fun getSignInfo(): JSONObject = withContext(Dispatchers.IO) {
         storageSignInfo?.let { return@withContext it }
@@ -99,11 +106,10 @@ abstract class ChaoxingSigner(
     }
 
     open suspend fun isFaceRequired(): Boolean {
-        val a=getSignInfo().getInteger("openCheckFaceFlag")
         return getSignInfo().getInteger("openCheckFaceFlag") == 1
     }
 
-    open suspend fun preSign(): Boolean = withContext(Dispatchers.IO) {
+    open suspend fun preSign(): ChaoxingSignActivityStatus = withContext(Dispatchers.IO) {
         client.newCall(
             Request.Builder().post(
                 FormBody.Builder().addEncoded("ext", extContent).build()
@@ -122,7 +128,13 @@ abstract class ChaoxingSigner(
                 throw SignActivityNoPermissionException()
             }
             postAnalysis()
-            return@withContext checkAlreadySign(body)
+            return@withContext if (checkExpiredSign(body)) {
+                ChaoxingSignActivityStatus.EXPIRED
+            } else if (checkAlreadySign(body)) {
+                ChaoxingSignActivityStatus.ALREADY_SIGNED
+            } else {
+                ChaoxingSignActivityStatus.READY_TO_SIGN
+            }
         }
     }
 

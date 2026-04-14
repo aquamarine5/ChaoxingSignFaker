@@ -62,15 +62,16 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingOtherUserHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingRecommendHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingSignHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.checkIsLast
-import org.aquamarine5.brainspark.chaoxingsignfaker.components.AlreadySignedNotice
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NetworkExceptionComponent
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.NotReadyToSignNoticeComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.OtherUserSelectorComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SignOutRedirectTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SignPotentialWarningTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SponsorPopupDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityStatus
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignOutEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignStatus
 import org.aquamarine5.brainspark.chaoxingsignfaker.ifAlreadySigned
@@ -86,7 +87,7 @@ data class PasswordSignDestination(
     val classId: Int,
     val courseId: Int,
     val extContent: String,
-    val startTime: Long,
+    val startTime: Long?,
     val endTime: Long?,
     val isLate: Boolean
 ) {
@@ -108,7 +109,7 @@ data class PasswordSignDestination(
     }
 }
 
-enum class PasswordCodeStatus {
+private enum class PasswordCodeStatus {
     ENTERED, INPUTTING, PENDING, INCORRECT, CORRECT
 }
 
@@ -119,7 +120,7 @@ fun PasswordSignScreen(
     navToOtherSign: (Any) -> Unit,
     navToOtherUserDestination: () -> Unit
 ) {
-    var isAlreadySigned by remember { mutableStateOf<Boolean?>(null) }
+    var signActivityStatus by remember { mutableStateOf<ChaoxingSignActivityStatus?>(null) }
     var isSignForOther by remember { mutableStateOf(false) }
     val signer = remember { ChaoxingPasswordSigner(ChaoxingHttpClient.instance!!, destination) }
     var isSponsor by remember { mutableStateOf(false) }
@@ -153,7 +154,7 @@ fun PasswordSignScreen(
                 numberCount = first
                 signoffData = second
             }
-            isAlreadySigned = signer.preSign()
+            signActivityStatus = signer.preSign()
         }.onFailure {
             it.snackbarReport(
                 snackbarHost,
@@ -174,7 +175,7 @@ fun PasswordSignScreen(
                             numberCount = first
                             signoffData = second
                         }
-                        isAlreadySigned = signer.preSign()
+                        signActivityStatus = signer.preSign()
                     }.onFailure {
                         it.snackbarReport(
                             snackbarHost,
@@ -186,24 +187,27 @@ fun PasswordSignScreen(
                 }
             }
         } else {
-            Crossfade(isAlreadySigned) { c ->
-                if (c == true) {
+            Crossfade(signActivityStatus) { c ->
+                if (c != null && c != ChaoxingSignActivityStatus.READY_TO_SIGN) {
                     Box(modifier = Modifier.padding(8.dp)) {
-                        AlreadySignedNotice(onSignForOtherUser = {
-                            isAlreadySigned = false
-                            isSignForOther = true
-                        }, onDismiss = {
-                            isAlreadySigned = false
-                        }) { navToCourseDetailDestination() }
+                        NotReadyToSignNoticeComponent(
+                            onSignForOtherUser = {
+                                signActivityStatus = ChaoxingSignActivityStatus.READY_TO_SIGN
+                                isSignForOther = true
+                            }, onDismiss = {
+                                signActivityStatus = ChaoxingSignActivityStatus.READY_TO_SIGN
+                            }, isExpiredSign = c == ChaoxingSignActivityStatus.EXPIRED
+                        ) { navToCourseDetailDestination() }
 
-                        SignPotentialWarningTips(
-                            destination.startTime,
-                            destination.endTime,
-                            destination.isLate,
-                            isPadding = true
-                        )
+                        if (destination.startTime != null)
+                            SignPotentialWarningTips(
+                                destination.startTime,
+                                destination.endTime,
+                                destination.isLate,
+                                isPadding = true
+                            )
                     }
-                } else if (c == false) {
+                } else if (c == ChaoxingSignActivityStatus.READY_TO_SIGN) {
                     var text by remember { mutableStateOf("") }
                     val focusManager = LocalFocusManager.current
                     var isCaptcha = remember { false }
@@ -227,11 +231,12 @@ fun PasswordSignScreen(
                                     ) {
                                         navToOtherSign(it)
                                     }
-                                SignPotentialWarningTips(
-                                    destination.startTime,
-                                    destination.endTime,
-                                    destination.isLate
-                                )
+                                if (destination.startTime != null)
+                                    SignPotentialWarningTips(
+                                        destination.startTime,
+                                        destination.endTime,
+                                        destination.isLate
+                                    )
                             },
                             suffixContent = {
                                 var isCheckingStatus by remember { mutableStateOf<Boolean?>(null) }
@@ -523,92 +528,102 @@ fun PasswordSignScreen(
                                                 destination,
                                                 signer.getSignInfo()
                                             ).apply {
-                                                if (preSign()) {
-                                                    throw ChaoxingSigner.AlreadySignedException()
-                                                } else {
-                                                    if (ChaoxingCourseHelper.checkClassValid(
-                                                            client,
-                                                            destination.classId
-                                                        ) == false
-                                                    )
-                                                        throw ChaoxingSigner.SignActivityNoPermissionException()
-                                                    if (sign(code)) {
-                                                        suspendCancellableCoroutine { continuation ->
-                                                            captchaValidateParams =
-                                                                this@apply to { captchaValidate ->
-                                                                    if (captchaValidate.isSuccess) {
-                                                                        this@apply.signWithCaptcha(
-                                                                            code,
-                                                                            captchaValidate.getOrThrow()
-                                                                        )
-                                                                        if (destination.endTime != null && System.currentTimeMillis() > destination.endTime)
-                                                                            signStatus[1 + index].successForLate()
-                                                                        else
-                                                                            signStatus[1 + index].success()
-                                                                        userSelections[index + 1] =
-                                                                            false
-                                                                        if (otherUserSessionList.checkIsLast(
-                                                                                index + 1
+                                                when (preSign()) {
+                                                    ChaoxingSignActivityStatus.EXPIRED -> {
+                                                        throw ChaoxingSigner.SignExpiredException()
+                                                    }
+
+                                                    ChaoxingSignActivityStatus.ALREADY_SIGNED -> {
+                                                        throw ChaoxingSigner.AlreadySignedException()
+                                                    }
+
+                                                    ChaoxingSignActivityStatus.READY_TO_SIGN -> {
+                                                        if (ChaoxingCourseHelper.checkClassValid(
+                                                                client,
+                                                                destination.classId
+                                                            ) == false
+                                                        )
+                                                            throw ChaoxingSigner.SignActivityNoPermissionException()
+                                                        if (sign(code)) {
+                                                            suspendCancellableCoroutine { continuation ->
+                                                                captchaValidateParams =
+                                                                    this@apply to { captchaValidate ->
+                                                                        if (captchaValidate.isSuccess) {
+                                                                            this@apply.signWithCaptcha(
+                                                                                code,
+                                                                                captchaValidate.getOrThrow()
                                                                             )
-                                                                        ) {
-                                                                            isSigning = false
-                                                                            coroutineScope.launch {
-                                                                                ChaoxingRecommendHelper.recordRecommendEvent(
-                                                                                    context,
-                                                                                    destination.classId,
-                                                                                    destination.courseId,
-                                                                                    client
+                                                                            if (destination.endTime != null && System.currentTimeMillis() > destination.endTime)
+                                                                                signStatus[1 + index].successForLate()
+                                                                            else
+                                                                                signStatus[1 + index].success()
+                                                                            userSelections[index + 1] =
+                                                                                false
+                                                                            if (otherUserSessionList.checkIsLast(
+                                                                                    index + 1
+                                                                                )
+                                                                            ) {
+                                                                                isSigning = false
+                                                                                coroutineScope.launch {
+                                                                                    ChaoxingRecommendHelper.recordRecommendEvent(
+                                                                                        context,
+                                                                                        destination.classId,
+                                                                                        destination.courseId,
+                                                                                        client
+                                                                                    )
+                                                                                }
+                                                                                delay(
+                                                                                    ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED
+                                                                                )
+                                                                                isSponsor = true
+                                                                            }
+                                                                            UMengHelper.onSignCodeEvent(
+                                                                                context,
+                                                                                session.name,
+                                                                                true
+                                                                            )
+                                                                        } else {
+                                                                            (captchaValidate.exceptionOrNull()
+                                                                                ?: ChaoxingSigner.CaptchaException()).apply {
+                                                                                signStatus[index + 1].failed(
+                                                                                    this
+                                                                                )
+                                                                                this.snackbarReport(
+                                                                                    snackbarHost,
+                                                                                    coroutineScope,
+                                                                                    "为${session.name}签到时验证码校验失败",
+                                                                                    hapticFeedback
                                                                                 )
                                                                             }
-                                                                            delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)
-                                                                            isSponsor = true
                                                                         }
-                                                                        UMengHelper.onSignCodeEvent(
-                                                                            context,
-                                                                            session.name,
-                                                                            true
-                                                                        )
-                                                                    } else {
-                                                                        (captchaValidate.exceptionOrNull()
-                                                                            ?: ChaoxingSigner.CaptchaException()).apply {
-                                                                            signStatus[index + 1].failed(
-                                                                                this
-                                                                            )
-                                                                            this.snackbarReport(
-                                                                                snackbarHost,
-                                                                                coroutineScope,
-                                                                                "为${session.name}签到时验证码校验失败",
-                                                                                hapticFeedback
-                                                                            )
-                                                                        }
+                                                                        continuation.resume(Unit)
                                                                     }
-                                                                    continuation.resume(Unit)
-                                                                }
-                                                        }
-                                                    } else {
-                                                        if (destination.endTime != null && System.currentTimeMillis() > destination.endTime)
-                                                            signStatus[1 + index].successForLate()
-                                                        else
-                                                            signStatus[1 + index].success()
-                                                        if (otherUserSessionList.checkIsLast(1 + index)) {
-                                                            isSigning = false
-                                                            coroutineScope.launch {
-                                                                ChaoxingRecommendHelper.recordRecommendEvent(
-                                                                    context,
-                                                                    destination.classId,
-                                                                    destination.courseId,
-                                                                    client
-                                                                )
                                                             }
-                                                            delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)
-                                                            isSponsor = true
+                                                        } else {
+                                                            if (destination.endTime != null && System.currentTimeMillis() > destination.endTime)
+                                                                signStatus[1 + index].successForLate()
+                                                            else
+                                                                signStatus[1 + index].success()
+                                                            if (otherUserSessionList.checkIsLast(1 + index)) {
+                                                                isSigning = false
+                                                                coroutineScope.launch {
+                                                                    ChaoxingRecommendHelper.recordRecommendEvent(
+                                                                        context,
+                                                                        destination.classId,
+                                                                        destination.courseId,
+                                                                        client
+                                                                    )
+                                                                }
+                                                                delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)
+                                                                isSponsor = true
+                                                            }
+                                                            userSelections[index + 1] = false
+                                                            UMengHelper.onSignCodeEvent(
+                                                                context,
+                                                                session.name,
+                                                                true
+                                                            )
                                                         }
-                                                        userSelections[index + 1] = false
-                                                        UMengHelper.onSignCodeEvent(
-                                                            context,
-                                                            session.name,
-                                                            true
-                                                        )
                                                     }
                                                 }
                                             }
@@ -638,9 +653,10 @@ fun PasswordSignScreen(
                             }
                         }
                     }
+                } else {
+                    CenterCircularProgressIndicator()
                 }
             }
-
         }
     }
 }

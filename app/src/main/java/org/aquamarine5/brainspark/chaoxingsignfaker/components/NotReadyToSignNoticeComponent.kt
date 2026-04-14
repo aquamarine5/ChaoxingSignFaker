@@ -31,10 +31,11 @@ import androidx.compose.ui.unit.dp
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 
 @Composable
-fun AlreadySignedNotice(
+fun NotReadyToSignNoticeComponent(
     onSignForOtherUser: (() -> Unit)?,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
+    isExpiredSign: Boolean = false,
     navBack: () -> Unit,
 ) {
     val hapticFeedback = LocalHapticFeedback.current
@@ -48,12 +49,28 @@ fun AlreadySignedNotice(
         verticalArrangement = Arrangement.Center
     ) {
         Icon(
-            painterResource(R.drawable.ic_clipboard_check),
-            contentDescription = "已签到",
+            painterResource(
+                if (isExpiredSign) {
+                    R.drawable.ic_clipboard_x
+                } else {
+                    R.drawable.ic_clipboard_check
+                }
+            ),
+            contentDescription = if (isExpiredSign) {
+                "签到已截止"
+            } else {
+                "已签到"
+            },
             tint = MaterialTheme.colorScheme.onBackground
         )
         Spacer(modifier = Modifier.height(6.dp))
-        Text("当前签到活动已经签到，不能重复签到。", color = MaterialTheme.colorScheme.onBackground)
+        Text(
+            if (isExpiredSign) {
+                "当前签到活动已经截止，无法签到。"
+            } else {
+                "当前签到活动已经签到，不能重复签到。"
+            }, color = MaterialTheme.colorScheme.onBackground
+        )
         Spacer(modifier = Modifier.height(6.dp))
         onSignForOtherUser?.let {
             Spacer(modifier = Modifier.width(6.dp))
@@ -61,7 +78,13 @@ fun AlreadySignedNotice(
                 hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                 it.invoke()
             }, modifier = Modifier.fillMaxWidth()) {
-                Text("为其他用户签到")
+                Text(
+                    if (isExpiredSign) {
+                        "仍为其他用户签到"
+                    } else {
+                        "为其他用户签到"
+                    }
+                )
             }
         }
         Spacer(modifier = Modifier.width(6.dp))
@@ -75,7 +98,13 @@ fun AlreadySignedNotice(
         TextButton(onClick = {
             onDismiss()
         }, modifier = Modifier.fillMaxWidth()) {
-            Text("我认为这是BUG，我并没有签到。")
+            Text(
+                if (isExpiredSign) {
+                    "我认为这是BUG，签到并没有截止。"
+                } else {
+                    "我认为这是BUG，我并没有签到。"
+                }
+            )
         }
     }
 }

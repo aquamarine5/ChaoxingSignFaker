@@ -7,6 +7,9 @@
 package org.aquamarine5.brainspark.chaoxingsignfaker
 
 import android.content.Context
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.datastore.core.CorruptionException
 import androidx.datastore.core.DataStore
 import androidx.datastore.core.Serializer
@@ -17,7 +20,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingSignFakerD
 import java.io.InputStream
 import java.io.OutputStream
 
-var isDevelopedMode = false
+var isDevelopedMode by mutableStateOf(false)
 
 object DataStoreSerializer : Serializer<ChaoxingSignFakerDataStore> {
     override val defaultValue: ChaoxingSignFakerDataStore
