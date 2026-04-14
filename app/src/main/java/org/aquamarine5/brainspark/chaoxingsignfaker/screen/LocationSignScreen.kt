@@ -233,7 +233,7 @@ fun LocationSignScreen(
                             0
                         )
                     }
-                    val combinedUserList = remember(otherUserSessionForSignList) {
+                    val combinedUserList = remember(otherUserSessionForSignList,isSelfForSign) {
                         if (isSelfForSign) {
                             listOf(
                                 ChaoxingHttpClient.instance!!.userEntity.name,
