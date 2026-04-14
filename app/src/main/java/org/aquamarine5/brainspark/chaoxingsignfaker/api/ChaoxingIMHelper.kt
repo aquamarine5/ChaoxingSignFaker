@@ -32,7 +32,6 @@ object ChaoxingIMHelper {
 
     const val URL_MESSAGE_ROAMING =
         "https://a1-vip6.easecdn.com/cx-dev/cxstudy/users/%s/messageroaming"
-    const val IM_APPKEY = "cx-dev#cxstudy"
 
     suspend fun getIMGroups(
         httpClient: ChaoxingHttpClient,
@@ -82,9 +81,9 @@ object ChaoxingIMHelper {
         }
     }
 
-    fun parseIMMessageBody(imMessages: List<MessageBody>) {
+    fun parseIMMessageBody(imMessages: List<MessageBody>): List<ChaoxingGroupSignActivityEntity> {
         val signActivities = mutableListOf<ChaoxingGroupSignActivityEntity>()
-        imMessages.forEach {
+        imMessages.forEach forEachImMessages@{
             it.extList?.forEach { ext ->
                 if (ext.key == "attachment") {
                     val attachObject = JSONObject.parseObject(ext.stringValue)
@@ -101,7 +100,12 @@ object ChaoxingIMHelper {
                                     activeId,
                                     classId,
                                     courseId
-                                )!!,
+                                ) ?: {
+                                    throw ChaoxingIMConfigParseException(
+                                        "atypeName",
+                                        "未知签到类型: ${signInfo.getString("atypeName")}"
+                                    )
+                                },
                                 signInfo.getString("title"),
                                 activeId,
                                 classId,
@@ -111,17 +115,18 @@ object ChaoxingIMHelper {
                             )
                         )
                     }
-                    return@forEach
+                    return@forEachImMessages
                 }
             }
         }
+        return signActivities
     }
 
     suspend fun fetchIMHistoryMessages(
         imGroup: ChaoxingIMGroup,
         httpClient: ChaoxingHttpClient,
         imConfig: ChaoxingIMConfig
-    ): List<MessageBody> {
+    ): List<ChaoxingGroupSignActivityEntity> {
         return withContext(Dispatchers.IO) {
             httpClient.newCall(
                 Request.Builder().post(
@@ -159,8 +164,7 @@ object ChaoxingIMHelper {
 
                     resultList.add(messageBody)
                 }
-                parseIMMessageBody(resultList)
-                return@use resultList
+                return@use parseIMMessageBody(resultList)
             }
         }
     }

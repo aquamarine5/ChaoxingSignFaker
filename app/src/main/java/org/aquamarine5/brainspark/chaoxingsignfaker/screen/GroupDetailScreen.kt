@@ -28,7 +28,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingIMHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
-import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.easemob.MessageBody
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingGroupSignActivityEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingIMGroup
 import org.aquamarine5.brainspark.chaoxingsignfaker.snackbarReport
 
@@ -47,7 +47,7 @@ fun GroupDetailScreen(
             .fillMaxSize()
     ) {
         val coroutineScope = rememberCoroutineScope()
-        var messages by remember { mutableStateOf<List<MessageBody>?>(null) }
+        var messages by remember { mutableStateOf<List<ChaoxingGroupSignActivityEntity>?>(null) }
         val snackbarHostState = LocalSnackbarHostState.current
         val hapticFeedback = LocalHapticFeedback.current
         LaunchedEffect(Unit) {

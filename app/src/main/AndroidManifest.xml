@@ -106,6 +106,9 @@
         <meta-data
             android:name="io.sentry.traces.profiling.enable-app-start"
             android:value="false" />
+        <meta-data
+            android:name="io.sentry.tombstone.enable"
+            android:value="true" />
     </application>
 
 </manifest>

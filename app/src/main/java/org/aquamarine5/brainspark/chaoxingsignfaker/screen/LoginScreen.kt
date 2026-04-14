@@ -187,7 +187,7 @@ fun LoginPage(
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
                 ) {
                     Column(modifier = Modifier.padding(6.dp)) {
-                        Row {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(painterResource(R.drawable.ic_info), null)
                             Text(
                                 "如果登录账号持续出现问题，请尝试更新应用版本。",
