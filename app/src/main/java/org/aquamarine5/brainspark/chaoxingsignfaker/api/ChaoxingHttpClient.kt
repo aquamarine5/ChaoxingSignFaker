@@ -281,6 +281,8 @@ class ChaoxingHttpClient private constructor(
                             reLoginFromOtherSession(client, context, otherUserSession)
                         }.onSuccess {
                             return@withContext getInfo(client, context, otherUserSession)
+                        }.onFailure {
+                            throw ChaoxingGetUserInfoException("获取代签用户信息失败", throwable)
                         }
                     throw ChaoxingGetUserInfoException("获取用户信息失败", throwable)
                 }

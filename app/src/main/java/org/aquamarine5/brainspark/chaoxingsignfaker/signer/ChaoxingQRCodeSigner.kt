@@ -38,6 +38,8 @@ class ChaoxingQRCodeSigner(
         const val CLASSTAG = "ChaoxingQRCodeSigner"
     }
 
+    class QRCodeExpiredException : ChaoxingPredictableException("二维码已过期")
+
     suspend fun getQRCodeSignInfo(): Pair<ChaoxingQRCodeDetailEntity, ChaoxingSignOutEntity> {
         return getSignInfo().run {
             ChaoxingQRCodeDetailEntity(
@@ -58,7 +60,8 @@ class ChaoxingQRCodeSigner(
     suspend fun signWithCaptcha(
         enc: String,
         position: ChaoxingLocationSignEntity?,
-        captchaValidate: String
+        captchaValidate: String,
+        faceImageObjectId: String? = null
     ) =
         withContext(Dispatchers.IO) {
             client.newCall(
@@ -88,11 +91,17 @@ class ChaoxingQRCodeSigner(
                                         .toString()
                                 )
                             }
+                            if (faceImageObjectId != null) {
+                                addQueryParameter("currentFaceId", faceImageObjectId)
+                                addQueryParameter("ifCFP", "0")
+                            }
                         }.build()
                 ).build()
             ).execute().use {
                 it.checkResponseThrowException()
                 val result = it.body.string()
+                if(result == "签到失败，请重新扫描。")
+                    throw QRCodeExpiredException()
                 if (result == "errorLocation2")
                     throw WrongPositionException()
                 if (result == "success2")
@@ -107,7 +116,7 @@ class ChaoxingQRCodeSigner(
             }
         }
 
-    suspend fun sign(enc: String, position: ChaoxingLocationSignEntity?): Boolean =
+    suspend fun sign(enc: String, position: ChaoxingLocationSignEntity?, faceImageObjectId: String? = null): Boolean =
         withContext(Dispatchers.IO) {
             if (isCaptchaRequired()) return@withContext true
             client.newCall(
@@ -136,6 +145,10 @@ class ChaoxingQRCodeSigner(
                                         .toString()
                                 )
                             }
+                            if (faceImageObjectId != null) {
+                                addQueryParameter("currentFaceId", faceImageObjectId)
+                                addQueryParameter("ifCFP", "0")
+                            }
                         }.build()
                 ).build()
             ).execute().use {
@@ -144,6 +157,8 @@ class ChaoxingQRCodeSigner(
                 if (result.startsWith("validate")) {
                     return@use true
                 }
+                if(result == "签到失败，请重新扫描。")
+                    throw QRCodeExpiredException()
                 if (result == "errorLocation2")
                     throw WrongPositionException()
                 if (result == "success2")

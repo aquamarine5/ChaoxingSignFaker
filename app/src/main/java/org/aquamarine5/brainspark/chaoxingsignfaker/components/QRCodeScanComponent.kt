@@ -14,7 +14,6 @@ import android.graphics.PixelFormat
 import android.graphics.RectF
 import android.graphics.drawable.Drawable
 import android.net.Uri
-import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -99,11 +98,10 @@ fun QRCodeScanComponent(
     val hapticFeedback = LocalHapticFeedback.current
     val snackbarHostState = LocalSnackbarHostState.current
     if (cameraPermission.status == PermissionStatus.Granted) {
-        val application = LocalActivity.current!!
+        val context = LocalContext.current
         val lifecycleOwner = LocalLifecycleOwner.current
-        val cameraExecutor = remember { ContextCompat.getMainExecutor(application) }
-        LocalContext.current.let { context ->
-
+        val cameraExecutor = remember(context) { ContextCompat.getMainExecutor(context) }
+        context.let { context ->
             val previewView = remember { PreviewView(context) }
             val preview = remember { Preview.Builder().build() }
             val controller = remember {
@@ -129,7 +127,8 @@ fun QRCodeScanComponent(
                     ).setZoomSuggestionOptions(ZoomSuggestionOptions.Builder { ratio ->
                         controller.setZoomRatio(ratio)
                         return@Builder true
-                    }.build())
+                    }
+                        .build())
                         .build()
                 )
             }

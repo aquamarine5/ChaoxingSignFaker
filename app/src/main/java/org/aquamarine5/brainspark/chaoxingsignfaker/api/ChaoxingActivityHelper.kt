@@ -13,6 +13,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Request
+import org.aquamarine5.brainspark.chaoxingsignfaker.ChaoxingParseDataException
 import org.aquamarine5.brainspark.chaoxingsignfaker.checkResponse
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCourseActivitiesEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCourseEntity
@@ -93,35 +94,44 @@ object ChaoxingActivityHelper {
                 ).build()
             ).execute().use {
                 if (it.checkResponse(snackbarHostState))
-                    throw ChaoxingHttpClient.ChaoxingNetworkException()
+                    throw ChaoxingHttpClient.ChaoxingNetworkException(it.body.string())
                 val jsonResult = JSONObject.parseObject(it.body.string()).getJSONObject("data")
                 val activeList = jsonResult.getJSONArray("activeList").map { activity ->
                     activity as JSONObject
                 }.filter { activity ->
                     activity.getInteger("type") == 2 || activity.getInteger("type") == 74
                 }
-                return@withContext ChaoxingCourseActivitiesEntity(
-                    jsonResult.getJSONObject("ext").toString(),
-                    course,
-                    List(activeList.size) { i ->
-                        val activity = activeList[i]
-                        ChaoxingSignActivityEntity(
-                            activity.getLong("startTime"),
-                            activity.getLong("endTime"),
-                            activity.getInteger("userStatus"),
-                            activity.getString("otherId"),
-                            activity.getInteger("isLook") == 1,
-                            activity.getInteger("type"),
-                            activity.getInteger("activeType"),
-                            activity.getString("nameOne"),
-                            activity.getLong("id"),
-                            activity.getInteger("status"),
-                            activity.getString("nameFour"),
-                            course,
-                            jsonResult.getJSONObject("ext").toString()
-                        )
-                    }
-                )
+                runCatching {
+                    ChaoxingCourseActivitiesEntity(
+                        jsonResult.getJSONObject("ext").toString(),
+                        course,
+                        List(activeList.size) { i ->
+                            val activity = activeList[i]
+                            ChaoxingSignActivityEntity(
+                                activity.getLong("startTime"),
+                                activity.getLong("endTime"),
+                                activity.getInteger("userStatus"),
+                                activity.getString("otherId"),
+                                activity.getInteger("isLook") == 1,
+                                activity.getInteger("type"),
+                                activity.getInteger("activeType"),
+                                activity.getString("nameOne"),
+                                activity.getLong("id"),
+                                activity.getInteger("status"),
+                                activity.getString("nameFour"),
+                                course,
+                                jsonResult.getJSONObject("ext").toString()
+                            )
+                        }
+                    )
+                }.getOrElse {
+                    throw ChaoxingParseDataException(
+                        "解析课程活动数据失败: ${it.message}",
+                        it,
+                        jsonResult.toJSONString()
+                    )
+                }
+
             }
         }
 }

@@ -108,13 +108,13 @@ fun Throwable.toastReport(
         Sentry.captureException(this)
         Toast.makeText(
             context,
-            "${prefixTips?.plus(" ") ?: ""}预期外错误:${this.message ?: this::class.simpleName}",
+            "${prefixTips?.plus(" ") ?: ""}预期外错误:${this.getPredictableMessage()}",
             Toast.LENGTH_LONG
         ).show()
     } else {
         Toast.makeText(
             context,
-            "${prefixTips?.plus(" ") ?: ""}${this.message ?: this::class.simpleName}",
+            "${prefixTips?.plus(" ") ?: ""}${this.getPredictableMessage()}",
             Toast.LENGTH_LONG
         ).show()
     }
@@ -150,7 +150,7 @@ fun Throwable.snackbarReport(
         snackbarHostState?.currentSnackbarData?.dismiss()
         coroutineScope.launch {
             snackbarHostState?.showSnackbar(
-                "${prefixTips?.plus(" ") ?: ""}预期外错误:${this@snackbarReport.message ?: this@snackbarReport::class.simpleName}",
+                "${prefixTips?.plus(" ") ?: ""}预期外错误:${this@snackbarReport.getPredictableMessage()}",
                 actionLabel,
                 true,
                 duration
@@ -158,11 +158,26 @@ fun Throwable.snackbarReport(
                 onSnackbarResult?.invoke(this)
             }
         }
-    } else {
+    } else if(this.cause!=null && this.cause !is ChaoxingPredictableException){
+        this.cause?.let {
+            Sentry.captureException(it)
+            snackbarHostState?.currentSnackbarData?.dismiss()
+            coroutineScope.launch {
+                snackbarHostState?.showSnackbar(
+                    "${prefixTips?.plus(" ") ?: ""}${it.getPredictableMessage()}",
+                    actionLabel,
+                    true,
+                    duration
+                )?.apply {
+                    onSnackbarResult?.invoke(this)
+                }
+            }
+        }
+    }else {
         snackbarHostState?.currentSnackbarData?.dismiss()
         coroutineScope.launch {
             snackbarHostState?.showSnackbar(
-                "${prefixTips?.plus(" ") ?: ""}${this@snackbarReport.message ?: this@snackbarReport::class.simpleName}",
+                "${prefixTips?.plus(" ") ?: ""}${this@snackbarReport.getPredictableMessage()}",
                 actionLabel,
                 true,
                 duration

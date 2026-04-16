@@ -84,7 +84,9 @@ fun CourseInfoColumnCard(
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold
                     )
-                    Text(course.teacherName.replace("\n", ""))
+                    if (!course.teacherName.isNullOrBlank()) {
+                        Text(course.teacherName.replace("\n", ""))
+                    }
                     if (!course.schools.isNullOrBlank()) {
                         Text(course.schools.replace("\n", ""), fontSize = 12.sp)
                     }
