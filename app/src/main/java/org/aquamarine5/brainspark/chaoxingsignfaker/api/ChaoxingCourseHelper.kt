@@ -13,6 +13,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Request
+import org.aquamarine5.brainspark.chaoxingsignfaker.ChaoxingParseDataException
 import org.aquamarine5.brainspark.chaoxingsignfaker.checkResponse
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCourseEntity
 
@@ -117,18 +118,27 @@ object ChaoxingCourseHelper {
                         if (!course.containsKey("cataName")) continue
                         val courseContent =
                             content.getJSONObject("course").getJSONArray("data").getJSONObject(0)
-                        courseList.add(
-                            ChaoxingCourseEntity(
-                                courseContent.getString("name"),
-                                courseContent.getString("teacherfactor"),
-                                courseContent.getInteger("id"),
-                                content.getInteger("id"),
-                                courseContent.getString("name"),
-                                courseContent.getString("imageurl")
-                                    ?: "https://p.ananas.chaoxing.com/star3/270_160c/669ca80d6a0c5f74835bb936a41aabca.jpg",
-                                courseContent.getString("schools")
+                        runCatching {
+                            courseList.add(
+                                ChaoxingCourseEntity(
+                                    courseContent.getString("name"),
+                                    courseContent.getString("teacherfactor"),
+                                    courseContent.getInteger("id"),
+                                    content.getInteger("id"),
+                                    courseContent.getString("name"),
+                                    courseContent.getString("imageurl")
+                                        ?: "https://p.ananas.chaoxing.com/star3/270_160c/669ca80d6a0c5f74835bb936a41aabca.jpg",
+                                    courseContent.getString("schools")
+                                )
                             )
-                        )
+                        }.getOrElse {
+                            throw ChaoxingParseDataException(
+                                "课程数据解析失败: ${it.message}",
+                                it,
+                                course.toJSONString()
+                            )
+                        }
+
                     }
                 }
             return@withContext courseList

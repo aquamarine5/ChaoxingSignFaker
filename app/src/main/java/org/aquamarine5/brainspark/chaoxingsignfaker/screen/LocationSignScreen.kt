@@ -10,16 +10,11 @@ import android.graphics.Bitmap
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
-import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -66,9 +61,9 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingOtherUserHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingRecommendHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingSignHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.checkIsLast
-import org.aquamarine5.brainspark.chaoxingsignfaker.components.CameraComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.FaceRecognitionComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.GetLocationComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NetworkExceptionComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NotReadyToSignNoticeComponent
@@ -223,26 +218,10 @@ fun LocationSignScreen(
                     // future will be edited.
                     var isFaceRequired by remember { mutableStateOf(false) }
                     var isFaceImageCaptured by remember { mutableStateOf(false) }
-                    var faceImageCapturedIndex by remember(otherUserSessionForSignList) {
-                        mutableIntStateOf(
-                            0
-                        )
-                    }
                     var faceImageUploadIndex by remember(otherUserSessionForSignList) {
                         mutableIntStateOf(
                             0
                         )
-                    }
-                    val combinedUserList = remember(otherUserSessionForSignList,isSelfForSign) {
-                        if (isSelfForSign) {
-                            listOf(
-                                ChaoxingHttpClient.instance!!.userEntity.name,
-                            ) + otherUserSessionForSignList.filterNotNull()
-                                .map { it.name }
-                        } else {
-                            otherUserSessionForSignList.filterNotNull()
-                                .map { it.name }
-                        }
                     }
                     var faceImageBitmaps by remember { mutableStateOf<List<Bitmap>>(emptyList()) }
                     LaunchedEffect(Unit) {
@@ -311,7 +290,7 @@ fun LocationSignScreen(
                             isSelfForSign = isSelf
                             otherUserSessionForSignList = otherUserSessionList
                             coroutineScope.launch {
-                                if (signer.isFaceRequired())
+                                if (isFaceRequired)
                                     isFaceImageCaptured = true
                                 else
                                     isGetLocation = true
@@ -331,39 +310,16 @@ fun LocationSignScreen(
                             animationSpec = tween(300)
                         )
                     ) {
-                        BackHandler(isFaceImageCaptured) {
-                            isSigning = false
-                            isFaceImageCaptured = false
-                        }
-                        CameraComponent(
-                            combinedUserList.size,
-                            isDefaultBackCamera = false,
-                            onNextPhoto = {
-                                faceImageCapturedIndex++
-                            }, content = {
-                                Row(
-                                    modifier = Modifier
-                                        .animateContentSize()
-                                        .background(
-                                            Color(0x88888888),
-                                            RoundedCornerShape(14.dp)
-                                        )
-                                        .border(
-                                            BorderStroke(
-                                                2.dp, Color(0xFF444444)
-                                            ), RoundedCornerShape(14.dp)
-                                        )
-                                        .padding(10.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.Center
-                                ) {
-                                    Text("拍摄给 ${combinedUserList[faceImageCapturedIndex]} 签到的图片")
-                                }
+                        FaceRecognitionComponent(
+                            isSelfForSign,
+                            otherUserSessionForSignList,
+                            onCancel = {
+                                isSigning = false
+                                isFaceImageCaptured = false
                             }) {
                             faceImageBitmaps = it
                             isGetLocation = true
                             isFaceImageCaptured = false
-
                         }
                     }
                     AnimatedVisibility(
@@ -395,7 +351,7 @@ fun LocationSignScreen(
                                     if (isSelfForSign) {
                                         signStatus[0].loading()
                                         val faceImageUploadedObjectId =
-                                            if (signer.isFaceRequired()) {
+                                            if (isFaceRequired) {
                                                 ChaoxingCloudDriveHelper.uploadImage(
                                                     ChaoxingHttpClient.instance!!,
                                                     faceImageBitmaps[faceImageUploadIndex]
@@ -536,7 +492,7 @@ fun LocationSignScreen(
                                                         )
                                                             throw ChaoxingSigner.SignActivityNoPermissionException()
                                                         val faceImageUploadedObjectId =
-                                                            if (isFaceRequired()) {
+                                                            if (isFaceRequired) {
                                                                 ChaoxingCloudDriveHelper.uploadImage(
                                                                     client,
                                                                     faceImageBitmaps[faceImageUploadIndex]
