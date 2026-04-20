@@ -7,6 +7,7 @@
 package org.aquamarine5.brainspark.chaoxingsignfaker.screen
 
 import android.graphics.Bitmap
+import android.util.Log
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
@@ -761,8 +762,15 @@ fun QRCodeSignScreen(
                                                 isSigning = false
                                             }.onFailure {
                                                 it.printStackTrace()
-                                                if (it !is ChaoxingQRCodeSigner.QRCodeParseException)
-                                                    Sentry.captureException(it)
+                                                (it as? ChaoxingQRCodeSigner.QRCodeParseException).let { exception ->
+                                                    if (exception == null)
+                                                        Sentry.captureException(it)
+                                                    else
+                                                        Log.w(
+                                                            "ChaoxingQRCodeSigner",
+                                                            exception.rawValue
+                                                        )
+                                                }
                                                 isQRCodeIllegal = true
                                                 isQRCodeScanPause.value = true
                                                 qrcodeIllegalText =

@@ -38,7 +38,7 @@ class ChaoxingQRCodeSigner(
         const val CLASSTAG = "ChaoxingQRCodeSigner"
     }
 
-    class QRCodeParseException : ChaoxingPredictableException("二维码解析失败")
+    class QRCodeParseException(val rawValue:String) : ChaoxingPredictableException("二维码解析失败")
 
     class QRCodeExpiredException : ChaoxingPredictableException("二维码已过期")
 
@@ -179,7 +179,7 @@ class ChaoxingQRCodeSigner(
 
     fun parseQRCode(qrcode: Barcode): String {
         return (qrcode.rawValue ?: qrcode.url?.url)?.toHttpUrlOrNull()?.queryParameter("enc")
-            ?: throw QRCodeParseException()
+            ?: throw QRCodeParseException(qrcode.rawValue)
     }
 
     override suspend fun checkAlreadySign(response: String): Boolean =
