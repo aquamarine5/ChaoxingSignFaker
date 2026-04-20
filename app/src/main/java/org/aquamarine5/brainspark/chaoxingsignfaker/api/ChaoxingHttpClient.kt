@@ -188,7 +188,7 @@ class ChaoxingHttpClient private constructor(
                 }
                 .build()
             login(client, phoneNumber, password, context)
-            val userInfo = getInfo(client, context).apply {
+            val userInfo = getInfo(client, context, phoneNumber).apply {
                 UMengHelper.profileSignIn(this, phoneNumber)
             }
             return@withContext ChaoxingHttpClient(
@@ -244,7 +244,7 @@ class ChaoxingHttpClient private constructor(
                         }
                 )
             }
-            val userInfo = getInfo(okHttpClient, context)
+            val userInfo = getInfo(okHttpClient, context, dataStore.loginSession)
             return ChaoxingHttpClient(
                 okHttpClient,
                 userInfo
@@ -256,7 +256,21 @@ class ChaoxingHttpClient private constructor(
         suspend fun getInfo(
             client: OkHttpClient,
             context: Context,
-            otherUserSession: ChaoxingOtherUserSession? = null
+            loginSession: ChaoxingLoginSession
+        ): ChaoxingUserEntity = getInfo(client, context, loginSession.phoneNumber, null)
+
+        suspend fun getInfo(
+            client: OkHttpClient,
+            context: Context,
+            otherUserSession: ChaoxingOtherUserSession
+        ): ChaoxingUserEntity =
+            getInfo(client, context, otherUserSession.phoneNumber, otherUserSession)
+
+        suspend fun getInfo(
+            client: OkHttpClient,
+            context: Context,
+            phoneNumber: String,
+            otherUserSession: ChaoxingOtherUserSession? = null,
         ): ChaoxingUserEntity =
             withContext(Dispatchers.IO) {
                 runCatching {
@@ -272,7 +286,8 @@ class ChaoxingHttpClient private constructor(
                                 jsonResult.getString("schoolname"),
                                 jsonResult.getString("uname"),
                                 jsonResult.getString("pic").replace("http://", "https://"),
-                                jsonResult.getInteger("puid")
+                                jsonResult.getInteger("puid"),
+                                phoneNumber
                             )
                         }
                 }.getOrElse { throwable ->
@@ -396,7 +411,7 @@ class ChaoxingHttpClient private constructor(
                     return@withContext ChaoxingOtherUserSharedEntity(
                         phoneNumber,
                         encryptedPassword,
-                        getInfo(tempOkHttpClient, context).name
+                        getInfo(tempOkHttpClient, context, phoneNumber).name
                     )
                 }
             }

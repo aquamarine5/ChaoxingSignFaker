@@ -36,7 +36,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -237,12 +236,9 @@ fun QRCodeSignScreen(
                     // TODO: 人脸识别
                     var isFaceRequired by remember { mutableStateOf(false) }
                     var isFaceImageCaptured by remember { mutableStateOf(false) }
-                    var faceImageUploadIndex by remember(signUserList) {
-                        mutableIntStateOf(
-                            0
-                        )
-                    }
-                    var faceImageBitmaps by remember { mutableStateOf<List<Bitmap>>(emptyList()) }
+
+                    val faceImageBitmaps = remember { mutableMapOf<String, Bitmap>() }
+                    val faceImageObjectIds = remember { mutableMapOf<String, String>() }
                     LaunchedEffect(Unit) {
                         isFaceRequired = signer.isFaceRequired()
                     }
@@ -373,11 +369,23 @@ fun QRCodeSignScreen(
                                         fadeOut(animationSpec = tween(300)),
                             modifier = Modifier.zIndex(1f)
                         ) {
-                            FaceRecognitionComponent(isSelfForSign, signUserList, onCancel = {
+                            FaceRecognitionComponent(mutableListOf<Pair<String, String>>().apply {
+                                if (isSelfForSign && !faceImageObjectIds.containsKey(
+                                        ChaoxingHttpClient.instance!!.userEntity.phoneNumber
+                                    )
+                                ) add(ChaoxingHttpClient.instance!!.userEntity.phoneNumber to ChaoxingHttpClient.instance!!.userEntity.name)
+                                else signUserList.forEach {
+                                    if (it != null && !faceImageObjectIds.containsKey(
+                                            it.phoneNumber
+                                        )
+                                    ) add(it.phoneNumber to it.name)
+                                }
+                            }, onCancel = {
                                 isSigning = false
                                 isFaceImageCaptured = false
                             }) {
-                                faceImageBitmaps = it
+                                faceImageBitmaps.putAll(it)
+                                isFaceImageCaptured = false
                                 if (isMapRequired)
                                     isMapGetting = true
                                 else {
@@ -464,11 +472,15 @@ fun QRCodeSignScreen(
                                                         signStatus[0].loading()
                                                         val faceImageUploadedObjectId =
                                                             if (isFaceRequired) {
-                                                                ChaoxingCloudDriveHelper.uploadImage(
-                                                                    ChaoxingHttpClient.instance!!,
-                                                                    faceImageBitmaps[faceImageUploadIndex]
-                                                                ).apply {
-                                                                    faceImageUploadIndex++
+                                                                faceImageObjectIds.getOrPut(
+                                                                    ChaoxingHttpClient.instance!!.userEntity.phoneNumber
+                                                                ) {
+                                                                    ChaoxingCloudDriveHelper.uploadImage(
+                                                                        ChaoxingHttpClient.instance!!,
+                                                                        faceImageBitmaps.remove(
+                                                                            ChaoxingHttpClient.instance!!.userEntity.phoneNumber
+                                                                        )!!
+                                                                    )
                                                                 }
                                                             } else null
                                                         if (signer.sign(
@@ -612,11 +624,16 @@ fun QRCodeSignScreen(
                                                                             throw ChaoxingSigner.SignActivityNoPermissionException()
                                                                         val faceImageUploadedObjectId =
                                                                             if (isFaceRequired) {
-                                                                                ChaoxingCloudDriveHelper.uploadImage(
-                                                                                    client,
-                                                                                    faceImageBitmaps[faceImageUploadIndex]
-                                                                                )
-                                                                                    .apply { faceImageUploadIndex++ }
+                                                                                faceImageObjectIds.getOrPut(
+                                                                                    session.phoneNumber
+                                                                                ) {
+                                                                                    ChaoxingCloudDriveHelper.uploadImage(
+                                                                                        client,
+                                                                                        faceImageBitmaps.remove(
+                                                                                            session.phoneNumber
+                                                                                        )!!
+                                                                                    )
+                                                                                }
                                                                             } else null
                                                                         if (sign(
                                                                                 enc,
@@ -744,7 +761,8 @@ fun QRCodeSignScreen(
                                                 isSigning = false
                                             }.onFailure {
                                                 it.printStackTrace()
-                                                Sentry.captureException(it)
+                                                if (it !is ChaoxingQRCodeSigner.QRCodeParseException)
+                                                    Sentry.captureException(it)
                                                 isQRCodeIllegal = true
                                                 isQRCodeScanPause.value = true
                                                 qrcodeIllegalText =

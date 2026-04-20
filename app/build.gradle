@@ -25,7 +25,7 @@ stackbricksConfig {
     possibleConfigurationPaths = [
             new PossibleConfigurationPath("cdn.aquamarine5.fun", "chaoxingsignfaker_stackbricks_v2_manifest.json")
     ]
-    changelog = "# 1.13.3 更新：\n- 修复了人脸签到时意外的崩溃BUG。\n\n1.13.2 更新：\n- 修复了已经截止的签到被误判为已签到的问题。\n\n# 1.13.1 更新：\n- 测试性的支持了有人脸识别的位置签到。\n\n# 1.13.0 更新：\n- 修复了签到码输入时当签到码是0开头时无法识别的错误。\n\n# 1.12.11 更新：\n- 优化了界面表现，修复了部分已知问题。\n\nlovely but not lonely, 20260410, @aquamarine5 Brainspark."
+    changelog = "# 1.13.4 更新：\n- 修复了有人脸识别的二维码签到的异常崩溃。\n\n# 1.13.3 更新：\n- 修复了人脸签到时意外的崩溃BUG。\n\n1.13.2 更新：\n- 修复了已经截止的签到被误判为已签到的问题。\n\n# 1.13.1 更新：\n- 测试性的支持了有人脸识别的位置签到。\n\n# 1.13.0 更新：\n- 修复了签到码输入时当签到码是0开头时无法识别的错误。\n\n# 1.12.11 更新：\n- 优化了界面表现，修复了部分已知问题。\n\nlovely but not lonely, 20260410, @aquamarine5 Brainspark."
     requiredManifestVersion2MigrateForceInstall = true
     forceInstallLessVersion = 1_1208_1216
     qiniuConfig {
@@ -47,8 +47,8 @@ android {
         applicationId = "org.aquamarine5.brainspark.chaoxingsignfaker"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1_1303_1215
-        versionName = "1.13.3-stable-260414"
+        versionCode = 1_1304_1215
+        versionName = "1.13.4-stable-260414"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
