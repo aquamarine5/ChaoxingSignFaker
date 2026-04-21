@@ -72,7 +72,6 @@ import com.google.accompanist.permissions.rememberPermissionState
 import com.google.accompanist.permissions.shouldShowRationale
 import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.barcode.BarcodeScanning
-import com.google.mlkit.vision.barcode.ZoomSuggestionOptions
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
 import kotlinx.coroutines.Dispatchers
@@ -124,11 +123,12 @@ fun QRCodeScanComponent(
                 BarcodeScanning.getClient(
                     BarcodeScannerOptions.Builder().setBarcodeFormats(
                         Barcode.FORMAT_QR_CODE
-                    ).setZoomSuggestionOptions(ZoomSuggestionOptions.Builder { ratio ->
-                        controller.setZoomRatio(ratio)
-                        return@Builder true
-                    }
-                        .build())
+                    )
+//                        .setZoomSuggestionOptions(ZoomSuggestionOptions.Builder { ratio ->
+//                        controller.setZoomRatio(ratio)
+//                        return@Builder true
+//                    }
+//                        .build())
                         .build()
                 )
             }

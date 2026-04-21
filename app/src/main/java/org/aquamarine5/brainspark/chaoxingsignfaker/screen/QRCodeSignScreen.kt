@@ -8,6 +8,7 @@ package org.aquamarine5.brainspark.chaoxingsignfaker.screen
 
 import android.graphics.Bitmap
 import android.util.Log
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
@@ -90,6 +91,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityS
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignOutEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignStatus
 import org.aquamarine5.brainspark.chaoxingsignfaker.ifAlreadySigned
+import org.aquamarine5.brainspark.chaoxingsignfaker.isDevelopedMode
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingQRCodeSigner
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSigner
 import org.aquamarine5.brainspark.chaoxingsignfaker.snackbarReport
@@ -765,11 +767,16 @@ fun QRCodeSignScreen(
                                                 (it as? ChaoxingQRCodeSigner.QRCodeParseException).let { exception ->
                                                     if (exception == null)
                                                         Sentry.captureException(it)
-                                                    else
+                                                    else {
+                                                        if(isDevelopedMode)
+                                                            withContext(Dispatchers.Main){
+                                                                Toast.makeText(context, exception.rawValue, Toast.LENGTH_SHORT).show()
+                                                            }
                                                         Log.w(
                                                             "ChaoxingQRCodeSigner",
                                                             exception.rawValue
                                                         )
+                                                    }
                                                 }
                                                 isQRCodeIllegal = true
                                                 isQRCodeScanPause.value = true
