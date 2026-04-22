@@ -14,7 +14,7 @@ open class ChaoxingPredictableException(
     ) : Exception("Illegal channel detected. Please check your app version and channel.")
 }
 
-class ChaoxingParseDataException(
+open class ChaoxingParseDataException(
     message: String? = null,
     throwable: Throwable? = null,
     val data: String? = null

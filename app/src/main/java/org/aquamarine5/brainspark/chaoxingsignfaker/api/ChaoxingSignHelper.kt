@@ -49,6 +49,21 @@ object ChaoxingSignHelper {
         }
     }
 
+    @Composable
+    fun getPredictedSignIcon(title:String):Painter{
+        val iconRes = when {
+            title.contains("位置") -> R.drawable.ic_map_pin
+            title.contains("二维码") -> R.drawable.ic_scan_qr_code
+            title.contains("拍照") -> R.drawable.ic_square_mouse_pointer
+            title.contains("手势") -> R.drawable.ic_pattern_locking
+            title.contains("签到码") -> R.drawable.ic_binary
+            else -> R.drawable.ic_clipboard_pen_line
+        }
+        return painterCache.getOrPut(iconRes) {
+            painterResource(id = iconRes)
+        }
+    }
+
     fun getSignDestination(
         context: Context,
         activityEntity: ChaoxingSignActivityEntity,

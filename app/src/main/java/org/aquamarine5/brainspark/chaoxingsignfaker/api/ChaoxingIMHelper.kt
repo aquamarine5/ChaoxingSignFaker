@@ -16,6 +16,7 @@ import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import org.aquamarine5.brainspark.chaoxingsignfaker.ChaoxingParseDataException
 import org.aquamarine5.brainspark.chaoxingsignfaker.checkResponseThrowException
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.easemob.MessageBody
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.easemob.Meta
@@ -24,8 +25,12 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingIMConfig
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingIMGroup
 
 object ChaoxingIMHelper {
-    private class ChaoxingIMConfigParseException(arg: String, message: String? = null) :
-        Exception("IM配置解析异常: $arg 获取失败，${message ?: "未知错误"}")
+    private class ChaoxingIMConfigParseException(
+        arg: String,
+        message: String? = null,
+        data: String? = null
+    ) :
+        ChaoxingParseDataException("IM配置解析异常: $arg 获取失败，${message ?: "未知错误"}", data = data)
 
     val URL_IM_ME = "https://im.chaoxing.com/webim/me".toHttpUrl()
     val URL_IM_GROUPS = "https://im.chaoxing.com/webim/message/list/getMessageList".toHttpUrl()
@@ -89,6 +94,8 @@ object ChaoxingIMHelper {
                     val attachObject = JSONObject.parseObject(ext.stringValue)
                     if (attachObject.getInteger("attachmentType") == 15) {
                         val signInfo = attachObject.getJSONObject("att_chat_course")
+                        if (signInfo.getInteger("atype") != 2 && signInfo.getInteger("atype") != 74)
+                            return@forEachImMessages
                         val courseInfo = signInfo.getJSONObject("courseInfo")
                         val activeId = signInfo.getLong("aid")
                         val classId = courseInfo.getInteger("classid")
@@ -150,18 +157,14 @@ object ChaoxingIMHelper {
                 val responseBody = response.body.string()
                 val json = JSON.parseObject(responseBody)
                 val data = json.getJSONObject("data")
-                val msgs = data.getJSONArray("msgs")
+                val messages = data.getJSONArray("msgs")
                 val resultList = mutableListOf<MessageBody>()
-
-                for (i in 0 until msgs.size) {
-                    val msgObj = msgs.getJSONObject(i)
+                for (i in 0 until messages.size) {
+                    val msgObj = messages.getJSONObject(i)
                     val msgStr = msgObj.getString("msg")
-
                     val msgBytes = Base64.decode(msgStr, Base64.DEFAULT)
                     val meta = Meta.parseFrom(msgBytes)
-
                     val messageBody = MessageBody.parseFrom(meta.field6)
-
                     resultList.add(messageBody)
                 }
                 return@use parseIMMessageBody(resultList)

@@ -363,7 +363,6 @@ fun CourseListScreen(
                             } //TODO: Recommend
                             var debouncePreviousTime = 0L
                             LazyColumn {
-                                if (false)
                                 item {
                                     OutlinedButton(
                                         onClick = {
@@ -386,7 +385,7 @@ fun CourseListScreen(
                                                 ""
                                             )
                                             Spacer(modifier = Modifier.width(14.dp))
-                                            Text("为群聊签到")
+                                            Text("为群聊签到（测试版）")
                                         }
                                     }
                                 }

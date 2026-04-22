@@ -47,8 +47,8 @@ android {
         applicationId = "org.aquamarine5.brainspark.chaoxingsignfaker"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1_1305_1215
-        versionName = "1.13.5-stable-260420"
+        versionCode = 1_1306_0304
+        versionName = "1.13.6-beta1-260422"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
