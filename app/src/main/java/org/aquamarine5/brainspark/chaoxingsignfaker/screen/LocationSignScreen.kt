@@ -312,7 +312,7 @@ fun LocationSignScreen(
                                     ChaoxingHttpClient.instance!!.userEntity.phoneNumber
                                 )
                             ) add(ChaoxingHttpClient.instance!!.userEntity.phoneNumber to ChaoxingHttpClient.instance!!.userEntity.name)
-                            else otherUserSessionForSignList.forEach {
+                            otherUserSessionForSignList.forEach {
                                 if (it != null && !faceImageObjectIds.containsKey(
                                         it.phoneNumber
                                     )
