@@ -31,7 +31,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -218,12 +217,10 @@ fun LocationSignScreen(
                     // future will be edited.
                     var isFaceRequired by remember { mutableStateOf(false) }
                     var isFaceImageCaptured by remember { mutableStateOf(false) }
-                    var faceImageUploadIndex by remember(otherUserSessionForSignList) {
-                        mutableIntStateOf(
-                            0
-                        )
-                    }
-                    var faceImageBitmaps by remember { mutableStateOf<List<Bitmap>>(emptyList()) }
+
+                    val faceImageBitmaps = remember { mutableMapOf<String, Bitmap>() }
+                    val faceImageObjectIds = remember { mutableMapOf<String, String>() }
+
                     LaunchedEffect(Unit) {
                         isFaceRequired = signer.isFaceRequired()
                     }
@@ -310,14 +307,22 @@ fun LocationSignScreen(
                             animationSpec = tween(300)
                         )
                     ) {
-                        FaceRecognitionComponent(
-                            isSelfForSign,
-                            otherUserSessionForSignList,
-                            onCancel = {
-                                isSigning = false
-                                isFaceImageCaptured = false
-                            }) {
-                            faceImageBitmaps = it
+                        FaceRecognitionComponent(mutableListOf<Pair<String, String>>().apply {
+                            if (isSelfForSign && !faceImageObjectIds.containsKey(
+                                    ChaoxingHttpClient.instance!!.userEntity.phoneNumber
+                                )
+                            ) add(ChaoxingHttpClient.instance!!.userEntity.phoneNumber to ChaoxingHttpClient.instance!!.userEntity.name)
+                            else otherUserSessionForSignList.forEach {
+                                if (it != null && !faceImageObjectIds.containsKey(
+                                        it.phoneNumber
+                                    )
+                                ) add(it.phoneNumber to it.name)
+                            }
+                        }, onCancel = {
+                            isSigning = false
+                            isFaceImageCaptured = false
+                        }) {
+                            faceImageBitmaps.putAll(it)
                             isGetLocation = true
                             isFaceImageCaptured = false
                         }
@@ -352,11 +357,15 @@ fun LocationSignScreen(
                                         signStatus[0].loading()
                                         val faceImageUploadedObjectId =
                                             if (isFaceRequired) {
-                                                ChaoxingCloudDriveHelper.uploadImage(
-                                                    ChaoxingHttpClient.instance!!,
-                                                    faceImageBitmaps[faceImageUploadIndex]
-                                                ).apply {
-                                                    faceImageUploadIndex++
+                                                faceImageObjectIds.getOrPut(
+                                                    ChaoxingHttpClient.instance!!.userEntity.phoneNumber
+                                                ) {
+                                                    ChaoxingCloudDriveHelper.uploadImage(
+                                                        ChaoxingHttpClient.instance!!,
+                                                        faceImageBitmaps.remove(
+                                                            ChaoxingHttpClient.instance!!.userEntity.phoneNumber
+                                                        )!!
+                                                    )
                                                 }
                                             } else null
                                         if (signer.sign(
@@ -493,10 +502,16 @@ fun LocationSignScreen(
                                                             throw ChaoxingSigner.SignActivityNoPermissionException()
                                                         val faceImageUploadedObjectId =
                                                             if (isFaceRequired) {
-                                                                ChaoxingCloudDriveHelper.uploadImage(
-                                                                    client,
-                                                                    faceImageBitmaps[faceImageUploadIndex]
-                                                                ).apply { faceImageUploadIndex++ }
+                                                                faceImageObjectIds.getOrPut(
+                                                                    userSession.phoneNumber
+                                                                ) {
+                                                                    ChaoxingCloudDriveHelper.uploadImage(
+                                                                        client,
+                                                                        faceImageBitmaps.remove(
+                                                                            userSession.phoneNumber
+                                                                        )!!
+                                                                    )
+                                                                }
                                                             } else null
                                                         if (sign(
                                                                 result,

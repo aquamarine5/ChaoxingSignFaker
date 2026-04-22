@@ -11,7 +11,7 @@ import com.alibaba.fastjson2.JSONObject
 import com.google.mlkit.vision.barcode.common.Barcode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import okhttp3.HttpUrl.Companion.toHttpUrl
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.Request
 import org.aquamarine5.brainspark.chaoxingsignfaker.ChaoxingPredictableException
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingActivityHelper.NO_SIGN_OFF_EVENT
@@ -25,7 +25,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.screen.QRCodeSignDestination
 class ChaoxingQRCodeSigner(
     client: ChaoxingHttpClient,
     qrCodeActivityEntity: QRCodeSignDestination,
-    baseSignInfo: JSONObject? =null
+    baseSignInfo: JSONObject? = null
 ) : ChaoxingSigner(
     client,
     qrCodeActivityEntity.activeId,
@@ -37,6 +37,9 @@ class ChaoxingQRCodeSigner(
     companion object {
         const val CLASSTAG = "ChaoxingQRCodeSigner"
     }
+
+    class QRCodeParseException(val rawValue: String) :
+        ChaoxingPredictableException("二维码解析失败")
 
     class QRCodeExpiredException : ChaoxingPredictableException("二维码已过期")
 
@@ -100,7 +103,7 @@ class ChaoxingQRCodeSigner(
             ).execute().use {
                 it.checkResponseThrowException()
                 val result = it.body.string()
-                if(result == "签到失败，请重新扫描。")
+                if (result == "签到失败，请重新扫描。")
                     throw QRCodeExpiredException()
                 if (result == "errorLocation2")
                     throw WrongPositionException()
@@ -116,7 +119,11 @@ class ChaoxingQRCodeSigner(
             }
         }
 
-    suspend fun sign(enc: String, position: ChaoxingLocationSignEntity?, faceImageObjectId: String? = null): Boolean =
+    suspend fun sign(
+        enc: String,
+        position: ChaoxingLocationSignEntity?,
+        faceImageObjectId: String? = null
+    ): Boolean =
         withContext(Dispatchers.IO) {
             if (isCaptchaRequired()) return@withContext true
             client.newCall(
@@ -157,7 +164,7 @@ class ChaoxingQRCodeSigner(
                 if (result.startsWith("validate")) {
                     return@use true
                 }
-                if(result == "签到失败，请重新扫描。")
+                if (result == "签到失败，请重新扫描。")
                     throw QRCodeExpiredException()
                 if (result == "errorLocation2")
                     throw WrongPositionException()
@@ -175,8 +182,10 @@ class ChaoxingQRCodeSigner(
             }
         }
 
-    fun parseQRCode(qrcode: Barcode): String =
-        qrcode.url!!.url!!.toHttpUrl().queryParameter("enc")!!
+    fun parseQRCode(qrcode: Barcode): String {
+        return (qrcode.rawValue ?: qrcode.url?.url)?.toHttpUrlOrNull()?.queryParameter("enc")
+            ?: throw QRCodeParseException(qrcode.rawValue ?: "null")
+    }
 
     override suspend fun checkAlreadySign(response: String): Boolean =
         response.contains("扫一扫").not()

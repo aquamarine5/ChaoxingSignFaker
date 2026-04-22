@@ -51,6 +51,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCaptchaDataEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSigner
 import org.aquamarine5.brainspark.chaoxingsignfaker.snackbarReport
+import java.util.concurrent.atomic.AtomicBoolean
 
 @Composable
 fun CaptchaHandlerDialog(
@@ -107,15 +108,19 @@ fun CaptchaHandlerDialog(
                     }
 
                     Spacer(modifier = Modifier.height(16.dp))
-
+                    var isCheckingCaptcha = remember { AtomicBoolean(false) }
                     Slider(
                         value = sliderPosition,
                         onValueChange = {
                             sliderPosition = it
                         },
                         onValueChangeFinished = {
+                            if (isCheckingCaptcha.get()) {
+                                return@Slider
+                            }
                             coroutineScope.launch {
                                 runCatching {
+                                    isCheckingCaptcha.set(true)
                                     // (-8 ~ 272) + 28
                                     // 0 ~280
                                     val normalizedPosition =
@@ -136,6 +141,7 @@ fun CaptchaHandlerDialog(
                                                 data = signer.getCaptchaImageV2()
                                             } else {
                                                 onResult(Result.success(result))
+                                                isCheckingCaptcha.set(false)
                                                 onDismiss()
                                             }
                                         }
@@ -147,6 +153,7 @@ fun CaptchaHandlerDialog(
                                         hapticFeedback
                                     )
                                     onResult(Result.failure(it))
+                                    isCheckingCaptcha.set(false)
                                     onDismiss()
                                 }
                             }

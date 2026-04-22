@@ -26,33 +26,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
-import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
 
 @Composable
 fun FaceRecognitionComponent(
-    isSignForSelf: Boolean,
-    otherUserForSignList: List<ChaoxingOtherUserSession?>,
+    signUserName: List<Pair<String, String>>,
     onCancel: () -> Unit,
-    onFinish: (List<Bitmap>) -> Unit
+    onFinish: (Map<String, Bitmap>) -> Unit
 ) {
     var faceImageCapturedIndex by remember { mutableIntStateOf(0) }
-    val combinedUserList = remember {
-        if (isSignForSelf) {
-            listOf(
-                ChaoxingHttpClient.instance!!.userEntity.name,
-            ) + otherUserForSignList.filterNotNull()
-                .map { it.name }
-        } else {
-            otherUserForSignList.filterNotNull()
-                .map { it.name }
-        }
-    }
     BackHandler() {
         onCancel()
     }
 
-    CameraComponent(combinedUserList.size, isDefaultBackCamera = false, onNextPhoto = {
+    CameraComponent(signUserName.size, isDefaultBackCamera = false, onNextPhoto = {
         faceImageCapturedIndex++
     }, content = {
         Row(
@@ -71,9 +57,10 @@ fun FaceRecognitionComponent(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center
         ) {
-            Text("拍摄给 ${combinedUserList[faceImageCapturedIndex]} 签到的图片")
+            Text("拍摄给 ${signUserName[faceImageCapturedIndex].second} 人脸识别的图片")
         }
     }) {
-        onFinish(it)
+        onFinish(it.mapIndexed { index, bitmap -> signUserName[index].first to bitmap }
+            .associate { it })
     }
 }

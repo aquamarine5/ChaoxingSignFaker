@@ -151,6 +151,14 @@ class MainActivity : ComponentActivity() {
                 it.isAnrEnabled = false
             } else
                 it.environment = "stable"
+
+            it.beforeSend={ event, hint ->
+                event.apply {
+                    (throwable as? ChaoxingParseDataException)?.let {
+                        setExtra("data", it.data ?: "null")
+                    }
+                }
+            }
         }
         UMengHelper.preInit(this)
         enableEdgeToEdge()

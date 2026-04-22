@@ -150,7 +150,7 @@ object ChaoxingOtherUserHelper {
                 isEncryptedPassword = true
             )
             val name = sharedEntity.userName.ifBlank {
-                ChaoxingHttpClient.getInfo(tempOkHttpClient, context).name
+                ChaoxingHttpClient.getInfo(tempOkHttpClient, context, sharedEntity.phoneNumber).name
             }
             val session = ChaoxingOtherUserSession.newBuilder()
                 .setPassword(sharedEntity.encryptedPassword.replace(" ", "+"))
