@@ -89,7 +89,7 @@ object ChaoxingIMHelper {
         }
     }
 
-    fun parseIMMessageBody(imMessages: List<MessageBody>): List<ChaoxingGroupSignActivityEntity> {
+    suspend fun parseIMMessageBody(imMessages: List<MessageBody>): List<ChaoxingGroupSignActivityEntity> {
         val signActivities = mutableListOf<ChaoxingGroupSignActivityEntity>()
         imMessages.forEach forEachImMessages@{
             it.extList?.forEach { ext ->
@@ -101,24 +101,12 @@ object ChaoxingIMHelper {
                         val activeId = signInfo.getLong("aid") ?: return@forEachImMessages
                         if (activeId == 0L ||
                             (signInfo.getInteger("atype") != 2 &&
-                            signInfo.getInteger("atype") != 74)
+                                    signInfo.getInteger("atype") != 74)
                         )
                             return@forEachImMessages
                         val classId = courseInfo.getInteger("classid")
                         val courseId = courseInfo.getString("courseid").toInt()
                         val activeTypeName = signInfo.getString("atypeName")
-                        val x=ChaoxingSignHelper.getIMSignDestination(
-                            activeTypeName,
-                            activeId,
-                            classId,
-                            courseId
-                        ) ?: {
-                            throw ChaoxingIMConfigParseException(
-                                "atypeName",
-                                "未知签到类型: $activeTypeName",
-                                attachObject.toJSONString()
-                            )
-                        }
                         signActivities.add(
                             ChaoxingGroupSignActivityEntity(
                                 ChaoxingSignHelper.getIMSignDestination(
@@ -126,13 +114,11 @@ object ChaoxingIMHelper {
                                     activeId,
                                     classId,
                                     courseId
-                                ) ?: {
-                                    throw ChaoxingIMConfigParseException(
-                                        "atypeName",
-                                        "未知签到类型: $activeTypeName",
-                                        attachObject.toJSONString()
-                                    )
-                                },
+                                ) ?: throw ChaoxingIMConfigParseException(
+                                    "atypeName",
+                                    "未知签到类型: $activeTypeName",
+                                    attachObject.toJSONString()
+                                ),
                                 signInfo.getString("title"),
                                 activeId,
                                 classId,
