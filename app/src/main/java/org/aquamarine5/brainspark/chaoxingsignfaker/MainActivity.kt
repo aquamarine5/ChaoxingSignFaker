@@ -452,7 +452,7 @@ class MainActivity : ComponentActivity() {
                                                 typeOf<ChaoxingIMGroup>() to ChaoxingIMGroup.ChaoxingIMGroupNavType
                                             )
                                         ) {
-                                            GroupDetailScreen(it.toRoute(), naviToGroupListDestination = {
+                                            GroupDetailScreen(it.toRoute(), navToGroupListDestination = {
                                                 navController.navigateUp()
                                             }, onSignAction = {
                                                 navController.navigate(it)

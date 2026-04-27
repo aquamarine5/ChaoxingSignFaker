@@ -37,6 +37,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -62,7 +63,7 @@ data class GroupDetailDestination(
 @Composable
 fun GroupDetailScreen(
     groupDetail: GroupDetailDestination,
-    naviToGroupListDestination: () -> Unit,
+    navToGroupListDestination: () -> Unit,
     onSignAction: (Any) -> Unit
 ) {
     Column(
@@ -102,9 +103,9 @@ fun GroupDetailScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable {
+                        .clickable(role = Role.Button) {
                             hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                            naviToGroupListDestination()
+                            navToGroupListDestination()
                         }
                 ) {
                     Icon(painterResource(R.drawable.ic_arrow_left), contentDescription = null)
@@ -148,7 +149,7 @@ fun GroupDetailScreen(
 
                                     Icon(
                                         painter = ChaoxingSignHelper.getPredictedSignIcon(
-                                            message.title
+                                            message.activeTypeName
                                         ),
                                         contentDescription = null,
                                         tint = LocalContentColor.current

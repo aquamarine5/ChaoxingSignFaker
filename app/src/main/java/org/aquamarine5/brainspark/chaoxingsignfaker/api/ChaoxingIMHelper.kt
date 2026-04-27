@@ -30,7 +30,10 @@ object ChaoxingIMHelper {
         message: String? = null,
         data: String? = null
     ) :
-        ChaoxingParseDataException("IM配置解析异常: $arg 获取失败，${message ?: "未知错误"}", data = data)
+        ChaoxingParseDataException(
+            "IM配置解析异常: $arg 获取失败，${message ?: "未知错误"}",
+            data = data
+        )
 
     val URL_IM_ME = "https://im.chaoxing.com/webim/me".toHttpUrl()
     val URL_IM_GROUPS = "https://im.chaoxing.com/webim/message/list/getMessageList".toHttpUrl()
@@ -94,23 +97,40 @@ object ChaoxingIMHelper {
                     val attachObject = JSONObject.parseObject(ext.stringValue)
                     if (attachObject.getInteger("attachmentType") == 15) {
                         val signInfo = attachObject.getJSONObject("att_chat_course")
-                        if (signInfo.getInteger("atype") != 2 && signInfo.getInteger("atype") != 74)
-                            return@forEachImMessages
                         val courseInfo = signInfo.getJSONObject("courseInfo")
-                        val activeId = signInfo.getLong("aid")
+                        val activeId = signInfo.getLong("aid") ?: return@forEachImMessages
+                        if (activeId == 0L ||
+                            (signInfo.getInteger("atype") != 2 &&
+                            signInfo.getInteger("atype") != 74)
+                        )
+                            return@forEachImMessages
                         val classId = courseInfo.getInteger("classid")
                         val courseId = courseInfo.getString("courseid").toInt()
+                        val activeTypeName = signInfo.getString("atypeName")
+                        val x=ChaoxingSignHelper.getIMSignDestination(
+                            activeTypeName,
+                            activeId,
+                            classId,
+                            courseId
+                        ) ?: {
+                            throw ChaoxingIMConfigParseException(
+                                "atypeName",
+                                "未知签到类型: $activeTypeName",
+                                attachObject.toJSONString()
+                            )
+                        }
                         signActivities.add(
                             ChaoxingGroupSignActivityEntity(
                                 ChaoxingSignHelper.getIMSignDestination(
-                                    signInfo.getString("atypeName"),
+                                    activeTypeName,
                                     activeId,
                                     classId,
                                     courseId
                                 ) ?: {
                                     throw ChaoxingIMConfigParseException(
                                         "atypeName",
-                                        "未知签到类型: ${signInfo.getString("atypeName")}"
+                                        "未知签到类型: $activeTypeName",
+                                        attachObject.toJSONString()
                                     )
                                 },
                                 signInfo.getString("title"),
@@ -118,7 +138,8 @@ object ChaoxingIMHelper {
                                 classId,
                                 courseId,
                                 courseInfo.getString("coursename"),
-                                signInfo.getString("subTitle")
+                                signInfo.getString("subTitle"),
+                                activeTypeName
                             )
                         )
                     }
