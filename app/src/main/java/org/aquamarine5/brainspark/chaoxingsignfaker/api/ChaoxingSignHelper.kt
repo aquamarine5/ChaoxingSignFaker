@@ -17,7 +17,6 @@ import kotlinx.coroutines.withContext
 import okhttp3.Request
 import org.aquamarine5.brainspark.chaoxingsignfaker.ChaoxingPredictableException
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
-import org.aquamarine5.brainspark.chaoxingsignfaker.checkResponse
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.GestureSignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.GetLocationDestination
@@ -49,6 +48,21 @@ object ChaoxingSignHelper {
         }
     }
 
+    @Composable
+    fun getPredictedSignIcon(title: String): Painter {
+        val iconRes = when (title) {
+            "位置签到" -> R.drawable.ic_map_pin
+            "二维码签到" -> R.drawable.ic_scan_qr_code
+            "拍照签到" -> R.drawable.ic_square_mouse_pointer
+            "手势签到" -> R.drawable.ic_pattern_locking
+            "签到码签到" -> R.drawable.ic_binary
+            else -> R.drawable.ic_clipboard_pen_line
+        }
+        return painterCache.getOrPut(iconRes) {
+            painterResource(id = iconRes)
+        }
+    }
+
     fun getSignDestination(
         context: Context,
         activityEntity: ChaoxingSignActivityEntity,
@@ -66,7 +80,12 @@ object ChaoxingSignHelper {
             }
         }
 
-    fun getIMSignDestination(atypeName: String, activeId: Long, classId: Int, courseId: Int): Any? {
+    suspend fun getIMSignDestination(
+        atypeName: String,
+        activeId: Long,
+        classId: Int,
+        courseId: Int
+    ): Any? {
         return when (atypeName) {
             "密码签到" -> PasswordSignDestination(
                 activeId,
@@ -118,15 +137,14 @@ object ChaoxingSignHelper {
                 false
             )
 
-            else -> null
+            else -> getRedirectDestination(activeId, classId, courseId)
         }
     }
 
     suspend fun getRedirectDestination(
         activeId: Long,
         classId: Int,
-        courseId: Int,
-        context: Context
+        courseId: Int
     ): Any =
         withContext(Dispatchers.IO) {
             ChaoxingHttpClient.instance!!.newCall(
@@ -136,9 +154,6 @@ object ChaoxingSignHelper {
                         .build()
                 ).build()
             ).execute().use {
-                if (it.checkResponse(context)) {
-                    throw ChaoxingHttpClient.ChaoxingNetworkException()
-                }
                 val result = JSONObject.parseObject(it.body.string()).getJSONObject("data")
                 val endTime = result.getLong("endTime")
                 when (result.getInteger("otherId")) {

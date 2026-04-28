@@ -7,11 +7,12 @@
 package org.aquamarine5.brainspark.chaoxingsignfaker.entity
 
 data class ChaoxingGroupSignActivityEntity(
-    val signDestination:Any,
-    val title:String,
-    val activeId:Long,
-    val classId:Int,
-    val courseId:Int,
-    val courseName:String,
-    val startTimeTitle:String
+    val signDestination: Any,
+    val title: String,
+    val activeId: Long,
+    val classId: Int,
+    val courseId: Int,
+    val courseName: String,
+    val startTimeTitle: String,
+    val activeTypeName: String
 )

@@ -377,7 +377,7 @@ fun QRCodeSignScreen(
                                         ChaoxingHttpClient.instance!!.userEntity.phoneNumber
                                     )
                                 ) add(ChaoxingHttpClient.instance!!.userEntity.phoneNumber to ChaoxingHttpClient.instance!!.userEntity.name)
-                                else signUserList.forEach {
+                                signUserList.forEach {
                                     if (it != null && !faceImageObjectIds.containsKey(
                                             it.phoneNumber
                                         )

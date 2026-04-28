@@ -108,7 +108,7 @@ inline fun CourseSignActivityColumnCard(
         }
         if (isDevelopedMode)
             Text(
-                "activeId：${activity.id}，otherId：${activity.otherId}",
+                "activeId：${activity.id}, otherId：${activity.otherId}",
                 fontSize = 10.sp,
                 lineHeight = 12.sp,
                 color = Color.Gray,

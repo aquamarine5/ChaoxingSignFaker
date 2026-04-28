@@ -65,8 +65,7 @@ object ChaoxingActivityHelper {
                     ChaoxingSignHelper.getRedirectDestination(
                         activity.getLong("id"),
                         classId,
-                        courseId,
-                        context
+                        courseId
                     ),
                     activity.getLong("startTime"),
                     ChaoxingCourseHelper.queryClassName(client, classId),

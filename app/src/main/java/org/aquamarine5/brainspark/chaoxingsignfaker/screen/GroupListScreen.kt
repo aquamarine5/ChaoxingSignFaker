@@ -97,8 +97,6 @@ fun GroupListScreen(
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 item.picArray.let { pics ->
-
-
                                     if (pics.size == 1) {
                                         AsyncImage(
                                             model = pics[0],
