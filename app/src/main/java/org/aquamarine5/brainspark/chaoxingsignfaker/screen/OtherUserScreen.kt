@@ -9,6 +9,7 @@ package org.aquamarine5.brainspark.chaoxingsignfaker.screen
 import android.content.ClipboardManager
 import android.content.Intent
 import android.graphics.Bitmap
+import android.os.Build
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
@@ -204,6 +205,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
             qrCode = ChaoxingOtherUserHelper.generateQRCode(context, importSharedEntity)
         }
     }
+
     if (isInputDialog) {
         AlertDialog(onDismissRequest = {
             isInputDialog = false
