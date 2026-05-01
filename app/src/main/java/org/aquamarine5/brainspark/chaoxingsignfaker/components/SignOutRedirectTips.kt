@@ -34,6 +34,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingActivityHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingSignHelper
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.SignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignOutEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.snackbarReport
 import java.text.SimpleDateFormat
@@ -43,7 +44,7 @@ import java.util.Locale
 @Composable
 fun SignOutRedirectTips(
     signoffData: ChaoxingSignOutEntity,
-    onRedirect: (Any) -> Unit
+    onRedirect: (SignDestination) -> Unit
 ) {
     val hapticFeedback = LocalHapticFeedback.current
     val snackbarHostState = LocalSnackbarHostState.current

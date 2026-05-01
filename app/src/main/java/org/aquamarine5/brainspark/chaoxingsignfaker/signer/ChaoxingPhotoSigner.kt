@@ -22,7 +22,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.screen.ChaoxingPhotoActivity
 class ChaoxingPhotoSigner(
     client: ChaoxingHttpClient,
     private val photoActivityEntity: ChaoxingPhotoActivityEntity,
-    baseSignInfo: JSONObject? =null
+    baseSignInfo: JSONObject? = null
 ) : ChaoxingSigner(
     client,
     photoActivityEntity.activeId,

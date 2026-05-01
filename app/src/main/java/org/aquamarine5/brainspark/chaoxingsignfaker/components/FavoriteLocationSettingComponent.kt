@@ -332,8 +332,8 @@ fun FavoriteLocationSettingComponent() {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.padding(6.dp)
-            ){
-                Column(modifier=Modifier.weight(1f)){
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
                         "经度: ${
                             "%.5f".format(clickedPosition.longitude)

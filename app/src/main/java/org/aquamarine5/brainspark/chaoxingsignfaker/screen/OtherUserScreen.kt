@@ -276,14 +276,32 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                     modifier = Modifier.fillMaxWidth(),
                     trailingIcon = {
-                        IconButton(onClick = {
-                            isPasswordVisible = !isPasswordVisible
-                        }) {
-                            Icon(
-                                if (isPasswordVisible) painterResource(R.drawable.ic_eye) else painterResource(
-                                    R.drawable.ic_eye_closed
-                                ), null
-                            )
+                        Row {
+                            IconButton(onClick = {
+                                val result =
+                                    context.getSystemService(ClipboardManager::class.java)?.primaryClip?.getItemAt(
+                                        0
+                                    )?.text
+                                if (result.isNullOrEmpty()) {
+                                    hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
+                                    Toast.makeText(context, "读取剪切板失败", Toast.LENGTH_SHORT)
+                                        .show()
+                                } else {
+                                    hapticFeedback.performHapticFeedback(HapticFeedbackType.Confirm)
+                                    password = result.toString()
+                                }
+                            }) {
+                                Icon(painterResource(R.drawable.ic_clipboard_copy), null)
+                            }
+                            IconButton(onClick = {
+                                isPasswordVisible = !isPasswordVisible
+                            }) {
+                                Icon(
+                                    if (isPasswordVisible) painterResource(R.drawable.ic_eye) else painterResource(
+                                        R.drawable.ic_eye_closed
+                                    ), null
+                                )
+                            }
                         }
                     }
                 )

@@ -31,11 +31,13 @@ object ChaoxingFaceHelper {
                                 loginSession.toBuilder().setFaceImageObjectId(objectId).build()
                             )
                         } else {
-                            val index = otherUsersList.indexOfFirst { user -> user.phoneNumber == phoneNumber }
+                            val index =
+                                otherUsersList.indexOfFirst { user -> user.phoneNumber == phoneNumber }
                             if (index != -1) {
                                 setOtherUsers(
                                     index,
-                                    getOtherUsers(index).toBuilder().setFaceImageObjectId(objectId).build()
+                                    getOtherUsers(index).toBuilder().setFaceImageObjectId(objectId)
+                                        .build()
                                 )
                             }
                         }

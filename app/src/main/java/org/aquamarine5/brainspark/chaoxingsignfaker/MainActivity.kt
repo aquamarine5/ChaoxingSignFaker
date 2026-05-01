@@ -152,7 +152,7 @@ class MainActivity : ComponentActivity() {
             } else
                 it.environment = "stable"
 
-            it.beforeSend={ event, hint ->
+            it.beforeSend = { event, hint ->
                 event.apply {
                     (throwable as? ChaoxingParseDataException)?.let {
                         setExtra("data", it.data ?: "null")
@@ -452,15 +452,18 @@ class MainActivity : ComponentActivity() {
                                                 typeOf<ChaoxingIMGroup>() to ChaoxingIMGroup.ChaoxingIMGroupNavType
                                             )
                                         ) {
-                                            GroupDetailScreen(it.toRoute(), navToGroupListDestination = {
-                                                navController.navigateUp()
-                                            }, onSignAction = {
-                                                navController.navigate(it)
-                                            })
+                                            GroupDetailScreen(
+                                                it.toRoute(),
+                                                navToGroupListDestination = {
+                                                    navController.navigateUp()
+                                                },
+                                                onSignAction = {
+                                                    navController.navigate(it)
+                                                })
                                         }
 
                                         composable<GroupListDestination> {
-                                            GroupListScreen { destination ->
+                                            GroupListScreen(imageLoader) { destination ->
                                                 navController.navigate(destination)
                                             }
                                         }

@@ -26,6 +26,8 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.screen.QRCodeSignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSigner
 import java.util.concurrent.ConcurrentHashMap
 
+interface SignDestination
+
 object ChaoxingSignHelper {
     const val TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED = 250L
     private val signIconMap = mapOf(
@@ -67,7 +69,7 @@ object ChaoxingSignHelper {
         context: Context,
         activityEntity: ChaoxingSignActivityEntity,
         isLate: Boolean = false
-    ): Any? =
+    ): SignDestination? =
         when (activityEntity.otherId) {
             "5" -> PasswordSignDestination.parseFromSignActivityEntity(activityEntity, isLate)
             "4" -> GetLocationDestination.parseFromSignActivityEntity(activityEntity, isLate)
@@ -85,7 +87,7 @@ object ChaoxingSignHelper {
         activeId: Long,
         classId: Int,
         courseId: Int
-    ): Any? {
+    ): SignDestination? {
         return when (atypeName) {
             "密码签到" -> PasswordSignDestination(
                 activeId,
@@ -145,7 +147,7 @@ object ChaoxingSignHelper {
         activeId: Long,
         classId: Int,
         courseId: Int
-    ): Any =
+    ): SignDestination =
         withContext(Dispatchers.IO) {
             ChaoxingHttpClient.instance!!.newCall(
                 Request.Builder().get().url(

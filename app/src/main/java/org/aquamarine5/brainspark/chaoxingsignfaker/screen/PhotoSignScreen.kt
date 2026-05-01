@@ -82,6 +82,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingOtherUserHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingRecommendHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingSignHelper
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.SignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.checkIsLast
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CameraComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerDialog
@@ -114,7 +115,7 @@ data class PhotoSignDestination(
     val startTime: Long?,
     val endTime: Long?,
     val isLate: Boolean
-) {
+) : SignDestination {
     companion object {
         fun parseFromSignActivityEntity(
             activityEntity: ChaoxingSignActivityEntity,
@@ -138,7 +139,7 @@ data class PhotoSignDestination(
 fun PhotoSignScreen(
     destination: PhotoSignDestination,
     navBack: () -> Unit,
-    navToOtherSign: (Any) -> Unit,
+    navToOtherSign: (SignDestination) -> Unit,
     navToOtherUserDestination: () -> Unit
 ) {
     val snackbarHost = LocalSnackbarHostState.current

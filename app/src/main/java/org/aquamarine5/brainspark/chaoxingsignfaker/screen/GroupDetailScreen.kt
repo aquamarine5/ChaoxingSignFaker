@@ -6,6 +6,7 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.screen
 
+import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
@@ -49,7 +50,9 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingIMHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingSignHelper
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.SignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.NetworkExceptionComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingGroupSignActivityEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingIMGroup
 import org.aquamarine5.brainspark.chaoxingsignfaker.isDevelopedMode
@@ -64,7 +67,7 @@ data class GroupDetailDestination(
 fun GroupDetailScreen(
     groupDetail: GroupDetailDestination,
     navToGroupListDestination: () -> Unit,
-    onSignAction: (Any) -> Unit
+    onSignAction: (SignDestination) -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -75,111 +78,149 @@ fun GroupDetailScreen(
         var messages by remember { mutableStateOf<List<ChaoxingGroupSignActivityEntity>?>(null) }
         val snackbarHostState = LocalSnackbarHostState.current
         val hapticFeedback = LocalHapticFeedback.current
+        var isFetchedFailure by remember { mutableStateOf<Result<*>?>(null) }
         LaunchedEffect(Unit) {
-            coroutineScope.launch {
-                runCatching {
-                    if (messages == null)
-                        messages = ChaoxingIMHelper.fetchIMHistoryMessages(
-                            groupDetail.groupEntity,
-                            ChaoxingHttpClient.instance!!,
-                            ChaoxingHttpClient.instance!!.getIMConfig()
-                        )
-                }.onFailure {
-                    it.snackbarReport(
-                        snackbarHostState,
-                        coroutineScope,
-                        "获取消息记录失败",
-                        hapticFeedback
-                    )
-                }
-
+            isFetchedFailure = runCatching {
+                messages = ChaoxingIMHelper.fetchIMHistoryMessages(
+                    groupDetail.groupEntity,
+                    ChaoxingHttpClient.instance!!,
+                    ChaoxingHttpClient.instance!!.getIMConfig()
+                )
+            }.onFailure {
+                it.snackbarReport(
+                    snackbarHostState,
+                    coroutineScope,
+                    "获取消息记录失败",
+                    hapticFeedback
+                )
             }
         }
-        if (messages == null)
-            CenterCircularProgressIndicator()
-        else
-            Column {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable(role = Role.Button) {
-                            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                            navToGroupListDestination()
-                        }
-                ) {
-                    Icon(painterResource(R.drawable.ic_arrow_left), contentDescription = null)
-                    Spacer(
-                        modifier = Modifier
-                            .height(8.dp)
-                            .width(5.dp)
-                    )
-                    Text(
-                        "群聊名称：${groupDetail.groupEntity.chatName}",
-                        color = if (isSystemInDarkTheme()) Color.Gray else Color.DarkGray,
-                        textAlign = TextAlign.Left,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                    )
+        Crossfade(isFetchedFailure) { v ->
+            when {
+                v == null -> {
+                    CenterCircularProgressIndicator()
                 }
-                if (messages!!.isEmpty()) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .verticalScroll(rememberScrollState()),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Icon(painter = painterResource(R.drawable.ic_package_open), null)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text("该群聊暂无可用签到活动")
-                    }
-                } else
-                    LazyColumn {
-                        items(messages!!) { message ->
-                            Column {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clickable {
-                                            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                                            onSignAction(message.signDestination)
-                                        }) {
 
-                                    Icon(
-                                        painter = ChaoxingSignHelper.getPredictedSignIcon(
-                                            message.activeTypeName
-                                        ),
-                                        contentDescription = null,
-                                        tint = LocalContentColor.current
-                                    )
-
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Column {
-                                        Text(message.title, fontWeight = FontWeight.Bold)
-                                        Text(
-                                            "开始时间：${message.startTimeTitle}",
-                                            fontSize = 12.sp,
-                                            lineHeight = 14.sp,
-                                            color = Color.Gray
-                                        )
-                                    }
-                                }
-                                if (isDevelopedMode)
-                                    Text(
-                                        "activeId：${message.activeId}",
-                                        fontSize = 10.sp,
-                                        lineHeight = 12.sp,
-                                        color = Color.Gray,
-                                        modifier = Modifier.padding(start = 28.dp)
-                                    )
-                                Spacer(modifier = Modifier.height(16.dp))
+                v.isFailure -> {
+                    NetworkExceptionComponent(v.exceptionOrNull()!!) {
+                        coroutineScope.launch {
+                            isFetchedFailure = runCatching {
+                                messages = ChaoxingIMHelper.fetchIMHistoryMessages(
+                                    groupDetail.groupEntity,
+                                    ChaoxingHttpClient.instance!!,
+                                    ChaoxingHttpClient.instance!!.getIMConfig()
+                                )
+                            }.onFailure {
+                                it.snackbarReport(
+                                    snackbarHostState,
+                                    coroutineScope,
+                                    "获取消息记录失败",
+                                    hapticFeedback
+                                )
                             }
+                        }
+                        isFetchedFailure = null
+                    }
+                }
 
+                else -> {
+                    Column {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable(role = Role.Button) {
+                                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                                    navToGroupListDestination()
+                                }
+                        ) {
+                            Icon(
+                                painterResource(R.drawable.ic_arrow_left),
+                                contentDescription = null
+                            )
+                            Spacer(
+                                modifier = Modifier
+                                    .height(8.dp)
+                                    .width(5.dp)
+                            )
+                            Text(
+                                "群聊名称：${groupDetail.groupEntity.chatName}",
+                                color = if (isSystemInDarkTheme()) Color.Gray else Color.DarkGray,
+                                textAlign = TextAlign.Left,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                            )
+                        }
+                        if (messages!!.isEmpty()) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .verticalScroll(rememberScrollState()),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Icon(
+                                    painter = painterResource(R.drawable.ic_package_open),
+                                    null
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text("该群聊暂无可用签到活动")
+                            }
+                        } else {
+                            Spacer(modifier = Modifier.height(12.dp))
+                            LazyColumn {
+                                items(messages!!) { message ->
+                                    Column {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clickable {
+                                                    hapticFeedback.performHapticFeedback(
+                                                        HapticFeedbackType.ContextClick
+                                                    )
+                                                    onSignAction(message.signDestination)
+                                                }) {
+
+                                            Icon(
+                                                painter = ChaoxingSignHelper.getPredictedSignIcon(
+                                                    message.activeTypeName
+                                                ),
+                                                contentDescription = null,
+                                                tint = LocalContentColor.current
+                                            )
+
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Column {
+                                                Text(
+                                                    message.title,
+                                                    fontWeight = FontWeight.Bold
+                                                )
+                                                Text(
+                                                    "开始时间：${message.startTimeTitle}",
+                                                    fontSize = 12.sp,
+                                                    lineHeight = 14.sp,
+                                                    color = Color.Gray
+                                                )
+                                            }
+                                        }
+                                        if (isDevelopedMode)
+                                            Text(
+                                                "activeId：${message.activeId}",
+                                                fontSize = 10.sp,
+                                                lineHeight = 12.sp,
+                                                color = Color.Gray,
+                                                modifier = Modifier.padding(start = 28.dp)
+                                            )
+                                        Spacer(modifier = Modifier.height(16.dp))
+                                    }
+
+                                }
+                            }
                         }
                     }
+                }
             }
-
+        }
     }
 }

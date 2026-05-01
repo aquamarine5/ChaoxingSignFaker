@@ -15,8 +15,10 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -34,6 +36,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -50,6 +53,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import org.aquamarine5.brainspark.chaoxingsignfaker.BuildConfig
@@ -57,6 +61,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
+import org.aquamarine5.brainspark.chaoxingsignfaker.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.displaySnackbar
 import org.aquamarine5.brainspark.chaoxingsignfaker.snackbarReport
 import org.aquamarine5.brainspark.stackbricks.StackbricksComponent
@@ -75,14 +80,14 @@ fun LoginPage(
 ) {
     var phoneNumber by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    val coroutineContext = rememberCoroutineScope()
+    val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
     val hapticFeedback = LocalHapticFeedback.current
     val snackbarHost = LocalSnackbarHostState.current
     val focusManager = LocalFocusManager.current
     Column(
         modifier = Modifier
-            .padding(16.dp)
+            .padding(16.dp, 16.dp, 16.dp, 0.dp)
             .fillMaxWidth(),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
@@ -146,20 +151,20 @@ fun LoginPage(
         Button(
             onClick = {
                 focusManager.clearFocus()
-                coroutineContext.launch {
+                coroutineScope.launch {
                     runCatching {
                         ChaoxingHttpClient.create(phoneNumber, password, context)
                         UMengHelper.onLoginEvent(context, phoneNumber)
                     }.onFailure {
                         it.snackbarReport(
                             snackbarHost,
-                            coroutineContext,
+                            coroutineScope,
                             "登录失败",
                             hapticFeedback
                         )
                     }.onSuccess {
                         if (ChaoxingHttpClient.instance != null) {
-                            snackbarHost.displaySnackbar("登录成功", coroutineContext)
+                            snackbarHost.displaySnackbar("登录成功", coroutineScope)
                             navToCourseListDestination()
                         }
                     }
@@ -175,7 +180,8 @@ fun LoginPage(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(8.dp, 5.dp, 8.dp, 8.dp)
+                    .verticalScroll(rememberScrollState())
+                    .padding(0.dp, 5.dp, 0.dp, 8.dp)
                     .border(
                         BorderStroke(2.dp, MaterialTheme.colorScheme.onErrorContainer),
                         shape = RoundedCornerShape(8.dp)
@@ -187,6 +193,33 @@ fun LoginPage(
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
                 ) {
                     Column(modifier = Modifier.padding(6.dp)) {
+                        Button(onClick = {
+                            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                            coroutineScope.launch {
+                                runCatching {
+                                    ChaoxingHttpClient.loadFromDataStore(
+                                        context.chaoxingDataStore.data.first(),
+                                        context
+                                    )
+                                }.onSuccess {
+                                    if (ChaoxingHttpClient.instance != null) {
+                                        snackbarHost.displaySnackbar("登录成功", coroutineScope)
+                                        navToCourseListDestination()
+                                    }
+                                }.onFailure {
+                                    it.snackbarReport(
+                                        snackbarHost,
+                                        coroutineScope,
+                                        "登录失败",
+                                        hapticFeedback
+                                    )
+                                }
+                            }
+                        }, modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(4.dp)) {
+                            Text("尝试重新自动登录")
+                        }
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(painterResource(R.drawable.ic_info), null)
                             Text(

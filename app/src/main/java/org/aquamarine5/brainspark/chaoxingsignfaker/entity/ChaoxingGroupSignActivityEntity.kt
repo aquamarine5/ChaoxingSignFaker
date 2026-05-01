@@ -6,8 +6,10 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.entity
 
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.SignDestination
+
 data class ChaoxingGroupSignActivityEntity(
-    val signDestination: Any,
+    val signDestination: SignDestination,
     val title: String,
     val activeId: Long,
     val classId: Int,
