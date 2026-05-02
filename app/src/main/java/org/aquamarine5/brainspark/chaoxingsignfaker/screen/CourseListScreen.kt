@@ -416,7 +416,7 @@ fun CourseListScreen(
                                                     ) {
                                                         Icon(
                                                             painter = painterResource(R.drawable.ic_users_round),
-                                                            "",
+                                                            null,
                                                             modifier = Modifier.size(18.dp)
                                                         )
                                                         Spacer(modifier = Modifier.width(10.dp))
