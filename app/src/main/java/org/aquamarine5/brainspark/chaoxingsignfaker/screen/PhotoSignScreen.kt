@@ -108,9 +108,9 @@ typealias ChaoxingPhotoActivityEntity = PhotoSignDestination
 
 @Serializable
 data class PhotoSignDestination(
-    val activeId: Long,
-    val classId: Int,
-    val courseId: Int,
+    override val activeId: Long,
+    override val classId: Int,
+    override val courseId: Int,
     val extContent: String,
     val startTime: Long?,
     val endTime: Long?,

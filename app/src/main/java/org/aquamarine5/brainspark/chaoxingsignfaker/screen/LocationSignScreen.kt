@@ -85,9 +85,9 @@ import kotlin.coroutines.resume
 
 @Serializable
 data class GetLocationDestination(
-    val activeId: Long,
-    val classId: Int,
-    val courseId: Int,
+    override val activeId: Long,
+    override val classId: Int,
+    override val courseId: Int,
     val extContent: String,
     val startTime: Long?,
     val endTime: Long?,
@@ -123,7 +123,6 @@ fun LocationSignScreen(
     var signInfo by remember { mutableStateOf<ChaoxingLocationDetailEntity?>(null) }
     val signer = remember { ChaoxingLocationSigner(ChaoxingHttpClient.instance!!, destination) }
     var isSponsor by remember { mutableStateOf(false) }
-    var isFavoriteLocationDialog by remember { mutableStateOf(false) }
     if (isSponsor) {
         SponsorPopupDialog()
     }

@@ -193,31 +193,33 @@ fun LoginPage(
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
                 ) {
                     Column(modifier = Modifier.padding(6.dp)) {
-                        Button(onClick = {
-                            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                            coroutineScope.launch {
-                                runCatching {
-                                    ChaoxingHttpClient.loadFromDataStore(
-                                        context.chaoxingDataStore.data.first(),
-                                        context
-                                    )
-                                }.onSuccess {
-                                    if (ChaoxingHttpClient.instance != null) {
-                                        snackbarHost.displaySnackbar("登录成功", coroutineScope)
-                                        navToCourseListDestination()
+                        Button(
+                            onClick = {
+                                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                                coroutineScope.launch {
+                                    runCatching {
+                                        ChaoxingHttpClient.loadFromDataStore(
+                                            context.chaoxingDataStore.data.first(),
+                                            context
+                                        )
+                                    }.onSuccess {
+                                        if (ChaoxingHttpClient.instance != null) {
+                                            snackbarHost.displaySnackbar("登录成功", coroutineScope)
+                                            navToCourseListDestination()
+                                        }
+                                    }.onFailure {
+                                        it.snackbarReport(
+                                            snackbarHost,
+                                            coroutineScope,
+                                            "登录失败",
+                                            hapticFeedback
+                                        )
                                     }
-                                }.onFailure {
-                                    it.snackbarReport(
-                                        snackbarHost,
-                                        coroutineScope,
-                                        "登录失败",
-                                        hapticFeedback
-                                    )
                                 }
-                            }
-                        }, modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(4.dp)) {
+                            }, modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(4.dp)
+                        ) {
                             Text("尝试重新自动登录")
                         }
                         Row(verticalAlignment = Alignment.CenterVertically) {

@@ -26,8 +26,6 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.screen.QRCodeSignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSigner
 import java.util.concurrent.ConcurrentHashMap
 
-interface SignDestination
-
 object ChaoxingSignHelper {
     const val TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED = 250L
     private val signIconMap = mapOf(

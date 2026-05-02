@@ -9,7 +9,6 @@ package org.aquamarine5.brainspark.chaoxingsignfaker.screen
 import android.content.ClipboardManager
 import android.content.Intent
 import android.graphics.Bitmap
-import android.os.Build
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
@@ -587,7 +586,10 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                         if (modifiedTagIndexForUserSelector != null)
                             Text(buildAnnotatedString {
                                 append("修改 ")
-                                withStyle(SpanStyle(color = Color(tagsEntityList[modifiedTagIndexForUserSelector!!].color))) {
+                                withStyle(SpanStyle(color = tagsEntityList[modifiedTagIndexForUserSelector!!].color.let {
+                                    if (it == TAG_COLOR_UNSPECIFIED) LocalContentColor.current
+                                    else Color(it)
+                                })) {
                                     append(tagsEntityList[modifiedTagIndexForUserSelector!!].name)
                                 }
                                 append(" 标签的用户")
@@ -769,7 +771,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                                 append(session.name)
                                                 withStyle(
                                                     SpanStyle(
-                                                        color = if (isSystemInDarkTheme()) Color.Gray else Color.DarkGray,
+                                                        color = Color.Gray,
                                                         fontSize = 12.sp
                                                     )
                                                 ) {
