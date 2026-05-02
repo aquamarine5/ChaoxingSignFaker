@@ -34,7 +34,7 @@ fun FaceRecognitionComponent(
     onFinish: (Map<String, Bitmap>) -> Unit
 ) {
     var faceImageCapturedIndex by remember { mutableIntStateOf(0) }
-    BackHandler() {
+    BackHandler {
         onCancel()
     }
 

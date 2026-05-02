@@ -152,7 +152,7 @@ class MainActivity : ComponentActivity() {
             } else
                 it.environment = "stable"
 
-            it.beforeSend={ event, hint ->
+            it.beforeSend = { event, hint ->
                 event.apply {
                     (throwable as? ChaoxingParseDataException)?.let {
                         setExtra("data", it.data ?: "null")
@@ -237,12 +237,21 @@ class MainActivity : ComponentActivity() {
                                                         HapticFeedbackType.ContextClick
                                                     )
                                                     runCatching {
-                                                        navController.navigate(item.destination) {
-                                                            popUpTo(navController.graph.findStartDestination().id) {
-                                                                saveState = true
+                                                        if (isSelected) {
+                                                            navController.navigate(item.destination) {
+                                                                popUpTo(item.destination) {
+                                                                    inclusive = false
+                                                                }
+                                                                launchSingleTop = true
                                                             }
-                                                            launchSingleTop = true
-                                                            restoreState = true
+                                                        } else {
+                                                            navController.navigate(item.destination) {
+                                                                popUpTo(navController.graph.findStartDestination().id) {
+                                                                    saveState = true
+                                                                }
+                                                                launchSingleTop = true
+                                                                restoreState = true
+                                                            }
                                                         }
                                                     }.onFailure {
                                                         Sentry.captureException(it)
@@ -438,13 +447,7 @@ class MainActivity : ComponentActivity() {
                                                         restoreState = true
                                                     }
                                                 }, navToGroupDestination = {
-                                                    navController.navigate(GroupListDestination) {
-                                                        popUpTo<CourseListDestination> {
-                                                            inclusive = true
-                                                            saveState = true
-                                                        }
-                                                        restoreState = true
-                                                    }
+                                                    navController.navigate(GroupListDestination)
                                                 })
                                         }
                                         composable<GroupDetailDestination>(
@@ -452,11 +455,18 @@ class MainActivity : ComponentActivity() {
                                                 typeOf<ChaoxingIMGroup>() to ChaoxingIMGroup.ChaoxingIMGroupNavType
                                             )
                                         ) {
-                                            GroupDetailScreen(it.toRoute())
+                                            GroupDetailScreen(
+                                                it.toRoute(),
+                                                navToGroupListDestination = {
+                                                    navController.navigateUp()
+                                                },
+                                                onSignAction = {
+                                                    navController.navigate(it)
+                                                })
                                         }
 
                                         composable<GroupListDestination> {
-                                            GroupListScreen { destination ->
+                                            GroupListScreen(imageLoader) { destination ->
                                                 navController.navigate(destination)
                                             }
                                         }

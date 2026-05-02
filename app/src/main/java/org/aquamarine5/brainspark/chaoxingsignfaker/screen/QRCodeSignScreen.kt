@@ -72,6 +72,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingOtherUserHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingRecommendHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingSignHelper
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.SignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.checkIsLast
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
@@ -99,14 +100,14 @@ import kotlin.coroutines.resume
 
 @Serializable
 data class QRCodeSignDestination(
-    val activeId: Long,
-    val classId: Int,
-    val courseId: Int,
+    override val activeId: Long,
+    override val classId: Int,
+    override val courseId: Int,
     val extContent: String,
     val startTime: Long?,
     val endTime: Long?,
     val isLate: Boolean
-) {
+) : SignDestination {
     companion object {
         fun parseFromSignActivityEntity(
             activityEntity: ChaoxingSignActivityEntity,
@@ -129,7 +130,7 @@ data class QRCodeSignDestination(
 fun QRCodeSignScreen(
     destination: QRCodeSignDestination,
     navToOtherUser: () -> Unit,
-    navToOtherSign: (Any) -> Unit,
+    navToOtherSign: (SignDestination) -> Unit,
     navBack: () -> Unit
 ) {
     var signActivityStatus by remember { mutableStateOf<ChaoxingSignActivityStatus?>(null) }
@@ -377,7 +378,7 @@ fun QRCodeSignScreen(
                                         ChaoxingHttpClient.instance!!.userEntity.phoneNumber
                                     )
                                 ) add(ChaoxingHttpClient.instance!!.userEntity.phoneNumber to ChaoxingHttpClient.instance!!.userEntity.name)
-                                else signUserList.forEach {
+                                signUserList.forEach {
                                     if (it != null && !faceImageObjectIds.containsKey(
                                             it.phoneNumber
                                         )
@@ -768,9 +769,13 @@ fun QRCodeSignScreen(
                                                     if (exception == null)
                                                         Sentry.captureException(it)
                                                     else {
-                                                        if(isDevelopedMode)
-                                                            withContext(Dispatchers.Main){
-                                                                Toast.makeText(context, exception.rawValue, Toast.LENGTH_SHORT).show()
+                                                        if (isDevelopedMode)
+                                                            withContext(Dispatchers.Main) {
+                                                                Toast.makeText(
+                                                                    context,
+                                                                    exception.rawValue,
+                                                                    Toast.LENGTH_SHORT
+                                                                ).show()
                                                             }
                                                         Log.w(
                                                             "ChaoxingQRCodeSigner",

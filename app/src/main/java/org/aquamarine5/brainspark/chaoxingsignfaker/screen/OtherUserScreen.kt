@@ -204,6 +204,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
             qrCode = ChaoxingOtherUserHelper.generateQRCode(context, importSharedEntity)
         }
     }
+
     if (isInputDialog) {
         AlertDialog(onDismissRequest = {
             isInputDialog = false
@@ -276,14 +277,35 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                     modifier = Modifier.fillMaxWidth(),
                     trailingIcon = {
-                        IconButton(onClick = {
-                            isPasswordVisible = !isPasswordVisible
-                        }) {
-                            Icon(
-                                if (isPasswordVisible) painterResource(R.drawable.ic_eye) else painterResource(
-                                    R.drawable.ic_eye_closed
-                                ), null
-                            )
+                        Row {
+                            IconButton(onClick = {
+                                val clip =
+                                    context.getSystemService(ClipboardManager::class.java)?.primaryClip
+                                val result = if (clip != null && clip.itemCount > 0) {
+                                    clip.getItemAt(0).text
+                                } else {
+                                    null
+                                }
+                                if (result.isNullOrEmpty()) {
+                                    hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
+                                    Toast.makeText(context, "读取剪切板失败", Toast.LENGTH_SHORT)
+                                        .show()
+                                } else {
+                                    hapticFeedback.performHapticFeedback(HapticFeedbackType.Confirm)
+                                    password = result.toString()
+                                }
+                            }) {
+                                Icon(painterResource(R.drawable.ic_clipboard_copy), null)
+                            }
+                            IconButton(onClick = {
+                                isPasswordVisible = !isPasswordVisible
+                            }) {
+                                Icon(
+                                    if (isPasswordVisible) painterResource(R.drawable.ic_eye) else painterResource(
+                                        R.drawable.ic_eye_closed
+                                    ), null
+                                )
+                            }
                         }
                     }
                 )
@@ -567,7 +589,10 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                         if (modifiedTagIndexForUserSelector != null)
                             Text(buildAnnotatedString {
                                 append("修改 ")
-                                withStyle(SpanStyle(color = Color(tagsEntityList[modifiedTagIndexForUserSelector!!].color))) {
+                                withStyle(SpanStyle(color = tagsEntityList[modifiedTagIndexForUserSelector!!].color.let {
+                                    if (it == TAG_COLOR_UNSPECIFIED) LocalContentColor.current
+                                    else Color(it)
+                                })) {
                                     append(tagsEntityList[modifiedTagIndexForUserSelector!!].name)
                                 }
                                 append(" 标签的用户")
@@ -749,7 +774,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                                 append(session.name)
                                                 withStyle(
                                                     SpanStyle(
-                                                        color = if (isSystemInDarkTheme()) Color.Gray else Color.DarkGray,
+                                                        color = Color.Gray,
                                                         fontSize = 12.sp
                                                     )
                                                 ) {

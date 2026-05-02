@@ -65,8 +65,7 @@ object ChaoxingActivityHelper {
                     ChaoxingSignHelper.getRedirectDestination(
                         activity.getLong("id"),
                         classId,
-                        courseId,
-                        context
+                        courseId
                     ),
                     activity.getLong("startTime"),
                     ChaoxingCourseHelper.queryClassName(client, classId),
@@ -134,8 +133,8 @@ object ChaoxingActivityHelper {
                     ChaoxingCourseActivitiesEntity(
                         jsonResult.getJSONObject("ext").toString(),
                         course,
-                            signActivities
-                        )
+                        signActivities
+                    )
                 }.getOrElse {
                     throw ChaoxingParseDataException(
                         "解析课程活动数据失败: ${it.message}",

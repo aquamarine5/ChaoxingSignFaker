@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingSignHelper
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.SignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.isDevelopedMode
 import org.aquamarine5.brainspark.chaoxingsignfaker.ui.theme.Orange
@@ -46,7 +47,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.ui.theme.Orange
 inline fun CourseSignActivityColumnCard(
     activity: ChaoxingSignActivityEntity,
     getFormattedStartTime: (Long) -> String,
-    crossinline onSignAction: (Any) -> Unit
+    crossinline onSignAction: (SignDestination) -> Unit
 ) {
     val isAvailable = activity.status == 1
     val context = LocalContext.current
@@ -108,7 +109,7 @@ inline fun CourseSignActivityColumnCard(
         }
         if (isDevelopedMode)
             Text(
-                "activeId：${activity.id}，otherId：${activity.otherId}",
+                "activeId：${activity.id}, otherId：${activity.otherId}",
                 fontSize = 10.sp,
                 lineHeight = 12.sp,
                 color = Color.Gray,

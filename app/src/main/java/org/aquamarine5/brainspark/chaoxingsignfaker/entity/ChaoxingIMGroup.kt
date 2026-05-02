@@ -41,9 +41,10 @@ data class ChaoxingIMGroup(
     companion object {
         fun fromJson(jsonObject: JSONObject): ChaoxingIMGroup {
             return ChaoxingIMGroup(
-                jsonObject.getJSONArray("picArray")?.let { array -> array.map { it.toString() } } ?: listOf(
-                    jsonObject.getString("chatIco")
-                ),
+                jsonObject.getJSONArray("picArray")?.let { array -> array.map { it.toString() } }
+                    ?: listOf(
+                        jsonObject.getString("chatIco")
+                    ),
                 jsonObject.getString("chatId"),
                 jsonObject.getString("chatName"),
                 jsonObject.getInteger("isGroup") == 0

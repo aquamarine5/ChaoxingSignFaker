@@ -23,17 +23,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
+import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingActivityHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingSignHelper
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.SignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignOutEntity
+import org.aquamarine5.brainspark.chaoxingsignfaker.snackbarReport
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -41,9 +43,10 @@ import java.util.Locale
 @Composable
 fun SignOutRedirectTips(
     signoffData: ChaoxingSignOutEntity,
-    onRedirect: (Any) -> Unit
+    onRedirect: (SignDestination) -> Unit
 ) {
     val hapticFeedback = LocalHapticFeedback.current
+    val snackbarHostState = LocalSnackbarHostState.current
     with(signoffData) {
         val status = if (signInId != null) {
             ChaoxingActivityHelper.SignRedirectStatus.SIGN_OUT
@@ -55,20 +58,28 @@ fun SignOutRedirectTips(
             ChaoxingActivityHelper.SignRedirectStatus.COMMON
         }
         val coroutineScope = rememberCoroutineScope()
-        val context = LocalContext.current
         if (status != ChaoxingActivityHelper.SignRedirectStatus.COMMON)
             Card(
                 onClick = {
                     hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                     coroutineScope.launch {
-                        onRedirect(
-                            ChaoxingSignHelper.getRedirectDestination(
-                                if (status == ChaoxingActivityHelper.SignRedirectStatus.SIGN_OUT) signInId!! else signOffId!!,
-                                classId,
-                                courseId,
-                                context
+                        runCatching {
+                            onRedirect(
+                                ChaoxingSignHelper.getRedirectDestination(
+                                    if (status == ChaoxingActivityHelper.SignRedirectStatus.SIGN_OUT) signInId!! else signOffId!!,
+                                    classId,
+                                    courseId
+                                )
                             )
-                        )
+                        }.onFailure {
+                            it.printStackTrace()
+                            it.snackbarReport(
+                                snackbarHostState,
+                                coroutineScope,
+                                "跳转失败",
+                                hapticFeedback
+                            )
+                        }
                     }
                 },
                 enabled = status != ChaoxingActivityHelper.SignRedirectStatus.SIGN_IN_UNPUBLISHED,

@@ -21,7 +21,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -30,6 +32,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -50,10 +53,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.LineBreak
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -72,6 +77,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCourseHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingRecommendHelper
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.SignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.BlockedContent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
@@ -104,7 +110,7 @@ fun CourseListScreen(
     navToDetailDestination: (ChaoxingCourseEntity) -> Unit,
     onNewVersionAvailable: () -> Unit,
     navToSettingDestination: () -> Unit,
-    navToSignActivityDestination: (Any) -> Unit,
+    navToSignActivityDestination: (SignDestination) -> Unit,
     navToLoginDestination: () -> Unit,
     navToGroupDestination: () -> Unit
 ) {
@@ -251,7 +257,7 @@ fun CourseListScreen(
     BlockedContent {
         Column(
             modifier = Modifier
-                .padding(16.dp, 12.dp, 16.dp, 0.dp)
+                .padding(16.dp, 4.dp, 16.dp, 0.dp)
         ) {
             Crossfade(isFetchedFailure) { v ->
                 if (activitiesData.isNotEmpty()) {
@@ -363,32 +369,67 @@ fun CourseListScreen(
                             } //TODO: Recommend
                             var debouncePreviousTime = 0L
                             LazyColumn {
-                                if (false)
                                 item {
-                                    OutlinedButton(
-                                        onClick = {
-                                            hapticFeedback.performHapticFeedback(
-                                                HapticFeedbackType.ContextClick
-                                            )
-                                            navToGroupDestination()
-                                        },
-                                        shape = RoundedCornerShape(18.dp),
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                    ) {
+                                    Card {
                                         Row(
                                             verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.Start,
-                                            modifier = Modifier.fillMaxWidth()
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(16.dp, 8.dp)
                                         ) {
                                             Icon(
-                                                painter = painterResource(R.drawable.ic_users_round),
-                                                ""
+                                                painterResource(R.drawable.ic_circle_question_mark),
+                                                null
                                             )
-                                            Spacer(modifier = Modifier.width(14.dp))
-                                            Text("为群聊签到")
+                                            Column(
+                                                modifier = Modifier.padding(
+                                                    start = 12.dp
+                                                )
+                                            ) {
+                                                Text(
+                                                    "找不到要签到的班级或者签到的活动？可能老师是在群聊里面发起的签到",
+                                                    fontSize = 14.sp,
+                                                    lineHeight = 17.sp,
+                                                    style = TextStyle.Default.copy(
+                                                        lineBreak = LineBreak(
+                                                            strategy = LineBreak.Strategy.HighQuality,
+                                                            strictness = LineBreak.Strictness.Strict,
+                                                            wordBreak = LineBreak.WordBreak.Default
+                                                        )
+                                                    )
+                                                )
+                                                OutlinedButton(
+                                                    onClick = {
+                                                        hapticFeedback.performHapticFeedback(
+                                                            HapticFeedbackType.ContextClick
+                                                        )
+                                                        navToGroupDestination()
+                                                    },
+                                                    shape = RoundedCornerShape(18.dp),
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                ) {
+                                                    Row(
+                                                        verticalAlignment = Alignment.CenterVertically,
+                                                        horizontalArrangement = Arrangement.Start,
+                                                        modifier = Modifier.fillMaxWidth()
+                                                    ) {
+                                                        Icon(
+                                                            painter = painterResource(R.drawable.ic_users_round),
+                                                            null,
+                                                            modifier = Modifier.size(18.dp)
+                                                        )
+                                                        Spacer(modifier = Modifier.width(10.dp))
+                                                        Text(
+                                                            "从群聊列表查找签到",
+                                                            color = MaterialTheme.colorScheme.primary
+                                                        )
+                                                    }
+                                                }
+                                            }
                                         }
                                     }
+                                    Spacer(modifier = Modifier.height(8.dp))
                                 }
 
                                 items(activitiesData) { data ->

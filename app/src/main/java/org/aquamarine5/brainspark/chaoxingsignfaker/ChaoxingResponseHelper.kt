@@ -158,7 +158,7 @@ fun Throwable.snackbarReport(
                 onSnackbarResult?.invoke(this)
             }
         }
-    } else if(this.cause!=null && this.cause !is ChaoxingPredictableException){
+    } else if (this.cause != null && this.cause !is ChaoxingPredictableException) {
         this.cause?.let {
             Sentry.captureException(it)
             snackbarHostState?.currentSnackbarData?.dismiss()
@@ -173,7 +173,7 @@ fun Throwable.snackbarReport(
                 }
             }
         }
-    }else {
+    } else {
         snackbarHostState?.currentSnackbarData?.dismiss()
         coroutineScope.launch {
             snackbarHostState?.showSnackbar(

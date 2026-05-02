@@ -9,9 +9,9 @@ import org.aquamarine5.brainspark.stackbricks.gradleplugin.PossibleConfiguration
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
-    id("org.aquamarine5.brainspark.stackbricks-gradle-plugin") version "2.2.4"
+    id("org.aquamarine5.brainspark.stackbricks-gradle-plugin") version "2.2.7"
     id("com.google.protobuf") version "0.9.6"
-    id "io.sentry.android.gradle" version "6.4.0"
+    id "io.sentry.android.gradle" version "6.5.0"
     id("org.jetbrains.kotlin.plugin.serialization") version "2.3.20"
 }
 
@@ -38,7 +38,7 @@ stackbricksConfig {
 }
 android {
     namespace = "org.aquamarine5.brainspark.chaoxingsignfaker"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         ndk {
@@ -46,9 +46,9 @@ android {
         }
         applicationId = "org.aquamarine5.brainspark.chaoxingsignfaker"
         minSdk = 26
-        targetSdk = 36
-        versionCode = 1_1305_1215
-        versionName = "1.13.5-stable-260420"
+        targetSdk = 37
+        versionCode = 1_1306_0777
+        versionName = "1.13.6-rc2-260429"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
