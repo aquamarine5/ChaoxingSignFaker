@@ -88,7 +88,7 @@ fun GroupListScreen(
         }
         Crossfade(isFetchedFailure) { v ->
             when {
-                v == null || imGroupsInfo == null -> {
+                v == null -> {
                     CenterCircularProgressIndicator()
                 }
 

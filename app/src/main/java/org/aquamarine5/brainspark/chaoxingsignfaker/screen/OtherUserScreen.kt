@@ -279,10 +279,13 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                     trailingIcon = {
                         Row {
                             IconButton(onClick = {
-                                val result =
-                                    context.getSystemService(ClipboardManager::class.java)?.primaryClip?.getItemAt(
-                                        0
-                                    )?.text
+                                val clip =
+                                    context.getSystemService(ClipboardManager::class.java)?.primaryClip
+                                val result = if (clip != null && clip.itemCount > 0) {
+                                    clip.getItemAt(0).text
+                                } else {
+                                    null
+                                }
                                 if (result.isNullOrEmpty()) {
                                     hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
                                     Toast.makeText(context, "读取剪切板失败", Toast.LENGTH_SHORT)
