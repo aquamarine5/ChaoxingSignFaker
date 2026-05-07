@@ -98,7 +98,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityE
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityStatus
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignOutEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignStatus
-import org.aquamarine5.brainspark.chaoxingsignfaker.ifAlreadySigned
+import org.aquamarine5.brainspark.chaoxingsignfaker.ifShouldDeselect
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingPhotoSigner
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSigner
 import org.aquamarine5.brainspark.chaoxingsignfaker.snackbarReport
@@ -365,7 +365,7 @@ fun PhotoSignScreen(
                                             "为${ChaoxingHttpClient.instance!!.userEntity.name}签到失败",
                                             hapticFeedback
                                         )
-                                        it.ifAlreadySigned {
+                                        it.ifShouldDeselect {
                                             userSelections[0] = false
                                         }
                                         if (otherUserSessionList.all { it == null }) {
@@ -508,7 +508,7 @@ fun PhotoSignScreen(
                                                 "为${userSession.name}签到失败",
                                                 hapticFeedback
                                             )
-                                            err.ifAlreadySigned {
+                                            err.ifShouldDeselect {
                                                 userSelections[index + 1] = false
                                             }
                                             if (otherUserSessionList.checkIsLast(index + 1)) {
@@ -857,7 +857,7 @@ fun PhotoSignScreen(
                                                                         "为${ChaoxingHttpClient.instance!!.userEntity.name}签到失败",
                                                                         hapticFeedback
                                                                     )
-                                                                    it.ifAlreadySigned {
+                                                                    it.ifShouldDeselect {
                                                                         userSelections[0] =
                                                                             false
                                                                     }
@@ -1023,7 +1023,7 @@ fun PhotoSignScreen(
                                                                         "为${chaoxingOtherUserSession.name}签到失败",
                                                                         hapticFeedback
                                                                     )
-                                                                    it.ifAlreadySigned {
+                                                                    it.ifShouldDeselect {
                                                                         userSelections[index + 1] =
                                                                             false
                                                                     }

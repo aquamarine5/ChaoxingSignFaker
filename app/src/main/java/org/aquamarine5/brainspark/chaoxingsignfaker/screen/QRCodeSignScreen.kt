@@ -31,6 +31,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -91,7 +92,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityE
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityStatus
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignOutEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignStatus
-import org.aquamarine5.brainspark.chaoxingsignfaker.ifAlreadySigned
+import org.aquamarine5.brainspark.chaoxingsignfaker.ifShouldDeselect
 import org.aquamarine5.brainspark.chaoxingsignfaker.isDevelopedMode
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingQRCodeSigner
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSigner
@@ -341,6 +342,25 @@ fun QRCodeSignScreen(
                                                 )
                                             }
                                         }
+                                    AnimatedVisibility(
+                                        locationData != null,
+                                        enter = slideInHorizontally()
+                                    ) {
+                                        Row() {
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Text(
+                                                    "选定的签到位置：",
+                                                    fontWeight = FontWeight.Bold
+                                                )
+                                                Text(locationData?.address ?: "地址获取中...")
+                                            }
+                                            Button(onClick = {
+                                                isMapGetting = true
+                                            }) {
+                                                Text("重新获取位置")
+                                            }
+                                        }
+                                    }
                                 }
                             ) { isSelf, otherUserSessionList, _ ->
                                 isSigning = true
@@ -348,7 +368,7 @@ fun QRCodeSignScreen(
                                 signUserList = otherUserSessionList
                                 if (isFaceRequired)
                                     isFaceImageCaptured = true
-                                else if (isMapRequired)
+                                else if (isMapRequired && locationData == null)
                                     isMapGetting = true
                                 else {
                                     isQRCodeScanPause.value = false
@@ -572,7 +592,7 @@ fun QRCodeSignScreen(
                                                             "为${ChaoxingHttpClient.instance!!.userEntity.name}签到失败",
                                                             hapticFeedback
                                                         )
-                                                        err.ifAlreadySigned {
+                                                        err.ifShouldDeselect {
                                                             userSelections[0] = false
                                                         }
                                                         if (signUserList.all { it == null }) {
@@ -747,7 +767,7 @@ fun QRCodeSignScreen(
                                                             "为${session.name}签到失败",
                                                             hapticFeedback
                                                         )
-                                                        err.ifAlreadySigned {
+                                                        err.ifShouldDeselect {
                                                             userSelections[1 + index] = false
                                                         }
                                                         if (index == signUserList.size - 1) {

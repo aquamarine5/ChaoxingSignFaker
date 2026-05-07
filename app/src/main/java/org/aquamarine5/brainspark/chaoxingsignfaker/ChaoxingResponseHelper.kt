@@ -188,8 +188,8 @@ fun Throwable.snackbarReport(
     }
 }
 
-fun Throwable.ifAlreadySigned(action: () -> Unit) {
-    if (this is ChaoxingSigner.AlreadySignedException) {
+fun Throwable.ifShouldDeselect(action: () -> Unit) {
+    if (this is ChaoxingSigner.AlreadySignedException || this is ChaoxingSigner.SignActivityNoPermissionException) {
         action()
     }
 }

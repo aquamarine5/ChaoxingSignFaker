@@ -156,7 +156,7 @@ object ChaoxingSignHelper {
                 ).build()
             ).execute().use {
                 it.checkResponseThrowException()
-                val result = JSONObject.parseObject(it.body?.string() ?: "{}").getJSONObject("data")
+                val result = JSONObject.parseObject(it.body.string()).getJSONObject("data")
                 val endTime = result.getLong("endTime")
                 when (result.getInteger("otherId")) {
                     0 -> PhotoSignDestination(

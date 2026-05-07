@@ -77,7 +77,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityE
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityStatus
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignOutEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignStatus
-import org.aquamarine5.brainspark.chaoxingsignfaker.ifAlreadySigned
+import org.aquamarine5.brainspark.chaoxingsignfaker.ifShouldDeselect
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingLocationSigner
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSigner
 import org.aquamarine5.brainspark.chaoxingsignfaker.snackbarReport
@@ -449,7 +449,7 @@ fun LocationSignScreen(
                                     }
                                 }.onFailure {
                                     signStatus[0].failed(it)
-                                    it.ifAlreadySigned {
+                                    it.ifShouldDeselect {
                                         userSelections[0] = false
                                     }
                                     if (otherUserSessionForSignList.all { it == null }) {
@@ -615,7 +615,7 @@ fun LocationSignScreen(
                                             "为${userSession.name}签到失败",
                                             hapticFeedback
                                         )
-                                        err.ifAlreadySigned {
+                                        err.ifShouldDeselect {
                                             userSelections[index + 1] = false
                                         }
                                         if (otherUserSessionForSignList.checkIsLast(index + 1)) {

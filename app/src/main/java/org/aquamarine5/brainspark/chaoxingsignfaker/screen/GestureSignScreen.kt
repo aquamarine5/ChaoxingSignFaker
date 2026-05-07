@@ -75,7 +75,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityE
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityStatus
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignOutEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignStatus
-import org.aquamarine5.brainspark.chaoxingsignfaker.ifAlreadySigned
+import org.aquamarine5.brainspark.chaoxingsignfaker.ifShouldDeselect
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingGestureSigner
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSigner
 import org.aquamarine5.brainspark.chaoxingsignfaker.snackbarReport
@@ -443,7 +443,7 @@ fun GestureSignScreen(
                                     }
                                 }.onFailure {
                                     signStatus[0].failed(it)
-                                    it.ifAlreadySigned {
+                                    it.ifShouldDeselect {
                                         userSelections[0] = false
                                     }
                                     if (otherUserSessionList.all { it == null }) {
@@ -586,7 +586,7 @@ fun GestureSignScreen(
                                             hapticFeedback
                                         )
 
-                                        err.ifAlreadySigned {
+                                        err.ifShouldDeselect {
                                             userSelections[index + 1] = false
                                         }
                                         if (otherUserSessionList.checkIsLast(index + 1)) {

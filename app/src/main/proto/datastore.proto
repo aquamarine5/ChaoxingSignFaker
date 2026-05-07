@@ -31,6 +31,7 @@ message ChaoxingSignFakerDataStore{
 message Preferences{
   bool neverAskSaveFavoriteLocation = 1;
   bool isDevelopedMode = 2;
+  ChaoxingLocation lastSignedLocation = 3;
 }
 
 message ChaoxingCourseClass{
