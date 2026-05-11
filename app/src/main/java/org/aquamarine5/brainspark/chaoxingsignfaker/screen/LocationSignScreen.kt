@@ -65,6 +65,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerDia
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.FaceRecognitionComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.GetLocationComponent
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.IgnoreAllPotentialExceptionCheckbox
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NetworkExceptionComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NotReadyToSignNoticeComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.OtherUserSelectorComponent
@@ -208,8 +209,12 @@ fun LocationSignScreen(
                     val signStatus = remember { mutableListOf(ChaoxingSignStatus(hapticFeedback)) }
                     var isSelfForSign by remember { mutableStateOf(false) }
                     var isSigning by remember { mutableStateOf(false) }
-                    var otherUserSessionForSignList by
-                    remember { mutableStateOf<List<ChaoxingOtherUserSession?>>(emptyList()) }
+                    val isIgnoreAllPotentialExceptions = remember { mutableStateOf(false) }
+                    var otherUserSessionForSignList by remember {
+                        mutableStateOf<List<ChaoxingOtherUserSession?>>(
+                            emptyList()
+                        )
+                    }
                     val userSelections = remember { mutableStateListOf(isSignForOther.not()) }
                     var isCaptcha = remember { false }
                     var isFirstOtherUserForSign = remember { true }
@@ -281,6 +286,8 @@ fun LocationSignScreen(
                                             )
                                         }
                                     }
+                            }, suffixContent = {
+                                IgnoreAllPotentialExceptionCheckbox(isIgnoreAllPotentialExceptions)
                             }
                         ) { isSelf, otherUserSessionList, _ ->
                             isSigning = true
@@ -484,7 +491,7 @@ fun LocationSignScreen(
                                                 destination,
                                                 signer.getSignInfo()
                                             ).apply {
-                                                when (preSign()) {
+                                                when (if (isIgnoreAllPotentialExceptions.value) ChaoxingSignActivityStatus.READY_TO_SIGN else preSign()) {
                                                     ChaoxingSignActivityStatus.EXPIRED -> {
                                                         throw ChaoxingSigner.SignExpiredException()
                                                     }
@@ -494,7 +501,7 @@ fun LocationSignScreen(
                                                     }
 
                                                     ChaoxingSignActivityStatus.READY_TO_SIGN -> {
-                                                        if (ChaoxingCourseHelper.checkClassValid(
+                                                        if (!isIgnoreAllPotentialExceptions.value && ChaoxingCourseHelper.checkClassValid(
                                                                 client,
                                                                 destination.classId
                                                             ) == false

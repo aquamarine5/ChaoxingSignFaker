@@ -87,6 +87,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.checkIsLast
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CameraComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.IgnoreAllPotentialExceptionCheckbox
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NetworkExceptionComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NotReadyToSignNoticeComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.OtherUserSelectorComponent
@@ -216,6 +217,7 @@ fun PhotoSignScreen(
                             val signStatus =
                                 remember { mutableListOf(ChaoxingSignStatus(hapticFeedback)) }
                             val userSelections = remember { mutableStateListOf(isForSelf.not()) }
+                            val isIgnoreAllPotentialExceptions = remember { mutableStateOf(false) }
                             OtherUserSelectorComponent(
                                 navToOtherUser = {
                                     navToOtherUserDestination()
@@ -286,6 +288,10 @@ fun PhotoSignScreen(
                                             destination.endTime,
                                             destination.isLate
                                         )
+                                }, suffixContent = {
+                                    IgnoreAllPotentialExceptionCheckbox(
+                                        isIgnoreAllPotentialExceptions
+                                    )
                                 }
                             ) { isSelf, otherUserSessionList, _ ->
                                 isSigning = true
@@ -392,7 +398,7 @@ fun PhotoSignScreen(
                                                 ChaoxingPhotoSigner(
                                                     client, destination, signer.getSignInfo()
                                                 ).apply {
-                                                    when (preSign()) {
+                                                    when (if (isIgnoreAllPotentialExceptions.value) ChaoxingSignActivityStatus.READY_TO_SIGN else preSign()) {
                                                         ChaoxingSignActivityStatus.EXPIRED -> {
                                                             throw ChaoxingSigner.SignExpiredException()
                                                         }
@@ -405,7 +411,7 @@ fun PhotoSignScreen(
                                                             if (ifPhotoRequiredLogin().first) {
                                                                 throw ChaoxingPhotoSigner.ChaoxingIncorrectSignTypeException()
                                                             } else {
-                                                                if (ChaoxingCourseHelper.checkClassValid(
+                                                                if (!isIgnoreAllPotentialExceptions.value && ChaoxingCourseHelper.checkClassValid(
                                                                         client,
                                                                         destination.classId
                                                                     ) == false
@@ -594,6 +600,8 @@ fun PhotoSignScreen(
                                             emptyList()
                                         )
                                     }
+                                    val isIgnoreAllPotentialExceptions =
+                                        remember { mutableStateOf(false) }
                                     BackHandler(isSignForOther == true && !isCamera) {
                                         isSignForOther = null
                                     }
@@ -626,6 +634,10 @@ fun PhotoSignScreen(
                                                             destination.endTime,
                                                             destination.isLate
                                                         )
+                                                }, suffixContent = {
+                                                    IgnoreAllPotentialExceptionCheckbox(
+                                                        isIgnoreAllPotentialExceptions
+                                                    )
                                                 },
                                                 userContent = { index ->
                                                     var isShowDialog by remember {
@@ -894,7 +906,7 @@ fun PhotoSignScreen(
                                                                             destination,
                                                                             signer.getSignInfo()
                                                                         ).apply {
-                                                                            when (preSign()) {
+                                                                            when (if (isIgnoreAllPotentialExceptions.value) ChaoxingSignActivityStatus.READY_TO_SIGN else preSign()) {
                                                                                 ChaoxingSignActivityStatus.EXPIRED -> {
                                                                                     throw ChaoxingSigner.SignExpiredException()
                                                                                 }
@@ -904,7 +916,7 @@ fun PhotoSignScreen(
                                                                                 }
 
                                                                                 ChaoxingSignActivityStatus.READY_TO_SIGN -> {
-                                                                                    if (ChaoxingCourseHelper.checkClassValid(
+                                                                                    if (!isIgnoreAllPotentialExceptions.value && ChaoxingCourseHelper.checkClassValid(
                                                                                             client,
                                                                                             destination.classId
                                                                                         ) == false

@@ -64,6 +64,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.SignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.checkIsLast
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.IgnoreAllPotentialExceptionCheckbox
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NetworkExceptionComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NotReadyToSignNoticeComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.OtherUserSelectorComponent
@@ -333,7 +334,7 @@ fun GestureSignScreen(
                             }
                         }
                     }
-
+                    val isIgnoreAllPotentialExceptions = remember { mutableStateOf(false) }
                     Column(modifier = Modifier.padding(8.dp, 8.dp, 8.dp, 0.dp)) {
                         OtherUserSelectorComponent(
                             navToOtherUser = { navToOtherUserDestination() },
@@ -356,7 +357,7 @@ fun GestureSignScreen(
                                     )
                             },
                             suffixContent = {
-
+                                IgnoreAllPotentialExceptionCheckbox(isIgnoreAllPotentialExceptions)
                             }
                         ) { isSelf, otherUserSessionList, _ ->
                             if (!isCheckingStatus) {
@@ -478,7 +479,7 @@ fun GestureSignScreen(
                                                 destination,
                                                 signer.getSignInfo()
                                             ).apply {
-                                                when (preSign()) {
+                                                when (if (isIgnoreAllPotentialExceptions.value) ChaoxingSignActivityStatus.READY_TO_SIGN else preSign()) {
                                                     ChaoxingSignActivityStatus.EXPIRED -> {
                                                         throw ChaoxingSigner.SignExpiredException()
                                                     }
@@ -488,7 +489,7 @@ fun GestureSignScreen(
                                                     }
 
                                                     ChaoxingSignActivityStatus.READY_TO_SIGN -> {
-                                                        if (ChaoxingCourseHelper.checkClassValid(
+                                                        if (!isIgnoreAllPotentialExceptions.value && ChaoxingCourseHelper.checkClassValid(
                                                                 client,
                                                                 destination.classId
                                                             ) == false

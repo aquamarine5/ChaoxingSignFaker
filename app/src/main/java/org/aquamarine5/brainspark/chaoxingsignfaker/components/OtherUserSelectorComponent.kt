@@ -192,8 +192,8 @@ fun OtherUserSelectorComponent(
                 }
 
                 suffixContent?.invoke()
-
                 Spacer(modifier = Modifier.height(6.dp))
+
                 Text(
                     "选择要进行签到的用户：",
                     modifier = Modifier.padding(start = 3.dp),
@@ -206,7 +206,6 @@ fun OtherUserSelectorComponent(
                 ) {
                     Row {
                         if (tagEntities != null && tagContainedUserIndexList != null)
-
                             FlowRow(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(5.dp),

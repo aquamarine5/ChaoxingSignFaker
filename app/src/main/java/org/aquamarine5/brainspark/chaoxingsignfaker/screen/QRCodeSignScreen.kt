@@ -79,6 +79,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerDia
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.FaceRecognitionComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.GetLocationComponent
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.IgnoreAllPotentialExceptionCheckbox
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NetworkExceptionComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NotReadyToSignNoticeComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.OtherUserSelectorComponent
@@ -213,6 +214,7 @@ fun QRCodeSignScreen(
                             )
                     }
                 } else if (c == ChaoxingSignActivityStatus.READY_TO_SIGN) {
+                    val isIgnoreAllPotentialException = remember { mutableStateOf(false) }
                     var isSelfForSign by remember { mutableStateOf(false) }
                     var isQRCodeScanning by remember { mutableStateOf(false) }
                     val isQRCodeScanPause = remember { mutableStateOf(false) }
@@ -342,6 +344,7 @@ fun QRCodeSignScreen(
                                                 )
                                             }
                                         }
+                                }, suffixContent = {
                                     AnimatedVisibility(
                                         locationData != null,
                                         enter = slideInHorizontally()
@@ -361,6 +364,9 @@ fun QRCodeSignScreen(
                                             }
                                         }
                                     }
+                                    IgnoreAllPotentialExceptionCheckbox(
+                                        isIgnoreAllPotentialException
+                                    )
                                 }
                             ) { isSelf, otherUserSessionList, _ ->
                                 isSigning = true
@@ -630,7 +636,7 @@ fun QRCodeSignScreen(
                                                                 destination,
                                                                 signer.getSignInfo()
                                                             ).apply {
-                                                                when (preSign()) {
+                                                                when (if (isIgnoreAllPotentialException.value) ChaoxingSignActivityStatus.READY_TO_SIGN else preSign()) {
                                                                     ChaoxingSignActivityStatus.EXPIRED -> {
                                                                         throw ChaoxingSigner.SignExpiredException()
                                                                     }
@@ -640,7 +646,7 @@ fun QRCodeSignScreen(
                                                                     }
 
                                                                     ChaoxingSignActivityStatus.READY_TO_SIGN -> {
-                                                                        if (ChaoxingCourseHelper.checkClassValid(
+                                                                        if (!isIgnoreAllPotentialException.value && ChaoxingCourseHelper.checkClassValid(
                                                                                 client,
                                                                                 destination.classId
                                                                             ) == false

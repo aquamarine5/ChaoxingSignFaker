@@ -65,6 +65,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.SignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.checkIsLast
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.IgnoreAllPotentialExceptionCheckbox
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NetworkExceptionComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NotReadyToSignNoticeComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.OtherUserSelectorComponent
@@ -210,6 +211,7 @@ fun PasswordSignScreen(
                     }
                 } else if (c == ChaoxingSignActivityStatus.READY_TO_SIGN) {
                     var text by remember { mutableStateOf("") }
+                    val isIgnorePotentialException = remember { mutableStateOf(false) }
                     val focusManager = LocalFocusManager.current
                     var isCaptcha = remember { false }
                     var isFirstOtherUserForSign = remember { true }
@@ -240,6 +242,7 @@ fun PasswordSignScreen(
                                     )
                             },
                             suffixContent = {
+                                IgnoreAllPotentialExceptionCheckbox(isIgnorePotentialException)
                                 var isCheckingStatus by remember { mutableStateOf<Boolean?>(null) }
                                 LaunchedEffect(isCheckingStatus) {
                                     delay(1000L)
@@ -529,7 +532,7 @@ fun PasswordSignScreen(
                                                 destination,
                                                 signer.getSignInfo()
                                             ).apply {
-                                                when (preSign()) {
+                                                when (if (isIgnorePotentialException.value) ChaoxingSignActivityStatus.READY_TO_SIGN else preSign()) {
                                                     ChaoxingSignActivityStatus.EXPIRED -> {
                                                         throw ChaoxingSigner.SignExpiredException()
                                                     }
@@ -539,7 +542,7 @@ fun PasswordSignScreen(
                                                     }
 
                                                     ChaoxingSignActivityStatus.READY_TO_SIGN -> {
-                                                        if (ChaoxingCourseHelper.checkClassValid(
+                                                        if (!isIgnorePotentialException.value && ChaoxingCourseHelper.checkClassValid(
                                                                 client,
                                                                 destination.classId
                                                             ) == false
