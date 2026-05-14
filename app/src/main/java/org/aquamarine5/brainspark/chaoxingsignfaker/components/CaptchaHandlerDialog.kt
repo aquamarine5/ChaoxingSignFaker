@@ -108,7 +108,7 @@ fun CaptchaHandlerDialog(
                     }
 
                     Spacer(modifier = Modifier.height(16.dp))
-                    var isCheckingCaptcha = remember { AtomicBoolean(false) }
+                    val isCheckingCaptcha = remember { AtomicBoolean(false) }
                     Slider(
                         value = sliderPosition,
                         onValueChange = {

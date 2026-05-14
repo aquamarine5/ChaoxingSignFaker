@@ -6,9 +6,11 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.entity
 
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -60,28 +62,35 @@ data class ChaoxingSignStatus(
     }
 
     @Composable
-    fun ResultCard() {
+    fun ResultCard(onIgnoreException:()->Unit) {
         when (isSuccess.value) {
             true -> {
                 Icon(painterResource(R.drawable.ic_check), "签到成功")
             }
 
             false -> {
-                Text(
-                    error.value, color = when (error.value) {
-                        "您已签到过了" -> {
-                            LocalContentColor.current
-                        }
+                Row{
+                    IconButton(onClick = {
 
-                        "疑似迟到" -> {
-                            Orange
-                        }
-
-                        else -> {
-                            Color(0xFFF43E06)
-                        }
+                    }) {
+                        Icon(painterResource(R.drawable.ic_refresh_rounded),null)
                     }
-                )
+                    Text(
+                        error.value, color = when (error.value) {
+                            "您已签到过了" -> {
+                                LocalContentColor.current
+                            }
+
+                            "疑似迟到" -> {
+                                Orange
+                            }
+
+                            else -> {
+                                Color(0xFFF43E06)
+                            }
+                        }
+                    )
+                }
             }
 
             null -> {

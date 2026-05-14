@@ -114,7 +114,7 @@ data class PhotoSignDestination(
     override val courseId: Int,
     val extContent: String,
     val startTime: Long?,
-    val endTime: Long?,
+    override val endTime: Long?,
     val isLate: Boolean
 ) : SignDestination {
     companion object {
@@ -404,7 +404,7 @@ fun PhotoSignScreen(
                                                         }
 
                                                         ChaoxingSignActivityStatus.ALREADY_SIGNED -> {
-                                                            throw ChaoxingSigner.AlreadySignedException()
+                                                            throw ChaoxingSigner.PredictedAlreadySignedException()
                                                         }
 
                                                         ChaoxingSignActivityStatus.READY_TO_SIGN -> {
@@ -912,7 +912,7 @@ fun PhotoSignScreen(
                                                                                 }
 
                                                                                 ChaoxingSignActivityStatus.ALREADY_SIGNED -> {
-                                                                                    throw ChaoxingSigner.AlreadySignedException()
+                                                                                    throw ChaoxingSigner.PredictedAlreadySignedException()
                                                                                 }
 
                                                                                 ChaoxingSignActivityStatus.READY_TO_SIGN -> {

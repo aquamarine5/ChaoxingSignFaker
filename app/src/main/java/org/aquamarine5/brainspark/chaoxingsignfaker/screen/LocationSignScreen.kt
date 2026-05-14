@@ -91,7 +91,7 @@ data class GetLocationDestination(
     override val courseId: Int,
     val extContent: String,
     val startTime: Long?,
-    val endTime: Long?,
+    override val endTime: Long?,
     val isLate: Boolean
 ) : SignDestination {
     companion object {
@@ -497,7 +497,7 @@ fun LocationSignScreen(
                                                     }
 
                                                     ChaoxingSignActivityStatus.ALREADY_SIGNED -> {
-                                                        throw ChaoxingSigner.AlreadySignedException()
+                                                        throw ChaoxingSigner.PredictedAlreadySignedException()
                                                     }
 
                                                     ChaoxingSignActivityStatus.READY_TO_SIGN -> {

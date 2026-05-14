@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -31,6 +32,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -73,8 +75,8 @@ fun OtherUserSelectorComponent(
     navToOtherUser: () -> Unit,
     signStatus: MutableList<ChaoxingSignStatus>,
     isCurrentAlreadySigned: Boolean,
+    isSigning: MutableState<Boolean>,
     userSelections: SnapshotStateList<Boolean>,
-    isSigning: Boolean = false,
     userContent: @Composable ((index: Int) -> Unit)? = null,
     prefixTipsContent: @Composable (() -> Unit),
     suffixContent: @Composable (() -> Unit)? = null,
@@ -90,6 +92,24 @@ fun OtherUserSelectorComponent(
         val tagClickState = remember { mutableListOf<MutableState<Boolean>>() }
         var selfPhoneNumber by remember { mutableStateOf<String?>(null) }
         var success by signStatus[0].isSuccess
+        var ignoreExceptionUserIndex by remember { mutableStateOf<Int?>(null) }
+
+        if (ignoreExceptionUserIndex != null) {
+            AlertDialog(onDismissRequest = {
+                ignoreExceptionUserIndex = null
+            }, icon = {
+                Icon(
+                    painterResource(R.drawable.ic_refresh_rounded),
+                    null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(40.dp)
+                )
+            }, text = {
+
+            }, confirmButton = {
+
+            })
+        }
 
         fun updateTagClickState() {
             tagContainedUserIndexList?.forEachIndexed { tagIndex, userIndexList ->
@@ -340,7 +360,9 @@ fun OtherUserSelectorComponent(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 userContent?.invoke(0)
-                                signStatus[0].ResultCard()
+                                signStatus[0].ResultCard {
+
+                                }
                             }
                         }
                     }
@@ -389,7 +411,9 @@ fun OtherUserSelectorComponent(
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         userContent?.invoke(1 + index)
-                                        signStatus[i].ResultCard()
+                                        signStatus[i].ResultCard {
+
+                                        }
                                     }
                                 }
                             }
@@ -415,8 +439,8 @@ fun OtherUserSelectorComponent(
                         if (userSelections[0] && signStatus[0].isSuccess.value != true)
                             indexList.add(0)
                         hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                        onSignAction(
-                            userSelections[0] && signStatus[0].isSuccess.value != true,
+                        val isSelf = userSelections[0] && signStatus[0].isSuccess.value != true
+                        val otherUserSessionList =
                             signUserList.mapIndexed { index, chaoxingOtherUserSession ->
                                 if (userSelections[index + 1] && signStatus[1 + index].isSuccess.value != true) {
                                     indexList.add(index + 1)
@@ -424,10 +448,12 @@ fun OtherUserSelectorComponent(
                                 } else {
                                     null
                                 }
-                            }, indexList
+                            }
+                        onSignAction(
+                            isSelf, otherUserSessionList, indexList
                         )
                     }, modifier = Modifier.fillMaxWidth(),
-                    enabled = isSigning.not()
+                    enabled = isSigning.value.not()
                 ) {
                     Text("签到")
                 }
