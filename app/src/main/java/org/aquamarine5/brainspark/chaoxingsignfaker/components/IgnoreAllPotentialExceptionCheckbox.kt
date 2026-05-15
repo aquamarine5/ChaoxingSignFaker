@@ -33,6 +33,7 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.unit.dp
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 
+@Deprecated("")
 @Composable
 fun IgnoreAllPotentialExceptionCheckbox(
     isIgnoreAllPotentialExceptions: MutableState<Boolean>,

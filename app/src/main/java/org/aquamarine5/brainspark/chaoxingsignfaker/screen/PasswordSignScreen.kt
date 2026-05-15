@@ -228,7 +228,7 @@ fun PasswordSignScreen(
                                     } else return@runCatching false
                                 }
                             },
-                            onOtherUserSigning = { value, session, bypassException ->
+                            onOtherUserSigning = { value, session, bypassException, index ->
                                 runCatching {
                                     ChaoxingHttpClient.loadFromOtherUserSession(
                                         session,
@@ -259,8 +259,8 @@ fun PasswordSignScreen(
                                     }
                                 }
                             },
-                            onSigningFinished = { name, isOtherUser ->
-                                coroutineScope.launch{
+                            onSigningFinished = { value, name, isOtherUser ->
+                                coroutineScope.launch {
                                     UMengHelper.onSignCodeEvent(
                                         context,
                                         name,

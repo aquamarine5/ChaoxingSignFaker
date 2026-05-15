@@ -219,14 +219,12 @@ fun QRCodeSignScreen(
                             emptyList()
                         )
                     }
-                    var isCaptcha = remember { false }
-                    var isFirstOtherUserForSign = remember { true }
                     var locationData by remember { mutableStateOf<ChaoxingLocationSignEntity?>(null) }
                     var job by remember { mutableStateOf<Job?>(null) }
                     val userSelections = remember { mutableStateListOf(true) }
                     val signStatus =
                         remember { mutableStateListOf(ChaoxingSignStatus(hapticFeedback)) }
-                    var isSigning = remember { mutableStateOf(false) }
+                    val isSigning = remember { mutableStateOf(false) }
                     var isSponsor by remember { mutableStateOf(false) }
                     if (isSponsor) {
                         SponsorPopupDialog()
@@ -281,7 +279,7 @@ fun QRCodeSignScreen(
                                     } else return@runCatching false
                                 }
                             },
-                            onSigningFinished = { name, isOtherUser ->
+                            onSigningFinished = { value, name, isOtherUser ->
                                 coroutineScope.launch {
                                     UMengHelper.onSignQRCodeEvent(
                                         context,
@@ -290,7 +288,7 @@ fun QRCodeSignScreen(
                                     )
                                 }
                             },
-                            onOtherUserSigning = { value, session, bypassChecking ->
+                            onOtherUserSigning = { value, session, bypassChecking, index ->
                                 runCatching {
                                     ChaoxingHttpClient.loadFromOtherUserSession(
                                         session,
@@ -476,9 +474,9 @@ fun QRCodeSignScreen(
                                 signUserList = otherUserSessionList
 
                                 if (isFaceRequired && (
-                                        (isSelf && ChaoxingHttpClient.instance!!.userEntity.phoneNumber !in faceImageBitmaps.keys) ||
-                                        otherUserSessionList.any { it != null && it.phoneNumber !in faceImageBitmaps.keys }
-                                    )
+                                            (isSelf && ChaoxingHttpClient.instance!!.userEntity.phoneNumber !in faceImageBitmaps.keys) ||
+                                                    otherUserSessionList.any { it != null && it.phoneNumber !in faceImageBitmaps.keys }
+                                            )
                                 ) {
                                     isFaceImageCaptured = true
                                 } else if (isMapRequired && locationData == null) {
@@ -622,7 +620,10 @@ fun QRCodeSignScreen(
                                                 Sentry.captureException(it)
                                             else {
                                                 if (isDevelopedMode)
-                                                    snackbarHost.displaySnackbar(exception.rawValue,coroutineScope)
+                                                    snackbarHost.displaySnackbar(
+                                                        exception.rawValue,
+                                                        coroutineScope
+                                                    )
                                                 Log.w(
                                                     "ChaoxingQRCodeSigner",
                                                     exception.rawValue

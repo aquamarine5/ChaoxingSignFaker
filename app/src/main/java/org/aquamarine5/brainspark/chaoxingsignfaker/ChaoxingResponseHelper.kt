@@ -191,7 +191,8 @@ fun Throwable.snackbarReport(
 fun Throwable.ifShouldDeselect(action: () -> Unit) {
     if (this is ChaoxingSigner.AlreadySignedException ||
         this is ChaoxingSigner.PredictedAlreadySignedException ||
-        this is ChaoxingSigner.SignActivityNoPermissionException) {
+        this is ChaoxingSigner.SignActivityNoPermissionException
+    ) {
         action()
     }
 }

@@ -43,7 +43,6 @@ import coil3.ImageLoader
 import coil3.compose.AsyncImage
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
@@ -74,9 +73,13 @@ fun GroupListScreen(
         var imGroupsInfo by rememberSaveable(
             saver = Saver(
                 save = { state -> state.value?.let { Json.encodeToString(it) } ?: "" },
-                restore = { value -> mutableStateOf(if ((value as String).isEmpty()) null else Json.decodeFromString<List<ChaoxingIMGroup>>(
-                    value
-                )) }
+                restore = { value ->
+                    mutableStateOf(
+                        if ((value as String).isEmpty()) null else Json.decodeFromString<List<ChaoxingIMGroup>>(
+                            value
+                        )
+                    )
+                }
             )
         ) { mutableStateOf<List<ChaoxingIMGroup>?>(null) }
         var isFetchedFailure by remember { mutableStateOf<Result<*>?>(null) }

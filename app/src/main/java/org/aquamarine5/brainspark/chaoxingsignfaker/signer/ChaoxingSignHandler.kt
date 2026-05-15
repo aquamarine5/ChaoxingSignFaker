@@ -23,9 +23,9 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.snackbarReport
 
 class ChaoxingSignHandler<in T>(
     private val onSelfSigning: suspend (value: T) -> Result<Boolean>,
-    private val onOtherUserSigning: suspend (value: T, session: ChaoxingOtherUserSession, bypassChecking: Boolean) -> Result<Boolean>,
+    private val onOtherUserSigning: suspend (value: T, session: ChaoxingOtherUserSession, bypassChecking: Boolean, index: Int) -> Result<Boolean>,
     private val destination: SignDestination,
-    private val onSigningFinished: suspend (name: String, isOtherUser: Boolean) -> Unit,
+    private val onSigningFinished: suspend (value: T, name: String, isOtherUser: Boolean) -> Unit,
     private val onAllSigningFinished: suspend (isSuccessful: Boolean) -> Unit,
 ) {
     fun startSigning(
@@ -52,7 +52,7 @@ class ChaoxingSignHandler<in T>(
                     if (otherUserSessionList.all { it == null }) {
                         onAllSigningFinished(true)
                     }
-                    onSigningFinished(ChaoxingHttpClient.instance!!.userEntity.name, false)
+                    onSigningFinished(value, ChaoxingHttpClient.instance!!.userEntity.name, false)
                 }.onFailure {
                     signStatus[0].failed(it)
                     it.ifShouldDeselect {
@@ -76,7 +76,7 @@ class ChaoxingSignHandler<in T>(
                 if (!isCaptchaSigning || (isSelf && isFirstOtherUserForSign))
                     delay(ChaoxingOtherUserHelper.TIMEOUT_NEXT_SIGN)
                 isFirstOtherUserForSign = false
-                onOtherUserSigning(value, session, false).onSuccess {
+                onOtherUserSigning(value, session, false, index).onSuccess {
                     isCaptchaSigning = it
                     if (destination.endTime != null && System.currentTimeMillis() > destination.endTime!!)
                         signStatus[1 + index].successForLate()
@@ -89,7 +89,7 @@ class ChaoxingSignHandler<in T>(
                     ) {
                         onAllSigningFinished(true)
                     }
-                    onSigningFinished(session.name, true)
+                    onSigningFinished(value, session.name, true)
                 }.onFailure {
                     it.snackbarReport(
                         snackbarHost,

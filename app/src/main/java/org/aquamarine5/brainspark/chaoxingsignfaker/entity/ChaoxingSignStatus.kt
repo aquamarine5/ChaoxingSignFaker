@@ -62,18 +62,18 @@ data class ChaoxingSignStatus(
     }
 
     @Composable
-    fun ResultCard(onIgnoreException:()->Unit) {
+    fun ResultCard(onIgnoreException: () -> Unit) {
         when (isSuccess.value) {
             true -> {
                 Icon(painterResource(R.drawable.ic_check), "签到成功")
             }
 
             false -> {
-                Row{
+                Row {
                     IconButton(onClick = {
 
                     }) {
-                        Icon(painterResource(R.drawable.ic_refresh_rounded),null)
+                        Icon(painterResource(R.drawable.ic_refresh_rounded), null)
                     }
                     Text(
                         error.value, color = when (error.value) {
