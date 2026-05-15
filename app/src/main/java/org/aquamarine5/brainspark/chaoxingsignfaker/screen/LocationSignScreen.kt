@@ -394,7 +394,11 @@ fun LocationSignScreen(
                             isSelfForSign = isSelf
                             otherUserSessionForSignList = otherUserSessionList
                             coroutineScope.launch {
-                                if (isFaceRequired)
+                                if (isFaceRequired && (
+                                            (isSelf && ChaoxingHttpClient.instance!!.userEntity.phoneNumber !in faceImageBitmaps.keys) ||
+                                                    otherUserSessionList.any { it != null && it.phoneNumber !in faceImageBitmaps.keys }
+                                            )
+                                )
                                     isFaceImageCaptured = true
                                 else
                                     isGetLocation = true
