@@ -204,6 +204,7 @@ fun PasswordSignScreen(
                             )
                     }
                 } else if (c == ChaoxingSignActivityStatus.READY_TO_SIGN) {
+                    val isSigning = remember { mutableStateOf(false) }
                     var text by remember { mutableStateOf("") }
                     val isIgnorePotentialException = remember { mutableStateOf(false) }
                     val focusManager = LocalFocusManager.current
@@ -269,6 +270,7 @@ fun PasswordSignScreen(
                                 }
                             },
                             onAllSigningFinished = { isSuccessful ->
+                                isSigning.value = false
                                 if (isSuccessful) {
                                     coroutineScope.launch {
                                         delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)
@@ -283,6 +285,7 @@ fun PasswordSignScreen(
                             signStatus = signStatus,
                             isCurrentAlreadySigned = isSignForOther,
                             userSelections = userSelections,
+                            isSigning = isSigning,
                             prefixTipsContent = {
                                 if (signoffData != null)
                                     SignOutRedirectTips(
@@ -479,6 +482,7 @@ fun PasswordSignScreen(
                                 }
                                 return@OtherUserSelectorComponent
                             }
+                            isSigning.value = true
                             signHandler.startSigning(
                                 text.toInt(),
                                 isSelf,
