@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.visible
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -59,6 +60,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
@@ -77,6 +79,7 @@ fun OtherUserSelectorComponent(
     isCurrentAlreadySigned: Boolean,
     isSigning: MutableState<Boolean>,
     userSelections: SnapshotStateList<Boolean>,
+    onIgnoreExceptionSignAction: suspend (index: Int, session: ChaoxingOtherUserSession) -> Unit,
     userContent: @Composable ((index: Int) -> Unit)? = null,
     prefixTipsContent: @Composable (() -> Unit),
     suffixContent: @Composable (() -> Unit)? = null,
@@ -92,7 +95,11 @@ fun OtherUserSelectorComponent(
         val tagClickState = remember { mutableListOf<MutableState<Boolean>>() }
         var selfPhoneNumber by remember { mutableStateOf<String?>(null) }
         var success by signStatus[0].isSuccess
-        var ignoreExceptionUserIndex by remember { mutableStateOf<Int?>(null) }
+        var ignoreExceptionUserIndex by remember {
+            mutableStateOf<Pair<Int, ChaoxingOtherUserSession>?>(
+                null
+            )
+        }
 
         if (ignoreExceptionUserIndex != null) {
             AlertDialog(onDismissRequest = {
@@ -105,9 +112,23 @@ fun OtherUserSelectorComponent(
                     modifier = Modifier.size(40.dp)
                 )
             }, text = {
-
+                Text("随地大小签会自动检测并拒绝为用户不在班级的情况进行签到，因为强制签到会导致老师的已签名单中出现未选此课不在班的学生。如果你认为随地大小签的判断存在问题，请勾选【忽略可能的错误，强制签到】选项。")
             }, confirmButton = {
-
+                var isIgnoreExceptionSigning by remember { mutableStateOf(false) }
+                Button(onClick = {
+                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                    coroutineScope.launch {
+                        isIgnoreExceptionSigning = true
+                        onIgnoreExceptionSignAction(
+                            ignoreExceptionUserIndex!!.first,
+                            ignoreExceptionUserIndex!!.second
+                        )
+                        ignoreExceptionUserIndex = null
+                        isIgnoreExceptionSigning = false
+                    }
+                }, enabled = isIgnoreExceptionSigning.not()) {
+                    Text("重试")
+                }
             })
         }
 
@@ -360,13 +381,11 @@ fun OtherUserSelectorComponent(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 userContent?.invoke(0)
-                                signStatus[0].ResultCard {
-
-                                }
+                                signStatus[0].ResultCard()
                             }
                         }
                     }
-                    signUserList.forEachIndexed { index, userSelection ->
+                    signUserList.forEachIndexed { index, session ->
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
@@ -393,12 +412,25 @@ fun OtherUserSelectorComponent(
                                 }, verticalAlignment = Alignment.CenterVertically) {
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Column {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Text(
+                                                text = session.name,
+                                                color = if (session.isObsoleteSession || signStatus[i].isObsoleteSession.value) Color(
+                                                    0xFFFCC307
+                                                ) else Color.Unspecified,
+                                                textDecoration = if (successForOtherUser != true) TextDecoration.None else TextDecoration.LineThrough
+                                            )
+                                            Icon(
+                                                painterResource(R.drawable.ic_triangle_alert),
+                                                null,
+                                                tint = Color(0xFFFCC307),
+                                                modifier = Modifier.padding(start = 4.dp)
+                                                    .size(14.dp)
+                                                    .visible(session.isObsoleteSession || signStatus[i].isObsoleteSession.value)
+                                            )
+                                        }
                                         Text(
-                                            text = userSelection.name,
-                                            textDecoration = if (successForOtherUser != true) TextDecoration.None else TextDecoration.LineThrough
-                                        )
-                                        Text(
-                                            userSelection.phoneNumber,
+                                            session.phoneNumber,
                                             color = Color.Gray,
                                             fontSize = 10.sp,
                                             lineHeight = 12.sp
@@ -412,7 +444,7 @@ fun OtherUserSelectorComponent(
                                     ) {
                                         userContent?.invoke(1 + index)
                                         signStatus[i].ResultCard {
-
+                                            ignoreExceptionUserIndex = i to session
                                         }
                                     }
                                 }

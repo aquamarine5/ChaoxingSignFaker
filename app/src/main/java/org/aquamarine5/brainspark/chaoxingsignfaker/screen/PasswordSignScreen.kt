@@ -61,7 +61,6 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingSignHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.SignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
-import org.aquamarine5.brainspark.chaoxingsignfaker.components.IgnoreAllPotentialExceptionCheckbox
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NetworkExceptionComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NotReadyToSignNoticeComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.OtherUserSelectorComponent
@@ -206,14 +205,13 @@ fun PasswordSignScreen(
                 } else if (c == ChaoxingSignActivityStatus.READY_TO_SIGN) {
                     val isSigning = remember { mutableStateOf(false) }
                     var text by remember { mutableStateOf("") }
-                    val isIgnorePotentialException = remember { mutableStateOf(false) }
                     val focusManager = LocalFocusManager.current
                     val focusRequester = remember { FocusRequester() }
                     val keyboardController = LocalSoftwareKeyboardController.current
                     val signStatus = remember { mutableListOf(ChaoxingSignStatus(hapticFeedback)) }
                     val userSelections = remember { mutableStateListOf(isSignForOther.not()) }
                     val signHandler = remember {
-                        ChaoxingSignHandler<Int>(
+                        ChaoxingSignHandler<Int>(context=context,
                             destination = destination,
                             onSelfSigning = { value ->
                                 runCatching {
@@ -229,7 +227,7 @@ fun PasswordSignScreen(
                                     } else return@runCatching false
                                 }
                             },
-                            onOtherUserSigning = { value, session, bypassException, index ->
+                            onOtherUserSigning = { value, session, bypassException, _ ->
                                 runCatching {
                                     ChaoxingHttpClient.loadFromOtherUserSession(
                                         session,
@@ -241,7 +239,7 @@ fun PasswordSignScreen(
                                             signer.getSignInfo()
                                         ).run {
                                             if (!bypassException)
-                                                checkSignStatusThrowException(classId)
+                                                checkSignStatusThrowException()
                                             if (sign(value)) {
                                                 suspendCancellableCoroutine { continuation ->
                                                     captchaValidateParams =
@@ -260,7 +258,7 @@ fun PasswordSignScreen(
                                     }
                                 }
                             },
-                            onSigningFinished = { value, name, isOtherUser ->
+                            onSigningFinished = { _, name, isOtherUser ->
                                 coroutineScope.launch {
                                     UMengHelper.onSignCodeEvent(
                                         context,
@@ -299,9 +297,10 @@ fun PasswordSignScreen(
                                         destination.endTime,
                                         destination.isLate
                                     )
+                            }, onIgnoreExceptionSignAction = { index, session ->
+                                signHandler.ignoreExceptionOtherUserSigning(session, index)
                             },
                             suffixContent = {
-                                IgnoreAllPotentialExceptionCheckbox(isIgnorePotentialException)
                                 var isCheckingStatus by remember { mutableStateOf<Boolean?>(null) }
                                 LaunchedEffect(isCheckingStatus) {
                                     delay(1000L)

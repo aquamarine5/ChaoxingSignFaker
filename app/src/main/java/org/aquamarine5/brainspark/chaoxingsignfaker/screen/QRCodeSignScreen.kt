@@ -72,7 +72,6 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerDia
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.FaceRecognitionComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.GetLocationComponent
-import org.aquamarine5.brainspark.chaoxingsignfaker.components.IgnoreAllPotentialExceptionCheckbox
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NetworkExceptionComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NotReadyToSignNoticeComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.OtherUserSelectorComponent
@@ -206,7 +205,6 @@ fun QRCodeSignScreen(
                             )
                     }
                 } else if (c == ChaoxingSignActivityStatus.READY_TO_SIGN) {
-                    val isIgnoreAllPotentialException = remember { mutableStateOf(false) }
                     var isSelfForSign by remember { mutableStateOf(false) }
                     var isQRCodeScanning by remember { mutableStateOf(false) }
                     val isQRCodeScanPause = remember { mutableStateOf(false) }
@@ -240,7 +238,7 @@ fun QRCodeSignScreen(
                         isFaceRequired = signer.isFaceRequired()
                     }
                     val signHandler = remember {
-                        ChaoxingSignHandler<String>(
+                        ChaoxingSignHandler<String>(context=context,
                             onSelfSigning = { value ->
                                 runCatching {
                                     val faceImageUploadedObjectId =
@@ -279,7 +277,7 @@ fun QRCodeSignScreen(
                                     } else return@runCatching false
                                 }
                             },
-                            onSigningFinished = { value, name, isOtherUser ->
+                            onSigningFinished = { _, name, isOtherUser ->
                                 coroutineScope.launch {
                                     UMengHelper.onSignQRCodeEvent(
                                         context,
@@ -288,7 +286,7 @@ fun QRCodeSignScreen(
                                     )
                                 }
                             },
-                            onOtherUserSigning = { value, session, bypassChecking, index ->
+                            onOtherUserSigning = { value, session, bypassChecking, _ ->
                                 runCatching {
                                     ChaoxingHttpClient.loadFromOtherUserSession(
                                         session,
@@ -312,9 +310,7 @@ fun QRCodeSignScreen(
                                             destination,
                                             signer.getSignInfo()
                                         ).run {
-                                            if (!bypassChecking) checkSignStatusThrowException(
-                                                classId
-                                            )
+                                            if (!bypassChecking) checkSignStatusThrowException()
                                             if (sign(
                                                     value,
                                                     locationData,
@@ -444,7 +440,12 @@ fun QRCodeSignScreen(
                                                 )
                                             }
                                         }
-                                }, isSigning = isSigning, suffixContent = {
+                                },
+                                isSigning = isSigning,
+                                onIgnoreExceptionSignAction = { index, session ->
+                                    signHandler.ignoreExceptionOtherUserSigning(session, index)
+                                },
+                                suffixContent = {
                                     AnimatedVisibility(
                                         locationData != null,
                                         enter = slideInHorizontally()
@@ -464,9 +465,6 @@ fun QRCodeSignScreen(
                                             }
                                         }
                                     }
-                                    IgnoreAllPotentialExceptionCheckbox(
-                                        isIgnoreAllPotentialException
-                                    )
                                 }
                             ) { isSelf, otherUserSessionList, _ ->
                                 isSigning.value = true
@@ -603,6 +601,7 @@ fun QRCodeSignScreen(
                                     runCatching {
                                         ChaoxingQRCodeSigner.parseQRCode(result)
                                     }.onSuccess {
+                                        isQRCodeScanning = false
                                         signHandler.startSigning(
                                             it,
                                             isSelfForSign,

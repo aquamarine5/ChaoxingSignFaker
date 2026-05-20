@@ -6,6 +6,7 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.signer
 
+import android.content.Context
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.hapticfeedback.HapticFeedback
@@ -27,7 +28,26 @@ class ChaoxingSignHandler<in T>(
     private val destination: SignDestination,
     private val onSigningFinished: suspend (value: T, name: String, isOtherUser: Boolean) -> Unit,
     private val onAllSigningFinished: suspend (isSuccessful: Boolean) -> Unit,
+    private val context: Context
 ) {
+    private var storedValue: T? = null
+    suspend fun ignoreExceptionOtherUserSigning(
+        session: ChaoxingOtherUserSession,
+        index: Int
+    ): Result<Boolean> {
+        return onOtherUserSigning(
+            requireNotNull(storedValue) { "Should call startSigning() first." },
+            session,
+            true,
+            index
+        ).onFailure {
+            (it as? ChaoxingHttpClient.ChaoxingGetUserInfoException)?.let { exception ->
+                if (exception.isOtherUser)
+                    ChaoxingOtherUserHelper.markSessionObsoleted(session, context)
+            }
+        }
+    }
+
     fun startSigning(
         value: T,
         isSelf: Boolean,
@@ -39,6 +59,7 @@ class ChaoxingSignHandler<in T>(
         snackbarHost: SnackbarHostState
     ) {
         var isCaptchaSigning = false
+        storedValue = value
         coroutineScope.launch {
             if (isSelf) {
                 signStatus[0].loading()
@@ -90,7 +111,13 @@ class ChaoxingSignHandler<in T>(
                         onAllSigningFinished(true)
                     }
                     onSigningFinished(value, session.name, true)
-                }.onFailure {
+                }.onFailure { it ->
+                    (it as? ChaoxingHttpClient.ChaoxingGetUserInfoException)?.let { exception ->
+                        if (exception.isOtherUser) {
+                            signStatus[index + 1].markSessionObsoleted()
+                            ChaoxingOtherUserHelper.markSessionObsoleted(session, context)
+                        }
+                    }
                     it.snackbarReport(
                         snackbarHost,
                         coroutineScope,

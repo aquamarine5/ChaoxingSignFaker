@@ -84,7 +84,6 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.SignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CameraComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
-import org.aquamarine5.brainspark.chaoxingsignfaker.components.IgnoreAllPotentialExceptionCheckbox
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NetworkExceptionComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NotReadyToSignNoticeComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.OtherUserSelectorComponent
@@ -210,10 +209,9 @@ fun PhotoSignScreen(
                             val signStatus =
                                 remember { mutableListOf(ChaoxingSignStatus(hapticFeedback)) }
                             val userSelections = remember { mutableStateListOf(isForSelf.not()) }
-                            val isIgnoreAllPotentialExceptions = remember { mutableStateOf(false) }
                             val signHandler = remember {
-                                ChaoxingSignHandler<Unit>(
-                                    onSelfSigning = { value ->
+                                ChaoxingSignHandler<Unit>(context=context,
+                                    onSelfSigning = { _ ->
                                         runCatching {
                                             if (signer.signByClick()) {
                                                 suspendCancellableCoroutine { continuation ->
@@ -229,7 +227,7 @@ fun PhotoSignScreen(
                                                 return@runCatching false
                                         }
                                     },
-                                    onOtherUserSigning = { value, session, bypassChecking, index ->
+                                    onOtherUserSigning = { _, session, bypassChecking, _ ->
                                         runCatching {
                                             ChaoxingHttpClient.loadFromOtherUserSession(
                                                 session, context
@@ -237,9 +235,7 @@ fun PhotoSignScreen(
                                                 ChaoxingPhotoSigner(
                                                     client, destination, signer.getSignInfo()
                                                 ).run {
-                                                    if (!bypassChecking) checkSignStatusThrowException(
-                                                        classId
-                                                    )
+                                                    if (!bypassChecking) checkSignStatusThrowException()
                                                     if (signByClick()) {
                                                         suspendCancellableCoroutine { continuation ->
                                                             captchaValidateParams =
@@ -259,7 +255,7 @@ fun PhotoSignScreen(
                                         }
                                     },
                                     destination = destination,
-                                    onSigningFinished = { value, name, isOtherUser ->
+                                    onSigningFinished = { _, name, isOtherUser ->
                                         coroutineScope.launch {
                                             UMengHelper.onSignClickEvent(context, name, isOtherUser)
                                         }
@@ -285,12 +281,22 @@ fun PhotoSignScreen(
                                 prefixTipsContent = {
                                     Card(
                                         onClick = {
-                                            context.startActivity(
-                                                Intent(
-                                                    Intent.ACTION_VIEW, "cxstudy://".toUri()
-                                                ).apply {
-                                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                                })
+                                            runCatching {
+                                                context.startActivity(
+                                                    Intent(
+                                                        Intent.ACTION_VIEW, "cxstudy://".toUri()
+                                                    ).apply {
+                                                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                                    })
+                                            }.onFailure {
+                                                it.snackbarReport(
+                                                    snackbarHost,
+                                                    coroutineScope,
+                                                    "跳转学习通失败，请确保已安装学习通APP",
+                                                    hapticFeedback
+                                                )
+                                            }
+
                                         },
                                         shape = RoundedCornerShape(18.dp),
                                         colors = CardDefaults.cardColors(
@@ -344,10 +350,8 @@ fun PhotoSignScreen(
                                             destination.endTime,
                                             destination.isLate
                                         )
-                                }, suffixContent = {
-                                    IgnoreAllPotentialExceptionCheckbox(
-                                        isIgnoreAllPotentialExceptions
-                                    )
+                                }, onIgnoreExceptionSignAction = { index, session ->
+                                    signHandler.ignoreExceptionOtherUserSigning(session, index)
                                 }
                             ) { isSelf, otherUserSessionList, _ ->
                                 isSigning.value = true
@@ -430,7 +434,7 @@ fun PhotoSignScreen(
                                     }
 
                                     val signHandler = remember {
-                                        ChaoxingSignHandler<List<Bitmap>>(
+                                        ChaoxingSignHandler<List<Bitmap>>(context=context,
                                             onSelfSigning = { value ->
                                                 runCatching {
                                                     ChaoxingCloudDriveHelper.uploadImage(
@@ -465,9 +469,7 @@ fun PhotoSignScreen(
                                                             destination,
                                                             signer.getSignInfo()
                                                         ).run {
-                                                            if (!bypassChecking) checkSignStatusThrowException(
-                                                                classId
-                                                            )
+                                                            if (!bypassChecking) checkSignStatusThrowException()
                                                             val objectId =
                                                                 ChaoxingCloudDriveHelper.uploadImage(
                                                                     client,
@@ -493,7 +495,7 @@ fun PhotoSignScreen(
                                                         }
                                                     }
                                                 }
-                                            }, onSigningFinished = { value, name, isOtherUser ->
+                                            }, onSigningFinished = { _, name, isOtherUser ->
                                                 coroutineScope.launch {
                                                     UMengHelper.onSignPhotoEvent(
                                                         context,
@@ -513,8 +515,6 @@ fun PhotoSignScreen(
                                             }, destination = destination
                                         )
                                     }
-                                    val isIgnoreAllPotentialExceptions =
-                                        remember { mutableStateOf(false) }
                                     BackHandler(isSignForOther == true && !isCamera) {
                                         isSignForOther = null
                                     }
@@ -547,9 +547,10 @@ fun PhotoSignScreen(
                                                             destination.endTime,
                                                             destination.isLate
                                                         )
-                                                }, suffixContent = {
-                                                    IgnoreAllPotentialExceptionCheckbox(
-                                                        isIgnoreAllPotentialExceptions
+                                                }, onIgnoreExceptionSignAction = { index, session ->
+                                                    signHandler.ignoreExceptionOtherUserSigning(
+                                                        session,
+                                                        index
                                                     )
                                                 },
                                                 userContent = { index ->
@@ -711,7 +712,8 @@ fun PhotoSignScreen(
                                     BackHandler(isSignForOther == false) {
                                         isSignForOther = null
                                     }
-                                    val isNeedPermission = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU
+                                    val isNeedPermission =
+                                        Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU
                                     val permissionState = if (isNeedPermission) {
                                         rememberMultiplePermissionsState(listOf(android.Manifest.permission.READ_EXTERNAL_STORAGE))
                                     } else null

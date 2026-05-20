@@ -87,13 +87,13 @@ abstract class ChaoxingSigner(
         return response.contains("下次早点哦")
     }
 
-    open suspend fun checkSignStatusThrowException(classId: Int) {
+    open suspend fun checkSignStatusThrowException() {
         when (preSign()) {
             ChaoxingSignActivityStatus.EXPIRED -> throw SignExpiredException()
             ChaoxingSignActivityStatus.ALREADY_SIGNED -> throw PredictedAlreadySignedException()
             else -> {
                 if (ChaoxingCourseHelper.checkClassValid(client, classId) == false)
-                    throw SignAlreadyEndedException()
+                    throw SignActivityNoPermissionException()
             }
         }
     }

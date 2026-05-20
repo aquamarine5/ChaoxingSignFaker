@@ -6,6 +6,7 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.entity
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.CircularProgressIndicator
@@ -16,6 +17,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedback
@@ -31,7 +33,8 @@ data class ChaoxingSignStatus(
     private val hapticFeedback: HapticFeedback,
     val isSuccess: MutableState<Boolean?> = mutableStateOf(null),
     val error: MutableState<String> = mutableStateOf(""),
-    val isLoading: MutableState<Boolean> = mutableStateOf(false)
+    val isLoading: MutableState<Boolean> = mutableStateOf(false),
+    val isObsoleteSession: MutableState<Boolean> = mutableStateOf(false)
 ) {
     fun loading() {
         isLoading.value = true
@@ -61,20 +64,28 @@ data class ChaoxingSignStatus(
         }
     }
 
+    fun markSessionObsoleted() {
+        isObsoleteSession.value = true
+    }
+
     @Composable
-    fun ResultCard(onIgnoreException: () -> Unit) {
+    fun ResultCard(onIgnoreException: (() -> Unit)? = null) {
         when (isSuccess.value) {
             true -> {
                 Icon(painterResource(R.drawable.ic_check), "签到成功")
             }
 
             false -> {
-                Row {
-                    IconButton(onClick = {
-
-                    }) {
-                        Icon(painterResource(R.drawable.ic_refresh_rounded), null)
-                    }
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    if (onIgnoreException != null)
+                        IconButton(onClick = {
+                            onIgnoreException()
+                        }) {
+                            Icon(painterResource(R.drawable.ic_refresh_rounded), null)
+                        }
                     Text(
                         error.value, color = when (error.value) {
                             "您已签到过了" -> {

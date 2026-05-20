@@ -61,7 +61,6 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerDia
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.FaceRecognitionComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.GetLocationComponent
-import org.aquamarine5.brainspark.chaoxingsignfaker.components.IgnoreAllPotentialExceptionCheckbox
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NetworkExceptionComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NotReadyToSignNoticeComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.OtherUserSelectorComponent
@@ -204,7 +203,6 @@ fun LocationSignScreen(
                     val signStatus = remember { mutableListOf(ChaoxingSignStatus(hapticFeedback)) }
                     var isSelfForSign by remember { mutableStateOf(false) }
                     val isSigning = remember { mutableStateOf(false) }
-                    val isIgnoreAllPotentialExceptions = remember { mutableStateOf(false) }
                     var otherUserSessionForSignList by remember {
                         mutableStateOf<List<ChaoxingOtherUserSession?>>(
                             emptyList()
@@ -224,7 +222,7 @@ fun LocationSignScreen(
                     }
 
                     val signHandler = remember {
-                        ChaoxingSignHandler<ChaoxingLocationSignEntity>(
+                        ChaoxingSignHandler<ChaoxingLocationSignEntity>(context=context,
                             onSelfSigning = { value ->
                                 runCatching {
                                     val faceImageUploadedObjectId =
@@ -261,7 +259,7 @@ fun LocationSignScreen(
                                     } else return@runCatching false
                                 }
                             },
-                            onOtherUserSigning = { value, session, bypassChecking, index ->
+                            onOtherUserSigning = { value, session, bypassChecking, _ ->
                                 runCatching {
                                     ChaoxingHttpClient.loadFromOtherUserSession(session, context)
                                         .let { client ->
@@ -270,9 +268,7 @@ fun LocationSignScreen(
                                                 destination,
                                                 signer.getSignInfo()
                                             ).run {
-                                                if (!bypassChecking) checkSignStatusThrowException(
-                                                    classId
-                                                )
+                                                if (!bypassChecking) checkSignStatusThrowException()
                                                 val faceImageUploadedObjectId =
                                                     if (isFaceRequired) {
                                                         faceImageObjectIds.getOrPut(
@@ -384,10 +380,8 @@ fun LocationSignScreen(
                                             )
                                         }
                                     }
-                            }, suffixContent = {
-                                IgnoreAllPotentialExceptionCheckbox(
-                                    isIgnoreAllPotentialExceptions
-                                )
+                            }, onIgnoreExceptionSignAction = { index, session ->
+                                signHandler.ignoreExceptionOtherUserSigning(session, index)
                             }
                         ) { isSelf, otherUserSessionList, _ ->
                             isSigning.value = true

@@ -48,6 +48,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
@@ -149,7 +150,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
     val resources = LocalResources.current
     val snackbarHost = LocalSnackbarHostState.current
     var inputUrl by remember { mutableStateOf("") }
-    var selectedUserIndexTagDialog by remember { mutableStateOf<Int?>(null) }
+    var selectedUserSettingDialogIndex by remember { mutableStateOf<Int?>(null) }
     var isTagsSettingDialog by remember { mutableStateOf(false) }
     var isInputDialog by remember { mutableStateOf(false) }
     var isURLSharedDialog by remember { mutableStateOf(false) }
@@ -1015,18 +1016,77 @@ fun OtherUserScreen(naviBack: () -> Unit) {
             }
         })
     }
-    if (selectedUserIndexTagDialog != null) {
-        val modifiedTagIndexList = remember(selectedUserIndexTagDialog) {
+    if (selectedUserSettingDialogIndex != null) {
+        val modifiedTagIndexList = remember(selectedUserSettingDialogIndex) {
             List(tagsEntityList.size) {
-                mutableStateOf(userTagList[selectedUserIndexTagDialog!!].value.any { tagEntity ->
+                mutableStateOf(userTagList[selectedUserSettingDialogIndex!!].value.any { tagEntity ->
                     tagEntity.id == tagsEntityList[it].id
                 })
             }
         }
+        var requestedDeleteUserIndex by remember { mutableStateOf<Int?>(null) }
+        if (requestedDeleteUserIndex != null) {
+            AlertDialog(
+                onDismissRequest = {
+                    requestedDeleteUserIndex = null
+                },
+                icon = {
+                    Icon(
+                        painterResource(R.drawable.ic_delete),
+                        null,
+                        tint = Color.Red,
+                        modifier = Modifier.size(40.dp)
+                    )
+                },
+                title = {
+                    Text("删除用户")
+                },
+                text = {
+                    Text("确定要删除此用户吗？此操作不可撤销。")
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            val index = requestedDeleteUserIndex!!
+                            coroutineScope.launch {
+                                withContext(Dispatchers.IO) {
+                                    context.chaoxingDataStore.updateData { datastore ->
+                                        datastore.toBuilder()
+                                            .apply {
+                                                removeOtherUsers(index)
+                                            }
+                                            .build()
+                                    }
+                                }
+                            }
+                            otherUserSessions.removeAt(index)
+                            hapticFeedback.performHapticFeedback(
+                                HapticFeedbackType.ContextClick
+                            )
+                            requestedDeleteUserIndex = null
+                        }
+                    ) {
+                        Text("删除")
+                    }
+                },
+                dismissButton = {
+                    OutlinedButton(
+                        onClick = {
+                            hapticFeedback.performHapticFeedback(
+                                HapticFeedbackType.ContextClick
+                            )
+                            requestedDeleteUserIndex = null
+                        }
+                    ) {
+                        Text("取消")
+                    }
+                }
+            )
+        }
         var isSavingDatastore by remember { mutableStateOf(false) }
         AlertDialog(
             onDismissRequest = {
-                selectedUserIndexTagDialog = null
+                selectedUserSettingDialogIndex = null
             },
             icon = {
                 Icon(
@@ -1048,13 +1108,13 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                         tagsEntityList[index].id
                                     }
                                 }.filterNotNull()
-                                userTagList[selectedUserIndexTagDialog!!].value =
+                                userTagList[selectedUserSettingDialogIndex!!].value =
                                     newTagList.map { tagId ->
                                         tagsEntityList.first { it.id == tagId }
                                     }
                                 setOtherUsers(
-                                    selectedUserIndexTagDialog!!,
-                                    otherUserSessions[selectedUserIndexTagDialog!!].toBuilder()
+                                    selectedUserSettingDialogIndex!!,
+                                    otherUserSessions[selectedUserSettingDialogIndex!!].toBuilder()
                                         .apply {
                                             clearTags()
                                             addAllTags(newTagList)
@@ -1063,7 +1123,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                             }.build()
                         }
                         isSavingDatastore = false
-                        selectedUserIndexTagDialog = null
+                        selectedUserSettingDialogIndex = null
                     }
                 }, enabled = !isSavingDatastore) {
                     Text(if (isSavingDatastore) "保存中" else "保存")
@@ -1071,15 +1131,15 @@ fun OtherUserScreen(naviBack: () -> Unit) {
             }, dismissButton = {
                 OutlinedButton(onClick = {
                     hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                    selectedUserIndexTagDialog = null
+                    selectedUserSettingDialogIndex = null
                 }) { Text("不保存退出") }
             }, title = {
-                if (selectedUserIndexTagDialog != null)
-                    Text("为${otherUserSessions[selectedUserIndexTagDialog!!].name}添加标签")
+                if (selectedUserSettingDialogIndex != null)
+                    Text("设置${otherUserSessions[selectedUserSettingDialogIndex!!].name}")
             }, text = {
                 if (tagsEntityList.isEmpty()) {
                     Text(
-                        "暂无可用标签，请先创建标签。",
+                        "暂无可用标签，设置用户标签前请先创建标签。",
                         fontStyle = FontStyle.Italic,
                         color = Color.Gray,
                         modifier = Modifier.padding(6.dp)
@@ -1092,7 +1152,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                     verticalAlignment = Alignment.CenterVertically,
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(3.dp)
+                                        .padding(3.dp, 1.5.dp)
                                 ) {
                                     Checkbox(
                                         checked = modifiedTagIndexList[index].value,
@@ -1120,6 +1180,17 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                             }
                                             .fillMaxWidth())
                                 }
+                            }
+                        }
+                        item {
+                            Button(
+                                onClick = {
+                                    requestedDeleteUserIndex = selectedUserSettingDialogIndex
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = ButtonDefaults.buttonColors(Color(0xFFF1441D))
+                            ) {
+                                Text("删除用户", color = Color.White)
                             }
                         }
                     }
@@ -1486,66 +1557,6 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                         textAlign = TextAlign.Center
                     )
                 }
-                var requestedDeleteUserIndex by remember { mutableStateOf<Int?>(null) }
-                if (requestedDeleteUserIndex != null) {
-                    AlertDialog(
-                        onDismissRequest = {
-                            requestedDeleteUserIndex = null
-                        },
-                        icon = {
-                            Icon(
-                                painterResource(R.drawable.ic_delete),
-                                null,
-                                tint = Color.Red,
-                                modifier = Modifier.size(40.dp)
-                            )
-                        },
-                        title = {
-                            Text("删除用户")
-                        },
-                        text = {
-                            Text("确定要删除此用户吗？此操作不可撤销。")
-                        },
-                        confirmButton = {
-                            Button(
-                                onClick = {
-                                    val index = requestedDeleteUserIndex!!
-                                    coroutineScope.launch {
-                                        withContext(Dispatchers.IO) {
-                                            context.chaoxingDataStore.updateData { datastore ->
-                                                datastore.toBuilder()
-                                                    .apply {
-                                                        removeOtherUsers(index)
-                                                    }
-                                                    .build()
-                                            }
-                                        }
-                                    }
-                                    otherUserSessions.removeAt(index)
-                                    hapticFeedback.performHapticFeedback(
-                                        HapticFeedbackType.ContextClick
-                                    )
-                                    requestedDeleteUserIndex = null
-                                }
-                            ) {
-                                Text("删除")
-                            }
-                        },
-                        dismissButton = {
-                            OutlinedButton(
-                                onClick = {
-                                    hapticFeedback.performHapticFeedback(
-                                        HapticFeedbackType.ContextClick
-                                    )
-                                    requestedDeleteUserIndex = null
-                                }
-                            ) {
-                                Text("取消")
-                            }
-                        }
-                    )
-                }
-
                 if (otherUserSessions.isEmpty()) {
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
@@ -1673,26 +1684,25 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                             ) {
                                                 IconButton(
                                                     onClick = {
-                                                        selectedUserIndexTagDialog = index
+                                                        selectedUserSettingDialogIndex = index
                                                         hapticFeedback.performHapticFeedback(
                                                             HapticFeedbackType.ContextClick
                                                         )
                                                     }
                                                 ) {
-                                                    Icon(painterResource(R.drawable.ic_tags), null)
+                                                    Icon(painterResource(R.drawable.ic_triangle_alert), null, tint = Color(0xFFFCC307))
                                                 }
                                                 IconButton(
                                                     onClick = {
-                                                        requestedDeleteUserIndex = index
+                                                        selectedUserSettingDialogIndex=index
                                                         hapticFeedback.performHapticFeedback(
                                                             HapticFeedbackType.ContextClick
                                                         )
                                                     }
                                                 ) {
                                                     Icon(
-                                                        painter = painterResource(R.drawable.ic_delete),
-                                                        contentDescription = "Delete",
-                                                        tint = Color(0xFFF1441D)
+                                                        painter = painterResource(R.drawable.ic_user_round_pen),
+                                                        contentDescription = null
                                                     )
                                                 }
 

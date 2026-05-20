@@ -60,7 +60,6 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingSignHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.SignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
-import org.aquamarine5.brainspark.chaoxingsignfaker.components.IgnoreAllPotentialExceptionCheckbox
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NetworkExceptionComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NotReadyToSignNoticeComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.OtherUserSelectorComponent
@@ -328,6 +327,7 @@ fun GestureSignScreen(
                     }
                     val signHandler = remember {
                         ChaoxingSignHandler<Int>(
+                            context=context,
                             onSelfSigning = { value ->
                                 runCatching {
                                     if (signer.sign(value)) {
@@ -341,7 +341,7 @@ fun GestureSignScreen(
                                         return@runCatching true
                                     } else return@runCatching false
                                 }
-                            }, onOtherUserSigning = { value, session, bypassChecking, index ->
+                            }, onOtherUserSigning = { value, session, bypassChecking, _ ->
                                 runCatching {
                                     ChaoxingHttpClient.loadFromOtherUserSession(session, context)
                                         .let { client ->
@@ -350,9 +350,7 @@ fun GestureSignScreen(
                                                 destination,
                                                 signer.getSignInfo()
                                             ).run {
-                                                if (!bypassChecking) checkSignStatusThrowException(
-                                                    classId
-                                                )
+                                                if (!bypassChecking) checkSignStatusThrowException()
                                                 if (sign(value)) {
                                                     suspendCancellableCoroutine { continuation ->
                                                         captchaValidateParams =
@@ -369,7 +367,7 @@ fun GestureSignScreen(
                                         }
                                 }
                             },
-                            onSigningFinished = { value, name, isOtherUser ->
+                            onSigningFinished = { _, name, isOtherUser ->
                                 coroutineScope.launch {
                                     UMengHelper.onSignGestureEvent(context, name, isOtherUser)
                                 }
@@ -384,7 +382,6 @@ fun GestureSignScreen(
                             }, destination = destination
                         )
                     }
-                    val isIgnoreAllPotentialExceptions = remember { mutableStateOf(false) }
                     Column(modifier = Modifier.padding(8.dp, 8.dp, 8.dp, 0.dp)) {
                         OtherUserSelectorComponent(
                             navToOtherUser = { navToOtherUserDestination() },
@@ -405,9 +402,8 @@ fun GestureSignScreen(
                                         destination.endTime,
                                         destination.isLate
                                     )
-                            },
-                            suffixContent = {
-                                IgnoreAllPotentialExceptionCheckbox(isIgnoreAllPotentialExceptions)
+                            }, onIgnoreExceptionSignAction = { index, session ->
+                                signHandler.ignoreExceptionOtherUserSigning(session, index)
                             }
                         ) { isSelf, otherUserSessionList, _ ->
                             if (!isCheckingStatus) {

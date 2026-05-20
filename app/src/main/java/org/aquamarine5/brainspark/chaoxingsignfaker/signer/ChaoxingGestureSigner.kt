@@ -17,7 +17,6 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.checkResponseThrowException
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignOutEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.GestureSignDestination
-import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingLocationSigner.ChaoxingLocationSignException
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingLocationSigner.Companion.CLASSTAG
 
 class ChaoxingGestureSigner(
@@ -93,7 +92,7 @@ class ChaoxingGestureSigner(
             }
             if (result != "success") {
                 Log.w(CLASSTAG, result)
-                throw ChaoxingLocationSignException(result)
+                throw ChaoxingPredictableException(result)
             } else {
                 return@use false
             }

@@ -32,6 +32,7 @@ message Preferences{
   bool neverAskSaveFavoriteLocation = 1;
   bool isDevelopedMode = 2;
   ChaoxingLocation lastSignedLocation = 3;
+  string customizedUserAgent = 4;
 }
 
 message ChaoxingCourseClass{
@@ -84,6 +85,7 @@ message ChaoxingOtherUserSession{
   string name = 4;
   repeated uint32 tags = 5;
   string faceImageObjectId = 6;
+  bool isObsoleteSession = 7;
 }
 
 message HttpCookie{
