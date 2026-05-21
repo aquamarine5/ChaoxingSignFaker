@@ -174,12 +174,14 @@ object ChaoxingOtherUserHelper {
             return@withContext session
         }
 
-    suspend fun markSessionObsoleted(session: ChaoxingOtherUserSession, context: Context) = withContext(Dispatchers.IO) {
-        context.chaoxingDataStore.updateData { datastore ->
-            val updatedSessions = datastore.otherUsersList.map {
-                if (it.phoneNumber == session.phoneNumber) it.toBuilder().setIsObsoleteSession(true).build() else it
+    suspend fun markSessionObsoleted(session: ChaoxingOtherUserSession, context: Context) =
+        withContext(Dispatchers.IO) {
+            context.chaoxingDataStore.updateData { datastore ->
+                val updatedSessions = datastore.otherUsersList.map {
+                    if (it.phoneNumber == session.phoneNumber) it.toBuilder()
+                        .setIsObsoleteSession(true).build() else it
+                }
+                datastore.toBuilder().clearOtherUsers().addAllOtherUsers(updatedSessions).build()
             }
-            datastore.toBuilder().clearOtherUsers().addAllOtherUsers(updatedSessions).build()
         }
-    }
 }

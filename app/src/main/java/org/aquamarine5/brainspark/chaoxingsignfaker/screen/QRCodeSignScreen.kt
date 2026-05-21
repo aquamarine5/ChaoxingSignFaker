@@ -238,7 +238,8 @@ fun QRCodeSignScreen(
                         isFaceRequired = signer.isFaceRequired()
                     }
                     val signHandler = remember {
-                        ChaoxingSignHandler<String>(context=context,
+                        ChaoxingSignHandler<String>(
+                            context = context,
                             onSelfSigning = { value ->
                                 runCatching {
                                     val faceImageUploadedObjectId =

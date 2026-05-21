@@ -210,7 +210,8 @@ fun PhotoSignScreen(
                                 remember { mutableListOf(ChaoxingSignStatus(hapticFeedback)) }
                             val userSelections = remember { mutableStateListOf(isForSelf.not()) }
                             val signHandler = remember {
-                                ChaoxingSignHandler<Unit>(context=context,
+                                ChaoxingSignHandler<Unit>(
+                                    context = context,
                                     onSelfSigning = { _ ->
                                         runCatching {
                                             if (signer.signByClick()) {
@@ -434,7 +435,8 @@ fun PhotoSignScreen(
                                     }
 
                                     val signHandler = remember {
-                                        ChaoxingSignHandler<List<Bitmap>>(context=context,
+                                        ChaoxingSignHandler<List<Bitmap>>(
+                                            context = context,
                                             onSelfSigning = { value ->
                                                 runCatching {
                                                     ChaoxingCloudDriveHelper.uploadImage(

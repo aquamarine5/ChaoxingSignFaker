@@ -300,9 +300,13 @@ class ChaoxingHttpClient private constructor(
                         }.onSuccess {
                             return@withContext getInfo(client, context, otherUserSession)
                         }.onFailure {
-                            throw ChaoxingGetUserInfoException("获取代签用户信息失败", throwable,true)
+                            throw ChaoxingGetUserInfoException(
+                                "获取代签用户信息失败",
+                                throwable,
+                                true
+                            )
                         }
-                    throw ChaoxingGetUserInfoException("获取用户信息失败", throwable,false)
+                    throw ChaoxingGetUserInfoException("获取用户信息失败", throwable, false)
                 }
             }
 

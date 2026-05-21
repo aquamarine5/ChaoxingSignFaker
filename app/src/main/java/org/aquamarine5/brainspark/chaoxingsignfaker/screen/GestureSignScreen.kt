@@ -327,7 +327,7 @@ fun GestureSignScreen(
                     }
                     val signHandler = remember {
                         ChaoxingSignHandler<Int>(
-                            context=context,
+                            context = context,
                             onSelfSigning = { value ->
                                 runCatching {
                                     if (signer.sign(value)) {

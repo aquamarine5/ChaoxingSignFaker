@@ -52,7 +52,6 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
@@ -286,14 +285,6 @@ fun OtherUserSelectorComponent(
                                 )
                                 if (tagEntities!!.isEmpty()) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Text(
-                                            "标签列表为空。",
-                                            color = Color.Gray,
-                                            fontSize = 12.sp,
-                                            lineHeight = 14.sp,
-                                            fontStyle = FontStyle.Italic
-                                        )
-                                        Spacer(modifier = Modifier.width(6.dp))
                                         AssistChip(onClick = {
                                             navToOtherUser()
                                         }, label = {
@@ -301,7 +292,9 @@ fun OtherUserSelectorComponent(
                                         }, leadingIcon = {
                                             Icon(
                                                 painterResource(R.drawable.ic_tag_plus_outline),
-                                                null
+                                                null,
+                                                modifier = Modifier.size(16.dp),
+                                                tint = Color.Gray
                                             )
                                         }, border = BorderStroke(1.5.dp, Color.Gray))
                                     }
@@ -424,7 +417,8 @@ fun OtherUserSelectorComponent(
                                                 painterResource(R.drawable.ic_triangle_alert),
                                                 null,
                                                 tint = Color(0xFFFCC307),
-                                                modifier = Modifier.padding(start = 4.dp)
+                                                modifier = Modifier
+                                                    .padding(start = 4.dp)
                                                     .size(14.dp)
                                                     .visible(session.isObsoleteSession || signStatus[i].isObsoleteSession.value)
                                             )
@@ -468,10 +462,10 @@ fun OtherUserSelectorComponent(
                         val indexList = mutableListOf<Int>()
                         // 0 1 2 3 4 5 6
                         // 2 3 5
-                        if (userSelections[0] && signStatus[0].isSuccess.value != true)
-                            indexList.add(0)
                         hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                         val isSelf = userSelections[0] && signStatus[0].isSuccess.value != true
+                        if (isSelf)
+                            indexList.add(0)
                         val otherUserSessionList =
                             signUserList.mapIndexed { index, chaoxingOtherUserSession ->
                                 if (userSelections[index + 1] && signStatus[1 + index].isSuccess.value != true) {

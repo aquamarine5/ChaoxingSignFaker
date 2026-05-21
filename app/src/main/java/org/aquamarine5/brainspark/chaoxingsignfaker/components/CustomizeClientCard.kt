@@ -108,7 +108,7 @@ fun CustomizeClientCard() {
                     )
                     Text(buildAnnotatedString {
                         append("学习通\n")
-                        withStyle(SpanStyle(fontStyle = FontStyle.Italic)){
+                        withStyle(SpanStyle(fontStyle = FontStyle.Italic)) {
                             append("com.chaoxing.mobile")
                         }
                     })
@@ -120,7 +120,7 @@ fun CustomizeClientCard() {
                     )
                     Text(buildAnnotatedString {
                         append("学在西电\n")
-                        withStyle(SpanStyle(fontStyle = FontStyle.Italic)){
+                        withStyle(SpanStyle(fontStyle = FontStyle.Italic)) {
                             append("com.chaoxing.mobile.xuezaixidian")
                         }
                     })
@@ -137,7 +137,9 @@ fun CustomizeClientCard() {
                         value = customUserAgent,
                         onValueChange = { customUserAgent = it },
                         label = { Text("输入自定义 User Agent") },
-                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp)
                     )
                 }
             }

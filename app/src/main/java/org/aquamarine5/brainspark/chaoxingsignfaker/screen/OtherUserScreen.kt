@@ -1690,11 +1690,15 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                                         )
                                                     }
                                                 ) {
-                                                    Icon(painterResource(R.drawable.ic_triangle_alert), null, tint = Color(0xFFFCC307))
+                                                    Icon(
+                                                        painterResource(R.drawable.ic_wrench),
+                                                        null,
+                                                        tint = Color(0xFFFCC307)
+                                                    )
                                                 }
                                                 IconButton(
                                                     onClick = {
-                                                        selectedUserSettingDialogIndex=index
+                                                        selectedUserSettingDialogIndex = index
                                                         hapticFeedback.performHapticFeedback(
                                                             HapticFeedbackType.ContextClick
                                                         )

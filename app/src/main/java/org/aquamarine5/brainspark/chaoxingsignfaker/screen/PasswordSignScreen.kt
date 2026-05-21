@@ -211,7 +211,8 @@ fun PasswordSignScreen(
                     val signStatus = remember { mutableListOf(ChaoxingSignStatus(hapticFeedback)) }
                     val userSelections = remember { mutableStateListOf(isSignForOther.not()) }
                     val signHandler = remember {
-                        ChaoxingSignHandler<Int>(context=context,
+                        ChaoxingSignHandler<Int>(
+                            context = context,
                             destination = destination,
                             onSelfSigning = { value ->
                                 runCatching {

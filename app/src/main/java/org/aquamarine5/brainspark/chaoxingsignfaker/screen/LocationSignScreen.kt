@@ -222,7 +222,8 @@ fun LocationSignScreen(
                     }
 
                     val signHandler = remember {
-                        ChaoxingSignHandler<ChaoxingLocationSignEntity>(context=context,
+                        ChaoxingSignHandler<ChaoxingLocationSignEntity>(
+                            context = context,
                             onSelfSigning = { value ->
                                 runCatching {
                                     val faceImageUploadedObjectId =
