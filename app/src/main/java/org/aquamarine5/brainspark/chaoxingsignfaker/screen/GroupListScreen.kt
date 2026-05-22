@@ -75,9 +75,13 @@ fun GroupListScreen(
                 save = { state -> state.value?.let { Json.encodeToString(it) } ?: "" },
                 restore = { value ->
                     mutableStateOf(
-                        if ((value as String).isEmpty()) null else Json.decodeFromString<List<ChaoxingIMGroup>>(
-                            value
-                        )
+                        if ((value as String).isEmpty()) {
+                            null
+                        } else {
+                            runCatching {
+                                Json.decodeFromString<List<ChaoxingIMGroup>>(value)
+                            }.getOrNull()
+                        }
                     )
                 }
             )
