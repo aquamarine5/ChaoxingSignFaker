@@ -438,7 +438,7 @@ fun OtherUserSelectorComponent(
                                     ) {
                                         userContent?.invoke(1 + index)
                                         signStatus[i].ResultCard {
-                                            ignoreExceptionUserIndex = i to session
+                                            ignoreExceptionUserIndex = index to session
                                         }
                                     }
                                 }
