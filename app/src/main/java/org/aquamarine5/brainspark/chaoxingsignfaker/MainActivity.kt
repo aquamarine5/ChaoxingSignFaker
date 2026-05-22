@@ -80,7 +80,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.CHAOXING_USER_AGENT
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.getUserAgent
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingIMGroup
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.NavigationBarItemData
@@ -353,6 +355,7 @@ class MainActivity : ComponentActivity() {
                                         LocationClient.setAgreePrivacy(true)
                                         SDKInitializer.setAgreePrivacy(applicationContext, true)
                                     }
+                                    CHAOXING_USER_AGENT= getUserAgent(datastore.preferences.customizedUserAgent)
                                     isDevelopedMode = datastore.preferences.isDevelopedMode
                                     destination =
                                         when {
