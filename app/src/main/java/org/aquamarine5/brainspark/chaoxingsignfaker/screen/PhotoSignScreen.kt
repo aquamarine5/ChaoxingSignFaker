@@ -268,7 +268,8 @@ fun PhotoSignScreen(
                                                 delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)
                                                 isSponsor = true
                                             }
-                                    }
+                                    }, userSelections = userSelections,
+                                    signStatus = signStatus
                                 )
                             }
                             OtherUserSelectorComponent(
@@ -360,8 +361,6 @@ fun PhotoSignScreen(
                                     Unit,
                                     isSelf,
                                     otherUserSessionList,
-                                    userSelections,
-                                    signStatus,
                                     hapticFeedback,
                                     coroutineScope,
                                     snackbarHost
@@ -497,7 +496,8 @@ fun PhotoSignScreen(
                                                         }
                                                     }
                                                 }
-                                            }, onSigningFinished = { _, name, isOtherUser ->
+                                            },
+                                            onSigningFinished = { _, name, isOtherUser ->
                                                 coroutineScope.launch {
                                                     UMengHelper.onSignPhotoEvent(
                                                         context,
@@ -506,7 +506,8 @@ fun PhotoSignScreen(
                                                     )
                                                 }
 
-                                            }, onAllSigningFinished = { isSuccessful ->
+                                            },
+                                            onAllSigningFinished = { isSuccessful ->
                                                 isSigning.value = false
                                                 if (isSuccessful) {
                                                     coroutineScope.launch {
@@ -514,7 +515,10 @@ fun PhotoSignScreen(
                                                         isSponsor = true
                                                     }
                                                 }
-                                            }, destination = destination
+                                            },
+                                            destination = destination,
+                                            userSelections = userSelections,
+                                            signStatus = signStatus
                                         )
                                     }
                                     BackHandler(isSignForOther == true && !isCamera) {
@@ -697,8 +701,6 @@ fun PhotoSignScreen(
                                                             imageList,
                                                             isSelfForSign,
                                                             otherUserSessionForSignList,
-                                                            userSelections,
-                                                            signStatus,
                                                             hapticFeedback,
                                                             coroutineScope,
                                                             snackbarHost

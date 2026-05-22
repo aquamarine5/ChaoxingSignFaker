@@ -204,18 +204,28 @@ fun CameraComponent(
                 contract = ActivityResultContracts.PickVisualMedia(),
                 onResult = { uri ->
                     if (uri == null) return@rememberLauncherForActivityResult
-                    val image = application.contentResolver.openInputStream(uri).use {
-                        BitmapFactory.decodeStream(it)
-                    }
-                    photoList.add(image)
-                    job?.cancel()
-                    takeImage = image
-                    needTakePictureCount--
-                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                    if (needTakePictureCount <= 0) {
-                        onPictureResult(photoList)
-                    } else {
-                        onNextPhoto?.invoke()
+                    runCatching {
+                        val image = application.contentResolver.openInputStream(uri).use {
+                            BitmapFactory.decodeStream(it)
+                        }
+                        photoList.add(image)
+                        job?.cancel()
+                        takeImage = image
+                        needTakePictureCount--
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                        if (needTakePictureCount <= 0) {
+                            onPictureResult(photoList)
+                        } else {
+                            onNextPhoto?.invoke()
+                        }
+                    }.onFailure {
+                        it.snackbarReport(
+                            snackbarHost,
+                            coroutineScope,
+                            "选择图片失败",
+                            hapticFeedback
+                        )
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
                     }
                 }
             )

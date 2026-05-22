@@ -133,6 +133,7 @@ fun QRCodeSignScreen(
     val context = LocalContext.current
     val resources = LocalResources.current
     val snackbarHost = LocalSnackbarHostState.current
+    val isSigning = remember { mutableStateOf(false) }
     var isMapRequired by remember { mutableStateOf(false) }
     var signoffData by remember { mutableStateOf<ChaoxingSignOutEntity?>(null) }
     var captchaValidateParams by remember {
@@ -145,9 +146,13 @@ fun QRCodeSignScreen(
     if (captchaValidateParams != null) {
         CaptchaHandlerDialog(
             captchaValidateParams!!.first,
-            captchaValidateParams!!.second,
+            {
+                captchaValidateParams!!.second(it)
+                captchaValidateParams = null
+            },
             onDismiss = {
                 captchaValidateParams = null
+                isSigning.value = false
             })
     }
     LaunchedEffect(Unit) {
@@ -222,7 +227,7 @@ fun QRCodeSignScreen(
                     val userSelections = remember { mutableStateListOf(true) }
                     val signStatus =
                         remember { mutableStateListOf(ChaoxingSignStatus(hapticFeedback)) }
-                    val isSigning = remember { mutableStateOf(false) }
+
                     var isSponsor by remember { mutableStateOf(false) }
                     if (isSponsor) {
                         SponsorPopupDialog()
@@ -337,7 +342,8 @@ fun QRCodeSignScreen(
                                     }
                                 }
 
-                            }, onAllSigningFinished = { isSuccessful ->
+                            },
+                            onAllSigningFinished = { isSuccessful ->
                                 isSigning.value = false
                                 if (isSuccessful) {
                                     coroutineScope.launch {
@@ -345,7 +351,10 @@ fun QRCodeSignScreen(
                                         isSponsor = true
                                     }
                                 }
-                            }, destination = destination
+                            },
+                            destination = destination,
+                            userSelections = userSelections,
+                            signStatus = signStatus,
                         )
                     }
                     Box(
@@ -473,8 +482,8 @@ fun QRCodeSignScreen(
                                 signUserList = otherUserSessionList
 
                                 if (isFaceRequired && (
-                                            (isSelf && ChaoxingHttpClient.instance!!.userEntity.phoneNumber !in faceImageBitmaps.keys) ||
-                                                    otherUserSessionList.any { it != null && it.phoneNumber !in faceImageBitmaps.keys }
+                                            (isSelf && ChaoxingHttpClient.instance!!.userEntity.phoneNumber !in faceImageObjectIds.keys) ||
+                                                    otherUserSessionList.any { it != null && it.phoneNumber !in faceImageObjectIds.keys }
                                             )
                                 ) {
                                     isFaceImageCaptured = true
@@ -607,8 +616,6 @@ fun QRCodeSignScreen(
                                             it,
                                             isSelfForSign,
                                             signUserList,
-                                            userSelections,
-                                            signStatus,
                                             hapticFeedback,
                                             coroutineScope,
                                             snackbarHost

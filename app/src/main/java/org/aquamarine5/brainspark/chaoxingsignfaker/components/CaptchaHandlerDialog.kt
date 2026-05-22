@@ -151,7 +151,6 @@ fun CaptchaHandlerDialog(
                                             } else {
                                                 onResult(Result.success(result))
                                                 isCheckingCaptcha.set(false)
-                                                onDismiss()
                                             }
                                         }
                                 }.onFailure {
@@ -163,7 +162,6 @@ fun CaptchaHandlerDialog(
                                     )
                                     onResult(Result.failure(it))
                                     isCheckingCaptcha.set(false)
-                                    onDismiss()
                                 }
                             }
                         },

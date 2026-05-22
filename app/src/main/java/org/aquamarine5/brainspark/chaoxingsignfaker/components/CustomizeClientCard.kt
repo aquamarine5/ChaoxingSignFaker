@@ -6,6 +6,7 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.components
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -23,7 +24,6 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -53,6 +53,20 @@ const val CHAOXING_XUEZAIXIDIAN_USER_AGENT_IDENTITY = "@@xuezaixidian"
 const val CHAOXING_DEFAULT_USER_AGENT_IDENTITY = "@@default"
 var CHAOXING_USER_AGENT = CHAOXING_DEFAULT_USER_AGENT
 
+private enum class AvailableUserAgent {
+    DEFAULT,
+    XUEZAIXIDIAN,
+    CUSTOM
+}
+
+fun getUserAgent(content: String): String {
+    return when (content) {
+        CHAOXING_DEFAULT_USER_AGENT_IDENTITY -> CHAOXING_DEFAULT_USER_AGENT
+        CHAOXING_XUEZAIXIDIAN_USER_AGENT_IDENTITY -> CHAOXING_XUEZAIXIDIAN_USER_AGENT
+        else -> content
+    }
+}
+
 @Composable
 fun CustomizeClientCard() {
     var isShowDialog by remember { mutableStateOf(false) }
@@ -61,15 +75,15 @@ fun CustomizeClientCard() {
     val coroutineScope = rememberCoroutineScope()
 
     var selectedOption by remember {
-        mutableIntStateOf(
+        mutableStateOf(
             when (CHAOXING_USER_AGENT) {
-                CHAOXING_DEFAULT_USER_AGENT -> 0
-                CHAOXING_XUEZAIXIDIAN_USER_AGENT -> 1
-                else -> 2
+                CHAOXING_DEFAULT_USER_AGENT -> AvailableUserAgent.DEFAULT
+                CHAOXING_XUEZAIXIDIAN_USER_AGENT -> AvailableUserAgent.XUEZAIXIDIAN
+                else -> AvailableUserAgent.CUSTOM
             }
         )
     }
-    var customUserAgent by remember { mutableStateOf(if (selectedOption == 2) CHAOXING_USER_AGENT else "") }
+    var customUserAgent by remember { mutableStateOf(if (selectedOption == AvailableUserAgent.CUSTOM) CHAOXING_USER_AGENT else "") }
 
     Button(
         onClick = {
@@ -99,40 +113,55 @@ fun CustomizeClientCard() {
             Text("定制专属客户端")
         }, text = {
             Column {
-                Text("如果你觉得随地大小签好用，并且想要一个专属于自己的定制版客户端，可以联系我哦！")
+                Text("如果你的学校使用了定制版的学习通，可以在这里选择对应的 UserAgent 来模拟定制版客户端，或者输入完整的 UserAgent 来模拟其他版本的客户端。")
                 Spacer(modifier = Modifier.height(16.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
                     RadioButton(
-                        selected = selectedOption == 0,
-                        onClick = { selectedOption = 0 }
+                        selected = selectedOption == AvailableUserAgent.DEFAULT,
+                        onClick = { selectedOption = AvailableUserAgent.DEFAULT }
                     )
                     Text(buildAnnotatedString {
                         append("学习通\n")
                         withStyle(SpanStyle(fontStyle = FontStyle.Italic)) {
                             append("com.chaoxing.mobile")
                         }
+                    }, modifier = Modifier.clickable {
+                        selectedOption = AvailableUserAgent.DEFAULT
                     })
                 }
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
                     RadioButton(
-                        selected = selectedOption == 1,
-                        onClick = { selectedOption = 1 }
+                        selected = selectedOption == AvailableUserAgent.XUEZAIXIDIAN,
+                        onClick = { selectedOption = AvailableUserAgent.XUEZAIXIDIAN }
                     )
                     Text(buildAnnotatedString {
                         append("学在西电\n")
                         withStyle(SpanStyle(fontStyle = FontStyle.Italic)) {
                             append("com.chaoxing.mobile.xuezaixidian")
                         }
+                    }, modifier = Modifier.clickable {
+                        selectedOption = AvailableUserAgent.XUEZAIXIDIAN
                     })
                 }
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
                     RadioButton(
-                        selected = selectedOption == 2,
-                        onClick = { selectedOption = 2 }
+                        selected = selectedOption == AvailableUserAgent.CUSTOM,
+                        onClick = { selectedOption = AvailableUserAgent.CUSTOM }
                     )
-                    Text("自定义 USER_AGENT")
+                    Text("自定义 USER_AGENT", modifier = Modifier.clickable {
+                        selectedOption = AvailableUserAgent.CUSTOM
+                    })
                 }
-                if (selectedOption == 2) {
+                if (selectedOption == AvailableUserAgent.CUSTOM) {
                     OutlinedTextField(
                         value = customUserAgent,
                         onValueChange = { customUserAgent = it },
@@ -146,13 +175,13 @@ fun CustomizeClientCard() {
         }, confirmButton = {
             Button(onClick = {
                 val uaToSave = when (selectedOption) {
-                    0 -> CHAOXING_DEFAULT_USER_AGENT_IDENTITY
-                    1 -> CHAOXING_XUEZAIXIDIAN_USER_AGENT_IDENTITY
+                    AvailableUserAgent.DEFAULT -> CHAOXING_DEFAULT_USER_AGENT_IDENTITY
+                    AvailableUserAgent.XUEZAIXIDIAN -> CHAOXING_XUEZAIXIDIAN_USER_AGENT_IDENTITY
                     else -> customUserAgent
                 }
                 CHAOXING_USER_AGENT = when (selectedOption) {
-                    0 -> CHAOXING_DEFAULT_USER_AGENT
-                    1 -> CHAOXING_XUEZAIXIDIAN_USER_AGENT
+                    AvailableUserAgent.DEFAULT -> CHAOXING_DEFAULT_USER_AGENT
+                    AvailableUserAgent.XUEZAIXIDIAN -> CHAOXING_XUEZAIXIDIAN_USER_AGENT
                     else -> customUserAgent
                 }
                 coroutineScope.launch {

@@ -212,6 +212,8 @@ fun PasswordSignScreen(
                     val userSelections = remember { mutableStateListOf(isSignForOther.not()) }
                     val signHandler = remember {
                         ChaoxingSignHandler<Int>(
+                            userSelections = userSelections,
+                            signStatus = signStatus,
                             context = context,
                             destination = destination,
                             onSelfSigning = { value ->
@@ -487,8 +489,6 @@ fun PasswordSignScreen(
                                 text.toInt(),
                                 isSelf,
                                 otherUserSessionList,
-                                userSelections,
-                                signStatus,
                                 hapticFeedback,
                                 coroutineScope,
                                 snackbarHost

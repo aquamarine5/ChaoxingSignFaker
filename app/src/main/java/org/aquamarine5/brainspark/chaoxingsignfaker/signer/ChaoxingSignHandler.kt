@@ -28,6 +28,8 @@ class ChaoxingSignHandler<in T>(
     private val destination: SignDestination,
     private val onSigningFinished: suspend (value: T, name: String, isOtherUser: Boolean) -> Unit,
     private val onAllSigningFinished: suspend (isSuccessful: Boolean) -> Unit,
+    private val userSelections: SnapshotStateList<Boolean>,
+    private val signStatus: MutableList<ChaoxingSignStatus>,
     private val context: Context
 ) {
     private var storedValue: T? = null
@@ -45,6 +47,13 @@ class ChaoxingSignHandler<in T>(
                 if (exception.isOtherUser)
                     ChaoxingOtherUserHelper.markSessionObsoleted(session, context)
             }
+        }.onSuccess {
+            if (destination.endTime != null && System.currentTimeMillis() > destination.endTime!!)
+                signStatus[1 + index].successForLate()
+            else
+                signStatus[1 + index].success()
+            userSelections[index + 1] = false
+            onSigningFinished(storedValue!!, session.name, true)
         }
     }
 
@@ -52,8 +61,6 @@ class ChaoxingSignHandler<in T>(
         value: T,
         isSelf: Boolean,
         otherUserSessionList: List<ChaoxingOtherUserSession?>,
-        userSelections: SnapshotStateList<Boolean>,
-        signStatus: MutableList<ChaoxingSignStatus>,
         hapticFeedback: HapticFeedback,
         coroutineScope: CoroutineScope,
         snackbarHost: SnackbarHostState
