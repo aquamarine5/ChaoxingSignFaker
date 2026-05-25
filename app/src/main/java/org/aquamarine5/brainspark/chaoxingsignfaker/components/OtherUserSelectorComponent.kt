@@ -20,10 +20,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.visible
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -31,6 +33,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -49,7 +52,6 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
@@ -57,6 +59,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
@@ -73,8 +76,9 @@ fun OtherUserSelectorComponent(
     navToOtherUser: () -> Unit,
     signStatus: MutableList<ChaoxingSignStatus>,
     isCurrentAlreadySigned: Boolean,
+    isSigning: MutableState<Boolean>,
     userSelections: SnapshotStateList<Boolean>,
-    isSigning: Boolean = false,
+    onIgnoreExceptionSignAction: suspend (index: Int, session: ChaoxingOtherUserSession) -> Unit,
     userContent: @Composable ((index: Int) -> Unit)? = null,
     prefixTipsContent: @Composable (() -> Unit),
     suffixContent: @Composable (() -> Unit)? = null,
@@ -90,6 +94,42 @@ fun OtherUserSelectorComponent(
         val tagClickState = remember { mutableListOf<MutableState<Boolean>>() }
         var selfPhoneNumber by remember { mutableStateOf<String?>(null) }
         var success by signStatus[0].isSuccess
+        var ignoreExceptionUserIndex by remember {
+            mutableStateOf<Pair<Int, ChaoxingOtherUserSession>?>(
+                null
+            )
+        }
+
+        if (ignoreExceptionUserIndex != null) {
+            AlertDialog(onDismissRequest = {
+                ignoreExceptionUserIndex = null
+            }, icon = {
+                Icon(
+                    painterResource(R.drawable.ic_refresh_rounded),
+                    null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(40.dp)
+                )
+            }, text = {
+                Text("随地大小签会自动检测并拒绝为用户不在班级的情况进行签到，因为强制签到会导致老师的已签名单中出现未选此课不在班的学生。如果你认为随地大小签的判断存在问题，请点击【重试】按钮。")
+            }, confirmButton = {
+                var isIgnoreExceptionSigning by remember { mutableStateOf(false) }
+                Button(onClick = {
+                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                    coroutineScope.launch {
+                        isIgnoreExceptionSigning = true
+                        onIgnoreExceptionSignAction(
+                            ignoreExceptionUserIndex!!.first,
+                            ignoreExceptionUserIndex!!.second
+                        )
+                        ignoreExceptionUserIndex = null
+                        isIgnoreExceptionSigning = false
+                    }
+                }, enabled = isIgnoreExceptionSigning.not()) {
+                    Text("重试")
+                }
+            })
+        }
 
         fun updateTagClickState() {
             tagContainedUserIndexList?.forEachIndexed { tagIndex, userIndexList ->
@@ -192,8 +232,8 @@ fun OtherUserSelectorComponent(
                 }
 
                 suffixContent?.invoke()
-
                 Spacer(modifier = Modifier.height(6.dp))
+
                 Text(
                     "选择要进行签到的用户：",
                     modifier = Modifier.padding(start = 3.dp),
@@ -206,7 +246,6 @@ fun OtherUserSelectorComponent(
                 ) {
                     Row {
                         if (tagEntities != null && tagContainedUserIndexList != null)
-
                             FlowRow(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(5.dp),
@@ -246,14 +285,6 @@ fun OtherUserSelectorComponent(
                                 )
                                 if (tagEntities!!.isEmpty()) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Text(
-                                            "标签列表为空。",
-                                            color = Color.Gray,
-                                            fontSize = 12.sp,
-                                            lineHeight = 14.sp,
-                                            fontStyle = FontStyle.Italic
-                                        )
-                                        Spacer(modifier = Modifier.width(6.dp))
                                         AssistChip(onClick = {
                                             navToOtherUser()
                                         }, label = {
@@ -261,7 +292,9 @@ fun OtherUserSelectorComponent(
                                         }, leadingIcon = {
                                             Icon(
                                                 painterResource(R.drawable.ic_tag_plus_outline),
-                                                null
+                                                null,
+                                                modifier = Modifier.size(16.dp),
+                                                tint = Color.Gray
                                             )
                                         }, border = BorderStroke(1.5.dp, Color.Gray))
                                     }
@@ -345,7 +378,7 @@ fun OtherUserSelectorComponent(
                             }
                         }
                     }
-                    signUserList.forEachIndexed { index, userSelection ->
+                    signUserList.forEachIndexed { index, session ->
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
@@ -372,12 +405,26 @@ fun OtherUserSelectorComponent(
                                 }, verticalAlignment = Alignment.CenterVertically) {
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Column {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Text(
+                                                text = session.name,
+                                                color = if (session.isObsoleteSession || signStatus[i].isObsoleteSession.value) Color(
+                                                    0xFFFCC307
+                                                ) else Color.Unspecified,
+                                                textDecoration = if (successForOtherUser != true) TextDecoration.None else TextDecoration.LineThrough
+                                            )
+                                            Icon(
+                                                painterResource(R.drawable.ic_triangle_alert),
+                                                null,
+                                                tint = Color(0xFFFCC307),
+                                                modifier = Modifier
+                                                    .padding(start = 4.dp)
+                                                    .size(14.dp)
+                                                    .visible(session.isObsoleteSession || signStatus[i].isObsoleteSession.value)
+                                            )
+                                        }
                                         Text(
-                                            text = userSelection.name,
-                                            textDecoration = if (successForOtherUser != true) TextDecoration.None else TextDecoration.LineThrough
-                                        )
-                                        Text(
-                                            userSelection.phoneNumber,
+                                            session.phoneNumber,
                                             color = Color.Gray,
                                             fontSize = 10.sp,
                                             lineHeight = 12.sp
@@ -390,7 +437,9 @@ fun OtherUserSelectorComponent(
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         userContent?.invoke(1 + index)
-                                        signStatus[i].ResultCard()
+                                        signStatus[i].ResultCard {
+                                            ignoreExceptionUserIndex = index to session
+                                        }
                                     }
                                 }
                             }
@@ -413,11 +462,11 @@ fun OtherUserSelectorComponent(
                         val indexList = mutableListOf<Int>()
                         // 0 1 2 3 4 5 6
                         // 2 3 5
-                        if (userSelections[0] && signStatus[0].isSuccess.value != true)
-                            indexList.add(0)
                         hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                        onSignAction(
-                            userSelections[0] && signStatus[0].isSuccess.value != true,
+                        val isSelf = userSelections[0] && signStatus[0].isSuccess.value != true
+                        if (isSelf)
+                            indexList.add(0)
+                        val otherUserSessionList =
                             signUserList.mapIndexed { index, chaoxingOtherUserSession ->
                                 if (userSelections[index + 1] && signStatus[1 + index].isSuccess.value != true) {
                                     indexList.add(index + 1)
@@ -425,10 +474,12 @@ fun OtherUserSelectorComponent(
                                 } else {
                                     null
                                 }
-                            }, indexList
+                            }
+                        onSignAction(
+                            isSelf, otherUserSessionList, indexList
                         )
                     }, modifier = Modifier.fillMaxWidth(),
-                    enabled = isSigning.not()
+                    enabled = isSigning.value.not()
                 ) {
                     Text("签到")
                 }

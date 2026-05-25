@@ -26,6 +26,7 @@ import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Request
 import org.aquamarine5.brainspark.chaoxingsignfaker.ChaoxingPredictableException
 import org.aquamarine5.brainspark.chaoxingsignfaker.UMengHelper
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCourseHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.checkResponseThrowException
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCaptchaDataEntity
@@ -69,6 +70,8 @@ abstract class ChaoxingSigner(
 
     class AlreadySignedException : ChaoxingPredictableException("已经签到过了")
 
+    class PredictedAlreadySignedException : ChaoxingPredictableException("重复签到")
+
     class CaptchaTimeoutException : ChaoxingPredictableException("获取验证码信息超时")
 
     class CaptchaException : ChaoxingPredictableException("验证码获取失败")
@@ -82,6 +85,17 @@ abstract class ChaoxingSigner(
 
     open suspend fun checkExpiredSign(response: String): Boolean {
         return response.contains("下次早点哦")
+    }
+
+    open suspend fun checkSignStatusThrowException() {
+        when (preSign()) {
+            ChaoxingSignActivityStatus.EXPIRED -> throw SignExpiredException()
+            ChaoxingSignActivityStatus.ALREADY_SIGNED -> throw PredictedAlreadySignedException()
+            else -> {
+                if (ChaoxingCourseHelper.checkClassValid(client, classId) == false)
+                    throw SignActivityNoPermissionException()
+            }
+        }
     }
 
     open suspend fun getSignInfo(): JSONObject = withContext(Dispatchers.IO) {

@@ -79,6 +79,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingRecommendHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.AnalyserCard
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.CustomizeClientCard
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SponsorCard
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.RecommendHabit
 import org.aquamarine5.brainspark.chaoxingsignfaker.displaySnackbar
@@ -402,7 +403,7 @@ fun SettingScreen(
         }
         AnalyserCard()
         Spacer(modifier = Modifier.height(8.dp))
-
+        CustomizeClientCard()
         Button(
             onClick = {
                 runCatching {

@@ -45,7 +45,7 @@ fun Response.checkResponseThrowException() {
                 404 -> "网络异常，资源未找到"
                 500 -> "网络异常，服务器内部错误"
                 else -> "网络异常，错误码：$code"
-            }
+            } + "，响应体：${body.string()}"
         )
     }
 }
@@ -159,8 +159,8 @@ fun Throwable.snackbarReport(
             }
         }
     } else if (this.cause != null && this.cause !is ChaoxingPredictableException) {
+        Sentry.captureException(this)
         this.cause?.let {
-            Sentry.captureException(it)
             snackbarHostState?.currentSnackbarData?.dismiss()
             coroutineScope.launch {
                 snackbarHostState?.showSnackbar(
@@ -188,8 +188,11 @@ fun Throwable.snackbarReport(
     }
 }
 
-fun Throwable.ifAlreadySigned(action: () -> Unit) {
-    if (this is ChaoxingSigner.AlreadySignedException) {
+fun Throwable.ifShouldDeselect(action: () -> Unit) {
+    if (this is ChaoxingSigner.AlreadySignedException ||
+        this is ChaoxingSigner.PredictedAlreadySignedException ||
+        this is ChaoxingSigner.SignActivityNoPermissionException
+    ) {
         action()
     }
 }

@@ -71,7 +71,16 @@ fun CaptchaHandlerDialog(
     val density by remember(containerWidth) { mutableFloatStateOf(containerWidth / 320) }
     val sliderMaxValue = remember(containerWidth) { containerWidth - 56f * density }
     LaunchedEffect(signer) {
-        data = signer.getCaptchaImageV2()
+        runCatching {
+            data = signer.getCaptchaImageV2()
+        }.onFailure {
+            it.snackbarReport(
+                snackbar,
+                coroutineScope,
+                "获取验证码信息失败",
+                hapticFeedback
+            )
+        }
     }
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -108,7 +117,7 @@ fun CaptchaHandlerDialog(
                     }
 
                     Spacer(modifier = Modifier.height(16.dp))
-                    var isCheckingCaptcha = remember { AtomicBoolean(false) }
+                    val isCheckingCaptcha = remember { AtomicBoolean(false) }
                     Slider(
                         value = sliderPosition,
                         onValueChange = {
@@ -142,7 +151,6 @@ fun CaptchaHandlerDialog(
                                             } else {
                                                 onResult(Result.success(result))
                                                 isCheckingCaptcha.set(false)
-                                                onDismiss()
                                             }
                                         }
                                 }.onFailure {
@@ -154,7 +162,6 @@ fun CaptchaHandlerDialog(
                                     )
                                     onResult(Result.failure(it))
                                     isCheckingCaptcha.set(false)
-                                    onDismiss()
                                 }
                             }
                         },
@@ -179,7 +186,16 @@ fun CaptchaHandlerDialog(
                         Button(onClick = {
                             coroutineScope.launch {
                                 hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                                data = signer.getCaptchaImageV2()
+                                runCatching {
+                                    data = signer.getCaptchaImageV2()
+                                }.onFailure {
+                                    it.snackbarReport(
+                                        snackbar,
+                                        coroutineScope,
+                                        "获取验证码信息失败",
+                                        hapticFeedback
+                                    )
+                                }
                             }
                         }) {
                             Text("重试")

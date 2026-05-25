@@ -46,7 +46,7 @@ data class ChaoxingIMGroup(
                         jsonObject.getString("chatIco")
                     ),
                 jsonObject.getString("chatId"),
-                jsonObject.getString("chatName"),
+                jsonObject.getString("chatName") ?: "无群聊名称",
                 jsonObject.getInteger("isGroup") == 0
             )
         }

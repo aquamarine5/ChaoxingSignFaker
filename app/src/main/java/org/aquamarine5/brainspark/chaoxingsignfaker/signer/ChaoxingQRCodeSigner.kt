@@ -36,6 +36,11 @@ class ChaoxingQRCodeSigner(
 ) {
     companion object {
         const val CLASSTAG = "ChaoxingQRCodeSigner"
+
+        fun parseQRCode(qrcode: Barcode): String {
+            return (qrcode.rawValue ?: qrcode.url?.url)?.toHttpUrlOrNull()?.queryParameter("enc")
+                ?: throw QRCodeParseException(qrcode.rawValue ?: "null")
+        }
     }
 
     class QRCodeParseException(val rawValue: String) :
@@ -105,7 +110,7 @@ class ChaoxingQRCodeSigner(
                 val result = it.body.string()
                 if (result == "签到失败，请重新扫描。")
                     throw QRCodeExpiredException()
-                if (result == "errorLocation2")
+                if (result.startsWith("errorLocation2"))
                     throw WrongPositionException()
                 if (result == "success2")
                     throw SignAlreadyEndedException()
@@ -181,11 +186,6 @@ class ChaoxingQRCodeSigner(
                 }
             }
         }
-
-    fun parseQRCode(qrcode: Barcode): String {
-        return (qrcode.rawValue ?: qrcode.url?.url)?.toHttpUrlOrNull()?.queryParameter("enc")
-            ?: throw QRCodeParseException(qrcode.rawValue ?: "null")
-    }
 
     override suspend fun checkAlreadySign(response: String): Boolean =
         response.contains("扫一扫").not()

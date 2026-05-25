@@ -29,6 +29,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -42,6 +43,7 @@ import coil3.ImageLoader
 import coil3.compose.AsyncImage
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
@@ -68,7 +70,22 @@ fun GroupListScreen(
         val context = LocalContext.current
         val snackbarHostState = LocalSnackbarHostState.current
         val hapticFeedback = LocalHapticFeedback.current
-        var imGroupsInfo by rememberSaveable { mutableStateOf<List<ChaoxingIMGroup>?>(null) }
+        var imGroupsInfo by rememberSaveable(
+            saver = Saver(
+                save = { state -> state.value?.let { Json.encodeToString(it) } ?: "" },
+                restore = { value ->
+                    mutableStateOf(
+                        if ((value as String).isEmpty()) {
+                            null
+                        } else {
+                            runCatching {
+                                Json.decodeFromString<List<ChaoxingIMGroup>>(value)
+                            }.getOrNull()
+                        }
+                    )
+                }
+            )
+        ) { mutableStateOf<List<ChaoxingIMGroup>?>(null) }
         var isFetchedFailure by remember { mutableStateOf<Result<*>?>(null) }
         LaunchedEffect(Unit) {
             isFetchedFailure = runCatching {

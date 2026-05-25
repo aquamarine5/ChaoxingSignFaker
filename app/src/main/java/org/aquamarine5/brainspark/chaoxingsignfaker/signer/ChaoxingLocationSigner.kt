@@ -37,8 +37,6 @@ class ChaoxingLocationSigner(
         const val CLASSTAG = "ChaoxingLocationSigner"
     }
 
-    class ChaoxingLocationSignException(message: String) : ChaoxingPredictableException(message)
-
     suspend fun getLocationSignInfo(): Pair<ChaoxingLocationDetailEntity, ChaoxingSignOutEntity> {
         getSignInfo().let { jsonResult ->
             return ChaoxingLocationDetailEntity(
@@ -95,7 +93,7 @@ class ChaoxingLocationSigner(
                 }
                 if (result != "success") {
                     Log.w(CLASSTAG, result)
-                    throw ChaoxingLocationSignException(result)
+                    throw ChaoxingPredictableException(result)
                 } else {
                     return@use false
                 }
@@ -138,7 +136,7 @@ class ChaoxingLocationSigner(
                 }
                 if (result != "success") {
                     Log.w(CLASSTAG, result)
-                    throw ChaoxingLocationSignException(result)
+                    throw ChaoxingPredictableException(result)
                 }
             }
         }

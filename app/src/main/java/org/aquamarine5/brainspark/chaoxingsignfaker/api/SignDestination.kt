@@ -10,4 +10,5 @@ interface SignDestination {
     val activeId: Long
     val classId: Int
     val courseId: Int
+    val endTime: Long?
 }
