@@ -110,6 +110,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import com.github.skydoves.colorpicker.compose.HsvColorPicker
 import com.github.skydoves.colorpicker.compose.rememberColorPickerController
+import io.sentry.Sentry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -120,6 +121,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
+import org.aquamarine5.brainspark.chaoxingsignfaker.ChaoxingPredictableException
 import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.UMengHelper
@@ -287,13 +289,38 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                 } else {
                                     null
                                 }
+                                val previousResult = if (clip != null && clip.itemCount > 1) {
+                                    clip.getItemAt(1).text
+                                } else {
+                                    null
+                                }
                                 if (result.isNullOrEmpty()) {
                                     hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
                                     Toast.makeText(context, "读取剪切板失败", Toast.LENGTH_SHORT)
                                         .show()
                                 } else {
                                     hapticFeedback.performHapticFeedback(HapticFeedbackType.Confirm)
-                                    password = result.toString()
+                                    val res1 = result.toString()
+                                    val res2 = previousResult?.toString()
+                                    val phoneRegex = Regex("^\\d{11}$")
+                                    val pwdRegex = Regex("^[A-Za-z0-9\\p{Punct}]+$")
+
+                                    if (res2 != null && phoneRegex.matches(res1) && pwdRegex.matches(
+                                            res2
+                                        )
+                                    ) {
+                                        phoneNumber = res1
+                                        password = res2
+                                    } else if (res2 != null && phoneRegex.matches(res2) && pwdRegex.matches(
+                                            res1
+                                        )
+                                    ) {
+                                        phoneNumber = res2
+                                        password = res1
+                                    } else {
+                                        password = res1
+                                    }
+                                    isPasswordVisible = true
                                 }
                             }) {
                                 Icon(painterResource(R.drawable.ic_clipboard_copy), null)
@@ -1016,6 +1043,114 @@ fun OtherUserScreen(naviBack: () -> Unit) {
             }
         })
     }
+    var repairSessionIndex by remember { mutableStateOf<Int?>(null) }
+    if (repairSessionIndex != null) {
+        AlertDialog(onDismissRequest = {
+            repairSessionIndex = null
+        }, title = {
+
+        }, icon = {
+            Icon(
+                painterResource(R.drawable.ic_wrench),
+                null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(40.dp)
+            )
+        }, text = {
+            Column {
+                Text("检测到用户 ${otherUserSessions[repairSessionIndex!!].name} 的登录状态异常，重新登录后可修复此问题。")
+                var password by remember { mutableStateOf("") }
+                OutlinedTextField(
+                    value = otherUserSessions[repairSessionIndex!!].phoneNumber,
+                    onValueChange = { },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = false
+                )
+                var isPasswordVisible by remember { mutableStateOf(false) }
+                var errorMessage by remember { mutableStateOf("") }
+                OutlinedTextField(
+                    value = password,
+                    onValueChange = { password = it },
+                    label = { Text("密码") },
+                    visualTransformation = if (isPasswordVisible) {
+                        VisualTransformation.None
+                    } else {
+                        PasswordVisualTransformation()
+                    },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    modifier = Modifier.fillMaxWidth(),
+                    trailingIcon = {
+                        Row {
+                            IconButton(onClick = {
+                                val clip =
+                                    context.getSystemService(ClipboardManager::class.java)?.primaryClip
+                                val result = if (clip != null && clip.itemCount > 0) {
+                                    clip.getItemAt(0).text
+                                } else {
+                                    null
+                                }
+                                if (result.isNullOrEmpty()) {
+                                    hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
+                                    Toast.makeText(context, "读取剪切板失败", Toast.LENGTH_SHORT)
+                                        .show()
+                                } else {
+                                    hapticFeedback.performHapticFeedback(HapticFeedbackType.Confirm)
+                                    password = result.toString()
+                                    isPasswordVisible = true
+                                }
+                            }) {
+                                Icon(painterResource(R.drawable.ic_clipboard_copy), null)
+                            }
+                            IconButton(onClick = {
+                                isPasswordVisible = !isPasswordVisible
+                            }) {
+                                Icon(
+                                    if (isPasswordVisible) painterResource(R.drawable.ic_eye) else painterResource(
+                                        R.drawable.ic_eye_closed
+                                    ), null
+                                )
+                            }
+                        }
+                    }
+                )
+                if (errorMessage.isNotBlank())
+                    Text(
+                        errorMessage,
+                        color = Color(0xFFF1441D),
+                        modifier = Modifier.padding(0.dp, 4.dp)
+                    )
+                Button(onClick = {
+                    coroutineScope.launch(Dispatchers.IO) {
+                        runCatching {
+                            ChaoxingOtherUserHelper.repairOtherUserSession(
+                                context,
+                                otherUserSessions[repairSessionIndex!!],
+                                password
+                            )
+                        }.onSuccess { repairedSession ->
+                            otherUserSessions[repairSessionIndex!!] = repairedSession
+                            hapticFeedback.performHapticFeedback(HapticFeedbackType.Confirm)
+                            snackbarHost.displaySnackbar(
+                                "用户 ${repairedSession.name} 已成功修复",
+                                coroutineScope
+                            )
+                            repairSessionIndex = null
+                        }.onFailure {
+                            hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
+                            if (it !is ChaoxingPredictableException) {
+                                Sentry.captureException(it)
+                            }
+                            errorMessage = "登录失败：" + (it.message ?: "未知错误")
+                        }
+                    }
+
+                }) { }
+            }
+        }, confirmButton = {
+
+        })
+    }
     if (selectedUserSettingDialogIndex != null) {
         val modifiedTagIndexList = remember(selectedUserSettingDialogIndex) {
             List(tagsEntityList.size) {
@@ -1090,7 +1225,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
             },
             icon = {
                 Icon(
-                    painterResource(R.drawable.ic_tag),
+                    painterResource(R.drawable.ic_user_round_pen),
                     null,
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(40.dp)
@@ -1137,63 +1272,63 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                 if (selectedUserSettingDialogIndex != null)
                     Text("设置${otherUserSessions[selectedUserSettingDialogIndex!!].name}")
             }, text = {
-                if (tagsEntityList.isEmpty()) {
-                    Text(
-                        "暂无可用标签，设置用户标签前请先创建标签。",
-                        fontStyle = FontStyle.Italic,
-                        color = Color.Gray,
-                        modifier = Modifier.padding(6.dp)
-                    )
-                } else
-                    LazyColumn {
-                        itemsIndexed(tagsEntityList) { index, tagEntity ->
-                            key(tagEntity.id) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(3.dp, 1.5.dp)
-                                ) {
-                                    Checkbox(
-                                        checked = modifiedTagIndexList[index].value,
-                                        onCheckedChange = {
-                                            modifiedTagIndexList[index].value = it
-                                        })
-                                    Icon(
-                                        painterResource(R.drawable.ic_tag),
-                                        null,
-                                        tint = Color(tagEntity.color),
+                Column {
+                    if (tagsEntityList.isEmpty()) {
+                        Text(
+                            "暂无可用标签，设置用户标签前请先创建标签。",
+                            fontStyle = FontStyle.Italic,
+                            color = Color.Gray,
+                            modifier = Modifier.padding(6.dp)
+                        )
+                    } else
+                        LazyColumn {
+                            itemsIndexed(tagsEntityList) { index, tagEntity ->
+                                key(tagEntity.id) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
                                         modifier = Modifier
-                                            .size(24.dp)
-                                            .padding(0.dp, 2.dp)
-                                            .clickable {
-                                                modifiedTagIndexList[index].value =
-                                                    !modifiedTagIndexList[index].value
-                                            }
-                                    )
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text(
-                                        tagEntity.name, modifier = Modifier
-                                            .clickable {
-                                                modifiedTagIndexList[index].value =
-                                                    !modifiedTagIndexList[index].value
-                                            }
-                                            .fillMaxWidth())
+                                            .fillMaxWidth()
+                                            .padding(3.dp, 1.5.dp)
+                                    ) {
+                                        Checkbox(
+                                            checked = modifiedTagIndexList[index].value,
+                                            onCheckedChange = {
+                                                modifiedTagIndexList[index].value = it
+                                            })
+                                        Icon(
+                                            painterResource(R.drawable.ic_tag),
+                                            null,
+                                            tint = Color(tagEntity.color),
+                                            modifier = Modifier
+                                                .size(24.dp)
+                                                .padding(0.dp, 2.dp)
+                                                .clickable {
+                                                    modifiedTagIndexList[index].value =
+                                                        !modifiedTagIndexList[index].value
+                                                }
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(
+                                            tagEntity.name, modifier = Modifier
+                                                .clickable {
+                                                    modifiedTagIndexList[index].value =
+                                                        !modifiedTagIndexList[index].value
+                                                }
+                                                .fillMaxWidth())
+                                    }
                                 }
                             }
                         }
-                        item {
-                            Button(
-                                onClick = {
-                                    requestedDeleteUserIndex = selectedUserSettingDialogIndex
-                                },
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = ButtonDefaults.buttonColors(Color(0xFFF1441D))
-                            ) {
-                                Text("删除用户", color = Color.White)
-                            }
-                        }
+                    Button(
+                        onClick = {
+                            requestedDeleteUserIndex = selectedUserSettingDialogIndex
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(Color(0xFFF1441D))
+                    ) {
+                        Text("删除用户", color = Color.White)
                     }
+                }
             })
     }
     if (isURLSharedDialog) {
@@ -1682,20 +1817,21 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                                 horizontalArrangement = Arrangement.End,
                                                 verticalAlignment = Alignment.CenterVertically
                                             ) {
-                                                IconButton(
-                                                    onClick = {
-                                                        selectedUserSettingDialogIndex = index
-                                                        hapticFeedback.performHapticFeedback(
-                                                            HapticFeedbackType.ContextClick
+                                                if (user.isObsoleteSession)
+                                                    IconButton(
+                                                        onClick = {
+                                                            repairSessionIndex = index
+                                                            hapticFeedback.performHapticFeedback(
+                                                                HapticFeedbackType.ContextClick
+                                                            )
+                                                        }
+                                                    ) {
+                                                        Icon(
+                                                            painterResource(R.drawable.ic_triangle_alert),
+                                                            null,
+                                                            tint = Color(0xFFFCC307)
                                                         )
                                                     }
-                                                ) {
-                                                    Icon(
-                                                        painterResource(R.drawable.ic_wrench),
-                                                        null,
-                                                        tint = Color(0xFFFCC307)
-                                                    )
-                                                }
                                                 IconButton(
                                                     onClick = {
                                                         selectedUserSettingDialogIndex = index

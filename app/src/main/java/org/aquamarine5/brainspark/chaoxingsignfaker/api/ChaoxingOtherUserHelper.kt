@@ -102,6 +102,72 @@ object ChaoxingOtherUserHelper {
             }
     }
 
+    suspend fun repairOtherUserSession(
+        context: Context,
+        session: ChaoxingOtherUserSession,
+        password: String
+    ): ChaoxingOtherUserSession =
+        withContext(Dispatchers.IO) {
+            val tempOkHttpClient =
+                (ChaoxingHttpClient.instance?.okHttpClient ?: OkHttpClient()).newBuilder()
+                    .cookieJar(object : CookieJar {
+                        private val cookieStore: MutableMap<String, List<Cookie>> = mutableMapOf()
+                        private var chaoxingCookieSession: List<Cookie> = listOf()
+
+                        override fun saveFromResponse(url: HttpUrl, cookies: List<Cookie>) {
+                            if (url.host.endsWith("chaoxing.com") && url.encodedPath == "/fanyalogin") {
+                                chaoxingCookieSession = cookies
+                            } else
+                                cookieStore[url.host] = cookies
+                        }
+
+                        override fun loadForRequest(url: HttpUrl): List<Cookie> {
+                            return if (url.host.endsWith("chaoxing.com")) {
+                                chaoxingCookieSession
+                            } else {
+                                cookieStore[url.host] ?: listOf()
+                            }
+                        }
+                    }).addInterceptor { chain ->
+                        chain.proceed(
+                            chain.request().newBuilder()
+                                .header("User-Agent", CHAOXING_USER_AGENT).build()
+                        )
+                    }.retryOnConnectionFailure(true).build()
+
+            ChaoxingHttpClient.login(
+                tempOkHttpClient,
+                session.phoneNumber,
+                password,
+                context,
+                isSaveToDataStore = false,
+                isEncryptedPassword = false
+            )
+            val newSession = session.toBuilder()
+                .setPassword(password.replace(" ", "+"))
+                .setIsObsoleteSession(false)
+                .clearCookies().addAllCookies(
+                    tempOkHttpClient.cookieJar.loadForRequest(
+                        HttpUrl.Builder()
+                            .scheme("https")
+                            .host("chaoxing.com").build()
+                    ).map { cookie ->
+                        HttpCookie.newBuilder()
+                            .setValue(cookie.value)
+                            .setName(cookie.name)
+                            .setHost(cookie.domain).build()
+                    }
+                ).build()
+            context.chaoxingDataStore.updateData { datastore ->
+                val index =
+                    datastore.otherUsersList.indexOfFirst { it.phoneNumber == session.phoneNumber }
+                if (index == -1) return@updateData datastore
+                datastore.toBuilder().removeOtherUsers(index).addOtherUsers(index, newSession)
+                    .build()
+            }
+            return@withContext newSession
+        }
+
     suspend fun saveOtherUser(
         context: Context,
         sharedEntity: ChaoxingOtherUserSharedEntity

@@ -478,13 +478,7 @@ class MainActivity : ComponentActivity() {
                                             QRCodeSignScreen(entry.toRoute(), navToOtherSign = {
                                                 navController.navigate(it)
                                             }, navToOtherUser = {
-                                                navController.navigate(OtherUserGraphDestination) {
-                                                    popUpTo<SignGraphDestination> {
-                                                        saveState = true
-                                                        inclusive = true
-                                                    }
-                                                    restoreState = true
-                                                }
+                                                navController.navigate(OtherUserGraphDestination)
                                             }) {
                                                 navController.navigateUp()
                                             }
@@ -502,13 +496,7 @@ class MainActivity : ComponentActivity() {
                                                 navToCourseDetailDestination = {
                                                     navController.navigateUp()
                                                 }) {
-                                                navController.navigate(OtherUserGraphDestination) {
-                                                    popUpTo<SignGraphDestination> {
-                                                        saveState = true
-                                                        inclusive = true
-                                                    }
-                                                    restoreState = true
-                                                }
+                                                navController.navigate(OtherUserGraphDestination)
                                             }
                                         }
 
@@ -528,13 +516,7 @@ class MainActivity : ComponentActivity() {
                                             }, navBack = {
                                                 navController.navigateUp()
                                             }) {
-                                                navController.navigate(OtherUserGraphDestination) {
-                                                    popUpTo<SignGraphDestination> {
-                                                        saveState = true
-                                                        inclusive = true
-                                                    }
-                                                    restoreState = true
-                                                }
+                                                navController.navigate(OtherUserGraphDestination)
                                             }
                                         }
 
@@ -546,13 +528,7 @@ class MainActivity : ComponentActivity() {
                                                 navToCourseDetailDestination = {
                                                     navController.navigateUp()
                                                 }) {
-                                                navController.navigate(OtherUserGraphDestination) {
-                                                    popUpTo<SignGraphDestination> {
-                                                        saveState = true
-                                                        inclusive = true
-                                                    }
-                                                    restoreState = true
-                                                }
+                                                navController.navigate(OtherUserGraphDestination)
                                             }
                                         }
 
@@ -564,13 +540,7 @@ class MainActivity : ComponentActivity() {
                                                 navToCourseDetailDestination = {
                                                     navController.navigateUp()
                                                 }) {
-                                                navController.navigate(OtherUserGraphDestination) {
-                                                    popUpTo<SignGraphDestination> {
-                                                        saveState = true
-                                                        inclusive = true
-                                                    }
-                                                    restoreState = true
-                                                }
+                                                navController.navigate(OtherUserGraphDestination)
                                             }
                                         }
                                     }

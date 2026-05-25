@@ -128,9 +128,11 @@ fun CustomizeClientCard() {
                         withStyle(SpanStyle(fontStyle = FontStyle.Italic)) {
                             append("com.chaoxing.mobile")
                         }
-                    }, modifier = Modifier.clickable {
-                        selectedOption = AvailableUserAgent.DEFAULT
-                    })
+                    }, modifier = Modifier
+                        .clickable {
+                            selectedOption = AvailableUserAgent.DEFAULT
+                        }
+                        .fillMaxWidth())
                 }
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -145,9 +147,11 @@ fun CustomizeClientCard() {
                         withStyle(SpanStyle(fontStyle = FontStyle.Italic)) {
                             append("com.chaoxing.mobile.xuezaixidian")
                         }
-                    }, modifier = Modifier.clickable {
-                        selectedOption = AvailableUserAgent.XUEZAIXIDIAN
-                    })
+                    }, modifier = Modifier
+                        .clickable {
+                            selectedOption = AvailableUserAgent.XUEZAIXIDIAN
+                        }
+                        .fillMaxWidth())
                 }
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -157,9 +161,11 @@ fun CustomizeClientCard() {
                         selected = selectedOption == AvailableUserAgent.CUSTOM,
                         onClick = { selectedOption = AvailableUserAgent.CUSTOM }
                     )
-                    Text("自定义 USER_AGENT", modifier = Modifier.clickable {
-                        selectedOption = AvailableUserAgent.CUSTOM
-                    })
+                    Text("自定义 USER_AGENT", modifier = Modifier
+                        .clickable {
+                            selectedOption = AvailableUserAgent.CUSTOM
+                        }
+                        .fillMaxWidth())
                 }
                 if (selectedOption == AvailableUserAgent.CUSTOM) {
                     OutlinedTextField(
