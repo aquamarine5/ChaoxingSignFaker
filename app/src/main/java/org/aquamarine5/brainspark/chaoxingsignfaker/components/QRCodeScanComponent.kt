@@ -105,8 +105,9 @@ fun QRCodeScanComponent(
             val preview = remember { Preview.Builder().build() }
             val controller = remember {
                 LifecycleCameraController(context).apply {
-                    this.bindToLifecycle(lifecycleOwner)
                     previewView.controller = this
+                    isTapToFocusEnabled = true
+                    isPinchToZoomEnabled = true
                     setEnabledUseCases(LifecycleCameraController.IMAGE_ANALYSIS)
                     preview.surfaceProvider = previewView.surfaceProvider
                     ResolutionSelector.Builder()
@@ -294,7 +295,9 @@ fun QRCodeScanComponent(
 
                 content()
             }
-            DisposableEffect(Unit) {
+            DisposableEffect(lifecycleOwner) {
+                controller.unbind()
+                controller.bindToLifecycle(lifecycleOwner)
                 onDispose {
                     barcodeScanner.close()
                     controller.unbind()

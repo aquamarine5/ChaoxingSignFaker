@@ -121,6 +121,9 @@ fun CaptchaHandlerDialog(
                     Slider(
                         value = sliderPosition,
                         onValueChange = {
+                            if (isCheckingCaptcha.get()) {
+                                return@Slider
+                            }
                             sliderPosition = it
                         },
                         onValueChangeFinished = {
@@ -148,6 +151,7 @@ fun CaptchaHandlerDialog(
                                                     Toast.LENGTH_SHORT
                                                 ).show()
                                                 data = signer.getCaptchaImageV2()
+                                                isCheckingCaptcha.set(false)
                                             } else {
                                                 onResult(Result.success(result))
                                                 isCheckingCaptcha.set(false)

@@ -92,9 +92,14 @@ object ChaoxingActivityHelper {
                         .build()
                 ).build()
             ).execute().use {
+                val responseBody = it.body.string()
                 if (it.checkResponse(snackbarHostState))
-                    throw ChaoxingHttpClient.ChaoxingNetworkException(it.body.string())
-                val jsonResult = JSONObject.parseObject(it.body.string()).getJSONObject("data")
+                    throw ChaoxingHttpClient.ChaoxingNetworkException(responseBody)
+                val jsonResult = JSONObject.parseObject(responseBody)?.getJSONObject("data")
+                    ?: throw ChaoxingParseDataException(
+                        "解析课程数据失败",
+                        data = responseBody
+                    )
                 val activeList = jsonResult.getJSONArray("activeList")?.map { activity ->
                     activity as JSONObject
                 }?.filter { activity ->

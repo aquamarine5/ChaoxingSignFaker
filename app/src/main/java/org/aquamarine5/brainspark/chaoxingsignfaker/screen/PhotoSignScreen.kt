@@ -241,12 +241,16 @@ fun PhotoSignScreen(
                                                         suspendCancellableCoroutine { continuation ->
                                                             captchaValidateParams =
                                                                 this to { validateValue ->
-                                                                    continuation.resumeWith(
-                                                                        validateValue.onSuccess {
-                                                                            this.signByClickWithCaptcha(
-                                                                                it
-                                                                            )
+                                                                    captchaValidateParams = null
+                                                                    if (continuation.isActive) {
+                                                                        continuation.resumeWith(runCatching {
+                                                                            validateValue.onSuccess {
+                                                                                this.signByClickWithCaptcha(
+                                                                                    it
+                                                                                )
+                                                                            }.getOrThrow()
                                                                         })
+                                                                    }
                                                                 }
                                                         }
                                                         return@runCatching true
@@ -482,13 +486,17 @@ fun PhotoSignScreen(
                                                                 suspendCancellableCoroutine { continuation ->
                                                                     captchaValidateParams =
                                                                         this to { validateValue ->
-                                                                            continuation.resumeWith(
-                                                                                validateValue.onSuccess {
-                                                                                    this.signByImageWithCaptcha(
-                                                                                        objectId,
-                                                                                        it
-                                                                                    )
+                                                                            captchaValidateParams = null
+                                                                            if (continuation.isActive) {
+                                                                                continuation.resumeWith(runCatching {
+                                                                                    validateValue.onSuccess {
+                                                                                        this.signByImageWithCaptcha(
+                                                                                            objectId,
+                                                                                            it
+                                                                                        )
+                                                                                    }.getOrThrow()
                                                                                 })
+                                                                            }
                                                                         }
                                                                 }
                                                                 return@runCatching true

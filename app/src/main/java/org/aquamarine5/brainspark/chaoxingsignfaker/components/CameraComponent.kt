@@ -138,9 +138,10 @@ fun CameraComponent(
             val lifecycleOwner = LocalLifecycleOwner.current
             val photoList = remember { mutableListOf<Bitmap>() }
             var needTakePictureCount by remember { mutableIntStateOf(pictureCount) }
-            LaunchedEffect(Unit) {
+            DisposableEffect(lifecycleOwner) {
                 future.addListener({
                     val cameraProvider = future.get()
+                    cameraProvider.unbindAll()
                     preview.surfaceProvider = previewView.surfaceProvider
                     cameraProvider.bindToLifecycle(
                         lifecycleOwner,
@@ -149,8 +150,7 @@ fun CameraComponent(
                         imageCapture
                     )
                 }, ContextCompat.getMainExecutor(application))
-            }
-            DisposableEffect(Unit) {
+                
                 onDispose {
                     future.get().unbindAll()
                 }
