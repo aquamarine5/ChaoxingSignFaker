@@ -1121,15 +1121,20 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                         modifier = Modifier.padding(0.dp, 4.dp)
                     )
                 Button(onClick = {
-                    coroutineScope.launch(Dispatchers.IO) {
-                        runCatching {
-                            ChaoxingOtherUserHelper.repairOtherUserSession(
-                                context,
-                                otherUserSessions[repairSessionIndex!!],
-                                password
-                            )
-                        }.onSuccess { repairedSession ->
-                            otherUserSessions[repairSessionIndex!!] = repairedSession
+                    coroutineScope.launch {
+                        val sessionIndex = repairSessionIndex ?: return@launch
+                        val sessionToRepair = otherUserSessions[sessionIndex]
+                        val result = withContext(Dispatchers.IO) {
+                            runCatching {
+                                ChaoxingOtherUserHelper.repairOtherUserSession(
+                                    context,
+                                    sessionToRepair,
+                                    password
+                                )
+                            }
+                        }
+                        result.onSuccess { repairedSession ->
+                            otherUserSessions[sessionIndex] = repairedSession
                             hapticFeedback.performHapticFeedback(HapticFeedbackType.Confirm)
                             snackbarHost.displaySnackbar(
                                 "用户 ${repairedSession.name} 已成功修复",
