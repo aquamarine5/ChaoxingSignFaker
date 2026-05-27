@@ -2,7 +2,7 @@
 accompanistPermissions = "0.37.3"
 agp = "9.2.1"
 asms = "1.8.7.2"
-baidumapsdk_location = "9.6.7"
+baidumapsdk_location = "9.6.8"
 baidumapsdk_map = "8.0.0"
 barcodeScanning = "17.3.0"
 base = "8.0.0"

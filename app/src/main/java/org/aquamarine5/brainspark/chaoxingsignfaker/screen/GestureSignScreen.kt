@@ -356,10 +356,14 @@ fun GestureSignScreen(
                                                     suspendCancellableCoroutine { continuation ->
                                                         captchaValidateParams =
                                                             this to { captchaValidate ->
-                                                                continuation.resumeWith(
-                                                                    captchaValidate.onSuccess {
-                                                                        signWithCaptcha(value, it)
+                                                                captchaValidateParams = null
+                                                                if (continuation.isActive) {
+                                                                    continuation.resumeWith(runCatching {
+                                                                        captchaValidate.onSuccess {
+                                                                            signWithCaptcha(value, it)
+                                                                        }.getOrThrow()
                                                                     })
+                                                                }
                                                             }
                                                     }
                                                     return@runCatching true

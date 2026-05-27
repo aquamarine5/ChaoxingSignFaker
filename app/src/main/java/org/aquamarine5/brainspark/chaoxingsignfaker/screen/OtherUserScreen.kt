@@ -1048,7 +1048,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
         AlertDialog(onDismissRequest = {
             repairSessionIndex = null
         }, title = {
-
+            Text("修复用户 ${otherUserSessions[repairSessionIndex!!].name} 的登录状态")
         }, icon = {
             Icon(
                 painterResource(R.drawable.ic_wrench),
@@ -1144,8 +1144,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                             errorMessage = "登录失败：" + (it.message ?: "未知错误")
                         }
                     }
-
-                }) { }
+                }, modifier = Modifier.fillMaxWidth()) { Text("重新登录") }
             }
         }, confirmButton = {
 
@@ -1270,7 +1269,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                 }) { Text("不保存退出") }
             }, title = {
                 if (selectedUserSettingDialogIndex != null)
-                    Text("设置${otherUserSessions[selectedUserSettingDialogIndex!!].name}")
+                    Text("设置 ${otherUserSessions[selectedUserSettingDialogIndex!!].name} 用户")
             }, text = {
                 Column {
                     if (tagsEntityList.isEmpty()) {
@@ -1298,7 +1297,9 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                         Icon(
                                             painterResource(R.drawable.ic_tag),
                                             null,
-                                            tint = Color(tagEntity.color),
+                                            tint = if (tagEntity.color == TAG_COLOR_UNSPECIFIED)
+                                                if (isSystemInDarkTheme()) Color.LightGray else Color.DarkGray
+                                            else Color(tagEntity.color),
                                             modifier = Modifier
                                                 .size(24.dp)
                                                 .padding(0.dp, 2.dp)

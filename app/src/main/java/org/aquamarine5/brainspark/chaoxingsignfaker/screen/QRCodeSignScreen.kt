@@ -28,13 +28,21 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.RichTooltip
 import androidx.compose.material3.Text
+import androidx.compose.material3.TooltipAnchorPosition
+import androidx.compose.material3.TooltipBox
+import androidx.compose.material3.TooltipDefaults
+import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -52,12 +60,15 @@ import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import io.sentry.Sentry
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.serialization.Serializable
@@ -68,6 +79,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCloudDriveHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingSignHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.SignDestination
+import org.aquamarine5.brainspark.chaoxingsignfaker.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.FaceRecognitionComponent
@@ -119,6 +131,7 @@ data class QRCodeSignDestination(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun QRCodeSignScreen(
     destination: QRCodeSignDestination,
@@ -326,14 +339,19 @@ fun QRCodeSignScreen(
                                                 suspendCancellableCoroutine { continuation ->
                                                     captchaValidateParams =
                                                         this to { validateValue ->
-                                                            continuation.resumeWith(validateValue.onSuccess {
-                                                                signWithCaptcha(
-                                                                    value,
-                                                                    locationData,
-                                                                    it,
-                                                                    faceImageUploadedObjectId
-                                                                )
-                                                            })
+                                                            captchaValidateParams = null
+                                                            if (continuation.isActive) {
+                                                                continuation.resumeWith(runCatching {
+                                                                    validateValue.onSuccess {
+                                                                        signWithCaptcha(
+                                                                            value,
+                                                                            locationData,
+                                                                            it,
+                                                                            faceImageUploadedObjectId
+                                                                        )
+                                                                    }.getOrThrow()
+                                                                })
+                                                            }
                                                         }
                                                 }
                                                 return@runCatching true
@@ -456,22 +474,74 @@ fun QRCodeSignScreen(
                                     signHandler.ignoreExceptionOtherUserSigning(session, index)
                                 },
                                 suffixContent = {
+                                    val tooltipState = rememberTooltipState(isPersistent = true)
+                                    LaunchedEffect(Unit) {
+                                        context.chaoxingDataStore.data.first().let {
+                                            if (!it.learntTooltips.cameraSelectedFromGallery) {
+                                                tooltipState.show()
+                                            }
+                                        }
+                                    }
                                     AnimatedVisibility(
                                         locationData != null,
                                         enter = slideInHorizontally()
                                     ) {
-                                        Row() {
-                                            Column(modifier = Modifier.weight(1f)) {
-                                                Text(
-                                                    "选定的签到位置：",
-                                                    fontWeight = FontWeight.Bold
-                                                )
-                                                Text(locationData?.address ?: "地址获取中...")
-                                            }
-                                            Button(onClick = {
-                                                isMapGetting = true
-                                            }) {
-                                                Text("重新获取位置")
+                                        TooltipBox(onDismissRequest = {},
+                                            positionProvider = TooltipDefaults.rememberTooltipPositionProvider(
+                                                TooltipAnchorPosition.Below,
+                                                13.dp
+                                            ), tooltip = {
+                                                RichTooltip(
+                                                    maxWidth = 200.dp, caretShape = TooltipDefaults.caretShape(
+                                                        DpSize(14.dp, 7.dp)
+                                                    )
+                                                ) {
+                                                    Row(
+                                                        verticalAlignment = Alignment.CenterVertically,
+                                                        horizontalArrangement = Arrangement.Center,
+                                                        modifier = Modifier.padding(2.dp, 6.dp, 0.dp, 6.dp)
+                                                    ) {
+                                                        Text(
+                                                            "现在二维码签到的位置会自动保存起来，再次扫码签到时就无需重新获取位置。",
+                                                            modifier = Modifier.weight(1f)
+                                                        )
+                                                        IconButton(
+                                                            onClick = {
+                                                                tooltipState.dismiss()
+                                                                coroutineScope.launch(Dispatchers.IO) {
+                                                                    context.chaoxingDataStore.updateData {
+                                                                        it.toBuilder().setLearntTooltips(
+                                                                            it.learntTooltips.toBuilder()
+                                                                                .setCameraSelectedFromGallery(
+                                                                                    true
+                                                                                ).build()
+                                                                        ).build()
+                                                                    }
+                                                                }
+                                                            },
+                                                            modifier = Modifier.size(32.dp)
+                                                        ) {
+                                                            Icon(
+                                                                painterResource(R.drawable.ic_x),
+                                                                contentDescription = "关闭提示"
+                                                            )
+                                                        }
+                                                    }
+                                                }
+                                            }, state = tooltipState) {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Column(modifier = Modifier.weight(1f)) {
+                                                    Text(
+                                                        "选定的签到位置：",
+                                                        fontWeight = FontWeight.Bold
+                                                    )
+                                                    Text(locationData?.address ?: "地址获取中...")
+                                                }
+                                                Button(onClick = {
+                                                    isMapGetting = true
+                                                }) {
+                                                    Text("重新获取位置")
+                                                }
                                             }
                                         }
                                     }

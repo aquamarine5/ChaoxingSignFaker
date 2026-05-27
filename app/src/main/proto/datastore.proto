@@ -46,6 +46,7 @@ message LearntTooltip{
   bool mapSupportNormalSatelliteSwitch = 3;
   bool supportFavoriteLocation = 4;
   bool qrcodeSupportScanFromGallery = 5;
+  bool restoreLocationOfQRCodeSign = 6;
 }
 
 message OtherUserTagType{

@@ -288,14 +288,18 @@ fun LocationSignScreen(
                                                     suspendCancellableCoroutine { continuation ->
                                                         captchaValidateParams =
                                                             this to { captchaValidate ->
-                                                                continuation.resumeWith(
-                                                                    captchaValidate.onSuccess {
-                                                                        signWithCaptcha(
-                                                                            value,
-                                                                            it,
-                                                                            faceImageUploadedObjectId
-                                                                        )
+                                                                captchaValidateParams = null
+                                                                if (continuation.isActive) {
+                                                                    continuation.resumeWith(runCatching {
+                                                                        captchaValidate.onSuccess {
+                                                                            signWithCaptcha(
+                                                                                value,
+                                                                                it,
+                                                                                faceImageUploadedObjectId
+                                                                            )
+                                                                        }.getOrThrow()
                                                                     })
+                                                                }
                                                             }
                                                     }
                                                     return@runCatching true
@@ -391,8 +395,8 @@ fun LocationSignScreen(
                             otherUserSessionForSignList = otherUserSessionList
                             coroutineScope.launch {
                                 if (isFaceRequired && (
-                                            (isSelf && ChaoxingHttpClient.instance!!.userEntity.phoneNumber !in faceImageBitmaps.keys) ||
-                                                    otherUserSessionList.any { it != null && it.phoneNumber !in faceImageBitmaps.keys }
+                                            (isSelf && ChaoxingHttpClient.instance!!.userEntity.phoneNumber !in faceImageObjectIds.keys) ||
+                                                    otherUserSessionList.any { it != null && it.phoneNumber !in faceImageObjectIds.keys }
                                             )
                                 )
                                     isFaceImageCaptured = true
