@@ -477,7 +477,7 @@ fun QRCodeSignScreen(
                                     val tooltipState = rememberTooltipState(isPersistent = true)
                                     LaunchedEffect(Unit) {
                                         context.chaoxingDataStore.data.first().let {
-                                            if (!it.learntTooltips.cameraSelectedFromGallery) {
+                                            if (!it.learntTooltips.restoreLocationOfQRCodeSign) {
                                                 tooltipState.show()
                                             }
                                         }
@@ -486,20 +486,27 @@ fun QRCodeSignScreen(
                                         locationData != null,
                                         enter = slideInHorizontally()
                                     ) {
-                                        TooltipBox(onDismissRequest = {},
+                                        TooltipBox(
+                                            onDismissRequest = {},
                                             positionProvider = TooltipDefaults.rememberTooltipPositionProvider(
                                                 TooltipAnchorPosition.Below,
                                                 13.dp
                                             ), tooltip = {
                                                 RichTooltip(
-                                                    maxWidth = 200.dp, caretShape = TooltipDefaults.caretShape(
+                                                    maxWidth = 200.dp,
+                                                    caretShape = TooltipDefaults.caretShape(
                                                         DpSize(14.dp, 7.dp)
                                                     )
                                                 ) {
                                                     Row(
                                                         verticalAlignment = Alignment.CenterVertically,
                                                         horizontalArrangement = Arrangement.Center,
-                                                        modifier = Modifier.padding(2.dp, 6.dp, 0.dp, 6.dp)
+                                                        modifier = Modifier.padding(
+                                                            2.dp,
+                                                            6.dp,
+                                                            0.dp,
+                                                            6.dp
+                                                        )
                                                     ) {
                                                         Text(
                                                             "现在二维码签到的位置会自动保存起来，再次扫码签到时就无需重新获取位置。",
@@ -510,12 +517,13 @@ fun QRCodeSignScreen(
                                                                 tooltipState.dismiss()
                                                                 coroutineScope.launch(Dispatchers.IO) {
                                                                     context.chaoxingDataStore.updateData {
-                                                                        it.toBuilder().setLearntTooltips(
-                                                                            it.learntTooltips.toBuilder()
-                                                                                .setCameraSelectedFromGallery(
-                                                                                    true
-                                                                                ).build()
-                                                                        ).build()
+                                                                        it.toBuilder()
+                                                                            .setLearntTooltips(
+                                                                                it.learntTooltips.toBuilder()
+                                                                                    .setRestoreLocationOfQRCodeSign(
+                                                                                        true
+                                                                                    ).build()
+                                                                            ).build()
                                                                     }
                                                                 }
                                                             },
@@ -528,7 +536,8 @@ fun QRCodeSignScreen(
                                                         }
                                                     }
                                                 }
-                                            }, state = tooltipState) {
+                                            }, state = tooltipState
+                                        ) {
                                             Row(verticalAlignment = Alignment.CenterVertically) {
                                                 Column(modifier = Modifier.weight(1f)) {
                                                     Text(
