@@ -334,6 +334,9 @@ fun AnalyserCard() {
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .clickable {
+                                                hapticFeedback.performHapticFeedback(
+                                                    HapticFeedbackType.ContextClick
+                                                )
                                                 clickToDisplayRankDetail = it
                                             }
                                             .padding(0.dp, 4.dp)
