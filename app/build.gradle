@@ -25,7 +25,7 @@ stackbricksConfig {
     possibleConfigurationPaths = [
             new PossibleConfigurationPath("cdn.aquamarine5.fun", "chaoxingsignfaker_stackbricks_v2_manifest.json")
     ]
-    changelog = "# 1.14.1 更新：\n1. 修复了人脸签到的时候不勾选自己会导致应用崩溃的问题。\n2. 修复了部分情况下有人脸和二维码打开摄像头操作崩溃的问题\n3. 修复了验证码滑块异常的问题\n4. 修复了代签用户页异常的扳手图标问题\n\n# 1.14.0 更新：\n1. 修复大量已知BUG。\n\n# 1.13.6 更新：\n1. 支持了群聊签到。\n\nlovely but not lonely, 20260502, @aquamarine5 Brainspark."
+    changelog = "# 1.14.2 更新：\n1. 加入了签到排行榜功能。\n\n# 1.14.1 更新：\n1. 修复了人脸签到的时候不勾选自己会导致应用崩溃的问题。\n2. 修复了部分情况下有人脸和二维码打开摄像头操作崩溃的问题\n3. 修复了验证码滑块异常的问题\n4. 修复了代签用户页异常的扳手图标问题\n\n# 1.14.0 更新：\n1. 修复大量已知BUG。\n\n# 1.13.6 更新：\n1. 支持了群聊签到。\n\nlovely but not lonely, 20260502, @aquamarine5 Brainspark."
     requiredManifestVersion2MigrateForceInstall = true
     forceInstallLessVersion = 1_1208_1216
     qiniuConfig {
@@ -47,8 +47,8 @@ android {
         applicationId = "org.aquamarine5.brainspark.chaoxingsignfaker"
         minSdk = 26
         targetSdk = 37
-        versionCode = 1_1402_1003
-        versionName = "1.14.2-beta1-260529"
+        versionCode = 1_1402_1666
+        versionName = "1.14.2-stable-260529"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

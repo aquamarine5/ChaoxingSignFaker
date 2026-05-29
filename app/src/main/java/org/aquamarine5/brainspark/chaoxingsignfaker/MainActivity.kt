@@ -369,12 +369,14 @@ class MainActivity : ComponentActivity() {
                                                     return@runCatching SignGraphDestination
                                                 }.onSuccess {
                                                     launch {
-                                                        ChaoxingAnalyser.setupStateAnalyser(
-                                                            datastore
-                                                        )
-                                                        ChaoxingAnalyser.checkAndUploadAnalyserRankData(
-                                                            applicationContext
-                                                        )
+                                                        runCatching {
+                                                            ChaoxingAnalyser.setupStateAnalyser(
+                                                                datastore
+                                                            )
+                                                            ChaoxingAnalyser.checkAndUploadAnalyserRankData(
+                                                                applicationContext
+                                                            )
+                                                        }
                                                     }
                                                     launch {
                                                         if (UMengHelper.md5(
