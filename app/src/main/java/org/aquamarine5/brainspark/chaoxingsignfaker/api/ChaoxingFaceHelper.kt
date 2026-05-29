@@ -14,6 +14,14 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.chaoxingDataStore
 
 object ChaoxingFaceHelper {
     suspend fun saveFaceImage(
+        context: Context,
+        objectId: String,
+        phoneNumber: String?=null
+    ){
+
+    }
+
+    suspend fun saveFaceImage(
         client: ChaoxingHttpClient,
         context: Context,
         bitmap: Bitmap,

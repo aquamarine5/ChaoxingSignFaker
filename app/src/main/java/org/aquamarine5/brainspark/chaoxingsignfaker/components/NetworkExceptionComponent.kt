@@ -26,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
@@ -62,9 +63,9 @@ fun NetworkExceptionComponent(
             )
             Spacer(modifier = Modifier.height(5.dp))
             Text(
-                networkExceptionTips ?: "啊哦~出现了未知错误。${exception.localizedMessage}",
+                networkExceptionTips ?: "啊哦~出现了未知错误。${exception::class.java.simpleName}\n${exception.localizedMessage}",
                 lineHeight = 17.sp,
-                fontSize = 14.sp
+                fontSize = 14.sp, textAlign = TextAlign.Center
             )
             Spacer(modifier = Modifier.height(5.dp))
             Button(onClick = {

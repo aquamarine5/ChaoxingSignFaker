@@ -74,7 +74,6 @@ import com.umeng.analytics.MobclickAgent
 import io.sentry.Sentry
 import io.sentry.android.core.SentryAndroid
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -335,7 +334,6 @@ class MainActivity : ComponentActivity() {
                                         versionName = BuildConfig.VERSION_NAME,
                                         isAllowedToDisableCheckUpdateOnLaunch = false,
                                         isForceInstallValueCallback = false,
-                                        versionCode = null
                                     ),
                                 )
                             }
@@ -355,7 +353,8 @@ class MainActivity : ComponentActivity() {
                                         LocationClient.setAgreePrivacy(true)
                                         SDKInitializer.setAgreePrivacy(applicationContext, true)
                                     }
-                                    CHAOXING_USER_AGENT= getUserAgent(datastore.preferences.customizedUserAgent)
+                                    CHAOXING_USER_AGENT =
+                                        getUserAgent(datastore.preferences.customizedUserAgent)
                                     isDevelopedMode = datastore.preferences.isDevelopedMode
                                     destination =
                                         when {
@@ -367,27 +366,37 @@ class MainActivity : ComponentActivity() {
                                                         datastore,
                                                         applicationContext
                                                     )
-                                                    coroutineScope {
-                                                        launch {
-                                                            if (UMengHelper.md5(
-                                                                    packageManager.getApplicationLabel(
-                                                                        versionData.applicationInfo!!
-                                                                    ).toString()
-                                                                ) != "181b23fb3bfa29181fcde41f72757e97" && UMengHelper.md5(
-                                                                    packageName
-                                                                ) != "717670698be98532464cfc122894908b"
-                                                            ) {
-                                                                UMengHelper.onIllegalChannelEvent(
-                                                                    this@MainActivity,
-                                                                    versionData
-                                                                )
-                                                                MobclickAgent.onKillProcess(this@MainActivity)
-                                                                throw ChaoxingPredictableException.ApplicationIllegalChannelException()
-                                                            }
+                                                    return@runCatching SignGraphDestination
+                                                }.onSuccess {
+                                                    launch {
+                                                        runCatching {
+                                                            ChaoxingAnalyser.setupStateAnalyser(
+                                                                datastore
+                                                            )
+                                                            ChaoxingAnalyser.checkAndUploadAnalyserRankData(
+                                                                applicationContext
+                                                            )
                                                         }
                                                     }
-                                                    return@runCatching SignGraphDestination
+                                                    launch {
+                                                        if (UMengHelper.md5(
+                                                                packageManager.getApplicationLabel(
+                                                                    versionData.applicationInfo!!
+                                                                ).toString()
+                                                            ) != "181b23fb3bfa29181fcde41f72757e97" && UMengHelper.md5(
+                                                                packageName
+                                                            ) != "717670698be98532464cfc122894908b"
+                                                        ) {
+                                                            UMengHelper.onIllegalChannelEvent(
+                                                                this@MainActivity,
+                                                                versionData
+                                                            )
+                                                            MobclickAgent.onKillProcess(this@MainActivity)
+                                                            throw ChaoxingPredictableException.ApplicationIllegalChannelException()
+                                                        }
+                                                    }
                                                 }.getOrElse {
+                                                    it.printStackTrace()
                                                     withContext(Dispatchers.Main) {
                                                         Toast.makeText(
                                                             applicationContext,

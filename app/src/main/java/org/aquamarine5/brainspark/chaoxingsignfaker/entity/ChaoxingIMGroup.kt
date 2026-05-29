@@ -12,6 +12,7 @@ import androidx.navigation.NavType
 import com.alibaba.fastjson2.JSONObject
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import org.aquamarine5.brainspark.chaoxingsignfaker.ChaoxingParseDataException
 
 @Serializable
 data class ChaoxingIMGroup(
@@ -41,11 +42,16 @@ data class ChaoxingIMGroup(
     companion object {
         fun fromJson(jsonObject: JSONObject): ChaoxingIMGroup {
             return ChaoxingIMGroup(
-                jsonObject.getJSONArray("picArray")?.let { array -> array.map { it.toString() } }
+                jsonObject.getJSONArray("picArray")
+                    ?.let { array -> array.mapNotNull { it?.toString() } }
                     ?: listOf(
                         jsonObject.getString("chatIco")
+                            ?: "https://im.chaoxing.com/res/images/course_logo.png"
                     ),
-                jsonObject.getString("chatId"),
+                jsonObject.getString("chatId") ?: throw ChaoxingParseDataException(
+                    "chatId is null",
+                    data = jsonObject.toJSONString()
+                ),
                 jsonObject.getString("chatName") ?: "无群聊名称",
                 jsonObject.getInteger("isGroup") == 0
             )
