@@ -124,6 +124,7 @@ object ChaoxingAnalyser {
                                                 "totalSignCount",
                                                 (mutableAnalyser.photoSignCount.value + mutableAnalyser.gestureSignCount.value + mutableAnalyser.locationSignCount.value + mutableAnalyser.qrcodeSignCount.value + mutableAnalyser.clickSignCount.value + mutableAnalyser.passwordSignCount.value).toString()
                                             )
+                                            .addEncoded("isPublic","true")
                                             .addEncoded("name", analysisName)
                                             .build()
                                     ).build()
