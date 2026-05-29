@@ -288,7 +288,7 @@ fun OtherUserSelectorComponent(
                                         AssistChip(onClick = {
                                             navToOtherUser()
                                         }, label = {
-                                            Text("点击跳转添加")
+                                            Text("点击跳转添加标签...")
                                         }, leadingIcon = {
                                             Icon(
                                                 painterResource(R.drawable.ic_tag_plus_outline),

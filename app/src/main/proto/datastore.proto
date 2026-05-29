@@ -26,6 +26,21 @@ message ChaoxingSignFakerDataStore{
   repeated OtherUserTagType tagsLibrary = 15;
   LearntTooltip learntTooltips = 17;
   Preferences preferences = 18;
+  map<uint32, ChaoxingFaceRecognitionConfigure> faceRecognitionConfigures = 19;
+  uint32 lastUploadAnalysisDate = 20;
+  string analysisUUID = 21;
+  string analysisRankName = 22;
+  bool disableAnalysisRank = 23;
+  bool hideAnalysisRankSchoolName = 24;
+}
+
+message ChaoxingFaceRecognitionImage{
+  string objectId = 1;
+  uint32 useCount = 2;
+}
+
+message ChaoxingFaceRecognitionConfigure{
+  repeated ChaoxingFaceRecognitionImage images = 1;
 }
 
 message Preferences{
@@ -76,7 +91,7 @@ message ChaoxingLoginSession{
   repeated HttpCookie cookies = 1;
   string phoneNumber = 2;
   string password = 3;
-  string faceImageObjectId = 4;
+  string faceImageObjectId = 4 [deprecated = true];
 }
 
 message ChaoxingOtherUserSession{
@@ -85,7 +100,7 @@ message ChaoxingOtherUserSession{
   string password = 3;
   string name = 4;
   repeated uint32 tags = 5;
-  string faceImageObjectId = 6;
+  string faceImageObjectId = 6 [deprecated = true];
   bool isObsoleteSession = 7;
 }
 

@@ -61,7 +61,7 @@ object ChaoxingIMHelper {
                 val responseBody = response.body.string()
                 val json = JSONObject.parseObject(responseBody)
                 val data = json.getJSONArray("data")
-                return@use data.map { ChaoxingIMGroup.fromJson(it as JSONObject) }
+                return@use data.mapNotNull { runCatching { ChaoxingIMGroup.fromJson(it as JSONObject) }.getOrNull() }
             }
         }
     }

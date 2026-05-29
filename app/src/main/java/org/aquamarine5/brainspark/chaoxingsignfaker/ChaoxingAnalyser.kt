@@ -7,13 +7,150 @@
 package org.aquamarine5.brainspark.chaoxingsignfaker
 
 import android.content.Context
+import android.widget.Toast
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.listSaver
+import io.sentry.Sentry
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.Json
+import okhttp3.FormBody
+import okhttp3.Request
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
+import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingSignFakerDataStore
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingAnalyserRankRecord
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
+
+private const val SUPABASE_ENDPOINT =
+    "https://zpkavhhjdtghljleztpb.supabase.co/rest/v1/AnalyserData"
+private const val SUPABASE_API_KEY = "sb_publishable_dFuI4bOoYPlDozMXOGKgPg_cCQ0o22B"
 
 object ChaoxingAnalyser {
+    lateinit var rankUUID: String
+
+    suspend fun getAnalyserTopRank(): Result<List<ChaoxingAnalyserRankRecord>> {
+        return withContext(Dispatchers.IO) {
+            runCatching {
+                ChaoxingHttpClient.instance!!.newCall(
+                    Request.Builder()
+                        .url("$SUPABASE_ENDPOINT?order=totalSignCount.desc&limit=20&isPublic=eq.TRUE")
+                        .get()
+                        .header(
+                            "apikey",
+                            SUPABASE_API_KEY
+                        )
+                        .build()
+                ).execute().use { response ->
+                    response.checkResponseThrowException()
+                    val responseBody = response.body.string()
+                    Json.decodeFromString<List<ChaoxingAnalyserRankRecord>>(responseBody)
+                }
+            }
+        }
+    }
+
+    @OptIn(ExperimentalUuidApi::class)
+    suspend fun checkAndUploadAnalyserRankData(context: Context) {
+        withContext(Dispatchers.IO) {
+            val currentDate =
+                LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")).toInt()
+            val stringDate = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+            context.chaoxingDataStore.updateData {
+                if (it.disableAnalysisRank) return@updateData it
+                val analysisName = it.analysisRankName.ifEmpty {
+                    "****${ChaoxingHttpClient.instance!!.userEntity.phoneNumber.takeLast(2)} 用户"
+                }
+                it.toBuilder().apply {
+                    val analysisDatabaseUUID = analysisUUID.ifEmpty {
+                        rankUUID.also {
+                            setAnalysisUUID(it)
+                        }
+                    }
+                    if (lastUploadAnalysisDate < currentDate) {
+                        runCatching {
+                            ChaoxingHttpClient.instance!!.newCall(
+                                Request.Builder()
+                                    .url(SUPABASE_ENDPOINT)
+                                    .header(
+                                        "apikey",
+                                        SUPABASE_API_KEY
+                                    )
+                                    .header("Prefer", "resolution=merge-duplicates")
+                                    .post(
+                                        FormBody.Builder()
+                                            .addEncoded(
+                                                "otherSign",
+                                                mutableAnalyser.otherUserSignCount.value.toString()
+                                            )
+                                            .addEncoded(
+                                                "photoSign",
+                                                mutableAnalyser.photoSignCount.value.toString()
+                                            )
+                                            .addEncoded(
+                                                "gestureSign",
+                                                mutableAnalyser.gestureSignCount.value.toString()
+                                            )
+                                            .addEncoded(
+                                                "locationSign",
+                                                mutableAnalyser.locationSignCount.value.toString()
+                                            )
+                                            .addEncoded(
+                                                "qrcodeSign",
+                                                mutableAnalyser.qrcodeSignCount.value.toString()
+                                            )
+                                            .addEncoded(
+                                                "clickSign",
+                                                mutableAnalyser.clickSignCount.value.toString()
+                                            )
+                                            .addEncoded(
+                                                "passwordSign",
+                                                mutableAnalyser.passwordSignCount.value.toString()
+                                            )
+                                            .addEncoded("latestDate", stringDate)
+                                            .addEncoded(
+                                                "schoolName",
+                                                ChaoxingHttpClient.instance!!.userEntity.schoolName.let { str ->
+                                                    if (it.hideAnalysisRankSchoolName) str.plus("HIDE") else str
+                                                }
+                                            )
+                                            .addEncoded("uuid", analysisDatabaseUUID)
+                                            .addEncoded(
+                                                "totalSignCount",
+                                                (mutableAnalyser.photoSignCount.value + mutableAnalyser.gestureSignCount.value + mutableAnalyser.locationSignCount.value + mutableAnalyser.qrcodeSignCount.value + mutableAnalyser.clickSignCount.value + mutableAnalyser.passwordSignCount.value).toString()
+                                            )
+                                            .addEncoded("name", analysisName)
+                                            .build()
+                                    ).build()
+                            )
+                                .execute().use { response ->
+                                    response.checkResponseThrowException()
+                                }
+                        }.onSuccess {
+                            setLastUploadAnalysisDate(currentDate)
+                        }.onFailure {
+                            it.printStackTrace()
+                            Sentry.captureException(it)
+                            withContext(Dispatchers.Main) {
+                                Toast.makeText(
+                                    context,
+                                    "上传排行榜数据失败: ${it.message}",
+                                    Toast.LENGTH_LONG
+                                ).show()
+                            }
+                        }
+                    }
+                }.build()
+            }
+        }
+    }
+
+
     data class MutableStateAnalyser(
         val photoSignCount: MutableState<Int> = mutableIntStateOf(0),
         val gestureSignCount: MutableState<Int> = mutableIntStateOf(0),
@@ -122,6 +259,7 @@ object ChaoxingAnalyser {
         return mutableAnalyser
     }
 
+    @OptIn(ExperimentalUuidApi::class)
     suspend fun setupStateAnalyser(context: Context): MutableStateAnalyser {
         context.chaoxingDataStore.data.first().apply {
             mutableAnalyser.passwordSignCount.value = analysis.passwordSign
@@ -132,6 +270,27 @@ object ChaoxingAnalyser {
             mutableAnalyser.clickSignCount.value = analysis.clickSign
             mutableAnalyser.otherUserSignCount.value = analysis.otherUserSign
             mutableAnalyser.isLoaded.value = true
+            rankUUID = analysisUUID.ifEmpty {
+                Uuid.generateV7().toString()
+            }
+        }
+        return mutableAnalyser
+    }
+
+    @OptIn(ExperimentalUuidApi::class)
+    fun setupStateAnalyser(datastore: ChaoxingSignFakerDataStore): MutableStateAnalyser {
+        datastore.apply {
+            mutableAnalyser.passwordSignCount.value = analysis.passwordSign
+            mutableAnalyser.photoSignCount.value = analysis.photoSign
+            mutableAnalyser.gestureSignCount.value = analysis.gestureSign
+            mutableAnalyser.locationSignCount.value = analysis.locationSign
+            mutableAnalyser.qrcodeSignCount.value = analysis.qrcodeSign
+            mutableAnalyser.clickSignCount.value = analysis.clickSign
+            mutableAnalyser.otherUserSignCount.value = analysis.otherUserSign
+            mutableAnalyser.isLoaded.value = true
+            rankUUID = analysisUUID.ifEmpty {
+                Uuid.generateV7().toString()
+            }
         }
         return mutableAnalyser
     }
