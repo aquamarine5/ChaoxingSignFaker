@@ -13,6 +13,7 @@ import kotlinx.coroutines.withContext
 import okhttp3.Request
 import org.aquamarine5.brainspark.chaoxingsignfaker.ChaoxingPredictableException
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingActivityHelper.NO_SIGN_OFF_EVENT
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingFaceHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.checkResponseThrowException
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationDetailEntity
@@ -76,6 +77,15 @@ class ChaoxingLocationSigner(
                             if (faceImageObjectId != null) {
                                 addQueryParameter("currentFaceId", faceImageObjectId)
                                 addQueryParameter("ifCFP", "0")
+                                addQueryParameter("courseId", courseId.toString())
+                                addQueryParameter(
+                                    "faceEnc",
+                                    ChaoxingFaceHelper.checkFaceResultAndGetEnc(
+                                        client,
+                                        faceImageObjectId,
+                                        activeId
+                                    )
+                                )
                             }
                         }
                         .build()
@@ -122,6 +132,15 @@ class ChaoxingLocationSigner(
                             if (faceImageObjectId != null) {
                                 addQueryParameter("currentFaceId", faceImageObjectId)
                                 addQueryParameter("ifCFP", "0")
+                                addQueryParameter("courseId", courseId.toString())
+                                addQueryParameter(
+                                    "faceEnc",
+                                    ChaoxingFaceHelper.checkFaceResultAndGetEnc(
+                                        client,
+                                        faceImageObjectId,
+                                        activeId
+                                    )
+                                )
                             }
                         }
                         .build()
