@@ -16,6 +16,8 @@ import okhttp3.Request
 import org.aquamarine5.brainspark.chaoxingsignfaker.ChaoxingParseDataException
 import org.aquamarine5.brainspark.chaoxingsignfaker.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.checkResponseThrowException
+import java.security.MessageDigest
+import java.util.TreeMap
 
 object ChaoxingFaceHelper {
     private val URL_CHECK_FACE_RESULT =
@@ -33,12 +35,7 @@ object ChaoxingFaceHelper {
                         .addQueryParameter("activeId", activeId.toString())
                         .addQueryParameter(
                             "faceResult",
-                            JSONObject()
-                                .fluentPut("currentFaceId", objectId)
-                                .fluentPut("LiveDetectionStatus", 1)
-                                .fluentPut("collectStatus", 1)
-                                .fluentPut("cxtime", System.currentTimeMillis())
-                                .toJSONString()
+                            buildFaceResult(client, objectId).toJSONString()
                         )
                         .build()
                 ).get().build()
@@ -52,6 +49,48 @@ object ChaoxingFaceHelper {
             }
         }
 
+    private fun buildFaceResult(client: ChaoxingHttpClient, objectId: String): JSONObject {
+        val fields = mapOf(
+            "currentFaceId" to objectId,
+            "LiveDetectionStatus" to "1",
+            "collectStatus" to "1"
+        )
+        val cxtime = System.currentTimeMillis().toString()
+        return JSONObject()
+            .fluentPut("currentFaceId", objectId)
+            .fluentPut("LiveDetectionStatus", 1)
+            .fluentPut("collectStatus", 1)
+            .fluentPut("cxtime", cxtime)
+            .apply {
+                client.userEntity.clientId?.let { clientId ->
+                    addSignToken(clientId, fields, cxtime)
+                }
+            }
+    }
+
+    private fun JSONObject.addSignToken(clientId: String, fields: Map<String, String>, cxtime: String) {
+        val deviceInfo = ChaoxingDeviceInfoHelper.decryptClientId(clientId) ?: return
+        val cxcid = deviceInfo.getString("cid") ?: return
+        val sc = deviceInfo.getString("sc") ?: return
+        val signedFields = TreeMap<String, String>().apply {
+            putAll(fields)
+            put("cxtime", cxtime)
+            put("cxcid", cxcid)
+        }
+        val raw = buildString {
+            signedFields.forEach { (key, value) ->
+                append(key)
+                append(value)
+            }
+            append(sc)
+        }
+        fluentPut("cxcid", cxcid)
+        fluentPut("signToken", md5(raw))
+    }
+
+    private fun md5(value: String): String =
+        MessageDigest.getInstance("MD5").digest(value.toByteArray(Charsets.UTF_8))
+            .joinToString("") { (it.toInt() and 0xff).toString(16).padStart(2, '0') }
 
     suspend fun saveFaceImage(
         context: Context,

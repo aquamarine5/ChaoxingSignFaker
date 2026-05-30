@@ -277,7 +277,14 @@ class ChaoxingHttpClient private constructor(
         ): ChaoxingUserEntity =
             withContext(Dispatchers.IO) {
                 runCatching {
-                    client.newCall(Request.Builder().get().url(URL_USER_INFO).build()).execute()
+                    client.newCall(
+                        Request.Builder()
+                            .url(URL_USER_INFO)
+                            .post(FormBody.Builder().apply {
+                                add("data", ChaoxingDeviceInfoHelper.buildEncryptedDeviceInfo(context))
+                            }.build())
+                            .build()
+                    ).execute()
                         .use { response ->
                             response.checkResponseThrowException()
                             val jsonResult =
@@ -290,7 +297,8 @@ class ChaoxingHttpClient private constructor(
                                 jsonResult.getString("uname"),
                                 jsonResult.getString("pic").replace("http://", "https://"),
                                 jsonResult.getInteger("puid"),
-                                phoneNumber
+                                phoneNumber,
+                                jsonResult.getString("clientId")?.takeIf { it.isNotEmpty() }
                             )
                         }
                 }.getOrElse { throwable ->
