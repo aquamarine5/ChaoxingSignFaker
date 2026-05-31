@@ -23,7 +23,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.ChaoxingPredictableException
 import org.aquamarine5.brainspark.chaoxingsignfaker.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.checkResponseThrowException
-import org.aquamarine5.brainspark.chaoxingsignfaker.components.CHAOXING_USER_AGENT
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.chaoxingUserAgent
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingLoginSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingSignFakerDataStore
@@ -129,7 +129,7 @@ class ChaoxingHttpClient private constructor(
             }).addInterceptor { chain ->
                 chain.proceed(
                     chain.request().newBuilder()
-                        .header("User-Agent", CHAOXING_USER_AGENT).build()
+                        .header("User-Agent", chaoxingUserAgent).build()
                 )
             }.retryOnConnectionFailure(true)
                 .build().apply {
@@ -186,7 +186,7 @@ class ChaoxingHttpClient private constructor(
                 .addInterceptor { chain ->
                     chain.proceed(
                         chain.request().newBuilder()
-                            .header("User-Agent", CHAOXING_USER_AGENT).build()
+                            .header("User-Agent", chaoxingUserAgent).build()
                     )
                 }
                 .build()
@@ -231,7 +231,7 @@ class ChaoxingHttpClient private constructor(
             }).addInterceptor { chain ->
                 chain.proceed(
                     chain.request().newBuilder()
-                        .header("User-Agent", CHAOXING_USER_AGENT).build()
+                        .header("User-Agent", chaoxingUserAgent).build()
                 )
             }.retryOnConnectionFailure(true).build().apply {
                 cookieJar.saveFromResponse(
@@ -281,7 +281,10 @@ class ChaoxingHttpClient private constructor(
                         Request.Builder()
                             .url(URL_USER_INFO)
                             .post(FormBody.Builder().apply {
-                                add("data", ChaoxingDeviceInfoHelper.buildEncryptedDeviceInfo(context))
+                                add(
+                                    "data",
+                                    ChaoxingDeviceInfoHelper.buildEncryptedDeviceInfo(context)
+                                )
                             }.build())
                             .build()
                     ).execute()

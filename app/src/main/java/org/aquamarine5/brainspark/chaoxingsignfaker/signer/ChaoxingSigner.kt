@@ -22,11 +22,13 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.FormBody
+import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Request
 import org.aquamarine5.brainspark.chaoxingsignfaker.ChaoxingPredictableException
 import org.aquamarine5.brainspark.chaoxingsignfaker.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCourseHelper
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingFaceHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.checkResponseThrowException
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCaptchaDataEntity
@@ -176,6 +178,20 @@ abstract class ChaoxingSigner(
                     .build()
             ).build()
         ).execute().close()
+    }
+
+    protected open suspend fun HttpUrl.Builder.addFaceRecognitionParameter(faceImageObjectId: String) {
+        addQueryParameter("currentFaceId", faceImageObjectId)
+        addQueryParameter("ifCFP", "0")
+        addQueryParameter("courseId", courseId.toString())
+        addQueryParameter(
+            "faceEnc",
+            ChaoxingFaceHelper.checkFaceResultAndGetEnc(
+                client,
+                faceImageObjectId,
+                activeId
+            )
+        )
     }
 
     open fun getCaptchaId(): String = "Qt9FIw9o4pwRjOyqM6yizZBh682qN2TU"

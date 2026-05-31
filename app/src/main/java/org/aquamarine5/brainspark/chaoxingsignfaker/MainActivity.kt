@@ -79,9 +79,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
-import org.aquamarine5.brainspark.chaoxingsignfaker.components.CHAOXING_USER_AGENT
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
-import org.aquamarine5.brainspark.chaoxingsignfaker.components.getUserAgent
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingIMGroup
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.NavigationBarItemData
@@ -171,19 +169,6 @@ class MainActivity : ComponentActivity() {
             }
             var destination by remember { mutableStateOf<Any?>(null) }
             val snackbarHostState = remember { SnackbarHostState() }
-            val imageLoader = remember {
-                ImageLoader.Builder(applicationContext).components {
-                    add(
-                        OkHttpNetworkFetcherFactory(
-                            callFactory = { ChaoxingHttpClient.instance!!.okHttpClient })
-                    )
-                }.diskCache {
-                    DiskCache.Builder()
-                        .directory(applicationContext.cacheDir.resolve("image_cache"))
-                        .maxSizePercent(0.02)
-                        .build()
-                }.crossfade(true).build()
-            }
             ChaoxingSignFakerTheme {
                 CompositionLocalProvider(LocalSnackbarHostState provides snackbarHostState) {
                     Scaffold(
@@ -344,6 +329,19 @@ class MainActivity : ComponentActivity() {
                                 .padding(innerPadding)
                                 .fillMaxSize()
                         ) {
+                            val imageLoader = remember {
+                                ImageLoader.Builder(applicationContext).components {
+                                    add(
+                                        OkHttpNetworkFetcherFactory(
+                                            callFactory = { ChaoxingHttpClient.instance?.okHttpClient?: OkHttpClient() })
+                                    )
+                                }.diskCache {
+                                    DiskCache.Builder()
+                                        .directory(applicationContext.cacheDir.resolve("image_cache"))
+                                        .maxSizePercent(0.02)
+                                        .build()
+                                }.crossfade(true).build()
+                            }
                             LaunchedEffect(Unit) {
                                 withContext(Dispatchers.IO) {
                                     val datastore =
@@ -353,8 +351,8 @@ class MainActivity : ComponentActivity() {
                                         LocationClient.setAgreePrivacy(true)
                                         SDKInitializer.setAgreePrivacy(applicationContext, true)
                                     }
-                                    CHAOXING_USER_AGENT =
-                                        getUserAgent(datastore.preferences.customizedUserAgent)
+//                                    chaoxingUserAgent =
+//                                        getUserAgent(datastore.preferences.customizedUserAgent)
                                     isDevelopedMode = datastore.preferences.isDevelopedMode
                                     destination =
                                         when {

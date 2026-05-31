@@ -134,6 +134,7 @@ object ChaoxingAnalyser {
                                 }
                         }.onSuccess {
                             setLastUploadAnalysisDate(currentDate)
+                            setLastUploadAnalysisTimestamp(System.currentTimeMillis())
                         }.onFailure {
                             it.printStackTrace()
                             Sentry.captureException(it)

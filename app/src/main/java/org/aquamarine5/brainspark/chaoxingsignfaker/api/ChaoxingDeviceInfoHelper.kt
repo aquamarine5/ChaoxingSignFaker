@@ -6,6 +6,7 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.api
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
@@ -14,6 +15,7 @@ import android.os.Build
 import android.provider.Settings
 import android.util.Base64
 import com.alibaba.fastjson2.JSONObject
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.chaoxingApplicationPackageName
 import java.io.ByteArrayOutputStream
 import java.math.BigInteger
 import java.security.KeyFactory
@@ -58,6 +60,7 @@ object ChaoxingDeviceInfoHelper {
             JSONObject.parseObject(output.toString(Charsets.UTF_8.name()))
         }.getOrNull()
 
+    @SuppressLint("HardwareIds")
     private fun buildDeviceInfo(context: Context): JSONObject {
         val packageInfoFlags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             PackageManager.GET_SIGNING_CERTIFICATES
@@ -67,18 +70,18 @@ object ChaoxingDeviceInfoHelper {
         }
         val packageInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             context.packageManager.getPackageInfo(
-                context.packageName,
+                chaoxingApplicationPackageName,
                 PackageManager.PackageInfoFlags.of(packageInfoFlags.toLong())
             )
         } else {
             @Suppress("DEPRECATION")
-            context.packageManager.getPackageInfo(context.packageName, packageInfoFlags)
+            context.packageManager.getPackageInfo(chaoxingApplicationPackageName, packageInfoFlags)
         }
         val androidId = Settings.Secure.getString(
             context.contentResolver,
             Settings.Secure.ANDROID_ID
         ).orEmpty()
-        val deviceUniqueId = sha256("${context.packageName}:$androidId:${Build.FINGERPRINT}")
+        val deviceUniqueId = sha256("${chaoxingApplicationPackageName}:$androidId:${Build.FINGERPRINT}")
         val metrics = context.resources.displayMetrics
 
         return JSONObject()
@@ -111,8 +114,8 @@ object ChaoxingDeviceInfoHelper {
             .fluentPut("signatures", getSignatureDigest(packageInfo))
             .fluentPut("resolution", "${metrics.widthPixels}*${metrics.heightPixels}")
             .fluentPut("dpi", metrics.density.toString())
-            .fluentPut("densityDpi", metrics.densityDpi.toString())
-            .fluentPut("time_stamp", System.currentTimeMillis().toString())
+//            .fluentPut("densityDpi", metrics.densityDpi.toString())
+            .fluentPut("time_stamp", System.currentTimeMillis())
     }
 
     private fun encryptByRsa(plain: ByteArray): String {

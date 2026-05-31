@@ -42,6 +42,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -75,6 +76,9 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingAnalyserRankRecord
 import org.aquamarine5.brainspark.chaoxingsignfaker.snackbarReport
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 @Composable
 fun AnalyserCard() {
@@ -85,6 +89,7 @@ fun AnalyserCard() {
         val analyser = rememberSaveable(saver = ChaoxingAnalyser.MutableStateAnalyser.Saver) {
             ChaoxingAnalyser.createStateAnalyser()
         }
+        var lastUploadTimestamp by remember { mutableLongStateOf(0L) }
         var customRankDisplayName by remember { mutableStateOf("") }
         var isDisableAnalyserRank by remember { mutableStateOf(false) }
         var isHideAnalyserSchoolName by remember { mutableStateOf(false) }
@@ -99,6 +104,7 @@ fun AnalyserCard() {
                         )
                     } 用户"
                 }
+                lastUploadTimestamp = it.lastUploadAnalysisTimestamp
                 isDisableAnalyserRank = it.disableAnalysisRank
                 isHideAnalyserSchoolName = it.hideAnalysisRankSchoolName
             }
@@ -133,6 +139,14 @@ fun AnalyserCard() {
                         label = {
                             Text(
                                 "展示名称"
+                            )
+                        }, placeholder = {
+                            Text(
+                                "****${
+                                    ChaoxingHttpClient.instance!!.userEntity.phoneNumber.takeLast(
+                                        2
+                                    )
+                                } 用户"
                             )
                         },
                         trailingIcon = {
@@ -191,7 +205,7 @@ fun AnalyserCard() {
             }, text = {
                 Column {
                     Text("随地大小签的签到排行榜每日根据用户的签到数据上传至数据库进行更新，并非实时更新，上传的数据不会包含学习通账号的隐私信息，上传的数据仅用作排行榜展示，不会用于其他用途。随地大小签的排行榜功能仍在测试阶段。\n如果不想展示学校信息，可以勾选下方的【隐藏上传学校信息】。\n请注意，任何操作都会在修改后的第二天打开应用时提交至服务器进行修改。")
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                    HorizontalDivider(modifier = Modifier.padding(0.dp,4.dp,0.dp,8.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Switch(
                             checked = isHideAnalyserSchoolName,
@@ -414,82 +428,99 @@ fun AnalyserCard() {
 
                             HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
 
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(0.dp, 4.dp)
-                            ) {
-                                val userRankStr = if (userIndex != -1) "${userIndex + 1}." else "-."
-                                Text(
-                                    userRankStr,
+                            Column {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
                                     modifier = Modifier
-                                        .width(36.dp)
-                                        .padding(end = 6.dp),
-                                    textAlign = TextAlign.Center,
-                                    fontWeight = FontWeight.Bold,
-                                    fontFamily = fontGilroy,
-                                    fontSize = 18.sp,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                                Column(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .padding(end = 8.dp)
+                                        .fillMaxWidth()
+                                        .padding(0.dp, 4.dp)
                                 ) {
-                                    val baseName =
-                                        if (userIndex != -1) userRecord!!.name else customRankDisplayName
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                    val userRankStr =
+                                        if (userIndex != -1) "${userIndex + 1}." else "-."
+                                    Text(
+                                        userRankStr,
+                                        modifier = Modifier
+                                            .width(36.dp)
+                                            .padding(end = 6.dp),
+                                        textAlign = TextAlign.Center,
+                                        fontWeight = FontWeight.Bold,
+                                        fontFamily = fontGilroy,
+                                        fontSize = 18.sp,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                    Column(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .padding(end = 8.dp)
+                                    ) {
+                                        val baseName =
+                                            if (userIndex != -1) userRecord!!.name else customRankDisplayName
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Text(
+                                                text = baseName,
+                                                color = MaterialTheme.colorScheme.primary,
+                                                fontWeight = FontWeight.Bold,
+                                                maxLines = 2,
+                                                overflow = TextOverflow.Ellipsis,
+                                                modifier = Modifier.weight(1f, fill = false)
+                                            )
+                                            Text(
+                                                text = " (你)",
+                                                color = MaterialTheme.colorScheme.primary,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
                                         Text(
-                                            text = baseName,
-                                            color = MaterialTheme.colorScheme.primary,
-                                            fontWeight = FontWeight.Bold,
-                                            maxLines = 2,
-                                            overflow = TextOverflow.Ellipsis,
-                                            modifier = Modifier.weight(1f, fill = false)
-                                        )
-                                        Text(
-                                            text = " (你)",
-                                            color = MaterialTheme.colorScheme.primary,
-                                            fontWeight = FontWeight.Bold
+                                            if (userIndex != -1) {
+                                                userRecord!!.schoolName.let { school ->
+                                                    if (school.endsWith("HIDE")) "已隐藏学校信息" else school
+                                                }
+                                            } else ChaoxingHttpClient.instance!!.userEntity.schoolName,
+                                            fontSize = 10.sp,
+                                            lineHeight = 11.sp,
+                                            color = Color.Gray,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
                                         )
                                     }
-                                    Text(
-                                        if (userIndex != -1) {
-                                            userRecord!!.schoolName.let { school ->
-                                                if (school.endsWith("HIDE")) "已隐藏学校信息" else school
+                                    Column(horizontalAlignment = Alignment.End) {
+                                        Text(buildAnnotatedString {
+                                            withStyle(labelSmallSpanStyle) {
+                                                append("总签到次数: ")
                                             }
-                                        } else ChaoxingHttpClient.instance!!.userEntity.schoolName,
-                                        fontSize = 10.sp,
-                                        lineHeight = 11.sp,
-                                        color = Color.Gray,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                }
-                                Column(horizontalAlignment = Alignment.End) {
-                                    Text(buildAnnotatedString {
-                                        withStyle(labelSmallSpanStyle) {
-                                            append("总签到次数: ")
-                                        }
-                                        withStyle(highlightSpanStyle) {
-                                            if (userIndex != -1) append(userRecord!!.totalSignCount.toString())
-                                            else {
-                                                val total =
-                                                    analyser.photoSignCount.value + analyser.gestureSignCount.value + analyser.clickSignCount.value + analyser.locationSignCount.value + analyser.qrcodeSignCount.value + analyser.passwordSignCount.value + analyser.otherUserSignCount.value
-                                                append(total.toString())
+                                            withStyle(highlightSpanStyle) {
+                                                if (userIndex != -1) append(userRecord!!.totalSignCount.toString())
+                                                else {
+                                                    val total =
+                                                        analyser.photoSignCount.value + analyser.gestureSignCount.value + analyser.clickSignCount.value + analyser.locationSignCount.value + analyser.qrcodeSignCount.value + analyser.passwordSignCount.value
+                                                    append(total.toString())
+                                                }
                                             }
-                                        }
-                                    })
-                                    val otherSigns =
-                                        if (userIndex != -1) userRecord!!.otherSign.toString() else analyser.otherUserSignCount.value.toString()
-                                    Text(
-                                        "代签次数: $otherSigns",
-                                        fontSize = 10.sp,
-                                        lineHeight = 11.sp,
-                                        color = Color.Gray
-                                    )
+                                        })
+                                        val otherSigns =
+                                            if (userIndex != -1) userRecord!!.otherSign.toString() else analyser.otherUserSignCount.value.toString()
+                                        Text(
+                                            "代签次数: $otherSigns",
+                                            fontSize = 10.sp,
+                                            lineHeight = 11.sp,
+                                            color = Color.Gray
+                                        )
+                                    }
                                 }
+                                Text(
+                                    "上次上传排行榜数据时间：${
+                                        if (lastUploadTimestamp == 0L) "从未成功过或因旧版本暂未记录上传时间" else Instant.ofEpochMilli(
+                                            lastUploadTimestamp
+                                        ).atZone(
+                                            ZoneId.systemDefault()
+                                        ).format(
+                                            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                                        )
+                                    }",
+                                    fontSize = 10.sp,
+                                    lineHeight = 11.sp,
+                                    color = Color.Gray,
+                                )
                             }
                         }
 
@@ -575,6 +606,7 @@ fun AnalyserCard() {
                             }
                             Button(
                                 onClick = {
+                                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                                     isAnalyserRankDialog = true
                                 },
                                 modifier = Modifier.fillMaxWidth(),

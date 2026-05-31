@@ -32,6 +32,7 @@ message ChaoxingSignFakerDataStore{
   string analysisRankName = 22;
   bool disableAnalysisRank = 23;
   bool hideAnalysisRankSchoolName = 24;
+  uint64 lastUploadAnalysisTimestamp = 25;
 }
 
 message ChaoxingFaceRecognitionImage{
@@ -48,6 +49,7 @@ message Preferences{
   bool isDevelopedMode = 2;
   ChaoxingLocation lastSignedLocation = 3;
   string customizedUserAgent = 4;
+  string customizedPackageName = 5;
 }
 
 message ChaoxingCourseClass{
