@@ -9,6 +9,7 @@ package org.aquamarine5.brainspark.chaoxingsignfaker.api
 import android.content.Context
 import android.graphics.Bitmap
 import com.alibaba.fastjson2.JSONObject
+import io.sentry.Sentry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.HttpUrl.Companion.toHttpUrl
@@ -62,13 +63,21 @@ object ChaoxingFaceHelper {
             .fluentPut("collectStatus", 1)
             .fluentPut("cxtime", cxtime)
             .apply {
-                client.userEntity.clientId?.let { clientId ->
-                    addSignToken(clientId, fields, cxtime)
+                runCatching {
+                    client.userEntity.clientId?.let { clientId ->
+                        addSignToken(clientId, fields, cxtime)
+                    }
+                }.onFailure {
+                    Sentry.captureException(it)
                 }
             }
     }
 
-    private fun JSONObject.addSignToken(clientId: String, fields: Map<String, String>, cxtime: String) {
+    private fun JSONObject.addSignToken(
+        clientId: String,
+        fields: Map<String, String>,
+        cxtime: String
+    ) {
         val deviceInfo = ChaoxingDeviceInfoHelper.decryptClientId(clientId) ?: return
         val cxcid = deviceInfo.getString("cid") ?: return
         val sc = deviceInfo.getString("sc") ?: return

@@ -340,7 +340,7 @@ fun CameraComponent(
                                     )
                                 }
                             }) {
-                                Icon(painterResource(R.drawable.ic_images),null)
+                                Icon(painterResource(R.drawable.ic_images), null)
                             }
                             FloatingActionButton(onClick = {
                                 hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)

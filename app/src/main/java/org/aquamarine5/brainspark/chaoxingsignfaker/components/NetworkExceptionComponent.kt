@@ -63,7 +63,8 @@ fun NetworkExceptionComponent(
             )
             Spacer(modifier = Modifier.height(5.dp))
             Text(
-                networkExceptionTips ?: "啊哦~出现了未知错误。${exception::class.java.simpleName}\n${exception.localizedMessage}",
+                networkExceptionTips
+                    ?: "啊哦~出现了未知错误。${exception::class.java.simpleName}\n${exception.localizedMessage}",
                 lineHeight = 17.sp,
                 fontSize = 14.sp, textAlign = TextAlign.Center
             )

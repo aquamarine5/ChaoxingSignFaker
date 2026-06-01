@@ -334,7 +334,10 @@ class MainActivity : ComponentActivity() {
                                 ImageLoader.Builder(applicationContext).components {
                                     add(
                                         OkHttpNetworkFetcherFactory(
-                                            callFactory = { ChaoxingHttpClient.instance?.okHttpClient?: OkHttpClient() })
+                                            callFactory = {
+                                                ChaoxingHttpClient.instance?.okHttpClient
+                                                    ?: OkHttpClient()
+                                            })
                                     )
                                 }.diskCache {
                                     DiskCache.Builder()
@@ -352,9 +355,10 @@ class MainActivity : ComponentActivity() {
                                         LocationClient.setAgreePrivacy(true)
                                         SDKInitializer.setAgreePrivacy(applicationContext, true)
                                     }
-                                    initializeClientInfo(datastore.preferences.customizedUserAgent,datastore.preferences.customizedPackageName)
-//                                    chaoxingUserAgent =
-//                                        getUserAgent(datastore.preferences.customizedUserAgent)
+                                    initializeClientInfo(
+                                        datastore.preferences.customizedUserAgent,
+                                        datastore.preferences.customizedPackageName
+                                    )
                                     isDevelopedMode = datastore.preferences.isDevelopedMode
                                     destination =
                                         when {

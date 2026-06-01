@@ -81,7 +81,8 @@ object ChaoxingDeviceInfoHelper {
             context.contentResolver,
             Settings.Secure.ANDROID_ID
         ).orEmpty()
-        val deviceUniqueId = sha256("${chaoxingApplicationPackageName}:$androidId:${Build.FINGERPRINT}")
+        val deviceUniqueId =
+            sha256("${chaoxingApplicationPackageName}:$androidId:${Build.FINGERPRINT}")
         val metrics = context.resources.displayMetrics
 
         return JSONObject()
