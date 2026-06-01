@@ -241,6 +241,7 @@ fun CustomizeClientCard() {
                         dataStore.toBuilder().apply {
                             preferences = preferences.toBuilder()
                                 .setCustomizedUserAgent(selectedOption?.identity ?: customUserAgent)
+                                .setCustomizedPackageName(customPackageName)
                                 .build()
                         }.build()
                     }

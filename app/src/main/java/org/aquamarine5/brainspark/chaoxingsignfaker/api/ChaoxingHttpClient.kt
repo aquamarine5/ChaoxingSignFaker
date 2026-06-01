@@ -295,7 +295,7 @@ class ChaoxingHttpClient private constructor(
                                         }.build()
                                     )
                                 }.onFailure {
-                                    withContext(Dispatchers.IO) {
+                                    withContext(Dispatchers.Main) {
                                         Toast.makeText(
                                             context,
                                             "人脸识别相关数据获取失败",
