@@ -150,7 +150,7 @@ fun CameraComponent(
                         imageCapture
                     )
                 }, ContextCompat.getMainExecutor(application))
-                
+
                 onDispose {
                     future.get().unbindAll()
                 }
@@ -200,7 +200,7 @@ fun CameraComponent(
                     }
                 }
             }
-            val gallery = rememberLauncherForActivityResult(
+            val gallerySingle = rememberLauncherForActivityResult(
                 contract = ActivityResultContracts.PickVisualMedia(),
                 onResult = { uri ->
                     if (uri == null) return@rememberLauncherForActivityResult
@@ -212,6 +212,37 @@ fun CameraComponent(
                         job?.cancel()
                         takeImage = image
                         needTakePictureCount--
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                        if (needTakePictureCount <= 0) {
+                            onPictureResult(photoList)
+                        } else {
+                            onNextPhoto?.invoke()
+                        }
+                    }.onFailure {
+                        it.snackbarReport(
+                            snackbarHost,
+                            coroutineScope,
+                            "选择图片失败",
+                            hapticFeedback
+                        )
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
+                    }
+                }
+            )
+            val galleryMultiple = rememberLauncherForActivityResult(
+                contract = ActivityResultContracts.PickMultipleVisualMedia(),
+                onResult = { uris ->
+                    if (uris.isEmpty()) return@rememberLauncherForActivityResult
+                    runCatching {
+                        uris.forEach { uri ->
+                            val image = application.contentResolver.openInputStream(uri).use {
+                                BitmapFactory.decodeStream(it)
+                            }
+                            photoList.add(image)
+                            takeImage = image
+                            needTakePictureCount--
+                        }
+                        job?.cancel()
                         hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                         if (needTakePictureCount <= 0) {
                             onPictureResult(photoList)
@@ -290,13 +321,39 @@ fun CameraComponent(
                         },
                         state = tooltipState
                     ) {
-                        FloatingActionButton(onClick = {
-                            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                            gallery.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-                        }) {
-                            Icon(
-                                painterResource(R.drawable.ic_images), null
-                            )
+                        Row {
+                            FloatingActionButton(onClick = {
+                                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                                if (needTakePictureCount > 1) {
+                                    galleryMultiple.launch(
+                                        PickVisualMediaRequest(
+                                            ActivityResultContracts.PickVisualMedia.ImageOnly,
+                                            needTakePictureCount,
+                                            isOrderedSelection = true
+                                        )
+                                    )
+                                } else {
+                                    gallerySingle.launch(
+                                        PickVisualMediaRequest(
+                                            ActivityResultContracts.PickVisualMedia.ImageOnly
+                                        )
+                                    )
+                                }
+                            }) {
+                                Icon(painterResource(R.drawable.ic_images), null)
+                            }
+                            FloatingActionButton(onClick = {
+                                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                                gallerySingle.launch(
+                                    PickVisualMediaRequest(
+                                        ActivityResultContracts.PickVisualMedia.ImageOnly
+                                    )
+                                )
+                            }) {
+                                Icon(
+                                    painterResource(R.drawable.ic_image), null
+                                )
+                            }
                         }
                     }
 

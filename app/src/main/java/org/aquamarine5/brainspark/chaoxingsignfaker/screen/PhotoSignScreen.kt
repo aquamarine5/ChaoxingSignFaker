@@ -243,13 +243,14 @@ fun PhotoSignScreen(
                                                                 this to { validateValue ->
                                                                     captchaValidateParams = null
                                                                     if (continuation.isActive) {
-                                                                        continuation.resumeWith(runCatching {
-                                                                            validateValue.onSuccess {
-                                                                                this.signByClickWithCaptcha(
-                                                                                    it
-                                                                                )
-                                                                            }.getOrThrow()
-                                                                        })
+                                                                        continuation.resumeWith(
+                                                                            runCatching {
+                                                                                validateValue.onSuccess {
+                                                                                    this.signByClickWithCaptcha(
+                                                                                        it
+                                                                                    )
+                                                                                }.getOrThrow()
+                                                                            })
                                                                     }
                                                                 }
                                                         }
@@ -486,16 +487,19 @@ fun PhotoSignScreen(
                                                                 suspendCancellableCoroutine { continuation ->
                                                                     captchaValidateParams =
                                                                         this to { validateValue ->
-                                                                            captchaValidateParams = null
+                                                                            captchaValidateParams =
+                                                                                null
                                                                             if (continuation.isActive) {
-                                                                                continuation.resumeWith(runCatching {
-                                                                                    validateValue.onSuccess {
-                                                                                        this.signByImageWithCaptcha(
-                                                                                            objectId,
-                                                                                            it
-                                                                                        )
-                                                                                    }.getOrThrow()
-                                                                                })
+                                                                                continuation.resumeWith(
+                                                                                    runCatching {
+                                                                                        validateValue.onSuccess {
+                                                                                            this.signByImageWithCaptcha(
+                                                                                                objectId,
+                                                                                                it
+                                                                                            )
+                                                                                        }
+                                                                                            .getOrThrow()
+                                                                                    })
                                                                             }
                                                                         }
                                                                 }
@@ -705,6 +709,7 @@ fun PhotoSignScreen(
                                                                 Text("拍摄给 ${combinedUserList[imageIndex]} 签到的图片")
                                                             }
                                                         }) { imageList ->
+                                                        isCamera = false
                                                         signHandler.startSigning(
                                                             imageList,
                                                             isSelfForSign,

@@ -135,8 +135,8 @@ fun SettingScreen(
             }, text = {
                 TextField(inputPassword, onValueChange = {
                     inputPassword = it
-                }, placeholder = {
-                    Text("请输入密码")
+                }, label = {
+                    Text("密码")
                 })
             }, dismissButton = {
                 OutlinedButton(onClick = {

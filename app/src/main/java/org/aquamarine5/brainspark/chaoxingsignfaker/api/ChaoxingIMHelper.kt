@@ -97,7 +97,9 @@ object ChaoxingIMHelper {
                     val attachObject = JSONObject.parseObject(ext.stringValue)
                     if (attachObject.getInteger("attachmentType") == 15) {
                         val signInfo = attachObject.getJSONObject("att_chat_course")
-                        val courseInfo = signInfo.getJSONObject("courseInfo")
+                            ?: return@forEachImMessages
+                        val courseInfo =
+                            signInfo.getJSONObject("courseInfo") ?: return@forEachImMessages
                         val activeId = signInfo.getLong("aid") ?: return@forEachImMessages
                         if (activeId == 0L ||
                             (signInfo.getInteger("atype") != 2 &&

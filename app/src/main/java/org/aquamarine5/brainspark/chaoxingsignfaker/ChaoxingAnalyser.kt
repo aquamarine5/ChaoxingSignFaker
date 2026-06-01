@@ -39,7 +39,7 @@ object ChaoxingAnalyser {
             runCatching {
                 ChaoxingHttpClient.instance!!.newCall(
                     Request.Builder()
-                        .url("$SUPABASE_ENDPOINT?order=totalSignCount.desc&limit=20&isPublic=eq.TRUE")
+                        .url("$SUPABASE_ENDPOINT?order=totalSignCount.desc&limit=25&isPublic=eq.TRUE")
                         .get()
                         .header(
                             "apikey",
@@ -124,7 +124,7 @@ object ChaoxingAnalyser {
                                                 "totalSignCount",
                                                 (mutableAnalyser.photoSignCount.value + mutableAnalyser.gestureSignCount.value + mutableAnalyser.locationSignCount.value + mutableAnalyser.qrcodeSignCount.value + mutableAnalyser.clickSignCount.value + mutableAnalyser.passwordSignCount.value).toString()
                                             )
-                                            .addEncoded("isPublic","true")
+                                            .addEncoded("isPublic", "true")
                                             .addEncoded("name", analysisName)
                                             .build()
                                     ).build()
@@ -134,6 +134,7 @@ object ChaoxingAnalyser {
                                 }
                         }.onSuccess {
                             setLastUploadAnalysisDate(currentDate)
+                            setLastUploadAnalysisTimestamp(System.currentTimeMillis())
                         }.onFailure {
                             it.printStackTrace()
                             Sentry.captureException(it)

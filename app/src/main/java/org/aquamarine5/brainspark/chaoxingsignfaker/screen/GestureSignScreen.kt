@@ -358,11 +358,15 @@ fun GestureSignScreen(
                                                             this to { captchaValidate ->
                                                                 captchaValidateParams = null
                                                                 if (continuation.isActive) {
-                                                                    continuation.resumeWith(runCatching {
-                                                                        captchaValidate.onSuccess {
-                                                                            signWithCaptcha(value, it)
-                                                                        }.getOrThrow()
-                                                                    })
+                                                                    continuation.resumeWith(
+                                                                        runCatching {
+                                                                            captchaValidate.onSuccess {
+                                                                                signWithCaptcha(
+                                                                                    value,
+                                                                                    it
+                                                                                )
+                                                                            }.getOrThrow()
+                                                                        })
                                                                 }
                                                             }
                                                     }

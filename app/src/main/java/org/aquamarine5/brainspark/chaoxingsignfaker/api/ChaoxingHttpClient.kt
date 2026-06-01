@@ -7,7 +7,9 @@
 package org.aquamarine5.brainspark.chaoxingsignfaker.api
 
 import android.content.Context
+import android.widget.Toast
 import com.alibaba.fastjson2.JSONObject
+import io.sentry.Sentry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
@@ -23,7 +25,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.ChaoxingPredictableException
 import org.aquamarine5.brainspark.chaoxingsignfaker.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.checkResponseThrowException
-import org.aquamarine5.brainspark.chaoxingsignfaker.components.CHAOXING_USER_AGENT
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.chaoxingUserAgent
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingLoginSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingSignFakerDataStore
@@ -129,7 +131,7 @@ class ChaoxingHttpClient private constructor(
             }).addInterceptor { chain ->
                 chain.proceed(
                     chain.request().newBuilder()
-                        .header("User-Agent", CHAOXING_USER_AGENT).build()
+                        .header("User-Agent", chaoxingUserAgent).build()
                 )
             }.retryOnConnectionFailure(true)
                 .build().apply {
@@ -186,7 +188,7 @@ class ChaoxingHttpClient private constructor(
                 .addInterceptor { chain ->
                     chain.proceed(
                         chain.request().newBuilder()
-                            .header("User-Agent", CHAOXING_USER_AGENT).build()
+                            .header("User-Agent", chaoxingUserAgent).build()
                     )
                 }
                 .build()
@@ -231,7 +233,7 @@ class ChaoxingHttpClient private constructor(
             }).addInterceptor { chain ->
                 chain.proceed(
                     chain.request().newBuilder()
-                        .header("User-Agent", CHAOXING_USER_AGENT).build()
+                        .header("User-Agent", chaoxingUserAgent).build()
                 )
             }.retryOnConnectionFailure(true).build().apply {
                 cookieJar.saveFromResponse(
@@ -277,7 +279,35 @@ class ChaoxingHttpClient private constructor(
         ): ChaoxingUserEntity =
             withContext(Dispatchers.IO) {
                 runCatching {
-                    client.newCall(Request.Builder().get().url(URL_USER_INFO).build()).execute()
+                    client.newCall(
+                        Request.Builder()
+                            .url(URL_USER_INFO)
+                            .apply {
+                                runCatching {
+                                    ChaoxingDeviceInfoHelper.buildEncryptedDeviceInfo(context)
+                                }.onSuccess {
+                                    post(
+                                        FormBody.Builder().apply {
+                                            add(
+                                                "data",
+                                                it
+                                            )
+                                        }.build()
+                                    )
+                                }.onFailure {
+                                    withContext(Dispatchers.Main) {
+                                        Toast.makeText(
+                                            context,
+                                            "人脸识别相关数据获取失败",
+                                            Toast.LENGTH_LONG
+                                        ).show()
+                                    }
+                                    Sentry.captureException(it)
+                                    get()
+                                }
+                            }
+                            .build()
+                    ).execute()
                         .use { response ->
                             response.checkResponseThrowException()
                             val jsonResult =
@@ -290,7 +320,8 @@ class ChaoxingHttpClient private constructor(
                                 jsonResult.getString("uname"),
                                 jsonResult.getString("pic").replace("http://", "https://"),
                                 jsonResult.getInteger("puid"),
-                                phoneNumber
+                                phoneNumber,
+                                jsonResult.getString("clientId")?.takeIf { it.isNotEmpty() }
                             )
                         }
                 }.getOrElse { throwable ->
