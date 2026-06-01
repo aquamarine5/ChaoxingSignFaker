@@ -7,7 +7,9 @@
 package org.aquamarine5.brainspark.chaoxingsignfaker.api
 
 import android.content.Context
+import android.widget.Toast
 import com.alibaba.fastjson2.JSONObject
+import io.sentry.Sentry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
@@ -280,12 +282,30 @@ class ChaoxingHttpClient private constructor(
                     client.newCall(
                         Request.Builder()
                             .url(URL_USER_INFO)
-                            .post(FormBody.Builder().apply {
-                                add(
-                                    "data",
+                            .apply {
+                                runCatching {
                                     ChaoxingDeviceInfoHelper.buildEncryptedDeviceInfo(context)
-                                )
-                            }.build())
+                                }.onSuccess {
+                                    post(
+                                        FormBody.Builder().apply {
+                                            add(
+                                                "data",
+                                                it
+                                            )
+                                        }.build()
+                                    )
+                                }.onFailure {
+                                    withContext(Dispatchers.IO) {
+                                        Toast.makeText(
+                                            context,
+                                            "人脸识别相关数据获取失败",
+                                            Toast.LENGTH_LONG
+                                        ).show()
+                                    }
+                                    Sentry.captureException(it)
+                                    get()
+                                }
+                            }
                             .build()
                     ).execute()
                         .use { response ->

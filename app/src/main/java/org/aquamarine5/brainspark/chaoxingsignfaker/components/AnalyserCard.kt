@@ -205,7 +205,7 @@ fun AnalyserCard() {
             }, text = {
                 Column {
                     Text("随地大小签的签到排行榜每日根据用户的签到数据上传至数据库进行更新，并非实时更新，上传的数据不会包含学习通账号的隐私信息，上传的数据仅用作排行榜展示，不会用于其他用途。随地大小签的排行榜功能仍在测试阶段。\n如果不想展示学校信息，可以勾选下方的【隐藏上传学校信息】。\n请注意，任何操作都会在修改后的第二天打开应用时提交至服务器进行修改。")
-                    HorizontalDivider(modifier = Modifier.padding(0.dp,4.dp,0.dp,8.dp))
+                    HorizontalDivider(modifier = Modifier.padding(0.dp,8.dp,0.dp,0.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Switch(
                             checked = isHideAnalyserSchoolName,
@@ -254,6 +254,7 @@ fun AnalyserCard() {
                     Text("签到码签到次数: ${detail.passwordSign}")
                     Text("代签次数: ${detail.otherSign}")
                     Text("总签到次数: ${detail.totalSignCount}")
+                    Text("最新更新时间：${detail.latestDate}")
                 }
             }, confirmButton = {
                 Button(onClick = {
