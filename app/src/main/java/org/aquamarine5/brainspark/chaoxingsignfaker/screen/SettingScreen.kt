@@ -158,6 +158,18 @@ fun SettingScreen(
                                 it.toBuilder().setBypassBlockedChecking(true).build()
                             }
                         }
+                    } else if (inputPassword.startsWith("setRankCount")) {
+                        inputPassword.substringAfter("setRankCount").toIntOrNull()?.let { count ->
+                            coroutineScope.launch(Dispatchers.IO) {
+                                context.chaoxingDataStore.updateData {
+                                    it.toBuilder().setPreferences(
+                                        it.preferences.toBuilder().setDisplayRankCount(count)
+                                            .build()
+                                    ).build()
+                                }
+                                snackbarHostState.displaySnackbar("已设置排行榜显示数量为$count", coroutineScope)
+                            }
+                        }
                     }
                 }) {
                     Text("确认")

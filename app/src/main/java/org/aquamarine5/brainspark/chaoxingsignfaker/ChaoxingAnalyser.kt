@@ -12,6 +12,7 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.listSaver
+import com.alibaba.fastjson2.JSONArray
 import io.sentry.Sentry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -28,18 +29,42 @@ import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 private const val SUPABASE_ENDPOINT =
-    "https://zpkavhhjdtghljleztpb.supabase.co/rest/v1/AnalyserData"
+    "https://zpkavhhjdtghljleztpb.supabase.co/rest/v1"
+private const val SUPABASE_DATABASE_ID = "AnalyserData"
+private const val SUPABASE_RANK_VIEW_ID = "user_sign_rank"
 private const val SUPABASE_API_KEY = "sb_publishable_dFuI4bOoYPlDozMXOGKgPg_cCQ0o22B"
 
 object ChaoxingAnalyser {
     lateinit var rankUUID: String
 
-    suspend fun getAnalyserTopRank(): Result<List<ChaoxingAnalyserRankRecord>> {
+    suspend fun getUserTopRank(uuid: String): Result<Int> {
         return withContext(Dispatchers.IO) {
             runCatching {
                 ChaoxingHttpClient.instance!!.newCall(
                     Request.Builder()
-                        .url("$SUPABASE_ENDPOINT?order=totalSignCount.desc&limit=25&isPublic=eq.TRUE")
+                        .url("$SUPABASE_ENDPOINT/$SUPABASE_RANK_VIEW_ID?select=rank&uuid=eq.$uuid")
+                        .get()
+                        .header(
+                            "apikey",
+                            SUPABASE_API_KEY
+                        )
+                        .build()
+                ).execute().use { response ->
+                    response.checkResponseThrowException()
+                    val responseBody = response.body.string()
+                    return@runCatching JSONArray.parseArray(responseBody).getJSONObject(0)
+                        .getInteger("rank")
+                }
+            }
+        }
+    }
+
+    suspend fun getAnalyserTopRank(topCount: Int): Result<List<ChaoxingAnalyserRankRecord>> {
+        return withContext(Dispatchers.IO) {
+            runCatching {
+                ChaoxingHttpClient.instance!!.newCall(
+                    Request.Builder()
+                        .url("$SUPABASE_ENDPOINT/$SUPABASE_DATABASE_ID?order=totalSignCount.desc&limit=$topCount&isPublic=eq.TRUE")
                         .get()
                         .header(
                             "apikey",
