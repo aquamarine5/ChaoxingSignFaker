@@ -109,14 +109,15 @@ object ChaoxingDeviceInfoHelper {
             .fluentPut("app_ver", packageInfo?.versionName ?: "6.7.5")
             .fluentPut(
                 "versionCode",
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                    packageInfo?.longVersionCode?.toString() ?: "10941"
+                (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    packageInfo?.longVersionCode?.toString()
                 } else {
                     @Suppress("DEPRECATION")
-                    packageInfo?.versionCode?.toString() ?: "10941"
-                }
+                    packageInfo?.versionCode?.toString()
+                }) ?: "10941"
             )
-            .fluentPut("signatures",
+            .fluentPut(
+                "signatures",
                 packageInfo?.let { getSignatureDigest(it) }
                     ?: "1e27068798b6697821abbeb44a17da5483c4fb7fad7b9ce7890465ed04d0cbe0"
             )
