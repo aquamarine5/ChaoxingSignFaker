@@ -112,7 +112,7 @@ fun OtherUserSelectorComponent(
                     modifier = Modifier.size(40.dp)
                 )
             }, text = {
-                Text("随地大小签会自动检测并拒绝为用户不在班级的情况进行签到，因为强制签到会导致老师的已签名单中出现未选此课不在班的学生。如果你认为随地大小签的判断存在问题，请点击【重试】按钮。")
+                Text("随地大小签会自动检测并拒绝为用户不在班级的情况进行签到，因为强制签到会导致老师的已签名单中出现未选此课不在班的学生。\n如果你认为随地大小签的判断存在问题，请点击【强制重试签到】按钮。")
             }, confirmButton = {
                 OutlinedButton(onClick = {
                     hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
@@ -134,7 +134,7 @@ fun OtherUserSelectorComponent(
                         isIgnoreExceptionSigning = false
                     }
                 }, enabled = isIgnoreExceptionSigning.not()) {
-                    Text("重试")
+                    Text("强制重试签到")
                 }
             })
         }

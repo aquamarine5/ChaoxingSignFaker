@@ -154,6 +154,7 @@ fun CaptchaHandlerDialog(
                                                 isCheckingCaptcha.set(false)
                                             } else {
                                                 onResult(Result.success(result))
+                                                onDismiss()
                                                 isCheckingCaptcha.set(false)
                                             }
                                         }
@@ -165,6 +166,7 @@ fun CaptchaHandlerDialog(
                                         hapticFeedback
                                     )
                                     onResult(Result.failure(it))
+                                    onDismiss()
                                     isCheckingCaptcha.set(false)
                                 }
                             }

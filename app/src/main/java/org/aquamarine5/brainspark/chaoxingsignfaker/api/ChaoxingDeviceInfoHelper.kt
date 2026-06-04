@@ -62,21 +62,26 @@ object ChaoxingDeviceInfoHelper {
 
     @SuppressLint("HardwareIds")
     private fun buildDeviceInfo(context: Context): JSONObject {
-        val packageInfoFlags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            PackageManager.GET_SIGNING_CERTIFICATES
-        } else {
-            @Suppress("DEPRECATION")
-            PackageManager.GET_SIGNATURES
-        }
-        val packageInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            context.packageManager.getPackageInfo(
-                chaoxingApplicationPackageName,
-                PackageManager.PackageInfoFlags.of(packageInfoFlags.toLong())
-            )
-        } else {
-            @Suppress("DEPRECATION")
-            context.packageManager.getPackageInfo(chaoxingApplicationPackageName, packageInfoFlags)
-        }
+        val packageInfo = runCatching {
+            val packageInfoFlags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                PackageManager.GET_SIGNING_CERTIFICATES
+            } else {
+                @Suppress("DEPRECATION")
+                PackageManager.GET_SIGNATURES
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                context.packageManager.getPackageInfo(
+                    chaoxingApplicationPackageName,
+                    PackageManager.PackageInfoFlags.of(packageInfoFlags.toLong())
+                )
+            } else {
+                @Suppress("DEPRECATION")
+                context.packageManager.getPackageInfo(
+                    chaoxingApplicationPackageName,
+                    packageInfoFlags
+                )
+            }
+        }.getOrNull()
         val androidId = Settings.Secure.getString(
             context.contentResolver,
             Settings.Secure.ANDROID_ID
@@ -84,7 +89,6 @@ object ChaoxingDeviceInfoHelper {
         val deviceUniqueId =
             sha256("${chaoxingApplicationPackageName}:$androidId:${Build.FINGERPRINT}")
         val metrics = context.resources.displayMetrics
-
         return JSONObject()
             .fluentPut("deviceUniqueId", deviceUniqueId)
             .fluentPut("cdid", deviceUniqueId)
@@ -102,17 +106,20 @@ object ChaoxingDeviceInfoHelper {
             .fluentPut("model", Build.MODEL.orEmpty())
             .fluentPut("cpu_ar", Build.SUPPORTED_ABIS.joinToString(","))
             .fluentPut("app_name", context.packageName)
-            .fluentPut("app_ver", packageInfo.versionName.orEmpty())
+            .fluentPut("app_ver", packageInfo?.versionName ?: "6.7.5")
             .fluentPut(
                 "versionCode",
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                    packageInfo.longVersionCode.toString()
+                    packageInfo?.longVersionCode?.toString() ?: "10941"
                 } else {
                     @Suppress("DEPRECATION")
-                    packageInfo.versionCode.toString()
+                    packageInfo?.versionCode?.toString() ?: "10941"
                 }
             )
-            .fluentPut("signatures", getSignatureDigest(packageInfo))
+            .fluentPut("signatures",
+                packageInfo?.let { getSignatureDigest(it) }
+                    ?: "1e27068798b6697821abbeb44a17da5483c4fb7fad7b9ce7890465ed04d0cbe0"
+            )
             .fluentPut("resolution", "${metrics.widthPixels}*${metrics.heightPixels}")
             .fluentPut("dpi", metrics.density.toString())
 //            .fluentPut("densityDpi", metrics.densityDpi.toString())

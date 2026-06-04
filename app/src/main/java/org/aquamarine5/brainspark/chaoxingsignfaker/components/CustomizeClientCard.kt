@@ -81,7 +81,9 @@ enum class ChaoxingClientInfo(
 fun initializeClientInfo(userAgent: String, packageName: String) {
     ChaoxingClientInfo.fromIdentity(userAgent).let {
         if (it == null) {
-            chaoxingUserAgent = userAgent
+            chaoxingUserAgent = userAgent.ifBlank {
+                ChaoxingClientInfo.DEFAULT.userAgent
+            }
             chaoxingClientIdentity = CUSTOM_CLIENT_IDENTITY
             chaoxingApplicationPackageName = packageName.ifBlank {
                 ChaoxingClientInfo.DEFAULT.packageName
@@ -115,7 +117,7 @@ fun CustomizeClientCard() {
         },
         shape = RoundedCornerShape(18.dp),
         modifier = Modifier.fillMaxWidth(),
-        colors = ButtonDefaults.buttonColors(containerColor = Color(0xffea7293))
+        colors = ButtonDefaults.buttonColors(containerColor = Color(0xff8076a3))
     ) {
         Row(
             modifier = Modifier
@@ -231,7 +233,9 @@ fun CustomizeClientCard() {
             }
         }, confirmButton = {
             Button(onClick = {
-                chaoxingUserAgent = selectedOption?.userAgent ?: customUserAgent
+                chaoxingUserAgent = selectedOption?.userAgent ?: customUserAgent.ifBlank {
+                    ChaoxingClientInfo.DEFAULT.userAgent
+                }
                 chaoxingApplicationPackageName =
                     selectedOption?.packageName ?: customPackageName.ifBlank {
                         ChaoxingClientInfo.DEFAULT.packageName
@@ -241,7 +245,9 @@ fun CustomizeClientCard() {
                     context.chaoxingDataStore.updateData { dataStore ->
                         dataStore.toBuilder().apply {
                             preferences = preferences.toBuilder()
-                                .setCustomizedUserAgent(selectedOption?.identity ?: customUserAgent)
+                                .setCustomizedUserAgent(
+                                    selectedOption?.identity
+                                        ?: customUserAgent.ifBlank { ChaoxingClientInfo.DEFAULT.identity })
                                 .setCustomizedPackageName(customPackageName)
                                 .build()
                         }.build()
