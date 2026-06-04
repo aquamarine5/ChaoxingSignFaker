@@ -154,7 +154,10 @@ class MainActivity : ComponentActivity() {
             val ignoreExceptions = listOf(
                 "ForgottenCoroutineScopeException",
                 "LeftCompositionCancellationException",
-                "SocketTimeoutException"
+                "SocketTimeoutException",
+                "UnknownHostException",
+                "ConnectException",
+                "SSLHandshakeException"
             )
             it.beforeSend = { event, hint ->
                 if (ignoreExceptions.contains(event.throwable?.javaClass?.simpleName)) {

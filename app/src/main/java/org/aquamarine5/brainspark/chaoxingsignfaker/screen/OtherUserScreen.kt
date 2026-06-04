@@ -1199,10 +1199,12 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                 }
                             }
                             otherUserSessions.removeAt(index)
+                            userTagList.removeAt(index)
                             hapticFeedback.performHapticFeedback(
                                 HapticFeedbackType.ContextClick
                             )
                             requestedDeleteUserIndex = null
+                            selectedUserSettingDialogIndex = null
                         }
                     ) {
                         Text("删除")

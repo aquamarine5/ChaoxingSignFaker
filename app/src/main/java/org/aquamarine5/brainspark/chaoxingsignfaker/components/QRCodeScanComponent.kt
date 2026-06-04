@@ -19,9 +19,9 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
-import androidx.camera.core.Preview
 import androidx.camera.core.resolutionselector.ResolutionSelector
 import androidx.camera.core.resolutionselector.ResolutionStrategy
+import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.mlkit.vision.MlKitAnalyzer
 import androidx.camera.view.LifecycleCameraController
 import androidx.camera.view.PreviewView
@@ -100,16 +100,15 @@ fun QRCodeScanComponent(
         val context = LocalContext.current
         val lifecycleOwner = LocalLifecycleOwner.current
         val cameraExecutor = remember(context) { ContextCompat.getMainExecutor(context) }
+        val cameraProviderFuture = remember { ProcessCameraProvider.getInstance(context) }
         context.let { context ->
             val previewView = remember { PreviewView(context) }
-            val preview = remember { Preview.Builder().build() }
             val controller = remember {
                 LifecycleCameraController(context).apply {
                     previewView.controller = this
                     isTapToFocusEnabled = true
                     isPinchToZoomEnabled = true
                     setEnabledUseCases(LifecycleCameraController.IMAGE_ANALYSIS)
-                    preview.surfaceProvider = previewView.surfaceProvider
                     ResolutionSelector.Builder()
                         .setResolutionStrategy(ResolutionStrategy.HIGHEST_AVAILABLE_STRATEGY)
                         .build().let {
@@ -117,7 +116,6 @@ fun QRCodeScanComponent(
                             imageAnalysisResolutionSelector = it
                         }
                     cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
-
                 }
             }
             val barcodeScanner = remember {
@@ -168,28 +166,40 @@ fun QRCodeScanComponent(
                     }
                 }
             }
-            LaunchedEffect(Unit) {
-                controller.setImageAnalysisAnalyzer(
-                    cameraExecutor, MlKitAnalyzer(
-                        listOf(barcodeScanner),
-                        ImageAnalysis.COORDINATE_SYSTEM_VIEW_REFERENCED,
-                        cameraExecutor,
-                    ) {
-                        it?.let { result ->
-                            val barcodeResult = result.getValue(barcodeScanner)
-                            if (barcodeResult.isNullOrEmpty()) {
+            DisposableEffect(lifecycleOwner) {
+                cameraProviderFuture.addListener({
+                    val cameraProvider = cameraProviderFuture.get()
+                    cameraProvider.unbindAll()
+
+                    controller.setImageAnalysisAnalyzer(
+                        cameraExecutor, MlKitAnalyzer(
+                            listOf(barcodeScanner),
+                            ImageAnalysis.COORDINATE_SYSTEM_VIEW_REFERENCED,
+                            cameraExecutor,
+                        ) {
+                            it?.let { result ->
+                                val barcodeResult = result.getValue(barcodeScanner)
+                                if (barcodeResult.isNullOrEmpty()) {
+                                    previewView.overlay.clear()
+                                    return@MlKitAnalyzer
+                                }
+                                val barcode = barcodeResult[0]
                                 previewView.overlay.clear()
-                                return@MlKitAnalyzer
+                                previewView.overlay.add(QRCodeDrawable(barcode))
+                                if (!isPause.value) {
+                                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                                    onScanResult(barcode)
+                                }
                             }
-                            val barcode = barcodeResult[0]
-                            previewView.overlay.clear()
-                            previewView.overlay.add(QRCodeDrawable(barcode))
-                            if (!isPause.value) {
-                                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                                onScanResult(barcode)
-                            }
-                        }
-                    })
+                        })
+
+                    controller.bindToLifecycle(lifecycleOwner)
+                }, cameraExecutor)
+                onDispose {
+                    barcodeScanner.close()
+                    controller.clearImageAnalysisAnalyzer()
+                    controller.unbind()
+                }
             }
             Box(
                 modifier = Modifier
@@ -294,14 +304,6 @@ fun QRCodeScanComponent(
                 }
 
                 content()
-            }
-            DisposableEffect(lifecycleOwner) {
-                controller.unbind()
-                controller.bindToLifecycle(lifecycleOwner)
-                onDispose {
-                    barcodeScanner.close()
-                    controller.unbind()
-                }
             }
         }
     } else {
