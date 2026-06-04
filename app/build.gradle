@@ -11,7 +11,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     id("org.aquamarine5.brainspark.stackbricks-gradle-plugin") version "2.2.7"
     id("com.google.protobuf") version "0.9.6"
-    id "io.sentry.android.gradle" version "6.8.1"
+    id "io.sentry.android.gradle" version "6.9.0"
     id("org.jetbrains.kotlin.plugin.serialization") version "2.3.20"
 }
 
@@ -26,14 +26,15 @@ stackbricksConfig {
             new PossibleConfigurationPath("cdn.aquamarine5.fun", "chaoxingsignfaker_stackbricks_v2_manifest.json")
     ]
     changelog =
+            "# 1.14.6 更新：\n1. （重要）回退了百度地图定位依赖的更新，因为发现有时会导致位置签到的崩溃。\n2. 签到排行榜从Top20改成了Top50，同时如果不在Top50时也可以看到自己的排名是多少。\n\n"+
             "# 1.14.5 更新：\n1. 小修小补\n\n" +
             "# 1.14.4 更新：\n1. 更新适配了人脸识别新模式。\n2. 修复了部分签到BUG。\n3. 修复了排行榜显示次数BUG。\n\n" +
             "# 1.14.3 更新：\n1. 支持了新模式的人脸识别签到。旧版本的应用人脸识别将无法正常签到！提示“活体验证参数缺失”。\n\n" +
             "# 1.14.2 更新：\n1. 加入了签到排行榜功能。\n\n" +
             "# 1.14.1 更新：\n1. 修复了人脸签到的时候不勾选自己会导致应用崩溃的问题。\n2. 修复了部分情况下有人脸和二维码打开摄像头操作崩溃的问题\n3. 修复了验证码滑块异常的问题\n4. 修复了代签用户页异常的扳手图标问题\n\n" +
-            "lovely but not lonely, 20260601 大家儿童节快乐~给自己放个假吧, @aquamarine5 Brainspark."
+            "lovely but not lonely, 20260603 大家儿童节快乐~给自己放个假吧, @aquamarine5 Brainspark."
     requiredManifestVersion2MigrateForceInstall = true
-    forceInstallLessVersion = 1_1403_0000
+    forceInstallLessVersion = 1_1406_1099
     qiniuConfig {
         accessKey = project.findProperty("qiniu.accessKey") ?: ""
         secretKey = project.findProperty("qiniu.secretKey") ?: ""
@@ -53,8 +54,8 @@ android {
         applicationId = "org.aquamarine5.brainspark.chaoxingsignfaker"
         minSdk = 26
         targetSdk = 37
-        versionCode = 1_1406_0100
-        versionName = "1.14.6-rc1-260602"
+        versionCode = 1_1406_1100
+        versionName = "1.14.6-stable-260603"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

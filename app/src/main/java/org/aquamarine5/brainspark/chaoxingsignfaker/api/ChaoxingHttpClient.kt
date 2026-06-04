@@ -316,7 +316,12 @@ class ChaoxingHttpClient private constructor(
                                 jsonResult.getInteger("uid"),
                                 jsonResult.getInteger("fid"),
                                 jsonResult.getString("name"),
-                                jsonResult.getString("schoolname"),
+                                jsonResult.getString("schoolname", "").ifBlank {
+                                    runCatching {
+                                        jsonResult.getJSONArray("unitConfigInfos")?.getJSONObject(0)
+                                            ?.getString("schoolname")
+                                    }.getOrNull() ?: "未知学校"
+                                },
                                 jsonResult.getString("uname"),
                                 jsonResult.getString("pic").replace("http://", "https://"),
                                 jsonResult.getInteger("puid"),

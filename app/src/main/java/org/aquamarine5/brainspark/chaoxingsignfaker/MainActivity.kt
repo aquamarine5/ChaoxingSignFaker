@@ -151,12 +151,19 @@ class MainActivity : ComponentActivity() {
                 it.isAnrEnabled = false
             } else
                 it.environment = "stable"
-
+            val ignoreExceptions = listOf(
+                "ForgottenCoroutineScopeException",
+                "LeftCompositionCancellationException",
+                "SocketTimeoutException"
+            )
             it.beforeSend = { event, hint ->
-                event.apply {
-                    (throwable as? ChaoxingParseDataException)?.let {
-                        setExtra("data", it.data ?: "null")
+                if (ignoreExceptions.contains(event.throwable?.javaClass?.simpleName)) {
+                    null
+                } else {
+                    (event.throwable as? ChaoxingParseDataException)?.let {
+                        event.setExtra("data", it.data ?: "null")
                     }
+                    event
                 }
             }
         }

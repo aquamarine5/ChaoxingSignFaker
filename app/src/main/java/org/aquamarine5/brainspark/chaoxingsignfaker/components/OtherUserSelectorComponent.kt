@@ -34,6 +34,7 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -113,6 +114,13 @@ fun OtherUserSelectorComponent(
             }, text = {
                 Text("随地大小签会自动检测并拒绝为用户不在班级的情况进行签到，因为强制签到会导致老师的已签名单中出现未选此课不在班的学生。如果你认为随地大小签的判断存在问题，请点击【重试】按钮。")
             }, confirmButton = {
+                OutlinedButton(onClick = {
+                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                    ignoreExceptionUserIndex = null
+                }) {
+                    Text("关闭")
+                }
+            }, dismissButton = {
                 var isIgnoreExceptionSigning by remember { mutableStateOf(false) }
                 Button(onClick = {
                     hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)

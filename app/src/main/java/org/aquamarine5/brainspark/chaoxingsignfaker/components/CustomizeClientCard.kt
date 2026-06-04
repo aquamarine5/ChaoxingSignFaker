@@ -71,6 +71,7 @@ enum class ChaoxingClientInfo(
     companion object {
         fun fromIdentity(identity: String): ChaoxingClientInfo? {
             if (identity == CUSTOM_CLIENT_IDENTITY) return null
+            if (identity.isBlank()) return DEFAULT
             return entries.find { it.identity == identity }
         }
     }

@@ -321,7 +321,7 @@ fun CameraComponent(
                         },
                         state = tooltipState
                     ) {
-                        Row {
+                        Column {
                             FloatingActionButton(onClick = {
                                 hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                                 if (needTakePictureCount > 1) {
@@ -340,8 +340,13 @@ fun CameraComponent(
                                     )
                                 }
                             }) {
-                                Icon(painterResource(R.drawable.ic_images), null)
+                                Icon(
+                                    painterResource(R.drawable.ic_images),
+                                    null,
+                                    modifier = Modifier.size(32.dp)
+                                )
                             }
+                            Spacer(modifier = Modifier.height(12.dp))
                             FloatingActionButton(onClick = {
                                 hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                                 gallerySingle.launch(
@@ -351,7 +356,9 @@ fun CameraComponent(
                                 )
                             }) {
                                 Icon(
-                                    painterResource(R.drawable.ic_image), null
+                                    painterResource(R.drawable.ic_image),
+                                    null,
+                                    modifier = Modifier.size(32.dp)
                                 )
                             }
                         }

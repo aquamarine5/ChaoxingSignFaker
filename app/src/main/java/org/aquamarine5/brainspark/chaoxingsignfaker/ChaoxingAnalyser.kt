@@ -101,7 +101,7 @@ object ChaoxingAnalyser {
                         runCatching {
                             ChaoxingHttpClient.instance!!.newCall(
                                 Request.Builder()
-                                    .url(SUPABASE_ENDPOINT)
+                                    .url("$SUPABASE_ENDPOINT/$SUPABASE_DATABASE_ID")
                                     .header(
                                         "apikey",
                                         SUPABASE_API_KEY

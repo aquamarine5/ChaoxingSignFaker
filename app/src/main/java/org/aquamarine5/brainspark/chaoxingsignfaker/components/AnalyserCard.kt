@@ -410,7 +410,7 @@ fun AnalyserCard() {
                                             }
                                             Text(
                                                 it.schoolName.let { school ->
-                                                    if (school.endsWith("HIDE")) "已隐藏学校信息" else school
+                                                    if (school.endsWith("HIDE")) "已隐藏学校信息" else school.ifBlank { "未知学校" }
                                                 },
                                                 fontSize = 10.sp,
                                                 lineHeight = 11.sp,
@@ -492,7 +492,7 @@ fun AnalyserCard() {
                                         Text(
                                             if (userIndex != -1) {
                                                 userRecord!!.schoolName.let { school ->
-                                                    if (school.endsWith("HIDE")) "已隐藏学校信息" else school
+                                                    if (school.endsWith("HIDE")) "已隐藏学校信息" else school.ifBlank { "未知学校" }
                                                 }
                                             } else ChaoxingHttpClient.instance!!.userEntity.schoolName,
                                             fontSize = 10.sp,

@@ -10,6 +10,7 @@ import android.content.Context
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.hapticfeedback.HapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -18,8 +19,10 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingOtherUserHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.SignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.checkIsLast
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
+import org.aquamarine5.brainspark.chaoxingsignfaker.displaySnackbar
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignStatus
 import org.aquamarine5.brainspark.chaoxingsignfaker.ifShouldDeselect
+import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingQRCodeSigner.QRCodeExpiredException
 import org.aquamarine5.brainspark.chaoxingsignfaker.snackbarReport
 
 class ChaoxingSignHandler<in T>(
@@ -30,7 +33,8 @@ class ChaoxingSignHandler<in T>(
     private val onAllSigningFinished: suspend (isSuccessful: Boolean) -> Unit,
     private val userSelections: SnapshotStateList<Boolean>,
     private val signStatus: MutableList<ChaoxingSignStatus>,
-    private val context: Context
+    private val context: Context,
+    private val getSignRealtimeParameter: (suspend () -> T)? = null
 ) {
     private var storedValue: T? = null
     suspend fun ignoreExceptionOtherUserSigning(
@@ -38,7 +42,8 @@ class ChaoxingSignHandler<in T>(
         index: Int
     ): Result<Boolean> {
         return onOtherUserSigning(
-            requireNotNull(storedValue) { "Should call startSigning() first." },
+            getSignRealtimeParameter?.invoke()
+                ?: requireNotNull(storedValue) { "Should call startSigning() first." },
             session,
             true,
             index
@@ -89,12 +94,24 @@ class ChaoxingSignHandler<in T>(
                     if (otherUserSessionList.all { it == null }) {
                         onAllSigningFinished(userSelections.all { !it })
                     }
-                    it.snackbarReport(
-                        snackbarHost,
-                        coroutineScope,
-                        "为${ChaoxingHttpClient.instance!!.userEntity.name}签到失败",
-                        hapticFeedback
-                    )
+                    if (it is QRCodeExpiredException) {
+                        for (i in otherUserSessionList.indices) {
+                            if (otherUserSessionList[i] != null)
+                                signStatus[i + 1].failed(it)
+                        }
+                        snackbarHost.displaySnackbar(
+                            "签到二维码已过期，请重新扫码",
+                            coroutineScope
+                        )
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
+                        onAllSigningFinished(false)
+                    } else
+                        it.snackbarReport(
+                            snackbarHost,
+                            coroutineScope,
+                            "为${ChaoxingHttpClient.instance!!.userEntity.name}签到失败",
+                            hapticFeedback
+                        )
                 }
             }
             var isFirstOtherUserForSign = true
@@ -134,10 +151,22 @@ class ChaoxingSignHandler<in T>(
                     it.ifShouldDeselect {
                         userSelections[index + 1] = false
                     }
+                    signStatus[index + 1].failed(it)
                     if (otherUserSessionList.checkIsLast(index + 1)) {
                         onAllSigningFinished(userSelections.all { !it })
                     }
-                    signStatus[index + 1].failed(it)
+                    if (it is QRCodeExpiredException) {
+                        for (i in (index + 1)..<otherUserSessionList.size) {
+                            if (otherUserSessionList[i] != null)
+                                signStatus[i + 1].failed(it)
+                        }
+                        snackbarHost.displaySnackbar(
+                            "签到二维码已过期，请重新扫码",
+                            coroutineScope
+                        )
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
+                        onAllSigningFinished(false)
+                    }
                 }
             }
         }

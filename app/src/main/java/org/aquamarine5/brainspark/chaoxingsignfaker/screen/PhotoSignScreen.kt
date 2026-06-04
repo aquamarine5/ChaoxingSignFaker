@@ -6,7 +6,6 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.screen
 
-import android.content.Intent
 import android.graphics.Bitmap
 import android.os.Build
 import androidx.activity.compose.BackHandler
@@ -32,12 +31,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -58,15 +54,8 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextDecoration
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
-import androidx.core.net.toUri
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import kotlinx.coroutines.delay
@@ -286,65 +275,6 @@ fun PhotoSignScreen(
                                 userSelections = userSelections,
                                 isSigning = isSigning,
                                 prefixTipsContent = {
-                                    Card(
-                                        onClick = {
-                                            runCatching {
-                                                context.startActivity(
-                                                    Intent(
-                                                        Intent.ACTION_VIEW, "cxstudy://".toUri()
-                                                    ).apply {
-                                                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                                    })
-                                            }.onFailure {
-                                                it.snackbarReport(
-                                                    snackbarHost,
-                                                    coroutineScope,
-                                                    "跳转学习通失败，请确保已安装学习通APP",
-                                                    hapticFeedback
-                                                )
-                                            }
-
-                                        },
-                                        shape = RoundedCornerShape(18.dp),
-                                        colors = CardDefaults.cardColors(
-                                            containerColor = Color.DarkGray
-                                        ),
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(0.dp, 6.dp)
-                                    ) {
-                                        Row(
-                                            modifier = Modifier
-                                                .padding(10.dp, 12.dp)
-                                                .fillMaxWidth(),
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Spacer(modifier = Modifier.width(8.dp))
-                                            Icon(
-                                                painterResource(R.drawable.ic_info),
-                                                contentDescription = "Info",
-                                                tint = Color.White
-                                            )
-                                            Spacer(modifier = Modifier.width(9.dp))
-                                            Text(
-                                                buildAnnotatedString {
-                                                    append("这是一个普通的点击签到，不会收集任何其他的信息，推荐对于这种签到使用学习通APP而不是随地大小签。")
-                                                    withStyle(
-                                                        SpanStyle(
-                                                            fontWeight = FontWeight.Bold,
-                                                            textDecoration = TextDecoration.Underline
-                                                        )
-                                                    ) {
-                                                        append("\n点击跳转到学习通。")
-                                                    }
-                                                },
-                                                color = Color.White,
-                                                fontSize = 13.sp,
-                                                lineHeight = 18.sp,
-                                                fontWeight = FontWeight.W500
-                                            )
-                                        }
-                                    }
                                     if (signoffEntity != null)
                                         SignOutRedirectTips(
                                             signoffEntity!!
