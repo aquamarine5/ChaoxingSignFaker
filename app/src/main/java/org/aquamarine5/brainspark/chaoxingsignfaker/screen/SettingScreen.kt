@@ -162,8 +162,7 @@ fun SettingScreen(
                         inputPassword.substringAfter("setRankCount").toIntOrNull()?.let { count ->
                             coroutineScope.launch(Dispatchers.IO) {
                                 context.chaoxingDataStore.updateData {
-                                    it.toBuilder().setPreferences(
-                                        it.preferences.toBuilder().setDisplayRankCount(count)
+                                        it.preferences.toBuilder().setDisplayRankCount(count.coerceAtLeast(0))
                                             .build()
                                     ).build()
                                 }
