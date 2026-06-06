@@ -207,9 +207,13 @@ fun PhotoSignScreen(
                                                 suspendCancellableCoroutine { continuation ->
                                                     captchaValidateParams =
                                                         signer to { validateValue ->
-                                                            continuation.resumeWith(validateValue.onSuccess {
-                                                                signer.signByClickWithCaptcha(it)
-                                                            })
+                                                            if (continuation.isActive)
+                                                                continuation.resumeWith(
+                                                                    validateValue.onSuccess {
+                                                                        signer.signByClickWithCaptcha(
+                                                                            it
+                                                                        )
+                                                                    })
                                                         }
                                                 }
                                                 return@runCatching true
@@ -230,7 +234,6 @@ fun PhotoSignScreen(
                                                         suspendCancellableCoroutine { continuation ->
                                                             captchaValidateParams =
                                                                 this to { validateValue ->
-                                                                    captchaValidateParams = null
                                                                     if (continuation.isActive) {
                                                                         continuation.resumeWith(
                                                                             runCatching {
@@ -381,13 +384,14 @@ fun PhotoSignScreen(
                                                             suspendCancellableCoroutine { continuation ->
                                                                 captchaValidateParams =
                                                                     signer to { validateValue ->
-                                                                        continuation.resumeWith(
-                                                                            validateValue.onSuccess {
-                                                                                signer.signByImageWithCaptcha(
-                                                                                    objectId,
-                                                                                    it
-                                                                                )
-                                                                            })
+                                                                        if (continuation.isActive)
+                                                                            continuation.resumeWith(
+                                                                                validateValue.onSuccess {
+                                                                                    signer.signByImageWithCaptcha(
+                                                                                        objectId,
+                                                                                        it
+                                                                                    )
+                                                                                })
                                                                     }
                                                             }
                                                             return@runCatching true
@@ -417,8 +421,6 @@ fun PhotoSignScreen(
                                                                 suspendCancellableCoroutine { continuation ->
                                                                     captchaValidateParams =
                                                                         this to { validateValue ->
-                                                                            captchaValidateParams =
-                                                                                null
                                                                             if (continuation.isActive) {
                                                                                 continuation.resumeWith(
                                                                                     runCatching {

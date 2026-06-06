@@ -237,7 +237,11 @@ fun QRCodeSignScreen(
                         )
                     }
                     val httpClientStorage = remember { mutableMapOf<String, ChaoxingHttpClient>() }
-                    var getQRCodeContinuation: CancellableContinuation<String>? = remember { null }
+                    var getQRCodeContinuation: CancellableContinuation<String>? by remember {
+                        mutableStateOf(
+                            null
+                        )
+                    }
                     var locationData by remember { mutableStateOf<ChaoxingLocationSignEntity?>(null) }
                     var job by remember { mutableStateOf<Job?>(null) }
                     val userSelections = remember { mutableStateListOf(true) }
@@ -292,14 +296,15 @@ fun QRCodeSignScreen(
                                         suspendCancellableCoroutine { continuation ->
                                             captchaValidateParams =
                                                 signer to { validateValue ->
-                                                    continuation.resumeWith(validateValue.onSuccess {
-                                                        signer.signWithCaptcha(
-                                                            value,
-                                                            locationData,
-                                                            it,
-                                                            faceImageUploadedObjectId
-                                                        )
-                                                    })
+                                                    if (continuation.isActive)
+                                                        continuation.resumeWith(validateValue.onSuccess {
+                                                            signer.signWithCaptcha(
+                                                                value,
+                                                                locationData,
+                                                                it,
+                                                                faceImageUploadedObjectId
+                                                            )
+                                                        })
                                                 }
                                         }
                                         return@runCatching true
@@ -351,18 +356,18 @@ fun QRCodeSignScreen(
                                                 suspendCancellableCoroutine { continuation ->
                                                     captchaValidateParams =
                                                         this to { validateValue ->
-                                                            captchaValidateParams = null
                                                             if (continuation.isActive) {
-                                                                continuation.resumeWith(runCatching {
-                                                                    validateValue.onSuccess {
-                                                                        signWithCaptcha(
-                                                                            value,
-                                                                            locationData,
-                                                                            it,
-                                                                            faceImageUploadedObjectId
-                                                                        )
-                                                                    }.getOrThrow()
-                                                                })
+                                                                continuation.resumeWith(
+                                                                    runCatching {
+                                                                        validateValue.onSuccess {
+                                                                            signWithCaptcha(
+                                                                                value,
+                                                                                locationData,
+                                                                                it,
+                                                                                faceImageUploadedObjectId
+                                                                            )
+                                                                        }.getOrThrow()
+                                                                    })
                                                             }
                                                         }
                                                 }

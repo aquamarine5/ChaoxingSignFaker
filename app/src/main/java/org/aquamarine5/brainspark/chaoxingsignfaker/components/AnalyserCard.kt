@@ -43,6 +43,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -93,7 +94,7 @@ fun AnalyserCard() {
         var lastUploadTimestamp by remember { mutableLongStateOf(0L) }
         var customRankDisplayName by remember { mutableStateOf("") }
         var isDisableAnalyserRank by remember { mutableStateOf(false) }
-        var displayRankCount = remember { 50 }
+        var displayRankCount by remember { mutableIntStateOf(50) }
         var isHideAnalyserSchoolName by remember { mutableStateOf(false) }
         LaunchedEffect(analyser.isLoaded) {
             if (analyser.isLoaded.value.not())
@@ -340,7 +341,7 @@ fun AnalyserCard() {
                                         ChaoxingAnalyser.getUserTopRank(ChaoxingAnalyser.rankUUID)
                                             .getOrNull()
                             }
-                            val userRecord = list.getOrNull(userIndex)
+                            val userRecord = remember { list.getOrNull(userIndex) }
 
                             val primaryColor = MaterialTheme.colorScheme.primary
                             val highlightSpanStyle = remember {
@@ -378,7 +379,12 @@ fun AnalyserCard() {
                                             fontFamily = fontGilroy,
                                             fontWeight = FontWeight.Bold,
                                             fontSize = 18.sp,
-                                            color = MaterialTheme.colorScheme.primary
+                                            color = MaterialTheme.colorScheme.primary,
+                                            autoSize = TextAutoSize.StepBased(
+                                                maxFontSize = 18.sp,
+                                                minFontSize = 8.sp,
+                                                stepSize = 1.sp
+                                            )
                                         )
                                         Column(
                                             modifier = Modifier

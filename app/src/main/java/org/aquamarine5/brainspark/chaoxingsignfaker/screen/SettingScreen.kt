@@ -162,11 +162,15 @@ fun SettingScreen(
                         inputPassword.substringAfter("setRankCount").toIntOrNull()?.let { count ->
                             coroutineScope.launch(Dispatchers.IO) {
                                 context.chaoxingDataStore.updateData {
-                                        it.preferences.toBuilder().setDisplayRankCount(count.coerceAtLeast(0))
-                                            .build()
+                                    it.toBuilder().setPreferences(
+                                        it.preferences.toBuilder()
+                                            .setDisplayRankCount(count.coerceAtLeast(5))
                                     ).build()
                                 }
-                                snackbarHostState.displaySnackbar("已设置排行榜显示数量为$count", coroutineScope)
+                                snackbarHostState.displaySnackbar(
+                                    "已设置排行榜显示数量为$count",
+                                    coroutineScope
+                                )
                             }
                         }
                     }

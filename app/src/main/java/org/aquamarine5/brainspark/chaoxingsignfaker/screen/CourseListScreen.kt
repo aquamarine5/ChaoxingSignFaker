@@ -210,7 +210,7 @@ fun CourseListScreen(
         }, dismissButton = {
             OutlinedButton(onClick = {
                 isEmergencyToSkipUpdate = false
-                newestVersionData=null
+                newestVersionData = null
             }) {
                 Text("着急签到一会更新")
             }
@@ -240,8 +240,8 @@ fun CourseListScreen(
             }
         }, dismissButton = {
             TextButton(onClick = {
-                if(isForceInstall)
-                    isEmergencyToSkipUpdate=true
+                if (isForceInstall)
+                    isEmergencyToSkipUpdate = true
                 else
                     newestVersionData = null
             }) {

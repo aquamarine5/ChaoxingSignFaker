@@ -248,13 +248,14 @@ fun LocationSignScreen(
                                         suspendCancellableCoroutine { continuation ->
                                             captchaValidateParams =
                                                 signer to { captchaValidate ->
-                                                    continuation.resumeWith(captchaValidate.onSuccess {
-                                                        signer.signWithCaptcha(
-                                                            value,
-                                                            it,
-                                                            faceImageUploadedObjectId
-                                                        )
-                                                    })
+                                                    if (continuation.isActive)
+                                                        continuation.resumeWith(captchaValidate.onSuccess {
+                                                            signer.signWithCaptcha(
+                                                                value,
+                                                                it,
+                                                                faceImageUploadedObjectId
+                                                            )
+                                                        })
                                                 }
                                         }
                                         return@runCatching true
@@ -288,7 +289,6 @@ fun LocationSignScreen(
                                                     suspendCancellableCoroutine { continuation ->
                                                         captchaValidateParams =
                                                             this to { captchaValidate ->
-                                                                captchaValidateParams = null
                                                                 if (continuation.isActive) {
                                                                     continuation.resumeWith(
                                                                         runCatching {

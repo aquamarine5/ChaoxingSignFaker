@@ -91,9 +91,6 @@ class ChaoxingSignHandler<in T>(
                     it.ifShouldDeselect {
                         userSelections[0] = false
                     }
-                    if (otherUserSessionList.all { it == null }) {
-                        onAllSigningFinished(userSelections.all { !it })
-                    }
                     if (it is QRCodeExpiredException) {
                         for (i in otherUserSessionList.indices) {
                             if (otherUserSessionList[i] != null)
@@ -105,13 +102,17 @@ class ChaoxingSignHandler<in T>(
                         )
                         hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
                         onAllSigningFinished(false)
-                    } else
+                    } else {
                         it.snackbarReport(
                             snackbarHost,
                             coroutineScope,
                             "为${ChaoxingHttpClient.instance!!.userEntity.name}签到失败",
                             hapticFeedback
                         )
+                        if (otherUserSessionList.all { it == null }) {
+                            onAllSigningFinished(userSelections.all { !it })
+                        }
+                    }
                 }
             }
             var isFirstOtherUserForSign = true
@@ -152,9 +153,6 @@ class ChaoxingSignHandler<in T>(
                         userSelections[index + 1] = false
                     }
                     signStatus[index + 1].failed(it)
-                    if (otherUserSessionList.checkIsLast(index + 1)) {
-                        onAllSigningFinished(userSelections.all { !it })
-                    }
                     if (it is QRCodeExpiredException) {
                         for (i in (index + 1)..<otherUserSessionList.size) {
                             if (otherUserSessionList[i] != null)
@@ -166,6 +164,10 @@ class ChaoxingSignHandler<in T>(
                         )
                         hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
                         onAllSigningFinished(false)
+                    } else {
+                        if (otherUserSessionList.checkIsLast(index + 1)) {
+                            onAllSigningFinished(userSelections.all { !it })
+                        }
                     }
                 }
             }

@@ -221,9 +221,10 @@ fun PasswordSignScreen(
                                     if (signer.sign(value)) {
                                         suspendCancellableCoroutine { continuation ->
                                             captchaValidateParams = signer to { captchaValue ->
-                                                continuation.resumeWith(captchaValue.onSuccess {
-                                                    signer.signWithCaptcha(value, it)
-                                                })
+                                                if (continuation.isActive)
+                                                    continuation.resumeWith(captchaValue.onSuccess {
+                                                        signer.signWithCaptcha(value, it)
+                                                    })
                                             }
                                         }
                                         return@runCatching true
@@ -247,7 +248,6 @@ fun PasswordSignScreen(
                                                 suspendCancellableCoroutine { continuation ->
                                                     captchaValidateParams =
                                                         this to { captchaValue ->
-                                                            captchaValidateParams = null
                                                             if (continuation.isActive) {
                                                                 continuation.resumeWith(runCatching {
                                                                     captchaValue.onSuccess {

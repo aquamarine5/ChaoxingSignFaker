@@ -64,7 +64,14 @@ object ChaoxingAnalyser {
             runCatching {
                 ChaoxingHttpClient.instance!!.newCall(
                     Request.Builder()
-                        .url("$SUPABASE_ENDPOINT/$SUPABASE_DATABASE_ID?order=totalSignCount.desc&limit=$topCount&isPublic=eq.TRUE")
+                        .url(
+                            "$SUPABASE_ENDPOINT/$SUPABASE_DATABASE_ID?order=totalSignCount.desc&limit=${
+                                topCount.coerceIn(
+                                    1,
+                                    100
+                                )
+                            }&isPublic=eq.TRUE"
+                        )
                         .get()
                         .header(
                             "apikey",

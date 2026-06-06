@@ -169,7 +169,7 @@ class ChaoxingQRCodeSigner(
                 }
                 if (result == "签到失败，请重新扫描。")
                     throw QRCodeExpiredException()
-                if (result == "errorLocation2")
+                if (result.startsWith("errorLocation2"))
                     throw WrongPositionException()
                 if (result == "success2")
                     throw SignAlreadyEndedException()
