@@ -7,6 +7,7 @@
 package org.aquamarine5.brainspark.chaoxingsignfaker.api
 
 import android.content.Context
+import android.content.pm.PackageManager
 import android.widget.Toast
 import com.alibaba.fastjson2.JSONObject
 import io.sentry.Sentry
@@ -298,11 +299,12 @@ class ChaoxingHttpClient private constructor(
                                     withContext(Dispatchers.Main) {
                                         Toast.makeText(
                                             context,
-                                            "人脸识别相关数据获取失败",
+                                            "人脸识别相关数据获取失败，请尝试在本机安装学习通软件",
                                             Toast.LENGTH_LONG
                                         ).show()
                                     }
-                                    Sentry.captureException(it)
+                                    if (it !is PackageManager.NameNotFoundException)
+                                        Sentry.captureException(it)
                                     get()
                                 }
                             }
@@ -316,7 +318,12 @@ class ChaoxingHttpClient private constructor(
                                 jsonResult.getInteger("uid"),
                                 jsonResult.getInteger("fid"),
                                 jsonResult.getString("name"),
-                                jsonResult.getString("schoolname"),
+                                jsonResult.getString("schoolname", "").ifBlank {
+                                    runCatching {
+                                        jsonResult.getJSONArray("unitConfigInfos")?.getJSONObject(0)
+                                            ?.getString("schoolname")
+                                    }.getOrNull() ?: "未知学校"
+                                },
                                 jsonResult.getString("uname"),
                                 jsonResult.getString("pic").replace("http://", "https://"),
                                 jsonResult.getInteger("puid"),

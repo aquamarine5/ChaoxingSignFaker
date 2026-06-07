@@ -65,6 +65,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import io.sentry.Sentry
+import kotlinx.coroutines.CancellableContinuation
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -235,6 +236,12 @@ fun QRCodeSignScreen(
                             emptyList()
                         )
                     }
+                    val httpClientStorage = remember { mutableMapOf<String, ChaoxingHttpClient>() }
+                    var getQRCodeContinuation: CancellableContinuation<String>? by remember {
+                        mutableStateOf(
+                            null
+                        )
+                    }
                     var locationData by remember { mutableStateOf<ChaoxingLocationSignEntity?>(null) }
                     var job by remember { mutableStateOf<Job?>(null) }
                     val userSelections = remember { mutableStateListOf(true) }
@@ -258,6 +265,13 @@ fun QRCodeSignScreen(
                     val signHandler = remember {
                         ChaoxingSignHandler<String>(
                             context = context,
+                            getSignRealtimeParameter = {
+                                suspendCancellableCoroutine { continuation ->
+                                    getQRCodeContinuation?.cancel()
+                                    getQRCodeContinuation = continuation
+                                    isQRCodeScanning = true
+                                }
+                            },
                             onSelfSigning = { value ->
                                 runCatching {
                                     val faceImageUploadedObjectId =
@@ -282,14 +296,15 @@ fun QRCodeSignScreen(
                                         suspendCancellableCoroutine { continuation ->
                                             captchaValidateParams =
                                                 signer to { validateValue ->
-                                                    continuation.resumeWith(validateValue.onSuccess {
-                                                        signer.signWithCaptcha(
-                                                            value,
-                                                            locationData,
-                                                            it,
-                                                            faceImageUploadedObjectId
-                                                        )
-                                                    })
+                                                    if (continuation.isActive)
+                                                        continuation.resumeWith(validateValue.onSuccess {
+                                                            signer.signWithCaptcha(
+                                                                value,
+                                                                locationData,
+                                                                it,
+                                                                faceImageUploadedObjectId
+                                                            )
+                                                        })
                                                 }
                                         }
                                         return@runCatching true
@@ -307,10 +322,12 @@ fun QRCodeSignScreen(
                             },
                             onOtherUserSigning = { value, session, bypassChecking, _ ->
                                 runCatching {
-                                    ChaoxingHttpClient.loadFromOtherUserSession(
-                                        session,
-                                        context
-                                    ).let { client ->
+                                    httpClientStorage.getOrPut(session.phoneNumber) {
+                                        ChaoxingHttpClient.loadFromOtherUserSession(
+                                            session,
+                                            context
+                                        )
+                                    }.let { client ->
                                         val faceImageUploadedObjectId =
                                             if (isFaceRequired) {
                                                 faceImageObjectIds.getOrPut(
@@ -339,18 +356,18 @@ fun QRCodeSignScreen(
                                                 suspendCancellableCoroutine { continuation ->
                                                     captchaValidateParams =
                                                         this to { validateValue ->
-                                                            captchaValidateParams = null
                                                             if (continuation.isActive) {
-                                                                continuation.resumeWith(runCatching {
-                                                                    validateValue.onSuccess {
-                                                                        signWithCaptcha(
-                                                                            value,
-                                                                            locationData,
-                                                                            it,
-                                                                            faceImageUploadedObjectId
-                                                                        )
-                                                                    }.getOrThrow()
-                                                                })
+                                                                continuation.resumeWith(
+                                                                    runCatching {
+                                                                        validateValue.onSuccess {
+                                                                            signWithCaptcha(
+                                                                                value,
+                                                                                locationData,
+                                                                                it,
+                                                                                faceImageUploadedObjectId
+                                                                            )
+                                                                        }.getOrThrow()
+                                                                    })
                                                             }
                                                         }
                                                 }
@@ -684,6 +701,16 @@ fun QRCodeSignScreen(
                                     isQRCodeIllegal = false
                                     isQRCodeScanning = false
                                 }, onScanResult = { result ->
+                                    if (getQRCodeContinuation?.isActive == true) {
+                                        getQRCodeContinuation?.resumeWith(runCatching {
+                                            ChaoxingQRCodeSigner.parseQRCode(
+                                                result
+                                            )
+                                        })
+                                        getQRCodeContinuation = null
+                                        isQRCodeScanning = false
+                                        return@QRCodeScanComponent
+                                    }
                                     isSigning.value = true
                                     isQRCodeScanPause.value = true
                                     isQRCodeParsing.value = true

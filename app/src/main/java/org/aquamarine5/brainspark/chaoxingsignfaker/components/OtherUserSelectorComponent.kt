@@ -6,6 +6,11 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.components
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -32,12 +37,15 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -50,6 +58,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -111,8 +120,15 @@ fun OtherUserSelectorComponent(
                     modifier = Modifier.size(40.dp)
                 )
             }, text = {
-                Text("随地大小签会自动检测并拒绝为用户不在班级的情况进行签到，因为强制签到会导致老师的已签名单中出现未选此课不在班的学生。如果你认为随地大小签的判断存在问题，请点击【重试】按钮。")
+                Text("随地大小签会自动检测并拒绝为用户不在班级的情况进行签到，因为强制签到会导致老师的已签名单中出现未选此课不在班的学生。\n如果你认为随地大小签的判断存在问题，请点击【强制重试签到】按钮。")
             }, confirmButton = {
+                OutlinedButton(onClick = {
+                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                    ignoreExceptionUserIndex = null
+                }) {
+                    Text("关闭")
+                }
+            }, dismissButton = {
                 var isIgnoreExceptionSigning by remember { mutableStateOf(false) }
                 Button(onClick = {
                     hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
@@ -126,7 +142,7 @@ fun OtherUserSelectorComponent(
                         isIgnoreExceptionSigning = false
                     }
                 }, enabled = isIgnoreExceptionSigning.not()) {
-                    Text("重试")
+                    Text("强制重试签到")
                 }
             })
         }
@@ -148,6 +164,45 @@ fun OtherUserSelectorComponent(
             }
         }
 
+        val scrollState = rememberScrollState()
+        val density = LocalDensity.current
+        val gapPx = with(density) { 80.dp.toPx() }
+        val showFab by remember {
+            derivedStateOf {
+                scrollState.maxValue > 0 && scrollState.value < scrollState.maxValue - gapPx
+            }
+        }
+
+        fun performSign() {
+            if (!userSelections.any { it }) {
+                hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
+                snackbarHost.displaySnackbar("请选择要签到的用户", coroutineScope)
+                return
+            }
+            if (signStatus.all { it.isSuccess.value == true }) {
+                hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
+                snackbarHost.displaySnackbar("所有用户均已签到", coroutineScope)
+                return
+            }
+            val indexList = mutableListOf<Int>()
+            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+            val isSelf = userSelections[0] && signStatus[0].isSuccess.value != true
+            if (isSelf)
+                indexList.add(0)
+            val otherUserSessionList =
+                signUserList.mapIndexed { index, chaoxingOtherUserSession ->
+                    if (userSelections[index + 1] && signStatus[1 + index].isSuccess.value != true) {
+                        indexList.add(index + 1)
+                        chaoxingOtherUserSession
+                    } else {
+                        null
+                    }
+                }
+            onSignAction(
+                isSelf, otherUserSessionList, indexList
+            )
+        }
+
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -156,7 +211,7 @@ fun OtherUserSelectorComponent(
             Column(
                 modifier = Modifier
                     .padding(8.dp, 0.dp)
-                    .verticalScroll(rememberScrollState())
+                    .verticalScroll(scrollState)
             ) {
                 prefixTipsContent()
 
@@ -448,42 +503,34 @@ fun OtherUserSelectorComponent(
                 }
 
                 Button(
-                    onClick = {
-                        if (!userSelections.any { it }) {
-                            hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
-                            snackbarHost.displaySnackbar("请选择要签到的用户", coroutineScope)
-                            return@Button
-                        }
-                        if (signStatus.all { it.isSuccess.value == true }) {
-                            hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
-                            snackbarHost.displaySnackbar("所有用户均已签到", coroutineScope)
-                            return@Button
-                        }
-                        val indexList = mutableListOf<Int>()
-                        // 0 1 2 3 4 5 6
-                        // 2 3 5
-                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                        val isSelf = userSelections[0] && signStatus[0].isSuccess.value != true
-                        if (isSelf)
-                            indexList.add(0)
-                        val otherUserSessionList =
-                            signUserList.mapIndexed { index, chaoxingOtherUserSession ->
-                                if (userSelections[index + 1] && signStatus[1 + index].isSuccess.value != true) {
-                                    indexList.add(index + 1)
-                                    chaoxingOtherUserSession
-                                } else {
-                                    null
-                                }
-                            }
-                        onSignAction(
-                            isSelf, otherUserSessionList, indexList
-                        )
-                    }, modifier = Modifier.fillMaxWidth(),
+                    onClick = { performSign() },
+                    modifier = Modifier.fillMaxWidth(),
                     enabled = isSigning.value.not()
                 ) {
                     Text("签到")
                 }
                 Spacer(modifier = Modifier.height(12.dp))
+            }
+            AnimatedVisibility(
+                visible = showFab,
+                enter = fadeIn() + scaleIn(),
+                exit = fadeOut() + scaleOut(),
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(16.dp)
+            ) {
+                FloatingActionButton(
+                    onClick = {
+                        if (isSigning.value.not())
+                            performSign()
+                    }
+                ) {
+                    Icon(
+                        painterResource(R.drawable.ic_clipboard_pen_line),
+                        contentDescription = "签到",
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
             }
         }
     }

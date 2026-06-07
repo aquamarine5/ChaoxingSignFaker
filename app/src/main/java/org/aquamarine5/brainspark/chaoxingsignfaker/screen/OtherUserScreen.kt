@@ -1199,10 +1199,12 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                 }
                             }
                             otherUserSessions.removeAt(index)
+                            userTagList.removeAt(index)
                             hapticFeedback.performHapticFeedback(
                                 HapticFeedbackType.ContextClick
                             )
                             requestedDeleteUserIndex = null
+                            selectedUserSettingDialogIndex = null
                         }
                     ) {
                         Text("删除")
@@ -1757,7 +1759,15 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                             ) {
                                                 Text(
                                                     text = buildAnnotatedString {
-                                                        append(user.name)
+                                                        withStyle(
+                                                            SpanStyle(
+                                                                color = if (user.isObsoleteSession) Color(
+                                                                    0xFFFCC307
+                                                                ) else Color.Unspecified
+                                                            )
+                                                        ) {
+                                                            append(user.name)
+                                                        }
                                                         withStyle(
                                                             SpanStyle(
                                                                 color = if (isSystemInDarkTheme()) Color.Gray else Color.DarkGray,
@@ -1835,7 +1845,8 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                                         Icon(
                                                             painterResource(R.drawable.ic_triangle_alert),
                                                             null,
-                                                            tint = Color(0xFFFCC307)
+                                                            tint = Color(0xFFFCC307),
+                                                            modifier = Modifier.size(24.dp)
                                                         )
                                                     }
                                                 IconButton(

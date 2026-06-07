@@ -81,7 +81,8 @@ abstract class ChaoxingSigner(
     class CaptchaCheckException(message: String) :
         ChaoxingPredictableException("$message, 验证码校验失败")
 
-    class WrongPositionException : ChaoxingPredictableException("位置不在设置范围内")
+    class WrongPositionException(distance: Int? = null) :
+        ChaoxingPredictableException("位置不在设置范围内")
 
     abstract suspend fun checkAlreadySign(response: String): Boolean
 

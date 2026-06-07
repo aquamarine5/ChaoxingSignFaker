@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -42,6 +43,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -92,6 +94,7 @@ fun AnalyserCard() {
         var lastUploadTimestamp by remember { mutableLongStateOf(0L) }
         var customRankDisplayName by remember { mutableStateOf("") }
         var isDisableAnalyserRank by remember { mutableStateOf(false) }
+        var displayRankCount by remember { mutableIntStateOf(50) }
         var isHideAnalyserSchoolName by remember { mutableStateOf(false) }
         LaunchedEffect(analyser.isLoaded) {
             if (analyser.isLoaded.value.not())
@@ -107,6 +110,9 @@ fun AnalyserCard() {
                 lastUploadTimestamp = it.lastUploadAnalysisTimestamp
                 isDisableAnalyserRank = it.disableAnalysisRank
                 isHideAnalyserSchoolName = it.hideAnalysisRankSchoolName
+                displayRankCount = it.preferences.displayRankCount.let {
+                    if (it == 0) 50 else it
+                }
             }
         }
         val fontGilroy = remember {
@@ -266,7 +272,7 @@ fun AnalyserCard() {
         if (isAnalyserRankDialog) {
             LaunchedEffect(Unit) {
                 if (rankData == null || rankData!!.isFailure)
-                    rankData = ChaoxingAnalyser.getAnalyserTopRank().onFailure {
+                    rankData = ChaoxingAnalyser.getAnalyserTopRank(displayRankCount).onFailure {
                         it.snackbarReport(
                             snackbarHostState,
                             coroutineScope,
@@ -325,10 +331,17 @@ fun AnalyserCard() {
                         }
 
                         rankData!!.isSuccess -> {
-                            val list = rankData!!.getOrThrow()
+                            val list = remember { rankData!!.getOrThrow() }
                             val userIndex =
-                                list.indexOfFirst { it.uuid == ChaoxingAnalyser.rankUUID }
-                            val userRecord = list.getOrNull(userIndex)
+                                remember { list.indexOfFirst { it.uuid == ChaoxingAnalyser.rankUUID } }
+                            var userRank by remember { mutableStateOf(if (userIndex == -1) null else userIndex + 1) }
+                            LaunchedEffect(Unit) {
+                                if (userRank == null)
+                                    userRank =
+                                        ChaoxingAnalyser.getUserTopRank(ChaoxingAnalyser.rankUUID)
+                                            .getOrNull()
+                            }
+                            val userRecord = remember { list.getOrNull(userIndex) }
 
                             val primaryColor = MaterialTheme.colorScheme.primary
                             val highlightSpanStyle = remember {
@@ -366,7 +379,12 @@ fun AnalyserCard() {
                                             fontFamily = fontGilroy,
                                             fontWeight = FontWeight.Bold,
                                             fontSize = 18.sp,
-                                            color = MaterialTheme.colorScheme.primary
+                                            color = MaterialTheme.colorScheme.primary,
+                                            autoSize = TextAutoSize.StepBased(
+                                                maxFontSize = 18.sp,
+                                                minFontSize = 8.sp,
+                                                stepSize = 1.sp
+                                            )
                                         )
                                         Column(
                                             modifier = Modifier
@@ -398,7 +416,7 @@ fun AnalyserCard() {
                                             }
                                             Text(
                                                 it.schoolName.let { school ->
-                                                    if (school.endsWith("HIDE")) "已隐藏学校信息" else school
+                                                    if (school.endsWith("HIDE")) "已隐藏学校信息" else school.ifBlank { "未知学校" }
                                                 },
                                                 fontSize = 10.sp,
                                                 lineHeight = 11.sp,
@@ -436,10 +454,8 @@ fun AnalyserCard() {
                                         .fillMaxWidth()
                                         .padding(0.dp, 4.dp)
                                 ) {
-                                    val userRankStr =
-                                        if (userIndex != -1) "${userIndex + 1}." else "-."
                                     Text(
-                                        userRankStr,
+                                        "${userRank ?: "-"}.",
                                         modifier = Modifier
                                             .width(36.dp)
                                             .padding(end = 6.dp),
@@ -447,7 +463,13 @@ fun AnalyserCard() {
                                         fontWeight = FontWeight.Bold,
                                         fontFamily = fontGilroy,
                                         fontSize = 18.sp,
-                                        color = MaterialTheme.colorScheme.primary
+                                        maxLines = 1,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        autoSize = TextAutoSize.StepBased(
+                                            maxFontSize = 18.sp,
+                                            minFontSize = 8.sp,
+                                            stepSize = 1.sp
+                                        )
                                     )
                                     Column(
                                         modifier = Modifier
@@ -455,7 +477,9 @@ fun AnalyserCard() {
                                             .padding(end = 8.dp)
                                     ) {
                                         val baseName =
-                                            if (userIndex != -1) userRecord!!.name else customRankDisplayName
+                                            remember(
+                                                customRankDisplayName
+                                            ) { if (userIndex != -1) userRecord!!.name else customRankDisplayName }
                                         Row(verticalAlignment = Alignment.CenterVertically) {
                                             Text(
                                                 text = baseName,
@@ -474,7 +498,7 @@ fun AnalyserCard() {
                                         Text(
                                             if (userIndex != -1) {
                                                 userRecord!!.schoolName.let { school ->
-                                                    if (school.endsWith("HIDE")) "已隐藏学校信息" else school
+                                                    if (school.endsWith("HIDE")) "已隐藏学校信息" else school.ifBlank { "未知学校" }
                                                 }
                                             } else ChaoxingHttpClient.instance!!.userEntity.schoolName,
                                             fontSize = 10.sp,
@@ -533,14 +557,16 @@ fun AnalyserCard() {
                                 Button(onClick = {
                                     rankData = null
                                     coroutineScope.launch {
-                                        rankData = ChaoxingAnalyser.getAnalyserTopRank().onFailure {
-                                            it.snackbarReport(
-                                                snackbarHostState,
-                                                coroutineScope,
-                                                "获取排行榜失败",
-                                                hapticFeedback
-                                            )
-                                        }
+                                        rankData =
+                                            ChaoxingAnalyser.getAnalyserTopRank(displayRankCount)
+                                                .onFailure {
+                                                    it.snackbarReport(
+                                                        snackbarHostState,
+                                                        coroutineScope,
+                                                        "获取排行榜失败",
+                                                        hapticFeedback
+                                                    )
+                                                }
                                     }
                                 }) {
                                     Text("重试")

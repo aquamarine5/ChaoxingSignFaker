@@ -39,9 +39,10 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.chaoxingDataStore
@@ -71,6 +72,7 @@ enum class ChaoxingClientInfo(
     companion object {
         fun fromIdentity(identity: String): ChaoxingClientInfo? {
             if (identity == CUSTOM_CLIENT_IDENTITY) return null
+            if (identity.isBlank()) return DEFAULT
             return entries.find { it.identity == identity }
         }
     }
@@ -80,7 +82,9 @@ enum class ChaoxingClientInfo(
 fun initializeClientInfo(userAgent: String, packageName: String) {
     ChaoxingClientInfo.fromIdentity(userAgent).let {
         if (it == null) {
-            chaoxingUserAgent = userAgent
+            chaoxingUserAgent = userAgent.ifBlank {
+                ChaoxingClientInfo.DEFAULT.userAgent
+            }
             chaoxingClientIdentity = CUSTOM_CLIENT_IDENTITY
             chaoxingApplicationPackageName = packageName.ifBlank {
                 ChaoxingClientInfo.DEFAULT.packageName
@@ -114,7 +118,7 @@ fun CustomizeClientCard() {
         },
         shape = RoundedCornerShape(18.dp),
         modifier = Modifier.fillMaxWidth(),
-        colors = ButtonDefaults.buttonColors(containerColor = Color(0xffea7293))
+        colors = ButtonDefaults.buttonColors(containerColor = Color(0xffeea08c))
     ) {
         Row(
             modifier = Modifier
@@ -128,7 +132,19 @@ fun CustomizeClientCard() {
                 modifier = Modifier.size(40.dp)
             )
             Spacer(modifier = Modifier.width(8.dp))
-            Text("自定义客户端")
+            Column {
+                Text(
+                    "自定义客户端",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp,
+                    lineHeight = 18.sp
+                )
+                Text(
+                    "如果你使用的学习通软件不是学校定制版，请不要点击修改相关设置",
+                    fontSize = 10.sp,
+                    lineHeight = 12.sp
+                )
+            }
         }
     }
     Spacer(modifier = Modifier.height(8.dp))
@@ -147,12 +163,15 @@ fun CustomizeClientCard() {
                 ) {
                     RadioButton(
                         selected = selectedOption == ChaoxingClientInfo.DEFAULT,
-                        onClick = { selectedOption = ChaoxingClientInfo.DEFAULT }
+                        onClick = {
+                            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                            selectedOption = ChaoxingClientInfo.DEFAULT
+                        }
                     )
                     Text(
                         buildAnnotatedString {
                             append("学习通\n")
-                            withStyle(SpanStyle(fontStyle = FontStyle.Italic)) {
+                            withStyle(SpanStyle(fontSize = 10.sp, color = Color.Gray)) {
                                 append(ChaoxingClientInfo.DEFAULT.packageName)
                             }
                         }, modifier = Modifier
@@ -167,12 +186,15 @@ fun CustomizeClientCard() {
                 ) {
                     RadioButton(
                         selected = selectedOption == ChaoxingClientInfo.XUEZAIXIDIAN,
-                        onClick = { selectedOption = ChaoxingClientInfo.XUEZAIXIDIAN }
+                        onClick = {
+                            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                            selectedOption = ChaoxingClientInfo.XUEZAIXIDIAN
+                        }
                     )
                     Text(
                         buildAnnotatedString {
                             append("学在西电\n")
-                            withStyle(SpanStyle(fontStyle = FontStyle.Italic)) {
+                            withStyle(SpanStyle(fontSize = 10.sp, color = Color.Gray)) {
                                 append(ChaoxingClientInfo.XUEZAIXIDIAN.packageName)
                             }
                         }, modifier = Modifier
@@ -187,7 +209,10 @@ fun CustomizeClientCard() {
                 ) {
                     RadioButton(
                         selected = selectedOption == null,
-                        onClick = { selectedOption = null }
+                        onClick = {
+                            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                            selectedOption = null
+                        }
                     )
                     Text(
                         "自定义 USER_AGENT", modifier = Modifier
@@ -230,7 +255,10 @@ fun CustomizeClientCard() {
             }
         }, confirmButton = {
             Button(onClick = {
-                chaoxingUserAgent = selectedOption?.userAgent ?: customUserAgent
+                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                chaoxingUserAgent = selectedOption?.userAgent ?: customUserAgent.ifBlank {
+                    ChaoxingClientInfo.DEFAULT.userAgent
+                }
                 chaoxingApplicationPackageName =
                     selectedOption?.packageName ?: customPackageName.ifBlank {
                         ChaoxingClientInfo.DEFAULT.packageName
@@ -240,7 +268,9 @@ fun CustomizeClientCard() {
                     context.chaoxingDataStore.updateData { dataStore ->
                         dataStore.toBuilder().apply {
                             preferences = preferences.toBuilder()
-                                .setCustomizedUserAgent(selectedOption?.identity ?: customUserAgent)
+                                .setCustomizedUserAgent(
+                                    selectedOption?.identity
+                                        ?: customUserAgent.ifBlank { ChaoxingClientInfo.DEFAULT.identity })
                                 .setCustomizedPackageName(customPackageName)
                                 .build()
                         }.build()

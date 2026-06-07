@@ -50,6 +50,7 @@ message Preferences{
   ChaoxingLocation lastSignedLocation = 3;
   string customizedUserAgent = 4;
   string customizedPackageName = 5;
+  uint32 displayRankCount = 6;
 }
 
 message ChaoxingCourseClass{

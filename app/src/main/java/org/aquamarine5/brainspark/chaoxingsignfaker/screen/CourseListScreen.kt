@@ -35,6 +35,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -122,8 +123,7 @@ fun CourseListScreen(
     val hapticFeedback = LocalHapticFeedback.current
     val context = LocalContext.current
     var newestVersionData by remember { mutableStateOf<StackbricksVersionData?>(null) }
-    var isNewVersionDialogDisplayed = rememberSaveable { false }
-    var isForceInstall by remember { mutableStateOf(false) }
+    var isForceInstall by rememberSaveable { mutableStateOf(false) }
     val snackbarHost = LocalSnackbarHostState.current
     var recommendActivities by remember { mutableStateOf<List<RecommendActivityEntity>?>(null) }
     var isFetchedFailure by remember { mutableStateOf<Result<*>?>(null) }
@@ -133,7 +133,7 @@ fun CourseListScreen(
             launch {
                 runCatching {
                     withTimeout(2000L) {
-                        if (stackbricksService.internalVersionData == null && !isNewVersionDialogDisplayed) {
+                        if (stackbricksService.internalVersionData == null) {
                             newestVersionData = stackbricksService.isNeedUpdate()
                             newestVersionData?.forceInstallLessVersion?.let {
                                 isForceInstall =
@@ -203,13 +203,49 @@ fun CourseListScreen(
             }
         }
     }
-    if (newestVersionData != null && (isForceInstall || !isNewVersionDialogDisplayed)) {
+    var isEmergencyToSkipUpdate by remember { mutableStateOf(false) }
+    if (isEmergencyToSkipUpdate) {
+        AlertDialog(onDismissRequest = {
+            isEmergencyToSkipUpdate = false
+        }, dismissButton = {
+            OutlinedButton(onClick = {
+                isEmergencyToSkipUpdate = false
+                newestVersionData = null
+            }) {
+                Text("着急签到一会更新")
+            }
+        }, confirmButton = {
+            Button(onClick = {
+                navToSettingDestination()
+            }) {
+                Text("现在去更新")
+            }
+        }, icon = {
+            Icon(
+                painterResource(R.drawable.ic_arrow_big_up_dash),
+                null,
+                tint = MaterialTheme.colorScheme.error
+            )
+        }, text = {
+            Text("此版本设置了强制更新，强烈建议进行更新。")
+        })
+    }
+    if (newestVersionData != null) {
         onNewVersionAvailable()
         AlertDialog(onDismissRequest = {
             if (isForceInstall) {
                 Toast.makeText(context, "必须更新应用", Toast.LENGTH_SHORT).show()
             } else {
                 newestVersionData = null
+            }
+        }, dismissButton = {
+            TextButton(onClick = {
+                if (isForceInstall)
+                    isEmergencyToSkipUpdate = true
+                else
+                    newestVersionData = null
+            }) {
+                Text("我着急签到，来不及更新")
             }
         }, confirmButton = {
             Button(onClick = {
@@ -252,6 +288,8 @@ fun CourseListScreen(
             })
         }, title = {
             Text("有新版本可用！")
+        }, icon = {
+            Icon(painterResource(R.drawable.ic_circle_arrow_up), null)
         })
     }
     BlockedContent {
