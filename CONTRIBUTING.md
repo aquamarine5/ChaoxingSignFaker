@@ -1,5 +1,8 @@
 # Contributing Guide
 
+> [!CAUTION]
+> ChaoxingSignFaker（随地大小签）是一个开源应用，使用AGPLv3.0许可证发布。开源代码本源为让源代码对所有人开发，保持代码的开放性并欢迎任何人参与到项目的开发中来，但**不欢迎**任何形式的修改代码、名称等进行二次分发、换皮和商业化等行为。
+
 ## 配置 [Stackbricks](https://github.com/aquamarine5/Stackbricks) 服务
 
 - ChaoxingSignFaker（随地大小签）使用[Stackbricks](https://github.com/aquamarine5/Stackbricks)作为更新服务框架，其被托管在Github Packages上
@@ -27,10 +30,3 @@ dependencyResolutionManagement {
 ```
 > [!WARNING]
 > 请确保`gpr.user`和`gpr.key`的值已经在`gradle.properties`配置，或通过环境变量配置。
-
-## 项目结构
-
-- ChaoxingSignFaker（随地大小签）使用 [Jetpack Navigation](https://developer.android.google.cn/jetpack/androidx/releases/navigation?hl=zh-cn) 进行导航
-- `ChaoxingHttpClient`类包含了学习通账号的功能。
-- `ChaoxingSigner`是所有签到方法的基类，包含了预签到和验证码等方法。
-- `ChaoxingPhotoSigner`包括拍照签到和点击签到（因为他们的`type`值相等）。
