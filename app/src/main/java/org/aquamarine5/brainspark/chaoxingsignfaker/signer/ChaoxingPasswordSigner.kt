@@ -70,7 +70,7 @@ class ChaoxingPasswordSigner(
         }
     }
 
-    suspend fun sign(signCode: Int): Boolean = withContext(Dispatchers.IO) {
+    suspend fun sign(signCode: String): Boolean = withContext(Dispatchers.IO) {
         if (isCaptchaRequired()) return@withContext true
         client.newCall(
             Request.Builder().url(
@@ -81,7 +81,7 @@ class ChaoxingPasswordSigner(
                     .addQueryParameter("uid", client.userEntity.puid.toString())
                     .addQueryParameter("name", client.userEntity.name)
                     .addQueryParameter("fid", client.userEntity.fid.toString())
-                    .addQueryParameter("signCode", signCode.toString())
+                    .addQueryParameter("signCode", signCode)
                     .addQueryParameter("deviceCode", client.deviceCode)
                     .build()
             ).build()
@@ -105,7 +105,7 @@ class ChaoxingPasswordSigner(
         }
     }
 
-    suspend fun signWithCaptcha(signCode: Int, validateValue: String) =
+    suspend fun signWithCaptcha(signCode: String, validateValue: String) =
         withContext(Dispatchers.IO) {
             client.newCall(
                 Request.Builder().url(
@@ -116,7 +116,7 @@ class ChaoxingPasswordSigner(
                         .addQueryParameter("uid", client.userEntity.puid.toString())
                         .addQueryParameter("name", client.userEntity.name)
                         .addQueryParameter("fid", client.userEntity.fid.toString())
-                        .addQueryParameter("signCode", signCode.toString())
+                        .addQueryParameter("signCode", signCode)
                         .addQueryParameter("deviceCode", client.deviceCode)
                         .addQueryParameter("validate", validateValue)
                         .build()

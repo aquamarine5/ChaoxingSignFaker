@@ -67,14 +67,15 @@ object ChaoxingSignHelper {
     fun getSignDestination(
         context: Context,
         activityEntity: ChaoxingSignActivityEntity,
-        isLate: Boolean = false
+        isLate: Boolean = false,
+        isCloneSession: Boolean,
     ): SignDestination? =
         when (activityEntity.otherId) {
-            "5" -> PasswordSignDestination.parseFromSignActivityEntity(activityEntity, isLate)
-            "4" -> GetLocationDestination.parseFromSignActivityEntity(activityEntity, isLate)
-            "2" -> QRCodeSignDestination.parseFromSignActivityEntity(activityEntity, isLate)
-            "0" -> PhotoSignDestination.parseFromSignActivityEntity(activityEntity, isLate)
-            "3" -> GestureSignDestination.parseFromSignActivityEntity(activityEntity, isLate)
+            "5" -> PasswordSignDestination.parseFromSignActivityEntity(activityEntity, isLate,isCloneSession)
+            "4" -> GetLocationDestination.parseFromSignActivityEntity(activityEntity, isLate,isCloneSession)
+            "2" -> QRCodeSignDestination.parseFromSignActivityEntity(activityEntity, isLate,isCloneSession)
+            "0" -> PhotoSignDestination.parseFromSignActivityEntity(activityEntity, isLate,isCloneSession)
+            "3" -> GestureSignDestination.parseFromSignActivityEntity(activityEntity, isLate,isCloneSession)
             else -> {
                 Toast.makeText(context, "暂不支持该活动类型", Toast.LENGTH_SHORT).show()
                 null

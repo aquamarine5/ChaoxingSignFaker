@@ -86,12 +86,14 @@ data class GetLocationDestination(
     val extContent: String,
     val startTime: Long?,
     override val endTime: Long?,
-    val isLate: Boolean
+    val isLate: Boolean,
+    override val isCloneSession: Boolean
 ) : SignDestination {
     companion object {
         fun parseFromSignActivityEntity(
             activityEntity: ChaoxingSignActivityEntity,
-            isLate: Boolean
+            isLate: Boolean,
+            isCloneSession: Boolean
         ): GetLocationDestination {
             return GetLocationDestination(
                 activityEntity.id,
@@ -100,7 +102,8 @@ data class GetLocationDestination(
                 activityEntity.ext,
                 activityEntity.startTime,
                 activityEntity.endTime,
-                isLate
+                isLate,
+                isCloneSession
             )
         }
     }

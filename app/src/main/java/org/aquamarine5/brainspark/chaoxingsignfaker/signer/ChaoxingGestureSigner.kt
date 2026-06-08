@@ -64,7 +64,7 @@ class ChaoxingGestureSigner(
         }
     }
 
-    suspend fun sign(gestureOrderCode: Int): Boolean = withContext(Dispatchers.IO) {
+    suspend fun sign(gestureOrderCode: String): Boolean = withContext(Dispatchers.IO) {
         if (isCaptchaRequired()) return@withContext true
         client.newCall(
             Request.Builder().url(
@@ -75,7 +75,7 @@ class ChaoxingGestureSigner(
                     .addQueryParameter("uid", client.userEntity.puid.toString())
                     .addQueryParameter("name", client.userEntity.name)
                     .addQueryParameter("fid", client.userEntity.fid.toString())
-                    .addQueryParameter("signCode", gestureOrderCode.toString())
+                    .addQueryParameter("signCode", gestureOrderCode)
                     .addQueryParameter("deviceCode", client.deviceCode)
                     .build()
             ).build()
@@ -99,7 +99,7 @@ class ChaoxingGestureSigner(
         }
     }
 
-    suspend fun signWithCaptcha(gestureOrderCode: Int, validateValue: String) =
+    suspend fun signWithCaptcha(gestureOrderCode: String, validateValue: String) =
         withContext(Dispatchers.IO) {
             client.newCall(
                 Request.Builder().url(
@@ -110,7 +110,7 @@ class ChaoxingGestureSigner(
                         .addQueryParameter("uid", client.userEntity.puid.toString())
                         .addQueryParameter("name", client.userEntity.name)
                         .addQueryParameter("fid", client.userEntity.fid.toString())
-                        .addQueryParameter("signCode", gestureOrderCode.toString())
+                        .addQueryParameter("signCode", gestureOrderCode)
                         .addQueryParameter("deviceCode", client.deviceCode)
                         .addQueryParameter("validate", validateValue)
                         .build()

@@ -112,12 +112,14 @@ data class QRCodeSignDestination(
     val extContent: String,
     val startTime: Long?,
     override val endTime: Long?,
-    val isLate: Boolean
+    val isLate: Boolean,
+    override val isCloneSession: Boolean
 ) : SignDestination {
     companion object {
         fun parseFromSignActivityEntity(
             activityEntity: ChaoxingSignActivityEntity,
-            isLate: Boolean
+            isLate: Boolean,
+            isCloneSession: Boolean
         ): QRCodeSignDestination {
             return QRCodeSignDestination(
                 activityEntity.id,
@@ -126,7 +128,8 @@ data class QRCodeSignDestination(
                 activityEntity.ext,
                 activityEntity.startTime,
                 activityEntity.endTime,
-                isLate
+                isLate,
+                isCloneSession
             )
         }
     }

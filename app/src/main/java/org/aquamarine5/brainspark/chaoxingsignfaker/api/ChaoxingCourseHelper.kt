@@ -58,59 +58,15 @@ object ChaoxingCourseHelper {
         }
     }
 
-    suspend fun getAllCourse(
+    suspend fun getClassIdFromCourseId(
         client: ChaoxingHttpClient,
-        context: Context,
-        naviToLogin: () -> Unit
-    ): List<ChaoxingCourseEntity> =
-        withContext(Dispatchers.IO) {
-            val courseList = mutableListOf<ChaoxingCourseEntity>()
+        courseId: Int
+    ): Result<Int?> = withContext(Dispatchers.IO) {
+        runCatching {
             client.newCall(Request.Builder().get().url(URL_COURSE_LIST).build()).execute()
                 .use { rawResponse ->
-                    if (rawResponse.checkResponse(context)) {
-                        withContext(Dispatchers.Main) {
-                            naviToLogin()
-                        }
-                        return@withContext emptyList()
-                    }
-                    var jsonResult = JSONObject.parseObject(rawResponse.body.string())
-                    var channelList = jsonResult.getJSONArray("channelList")
-                    if (jsonResult.getInteger("result") == 0 || channelList == null) {
-                        if (client.reLogin(context).not()) {
-                            withContext(Dispatchers.Main) {
-                                Toast.makeText(
-                                    context,
-                                    "登录信息已过期，请重新登录",
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                                naviToLogin()
-                            }
-                            return@withContext emptyList()
-                        } else {
-                            client.newCall(Request.Builder().get().url(URL_COURSE_LIST).build())
-                                .execute().use {
-                                    if (it.checkResponse(context)) {
-                                        withContext(Dispatchers.Main) {
-                                            naviToLogin()
-                                        }
-                                        return@withContext emptyList()
-                                    }
-                                    jsonResult = JSONObject.parseObject(it.body.string())
-                                    channelList = jsonResult.getJSONArray("channelList")
-                                    if (jsonResult.getInteger("result") == 0 || channelList == null) {
-                                        withContext(Dispatchers.Main) {
-                                            Toast.makeText(
-                                                context,
-                                                "登录信息已过期，请重新登录",
-                                                Toast.LENGTH_SHORT
-                                            ).show()
-                                            naviToLogin()
-                                        }
-                                    }
-                                }
-                        }
-                    }
-
+                    val jsonResult = JSONObject.parseObject(rawResponse.body.string())
+                    val channelList = jsonResult.getJSONArray("channelList")
                     for (i in 0 until channelList.size) {
                         val course = channelList.getJSONObject(i)
                         val content = course.getJSONObject("content")
@@ -118,29 +74,99 @@ object ChaoxingCourseHelper {
                         if (!course.containsKey("cataName")) continue
                         val courseContent =
                             content.getJSONObject("course").getJSONArray("data").getJSONObject(0)
-                        runCatching {
-                            courseList.add(
-                                ChaoxingCourseEntity(
-                                    courseContent.getString("name"),
-                                    courseContent.getString("teacherfactor"),
-                                    courseContent.getInteger("id"),
-                                    content.getInteger("id"),
-                                    courseContent.getString("name"),
-                                    courseContent.getString("imageurl")
-                                        ?: "https://p.ananas.chaoxing.com/star3/270_160c/669ca80d6a0c5f74835bb936a41aabca.jpg",
-                                    courseContent.getString("schools")
-                                )
-                            )
-                        }.getOrElse {
-                            throw ChaoxingParseDataException(
-                                "课程数据解析失败: ${it.message}",
-                                it,
-                                course.toJSONString()
-                            )
+                        if (courseContent.getInteger("id") == courseId)
+                            return@runCatching content.getInteger("id")
+                    }
+                    return@runCatching null
+                }
+        }
+    }
+
+    suspend fun getAllCourse(
+        client: ChaoxingHttpClient,
+        context: Context,
+        isCoplicaSession: Boolean,
+        naviToLogin: () -> Unit
+    ): List<ChaoxingCourseEntity> =
+        withContext(Dispatchers.IO) {
+            buildList {
+                client.newCall(Request.Builder().get().url(URL_COURSE_LIST).build()).execute()
+                    .use { rawResponse ->
+                        if (rawResponse.checkResponse(context)) {
+                            withContext(Dispatchers.Main) {
+                                naviToLogin()
+                            }
+                            return@withContext emptyList<ChaoxingCourseEntity>()
+                        }
+                        var jsonResult = JSONObject.parseObject(rawResponse.body.string())
+                        var channelList = jsonResult.getJSONArray("channelList")
+                        if (jsonResult.getInteger("result") == 0 || channelList == null) {
+                            if (client.reLogin(context).not()) {
+                                withContext(Dispatchers.Main) {
+                                    Toast.makeText(
+                                        context,
+                                        "登录信息已过期，请重新登录",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                    naviToLogin()
+                                }
+                                return@withContext emptyList<ChaoxingCourseEntity>()
+                            } else {
+                                client.newCall(Request.Builder().get().url(URL_COURSE_LIST).build())
+                                    .execute().use {
+                                        if (it.checkResponse(context)) {
+                                            withContext(Dispatchers.Main) {
+                                                naviToLogin()
+                                            }
+                                            return@withContext emptyList<ChaoxingCourseEntity>()
+                                        }
+                                        jsonResult = JSONObject.parseObject(it.body.string())
+                                        channelList = jsonResult.getJSONArray("channelList")
+                                        if (jsonResult.getInteger("result") == 0 || channelList == null) {
+                                            withContext(Dispatchers.Main) {
+                                                Toast.makeText(
+                                                    context,
+                                                    "登录信息已过期，请重新登录",
+                                                    Toast.LENGTH_SHORT
+                                                ).show()
+                                                naviToLogin()
+                                            }
+                                        }
+                                    }
+                            }
                         }
 
+                        for (i in 0 until channelList.size) {
+                            val course = channelList.getJSONObject(i)
+                            val content = course.getJSONObject("content")
+                            if (!content.containsKey("course")) continue
+                            if (!course.containsKey("cataName")) continue
+                            val courseContent =
+                                content.getJSONObject("course").getJSONArray("data")
+                                    .getJSONObject(0)
+                            runCatching {
+                                add(
+                                    ChaoxingCourseEntity(
+                                        courseContent.getString("name"),
+                                        courseContent.getString("teacherfactor"),
+                                        courseContent.getInteger("id"),
+                                        content.getInteger("id"),
+                                        courseContent.getString("name"),
+                                        courseContent.getString("imageurl")
+                                            ?: "https://p.ananas.chaoxing.com/star3/270_160c/669ca80d6a0c5f74835bb936a41aabca.jpg",
+                                        courseContent.getString("schools"),
+                                        isCoplicaSession = isCoplicaSession
+                                    )
+                                )
+                            }.getOrElse {
+                                throw ChaoxingParseDataException(
+                                    "课程数据解析失败: ${it.message}",
+                                    it,
+                                    course.toJSONString()
+                                )
+                            }
+                        }
                     }
-                }
-            return@withContext courseList
+            }
         }
 }

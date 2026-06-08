@@ -84,12 +84,14 @@ data class PasswordSignDestination(
     val extContent: String,
     val startTime: Long?,
     override val endTime: Long?,
-    val isLate: Boolean
+    val isLate: Boolean,
+    override val isCloneSession: Boolean
 ) : SignDestination {
     companion object {
         fun parseFromSignActivityEntity(
             activityEntity: ChaoxingSignActivityEntity,
-            isLate: Boolean
+            isLate: Boolean,
+            isCloneSession: Boolean
         ): PasswordSignDestination {
             return PasswordSignDestination(
                 activityEntity.id,
@@ -98,7 +100,8 @@ data class PasswordSignDestination(
                 activityEntity.ext,
                 activityEntity.startTime,
                 activityEntity.endTime,
-                isLate
+                isLate,
+                isCloneSession
             )
         }
     }
@@ -211,7 +214,7 @@ fun PasswordSignScreen(
                     val signStatus = remember { mutableListOf(ChaoxingSignStatus(hapticFeedback)) }
                     val userSelections = remember { mutableStateListOf(isSignForOther.not()) }
                     val signHandler = remember {
-                        ChaoxingSignHandler<Int>(
+                        ChaoxingSignHandler<String>(
                             userSelections = userSelections,
                             signStatus = signStatus,
                             context = context,
@@ -491,7 +494,7 @@ fun PasswordSignScreen(
                             }
                             isSigning.value = true
                             signHandler.startSigning(
-                                text.toInt(),
+                                text,
                                 isSelf,
                                 otherUserSessionList,
                                 hapticFeedback,

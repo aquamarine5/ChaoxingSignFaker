@@ -20,7 +20,8 @@ data class ChaoxingCourseEntity(
     val className: String,
     val imageUrl: String,
     val schools: String?,
-    var isPreferred: Boolean = false
+    var isPreferred: Boolean = false,
+    val isCloneSession: Boolean = false
 ) {
     companion object {
         val Saver: Saver<SnapshotStateList<ChaoxingCourseEntity>, *> = listSaver(

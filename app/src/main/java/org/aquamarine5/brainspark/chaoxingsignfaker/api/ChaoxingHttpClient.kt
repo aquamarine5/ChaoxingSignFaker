@@ -79,6 +79,11 @@ class ChaoxingHttpClient private constructor(
 
         var instance: ChaoxingHttpClient? = null
 
+        var cloneInstance: ChaoxingHttpClient? = null
+
+        fun getHttpInstanceOrClone(isCloneSession: Boolean) =
+            if (isCloneSession && cloneInstance != null) cloneInstance else instance
+
         @Deprecated("Should use ChaoxingHttpClient().deviceCode not ChaoxingHttpClient.Companion.deviceCode")
         var deviceCode: String? = null
 

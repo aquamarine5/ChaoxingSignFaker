@@ -49,6 +49,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingActivityHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.CloneSessionTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CourseSignActivityColumnCard
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NetworkExceptionComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCourseActivitiesEntity
@@ -77,7 +78,7 @@ fun CourseDetailScreen(
     LaunchedEffect(Unit) {
         isFetchedFailure = runCatching {
             if (activitiesData == null) {
-                ChaoxingHttpClient.instance?.let {
+                ChaoxingHttpClient.getHttpInstanceOrClone(courseEntity.isCloneSession)?.let {
                     activitiesData = ChaoxingActivityHelper.getActivities(
                         it,
                         courseEntity,
@@ -108,14 +109,15 @@ fun CourseDetailScreen(
                     coroutineScope.launch {
                         isFetchedFailure = runCatching {
                             if (activitiesData == null) {
-                                ChaoxingHttpClient.instance?.let {
-                                    activitiesData = ChaoxingActivityHelper.getActivities(
-                                        it,
-                                        courseEntity,
-                                        context,
-                                        snackbarHost
-                                    )
-                                }
+                                ChaoxingHttpClient.getHttpInstanceOrClone(courseEntity.isCloneSession)
+                                    ?.let {
+                                        activitiesData = ChaoxingActivityHelper.getActivities(
+                                            it,
+                                            courseEntity,
+                                            context,
+                                            snackbarHost
+                                        )
+                                    }
                             }
                         }.onFailure {
                             it.snackbarReport(
@@ -153,6 +155,9 @@ fun CourseDetailScreen(
                                 .fillMaxWidth()
                         )
                     }
+                    if (courseEntity.isCloneSession) {
+                        CloneSessionTips()
+                    }
                     Spacer(modifier = Modifier.height(12.dp))
                     var pullToRefreshState by remember { mutableStateOf(false) }
                     val nowYear = remember {
@@ -173,14 +178,16 @@ fun CourseDetailScreen(
                             coroutineScope.launch {
                                 isFetchedFailure = runCatching {
                                     if (activitiesData == null) {
-                                        ChaoxingHttpClient.instance?.let {
-                                            activitiesData = ChaoxingActivityHelper.getActivities(
-                                                it,
-                                                courseEntity,
-                                                context,
-                                                snackbarHost
-                                            )
-                                        }
+                                        ChaoxingHttpClient.getHttpInstanceOrClone(courseEntity.isCloneSession)
+                                            ?.let {
+                                                activitiesData =
+                                                    ChaoxingActivityHelper.getActivities(
+                                                        it,
+                                                        courseEntity,
+                                                        context,
+                                                        snackbarHost
+                                                    )
+                                            }
                                     }
                                 }.onFailure {
                                     it.snackbarReport(
@@ -222,7 +229,7 @@ fun CourseDetailScreen(
                                                         yearDateFormatter.format(it)
                                                     }
                                                 }
-                                        }) { destination ->
+                                        }, courseEntity.isCloneSession) { destination ->
                                             navToSignerDestination(destination)
                                         }
                                     }

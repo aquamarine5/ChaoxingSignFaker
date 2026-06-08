@@ -55,11 +55,13 @@ import kotlinx.serialization.Serializable
 import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.UMengHelper
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCourseHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingSignHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.SignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.CloneSessionTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NetworkExceptionComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NotReadyToSignNoticeComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.OtherUserSelectorComponent
@@ -84,12 +86,14 @@ data class GestureSignDestination(
     val extContent: String,
     val startTime: Long?,
     override val endTime: Long?,
-    val isLate: Boolean
+    val isLate: Boolean,
+    override val isCloneSession: Boolean
 ) : SignDestination {
     companion object {
         fun parseFromSignActivityEntity(
             activityEntity: ChaoxingSignActivityEntity,
-            isLate: Boolean
+            isLate: Boolean,
+            isCloneSession: Boolean
         ): GestureSignDestination {
             return GestureSignDestination(
                 activityEntity.id,
@@ -98,7 +102,8 @@ data class GestureSignDestination(
                 activityEntity.ext,
                 activityEntity.startTime,
                 activityEntity.endTime,
-                isLate
+                isLate,
+                isCloneSession
             )
         }
     }
@@ -114,7 +119,7 @@ fun GestureSignScreen(
 ) {
     var signActivityStatus by remember { mutableStateOf<ChaoxingSignActivityStatus?>(null) }
     var isSignForOther by remember { mutableStateOf(false) }
-    val signer = remember { ChaoxingGestureSigner(ChaoxingHttpClient.instance!!, destination) }
+    val signer = remember { ChaoxingGestureSigner(ChaoxingHttpClient.getHttpInstanceOrClone(destination.isCloneSession)!!, destination) }
     var isSponsor by remember { mutableStateOf(false) }
     if (isSponsor) {
         SponsorPopupDialog()
@@ -326,7 +331,7 @@ fun GestureSignScreen(
                         }
                     }
                     val signHandler = remember {
-                        ChaoxingSignHandler<Int>(
+                        ChaoxingSignHandler<String>(
                             context = context, userSelections = userSelections,
                             signStatus = signStatus,
                             onSelfSigning = { value ->
@@ -349,10 +354,15 @@ fun GestureSignScreen(
                                         .let { client ->
                                             ChaoxingGestureSigner(
                                                 client,
-                                                destination,
+                                                if (isAlwaysForceSign || bypassChecking) destination.copy(
+                                                    classId = ChaoxingCourseHelper.getClassIdFromCourseId(
+                                                        client,
+                                                        destination.courseId
+                                                    ).getOrNull() ?: destination.classId
+                                                ) else destination,
                                                 signer.getSignInfo()
                                             ).run {
-                                                if (!bypassChecking) checkSignStatusThrowException()
+                                                if (!isAlwaysForceSign || !bypassChecking) checkSignStatusThrowException()
                                                 if (sign(value)) {
                                                     suspendCancellableCoroutine { continuation ->
                                                         captchaValidateParams =
@@ -392,6 +402,8 @@ fun GestureSignScreen(
                         )
                     }
                     Column(modifier = Modifier.padding(8.dp, 8.dp, 8.dp, 0.dp)) {
+                        if(destination.isCloneSession)
+                            CloneSessionTips()
                         OtherUserSelectorComponent(
                             navToOtherUser = { navToOtherUserDestination() },
                             signStatus = signStatus,
@@ -425,10 +437,9 @@ fun GestureSignScreen(
                                 }
                                 return@OtherUserSelectorComponent
                             }
-                            val code = text.toInt()
                             isSigning.value = true
                             signHandler.startSigning(
-                                code,
+                                text,
                                 isSelf,
                                 otherUserSessionList,
                                 hapticFeedback,

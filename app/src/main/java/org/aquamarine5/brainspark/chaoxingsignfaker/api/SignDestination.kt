@@ -11,4 +11,5 @@ interface SignDestination {
     val classId: Int
     val courseId: Int
     val endTime: Long?
+    val isCloneSession: Boolean
 }

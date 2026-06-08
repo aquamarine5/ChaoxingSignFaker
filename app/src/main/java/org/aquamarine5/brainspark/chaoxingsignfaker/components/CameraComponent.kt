@@ -261,9 +261,17 @@ fun CameraComponent(
                 }
             )
             val tooltipState = rememberTooltipState(isPersistent = true)
+            var tooltipText by remember { mutableStateOf("") }
             LaunchedEffect(Unit) {
-                if (!context.chaoxingDataStore.data.first().learntTooltips.cameraSelectedFromGallery)
-                    tooltipState.show()
+                context.chaoxingDataStore.data.first().learntTooltips.let {
+                    if (!it.cameraSelectedMultipleImagesFromGallery) {
+                        tooltipText = "点击可以从图库选择多张图片，一次就可以上传完毕"
+                        tooltipState.show()
+                    } else if (!it.cameraSelectedFromGallery) {
+                        tooltipText = "点击可以从图库选择现有图片"
+                        tooltipState.show()
+                    }
+                }
             }
             Box(modifier = Modifier.fillMaxSize()) {
                 Column(
@@ -292,7 +300,7 @@ fun CameraComponent(
                                     modifier = Modifier.padding(2.dp, 6.dp, 0.dp, 6.dp)
                                 ) {
                                     Text(
-                                        "点击可以从图库选择现有图片",
+                                        tooltipText,
                                         modifier = Modifier.weight(1f)
                                     )
                                     IconButton(
@@ -303,6 +311,9 @@ fun CameraComponent(
                                                     it.toBuilder().setLearntTooltips(
                                                         it.learntTooltips.toBuilder()
                                                             .setCameraSelectedFromGallery(
+                                                                true
+                                                            )
+                                                            .setCameraSelectedMultipleImagesFromGallery(
                                                                 true
                                                             ).build()
                                                     ).build()

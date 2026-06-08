@@ -6,6 +6,8 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.components
 
+import android.content.ClipboardManager
+import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -29,6 +31,7 @@ import androidx.compose.foundation.layout.visible
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
@@ -39,8 +42,10 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -62,17 +67,23 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
+import io.sentry.Sentry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.aquamarine5.brainspark.chaoxingsignfaker.ChaoxingPredictableException
 import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingOtherUserHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.OtherUserTagType
@@ -107,6 +118,129 @@ fun OtherUserSelectorComponent(
             mutableStateOf<Pair<Int, ChaoxingOtherUserSession>?>(
                 null
             )
+        }
+        var repairSessionIndex by remember { mutableStateOf<Int?>(null) }
+        if (repairSessionIndex != null) {
+            AlertDialog(onDismissRequest = {
+                repairSessionIndex = null
+            }, title = {
+                Text("修复用户 ${signUserList[repairSessionIndex!!].name} 的登录状态")
+            }, icon = {
+                Icon(
+                    painterResource(R.drawable.ic_wrench),
+                    null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(40.dp)
+                )
+            }, text = {
+                Column {
+                    Text("在最近一次的签到过程中检测到用户 ${signUserList[repairSessionIndex!!].name} 的登录状态异常，重新登录后可修复此问题。")
+                    var password by remember { mutableStateOf("") }
+                    OutlinedTextField(
+                        value = signUserList[repairSessionIndex!!].phoneNumber,
+                        onValueChange = { },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = false,
+                        label = { Text("手机号") }
+                    )
+                    var isPasswordVisible by remember { mutableStateOf(false) }
+                    var errorMessage by remember { mutableStateOf("") }
+                    OutlinedTextField(
+                        value = password,
+                        onValueChange = { password = it },
+                        label = { Text("密码") },
+                        visualTransformation = if (isPasswordVisible) {
+                            VisualTransformation.None
+                        } else {
+                            PasswordVisualTransformation()
+                        },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                        modifier = Modifier.fillMaxWidth(),
+                        trailingIcon = {
+                            Row {
+                                IconButton(onClick = {
+                                    val clip =
+                                        context.getSystemService(ClipboardManager::class.java)?.primaryClip
+                                    val result = if (clip != null && clip.itemCount > 0) {
+                                        clip.getItemAt(0).text
+                                    } else {
+                                        null
+                                    }
+                                    if (result.isNullOrEmpty()) {
+                                        hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
+                                        Toast.makeText(
+                                            context,
+                                            "读取剪切板失败",
+                                            Toast.LENGTH_SHORT
+                                        )
+                                            .show()
+                                    } else {
+                                        hapticFeedback.performHapticFeedback(HapticFeedbackType.Confirm)
+                                        password = result.toString()
+                                        isPasswordVisible = true
+                                    }
+                                }) {
+                                    Icon(painterResource(R.drawable.ic_clipboard_copy), null)
+                                }
+                                IconButton(onClick = {
+                                    isPasswordVisible = !isPasswordVisible
+                                }) {
+                                    Icon(
+                                        if (isPasswordVisible) painterResource(R.drawable.ic_eye) else painterResource(
+                                            R.drawable.ic_eye_closed
+                                        ), null
+                                    )
+                                }
+                            }
+                        }
+                    )
+                    if (errorMessage.isNotBlank())
+                        Text(
+                            errorMessage,
+                            color = Color(0xFFF1441D),
+                            modifier = Modifier.padding(0.dp, 4.dp)
+                        )
+                    Button(onClick = {
+                        coroutineScope.launch {
+                            val sessionIndex = repairSessionIndex ?: return@launch
+                            val sessionToRepair = signUserList[sessionIndex]
+                            val result = withContext(Dispatchers.IO) {
+                                runCatching {
+                                    ChaoxingOtherUserHelper.repairOtherUserSession(
+                                        context,
+                                        sessionToRepair,
+                                        password
+                                    )
+                                }
+                            }
+                            result.onSuccess { repairedSession ->
+                                signUserList[sessionIndex] = repairedSession
+                                signStatus[sessionIndex].isObsoleteSession.value = false
+                                hapticFeedback.performHapticFeedback(HapticFeedbackType.Confirm)
+                                snackbarHost.displaySnackbar(
+                                    "用户 ${repairedSession.name} 已成功修复",
+                                    coroutineScope
+                                )
+                                repairSessionIndex = null
+                            }.onFailure {
+                                hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
+                                if (it !is ChaoxingPredictableException) {
+                                    Sentry.captureException(it)
+                                }
+                                errorMessage = "登录失败：" + (it.message ?: "未知错误")
+                            }
+                        }
+                    }, modifier = Modifier.fillMaxWidth()) { Text("重新登录") }
+                }
+            }, confirmButton = {
+                Button(onClick = {
+                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                    repairSessionIndex = null
+                }) {
+                    Text("关闭")
+                }
+            })
         }
 
         if (ignoreExceptionUserIndex != null) {
@@ -158,15 +292,9 @@ fun OtherUserSelectorComponent(
             }
         }
 
-        LaunchedEffect(Unit) {
-            context.chaoxingDataStore.data.first().let {
-                selfPhoneNumber = it.loginSession.phoneNumber
-            }
-        }
-
         val scrollState = rememberScrollState()
         val density = LocalDensity.current
-        val gapPx = with(density) { 80.dp.toPx() }
+        val gapPx = remember { with(density) { 80.dp.toPx() } }
         val showFab by remember {
             derivedStateOf {
                 scrollState.maxValue > 0 && scrollState.value < scrollState.maxValue - gapPx
@@ -263,6 +391,7 @@ fun OtherUserSelectorComponent(
                                     false
                                 )
                             })
+                            selfPhoneNumber = datastore.loginSession.phoneNumber
                             tagContainedUserIndexList = datastore.tagsLibraryList.map { tagEntity ->
                                 buildList {
                                     datastore.otherUsersList.mapIndexed { index, otherUserSession ->
@@ -280,7 +409,6 @@ fun OtherUserSelectorComponent(
                         })
                         userSelections.addAll(List(data.size) { false })
                         signUserList.addAll(data)
-
                     }
                     success = isCurrentAlreadySigned
                     userSelections[0] = isCurrentAlreadySigned != true
@@ -460,24 +588,13 @@ fun OtherUserSelectorComponent(
                                 }, verticalAlignment = Alignment.CenterVertically) {
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Column {
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Text(
-                                                text = session.name,
-                                                color = if (session.isObsoleteSession || signStatus[i].isObsoleteSession.value) Color(
-                                                    0xFFFCC307
-                                                ) else Color.Unspecified,
-                                                textDecoration = if (successForOtherUser != true) TextDecoration.None else TextDecoration.LineThrough
-                                            )
-                                            Icon(
-                                                painterResource(R.drawable.ic_triangle_alert),
-                                                null,
-                                                tint = Color(0xFFFCC307),
-                                                modifier = Modifier
-                                                    .padding(start = 4.dp)
-                                                    .size(14.dp)
-                                                    .visible(session.isObsoleteSession || signStatus[i].isObsoleteSession.value)
-                                            )
-                                        }
+                                        Text(
+                                            text = session.name,
+                                            color = if (session.isObsoleteSession || signStatus[i].isObsoleteSession.value) Color(
+                                                0xFFFCC307
+                                            ) else Color.Unspecified,
+                                            textDecoration = if (successForOtherUser != true) TextDecoration.None else TextDecoration.LineThrough
+                                        )
                                         Text(
                                             session.phoneNumber,
                                             color = Color.Gray,
@@ -491,6 +608,20 @@ fun OtherUserSelectorComponent(
                                         horizontalArrangement = Arrangement.End,
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
+                                        if ((session.isObsoleteSession || signStatus[i].isObsoleteSession.value).not())
+                                            IconButton(onClick = {
+                                                repairSessionIndex = index + 1
+                                            }) {
+                                                Icon(
+                                                    painterResource(R.drawable.ic_triangle_alert),
+                                                    null,
+                                                    tint = Color(0xFFFCC307),
+                                                    modifier = Modifier
+                                                        .padding(start = 4.dp)
+                                                        .size(24.dp)
+                                                        .visible(session.isObsoleteSession || signStatus[i].isObsoleteSession.value)
+                                                )
+                                            }
                                         userContent?.invoke(1 + index)
                                         signStatus[i].ResultCard {
                                             ignoreExceptionUserIndex = index to session
