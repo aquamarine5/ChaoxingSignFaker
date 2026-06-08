@@ -146,7 +146,7 @@ fun QRCodeSignScreen(
     var signActivityStatus by remember { mutableStateOf<ChaoxingSignActivityStatus?>(null) }
     var isCurrentAlreadySigned by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
-    val signer = remember { ChaoxingQRCodeSigner(ChaoxingHttpClient.instance!!, destination) }
+    val signer = remember { ChaoxingQRCodeSigner(ChaoxingHttpClient.getHttpInstanceOrClone(destination.isCloneSession)!!, destination) }
     val context = LocalContext.current
     val resources = LocalResources.current
     val snackbarHost = LocalSnackbarHostState.current
@@ -266,7 +266,7 @@ fun QRCodeSignScreen(
                         isFaceRequired = signer.isFaceRequired()
                     }
                     val signHandler = remember {
-                        ChaoxingSignHandler<String>(
+                        ChaoxingSignHandler(
                             context = context,
                             getSignRealtimeParameter = {
                                 suspendCancellableCoroutine { continuation ->

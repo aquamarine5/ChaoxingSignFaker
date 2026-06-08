@@ -209,7 +209,7 @@ fun CourseListScreen(
         AlertDialog(onDismissRequest = {
             isEmergencyToSkipUpdate = false
         }, dismissButton = {
-            OutlinedButton(onClick = {
+            TextButton(onClick = {
                 isEmergencyToSkipUpdate = false
                 newestVersionData = null
             }) {
@@ -228,7 +228,7 @@ fun CourseListScreen(
                 tint = MaterialTheme.colorScheme.primary
             )
         }, text = {
-            Text("此版本设置了强制更新，强烈建议进行更新。")
+            Text("此版本设置了强制更新，强烈建议进行更新，忽略更新可能导致签到失败或其他意外的BUG。")
         })
     }
     if (newestVersionData != null) {

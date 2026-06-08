@@ -1861,7 +1861,10 @@ fun OtherUserScreen(
                                                 else
                                                     IconButton(onClick = {
                                                         coroutineScope.launch {
-                                                            ChaoxingHttpClient.secondInstance =
+                                                            hapticFeedback.performHapticFeedback(
+                                                                HapticFeedbackType.ContextClick
+                                                            )
+                                                            ChaoxingHttpClient.cloneInstance =
                                                                 ChaoxingHttpClient.loadFromOtherUserSession(
                                                                     otherUserSessions[index],
                                                                     context

@@ -120,7 +120,7 @@ fun PasswordSignScreen(
 ) {
     var signActivityStatus by remember { mutableStateOf<ChaoxingSignActivityStatus?>(null) }
     var isSignForOther by remember { mutableStateOf(false) }
-    val signer = remember { ChaoxingPasswordSigner(ChaoxingHttpClient.instance!!, destination) }
+    val signer = remember { ChaoxingPasswordSigner(ChaoxingHttpClient.getHttpInstanceOrClone(destination.isCloneSession)!!, destination) }
     var isSponsor by remember { mutableStateOf(false) }
     var numberCount by remember { mutableIntStateOf(-1) }
     if (isSponsor) {

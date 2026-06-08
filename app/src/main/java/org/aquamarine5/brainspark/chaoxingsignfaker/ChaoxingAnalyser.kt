@@ -22,6 +22,7 @@ import okhttp3.FormBody
 import okhttp3.Request
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingSignFakerDataStore
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingAnalyserRankAnalysis
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingAnalyserRankRecord
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -32,17 +33,42 @@ private const val SUPABASE_ENDPOINT =
     "https://zpkavhhjdtghljleztpb.supabase.co/rest/v1"
 private const val SUPABASE_DATABASE_ID = "AnalyserData"
 private const val SUPABASE_RANK_VIEW_ID = "user_sign_rank"
+private const val SUPABASE_RANK_ANALYSIS_ID="total_sign_view"
 private const val SUPABASE_API_KEY = "sb_publishable_dFuI4bOoYPlDozMXOGKgPg_cCQ0o22B"
 
 object ChaoxingAnalyser {
     lateinit var rankUUID: String
+
+    suspend fun getTotalRankAnalysis(): Result<ChaoxingAnalyserRankAnalysis>{
+        return withContext(Dispatchers.IO){
+            runCatching {
+                ChaoxingHttpClient.instance!!.newCall(
+                    Request.Builder()
+                        .url("$SUPABASE_ENDPOINT/$SUPABASE_RANK_ANALYSIS_ID?select=userCount,totalRecordSignCount&limit=1")
+                        .get()
+                        .header(
+                            "apikey",
+                            SUPABASE_API_KEY
+                        )
+                        .build()
+                ).execute().use {response ->
+                    response.checkResponseThrowException()
+                    val jsonObject= JSONArray.parseArray(response.body.string()).getJSONObject(0)
+                    return@runCatching ChaoxingAnalyserRankAnalysis(
+                        jsonObject.getInteger("userCount"),
+                        jsonObject.getInteger("totalRecordSignCount")
+                    )
+                }
+            }
+        }
+    }
 
     suspend fun getUserTopRank(uuid: String): Result<Int> {
         return withContext(Dispatchers.IO) {
             runCatching {
                 ChaoxingHttpClient.instance!!.newCall(
                     Request.Builder()
-                        .url("$SUPABASE_ENDPOINT/$SUPABASE_RANK_VIEW_ID?select=rank&uuid=eq.$uuid")
+                        .url("$SUPABASE_ENDPOINT/$SUPABASE_RANK_VIEW_ID?select=rank&limit=1&uuid=eq.$uuid")
                         .get()
                         .header(
                             "apikey",

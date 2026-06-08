@@ -85,7 +85,7 @@ object ChaoxingCourseHelper {
     suspend fun getAllCourse(
         client: ChaoxingHttpClient,
         context: Context,
-        isCoplicaSession: Boolean,
+        isCloneSession: Boolean,
         naviToLogin: () -> Unit
     ): List<ChaoxingCourseEntity> =
         withContext(Dispatchers.IO) {
@@ -155,7 +155,7 @@ object ChaoxingCourseHelper {
                                         courseContent.getString("imageurl")
                                             ?: "https://p.ananas.chaoxing.com/star3/270_160c/669ca80d6a0c5f74835bb936a41aabca.jpg",
                                         courseContent.getString("schools"),
-                                        isCoplicaSession = isCoplicaSession
+                                        isCloneSession = isCloneSession
                                     )
                                 )
                             }.getOrElse {

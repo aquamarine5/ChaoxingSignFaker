@@ -76,6 +76,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.chaoxingDataStore
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingAnalyserRankAnalysis
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingAnalyserRankRecord
 import org.aquamarine5.brainspark.chaoxingsignfaker.snackbarReport
 import java.time.Instant
@@ -270,6 +271,7 @@ fun AnalyserCard() {
             })
         }
         if (isAnalyserRankDialog) {
+            var rankAnalysisData by remember { mutableStateOf<ChaoxingAnalyserRankAnalysis?>(null) }
             LaunchedEffect(Unit) {
                 if (rankData == null || rankData!!.isFailure)
                     rankData = ChaoxingAnalyser.getAnalyserTopRank(displayRankCount).onFailure {
@@ -280,6 +282,10 @@ fun AnalyserCard() {
                             hapticFeedback
                         )
                     }
+            }
+            LaunchedEffect(Unit) {
+                if (rankAnalysisData == null)
+                    rankAnalysisData = ChaoxingAnalyser.getTotalRankAnalysis().getOrNull()
             }
             AlertDialog(onDismissRequest = {
                 isAnalyserRankDialog = false
@@ -397,6 +403,8 @@ fun AnalyserCard() {
                                                         text = it.name,
                                                         color = MaterialTheme.colorScheme.primary,
                                                         fontWeight = FontWeight.Bold,
+                                                        fontSize = 14.sp,
+                                                        lineHeight = 15.sp,
                                                         maxLines = 2,
                                                         overflow = TextOverflow.Ellipsis,
                                                         modifier = Modifier.weight(1f, fill = false)
@@ -523,7 +531,7 @@ fun AnalyserCard() {
                                             }
                                         })
                                         val otherSigns =
-                                            if (userIndex != -1) userRecord!!.otherSign.toString() else analyser.otherUserSignCount.value.toString()
+                                            remember { if (userIndex != -1) userRecord!!.otherSign.toString() else analyser.otherUserSignCount.value.toString() }
                                         Text(
                                             "代签次数: $otherSigns",
                                             fontSize = 10.sp,
@@ -532,20 +540,52 @@ fun AnalyserCard() {
                                         )
                                     }
                                 }
-                                Text(
-                                    "上次上传排行榜数据时间：${
-                                        if (lastUploadTimestamp == 0L) "从未成功过或因旧版本暂未记录上传时间" else Instant.ofEpochMilli(
-                                            lastUploadTimestamp
-                                        ).atZone(
-                                            ZoneId.systemDefault()
-                                        ).format(
-                                            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                                Row(
+                                    verticalAlignment = Alignment.Bottom,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text(
+                                        "上次上传排行榜数据时间：\n${
+                                            if (lastUploadTimestamp == 0L) "从未成功过或因旧版本暂未记录上传时间" else Instant.ofEpochMilli(
+                                                lastUploadTimestamp
+                                            ).atZone(
+                                                ZoneId.systemDefault()
+                                            ).format(
+                                                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                                            )
+                                        }",
+                                        fontSize = 10.sp,
+                                        lineHeight = 11.sp,
+                                        color = Color.Gray,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    Column(horizontalAlignment = Alignment.End) {
+                                        Text(buildAnnotatedString {
+                                            withStyle(labelSmallSpanStyle) {
+                                                append("共计签到次数: ")
+                                            }
+                                            withStyle(highlightSpanStyle) {
+                                                append(
+                                                    rankAnalysisData?.totalRecordSignCount?.toString()
+                                                        ?: "-"
+                                                )
+                                            }
+                                        })
+                                        Text(
+                                            buildAnnotatedString {
+                                                withStyle(SpanStyle(color = Color.Gray)) {
+                                                    append("统计人数: ")
+                                                }
+                                                append(
+                                                    rankAnalysisData?.userCount?.toString()
+                                                        ?: "-"
+                                                )
+                                            },
+                                            fontSize = 10.sp,
+                                            lineHeight = 11.sp
                                         )
-                                    }",
-                                    fontSize = 10.sp,
-                                    lineHeight = 11.sp,
-                                    color = Color.Gray,
-                                )
+                                    }
+                                }
                             }
                         }
 

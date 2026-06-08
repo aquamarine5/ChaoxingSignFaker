@@ -96,7 +96,8 @@ object ChaoxingSignHelper {
                 "",
                 null,
                 null,
-                false
+                false,
+                isCloneSession = false
             )
 
             "位置签到" -> GetLocationDestination(
@@ -106,7 +107,7 @@ object ChaoxingSignHelper {
                 "",
                 null,
                 null,
-                false
+                false,isCloneSession = false
             )
 
             "二维码签到" -> QRCodeSignDestination(
@@ -116,7 +117,7 @@ object ChaoxingSignHelper {
                 "",
                 null,
                 null,
-                false
+                false,isCloneSession = false
             )
 
             "拍照签到" -> PhotoSignDestination(
@@ -126,7 +127,7 @@ object ChaoxingSignHelper {
                 "",
                 null,
                 null,
-                false
+                false,isCloneSession = false
             )
 
             "手势签到" -> GestureSignDestination(
@@ -136,7 +137,7 @@ object ChaoxingSignHelper {
                 "",
                 null,
                 null,
-                false
+                false,isCloneSession = false
             )
 
             else -> getRedirectDestination(activeId, classId, courseId)
@@ -167,7 +168,7 @@ object ChaoxingSignHelper {
                         "",
                         result.getLong("starttime"),
                         endTime,
-                        if (endTime != null) System.currentTimeMillis() > endTime else false
+                        if (endTime != null) System.currentTimeMillis() > endTime else false,isCloneSession = false
                     )
 
                     2 -> QRCodeSignDestination(
@@ -177,7 +178,7 @@ object ChaoxingSignHelper {
                         "",
                         result.getLong("starttime"),
                         endTime,
-                        if (endTime != null) System.currentTimeMillis() > endTime else false
+                        if (endTime != null) System.currentTimeMillis() > endTime else false,isCloneSession = false
                     )
 
                     4 -> GetLocationDestination(
@@ -187,7 +188,7 @@ object ChaoxingSignHelper {
                         "",
                         result.getLong("starttime"),
                         endTime,
-                        if (endTime != null) System.currentTimeMillis() > endTime else false
+                        if (endTime != null) System.currentTimeMillis() > endTime else false,isCloneSession = false
                     )
 
                     5 -> PasswordSignDestination(
@@ -197,7 +198,7 @@ object ChaoxingSignHelper {
                         "",
                         result.getLong("starttime"),
                         endTime,
-                        if (endTime != null) System.currentTimeMillis() > endTime else false
+                        if (endTime != null) System.currentTimeMillis() > endTime else false,isCloneSession = false
                     )
 
                     3 -> GestureSignDestination(
@@ -207,7 +208,7 @@ object ChaoxingSignHelper {
                         "",
                         result.getLong("starttime"),
                         endTime,
-                        if (endTime != null) System.currentTimeMillis() > endTime else false
+                        if (endTime != null) System.currentTimeMillis() > endTime else false,isCloneSession = false
                     )
 
                     else -> {

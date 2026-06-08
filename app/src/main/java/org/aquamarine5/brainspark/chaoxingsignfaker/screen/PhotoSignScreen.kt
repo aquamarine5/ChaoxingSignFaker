@@ -132,7 +132,7 @@ fun PhotoSignScreen(
     val snackbarHost = LocalSnackbarHostState.current
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
-    val signer = remember { ChaoxingPhotoSigner(ChaoxingHttpClient.instance!!, destination) }
+    val signer = remember { ChaoxingPhotoSigner(ChaoxingHttpClient.getHttpInstanceOrClone(destination.isCloneSession)!!, destination) }
     var isImage by remember { mutableStateOf<Boolean?>(null) }
     var signActivityStatus by remember { mutableStateOf<ChaoxingSignActivityStatus?>(null) }
     var isSignSuccess by remember { mutableStateOf(false) }
