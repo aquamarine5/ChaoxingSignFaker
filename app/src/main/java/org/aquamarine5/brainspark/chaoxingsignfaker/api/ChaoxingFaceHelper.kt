@@ -121,7 +121,7 @@ object ChaoxingFaceHelper {
             ).let { objectId ->
                 context.chaoxingDataStore.updateData {
                     it.toBuilder().apply {
-                        val phoneNumber=client.userEntity.phoneNumber
+                        val phoneNumber = client.userEntity.phoneNumber
                         containsFaceRecognitionConfigures(client.userEntity.phoneNumber)
                     }.build()
                 }

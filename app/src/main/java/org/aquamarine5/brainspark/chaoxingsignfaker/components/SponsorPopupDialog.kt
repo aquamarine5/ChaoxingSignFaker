@@ -61,7 +61,11 @@ fun SponsorPopupDialog() {
                     }
                     append(":(")
                 })
-                Text("有没有被我说动呀 ↓", textAlign = TextAlign.Right, modifier = Modifier.fillMaxWidth())
+                Text(
+                    "有没有被我说动呀 ↓",
+                    textAlign = TextAlign.Right,
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         }, confirmButton = {
             Button(onClick = {

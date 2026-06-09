@@ -95,6 +95,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.screen.TAG_COLOR_UNSPECIFIED
 fun OtherUserSelectorComponent(
     navToOtherUser: () -> Unit,
     signStatus: MutableList<ChaoxingSignStatus>,
+    isCloneSession: Boolean,
     isCurrentAlreadySigned: Boolean,
     isSigning: MutableState<Boolean>,
     userSelections: SnapshotStateList<Boolean>,
@@ -338,7 +339,7 @@ fun OtherUserSelectorComponent(
         ) {
             Column(
                 modifier = Modifier
-                    .padding(8.dp, 0.dp)
+                    .padding(0.dp, 4.dp, 0.dp, 8.dp)
                     .verticalScroll(scrollState)
             ) {
                 prefixTipsContent()

@@ -178,21 +178,22 @@ fun CourseListScreen(
                     preferredClassIds.addAll(
                         context.chaoxingDataStore.data.first().preferClassIdList.reversed()
                     )
-                    ChaoxingHttpClient.getHttpInstanceOrClone(destination.isCloneSession)?.let { httpClient ->
-                        ChaoxingCourseHelper.getAllCourse(
-                            httpClient,
-                            context,
-                            destination.isCloneSession,
-                            navToLoginDestination
-                        )
-                            .apply {
-                                activitiesData.addAll(this.filter {
-                                    preferredClassIds.contains(it.classId)
-                                }.map { it.apply { isPreferred = true } } + this.filter {
-                                    !preferredClassIds.contains(it.classId)
-                                })
-                            }
-                    }
+                    ChaoxingHttpClient.getHttpInstanceOrClone(destination.isCloneSession)
+                        ?.let { httpClient ->
+                            ChaoxingCourseHelper.getAllCourse(
+                                httpClient,
+                                context,
+                                destination.isCloneSession,
+                                navToLoginDestination
+                            )
+                                .apply {
+                                    activitiesData.addAll(this.filter {
+                                        preferredClassIds.contains(it.classId)
+                                    }.map { it.apply { isPreferred = true } } + this.filter {
+                                        !preferredClassIds.contains(it.classId)
+                                    })
+                                }
+                        }
                 }.onFailure {
                     it.snackbarReport(
                         snackbarHost,
@@ -307,27 +308,28 @@ fun CourseListScreen(
                             pullToRefreshState = true
                             coroutineScope.launch(Dispatchers.IO) {
                                 isFetchedFailure = runCatching {
-                                    ChaoxingHttpClient.getHttpInstanceOrClone(destination.isCloneSession)?.let { httpClient ->
-                                        ChaoxingCourseHelper.getAllCourse(
-                                            httpClient,
-                                            context,
-                                            destination.isCloneSession,
-                                            navToLoginDestination
-                                        )
-                                            .apply {
-                                                val newActivities = this.filter {
-                                                    preferredClassIds.contains(it.classId)
-                                                }.map {
-                                                    it.apply {
-                                                        isPreferred = true
+                                    ChaoxingHttpClient.getHttpInstanceOrClone(destination.isCloneSession)
+                                        ?.let { httpClient ->
+                                            ChaoxingCourseHelper.getAllCourse(
+                                                httpClient,
+                                                context,
+                                                destination.isCloneSession,
+                                                navToLoginDestination
+                                            )
+                                                .apply {
+                                                    val newActivities = this.filter {
+                                                        preferredClassIds.contains(it.classId)
+                                                    }.map {
+                                                        it.apply {
+                                                            isPreferred = true
+                                                        }
+                                                    } + this.filter {
+                                                        !preferredClassIds.contains(it.classId)
                                                     }
-                                                } + this.filter {
-                                                    !preferredClassIds.contains(it.classId)
+                                                    activitiesData.clear()
+                                                    activitiesData.addAll(newActivities)
                                                 }
-                                                activitiesData.clear()
-                                                activitiesData.addAll(newActivities)
-                                            }
-                                    }
+                                        }
                                 }.onFailure {
                                     it.snackbarReport(
                                         snackbarHost,
@@ -557,25 +559,26 @@ fun CourseListScreen(
                     NetworkExceptionComponent(v.exceptionOrNull()!!) {
                         coroutineScope.launch {
                             isFetchedFailure = runCatching {
-                                ChaoxingHttpClient.getHttpInstanceOrClone(destination.isCloneSession)?.let { httpClient ->
-                                    ChaoxingCourseHelper.getAllCourse(
-                                        httpClient,
-                                        context,
-                                        destination.isCloneSession,
-                                        navToLoginDestination
-                                    )
-                                        .apply {
-                                            activitiesData.addAll(this.filter {
-                                                preferredClassIds.contains(it.classId)
-                                            }.map {
-                                                it.apply {
-                                                    isPreferred = true
-                                                }
-                                            } + this.filter {
-                                                !preferredClassIds.contains(it.classId)
-                                            })
-                                        }
-                                }
+                                ChaoxingHttpClient.getHttpInstanceOrClone(destination.isCloneSession)
+                                    ?.let { httpClient ->
+                                        ChaoxingCourseHelper.getAllCourse(
+                                            httpClient,
+                                            context,
+                                            destination.isCloneSession,
+                                            navToLoginDestination
+                                        )
+                                            .apply {
+                                                activitiesData.addAll(this.filter {
+                                                    preferredClassIds.contains(it.classId)
+                                                }.map {
+                                                    it.apply {
+                                                        isPreferred = true
+                                                    }
+                                                } + this.filter {
+                                                    !preferredClassIds.contains(it.classId)
+                                                })
+                                            }
+                                    }
                             }.onFailure {
                                 it.snackbarReport(
                                     snackbarHost,

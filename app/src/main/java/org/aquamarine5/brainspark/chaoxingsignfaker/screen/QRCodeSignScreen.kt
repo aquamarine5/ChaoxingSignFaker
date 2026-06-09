@@ -146,7 +146,12 @@ fun QRCodeSignScreen(
     var signActivityStatus by remember { mutableStateOf<ChaoxingSignActivityStatus?>(null) }
     var isCurrentAlreadySigned by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
-    val signer = remember { ChaoxingQRCodeSigner(ChaoxingHttpClient.getHttpInstanceOrClone(destination.isCloneSession)!!, destination) }
+    val signer = remember {
+        ChaoxingQRCodeSigner(
+            ChaoxingHttpClient.getHttpInstanceOrClone(destination.isCloneSession)!!,
+            destination
+        )
+    }
     val context = LocalContext.current
     val resources = LocalResources.current
     val snackbarHost = LocalSnackbarHostState.current
@@ -210,7 +215,7 @@ fun QRCodeSignScreen(
             Crossfade(signActivityStatus) { c ->
                 if (c != null && c != ChaoxingSignActivityStatus.READY_TO_SIGN) {
                     Box(
-                        modifier = Modifier.padding(8.dp)
+                        modifier = Modifier.padding(8.dp, 4.dp, 8.dp, 8.dp)
                     ) {
                         NotReadyToSignNoticeComponent(onSignForOtherUser = {
                             signActivityStatus = ChaoxingSignActivityStatus.READY_TO_SIGN
@@ -492,7 +497,7 @@ fun QRCodeSignScreen(
                                 isSigning = isSigning,
                                 onIgnoreExceptionSignAction = { index, session ->
                                     signHandler.ignoreExceptionOtherUserSigning(session, index)
-                                },
+                                }, isCloneSession = destination.isCloneSession,
                                 suffixContent = {
                                     val tooltipState = rememberTooltipState(isPersistent = true)
                                     LaunchedEffect(Unit) {

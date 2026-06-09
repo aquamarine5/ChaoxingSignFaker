@@ -54,6 +54,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCloudDriveHelper
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCourseHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingSignHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.SignDestination
@@ -119,7 +120,12 @@ fun LocationSignScreen(
     var signActivityStatus by remember { mutableStateOf<ChaoxingSignActivityStatus?>(null) }
     var isSignForOther by remember { mutableStateOf(false) }
     var signInfo by remember { mutableStateOf<ChaoxingLocationDetailEntity?>(null) }
-    val signer = remember { ChaoxingLocationSigner(ChaoxingHttpClient.getHttpInstanceOrClone(destination.isCloneSession)!!, destination) }
+    val signer = remember {
+        ChaoxingLocationSigner(
+            ChaoxingHttpClient.getHttpInstanceOrClone(destination.isCloneSession)!!,
+            destination
+        )
+    }
     var isSponsor by remember { mutableStateOf(false) }
     if (isSponsor) {
         SponsorPopupDialog()
@@ -183,7 +189,7 @@ fun LocationSignScreen(
         } else {
             Crossfade(signActivityStatus) { c ->
                 if (c != null && c != ChaoxingSignActivityStatus.READY_TO_SIGN) {
-                    Box(modifier = Modifier.padding(8.dp)) {
+                    Box(modifier = Modifier.padding(8.dp, 4.dp, 8.dp, 8.dp)) {
                         NotReadyToSignNoticeComponent(
                             onSignForOtherUser = {
                                 signActivityStatus = ChaoxingSignActivityStatus.READY_TO_SIGN
@@ -271,7 +277,12 @@ fun LocationSignScreen(
                                         .let { client ->
                                             ChaoxingLocationSigner(
                                                 client,
-                                                destination,
+                                                if (isAlwaysForceSign || bypassChecking) destination.copy(
+                                                    classId = ChaoxingCourseHelper.getClassIdFromCourseId(
+                                                        client,
+                                                        destination.courseId
+                                                    ).getOrNull() ?: destination.classId
+                                                ) else destination,
                                                 signer.getSignInfo()
                                             ).run {
                                                 if (!bypassChecking) checkSignStatusThrowException()
@@ -390,7 +401,9 @@ fun LocationSignScreen(
                                             )
                                         }
                                     }
-                            }, onIgnoreExceptionSignAction = { index, session ->
+                            },
+                            isCloneSession = destination.isCloneSession,
+                            onIgnoreExceptionSignAction = { index, session ->
                                 signHandler.ignoreExceptionOtherUserSigning(session, index)
                             }
                         ) { isSelf, otherUserSessionList, _ ->

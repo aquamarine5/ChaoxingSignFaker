@@ -119,7 +119,12 @@ fun GestureSignScreen(
 ) {
     var signActivityStatus by remember { mutableStateOf<ChaoxingSignActivityStatus?>(null) }
     var isSignForOther by remember { mutableStateOf(false) }
-    val signer = remember { ChaoxingGestureSigner(ChaoxingHttpClient.getHttpInstanceOrClone(destination.isCloneSession)!!, destination) }
+    val signer = remember {
+        ChaoxingGestureSigner(
+            ChaoxingHttpClient.getHttpInstanceOrClone(destination.isCloneSession)!!,
+            destination
+        )
+    }
     var isSponsor by remember { mutableStateOf(false) }
     if (isSponsor) {
         SponsorPopupDialog()
@@ -180,7 +185,7 @@ fun GestureSignScreen(
         } else {
             Crossfade(signActivityStatus) { c ->
                 if (c != null && c != ChaoxingSignActivityStatus.READY_TO_SIGN) {
-                    Box(modifier = Modifier.padding(8.dp)) {
+                    Box(modifier = Modifier.padding(8.dp, 4.dp, 8.dp, 8.dp)) {
                         NotReadyToSignNoticeComponent(
                             onSignForOtherUser = {
                                 signActivityStatus = ChaoxingSignActivityStatus.READY_TO_SIGN
@@ -362,7 +367,7 @@ fun GestureSignScreen(
                                                 ) else destination,
                                                 signer.getSignInfo()
                                             ).run {
-                                                if (!isAlwaysForceSign || !bypassChecking) checkSignStatusThrowException()
+                                                if (!(isAlwaysForceSign || bypassChecking)) checkSignStatusThrowException()
                                                 if (sign(value)) {
                                                     suspendCancellableCoroutine { continuation ->
                                                         captchaValidateParams =
@@ -402,13 +407,14 @@ fun GestureSignScreen(
                         )
                     }
                     Column(modifier = Modifier.padding(8.dp, 8.dp, 8.dp, 0.dp)) {
-                        if(destination.isCloneSession)
+                        if (destination.isCloneSession)
                             CloneSessionTips()
                         OtherUserSelectorComponent(
                             navToOtherUser = { navToOtherUserDestination() },
                             signStatus = signStatus,
                             isCurrentAlreadySigned = isSignForOther,
                             userSelections = userSelections,
+                            isCloneSession = destination.isCloneSession,
                             isSigning = isSigning,
                             prefixTipsContent = {
                                 if (signoffData != null)

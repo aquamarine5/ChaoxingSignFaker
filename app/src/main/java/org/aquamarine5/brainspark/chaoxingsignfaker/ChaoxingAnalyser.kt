@@ -33,14 +33,14 @@ private const val SUPABASE_ENDPOINT =
     "https://zpkavhhjdtghljleztpb.supabase.co/rest/v1"
 private const val SUPABASE_DATABASE_ID = "AnalyserData"
 private const val SUPABASE_RANK_VIEW_ID = "user_sign_rank"
-private const val SUPABASE_RANK_ANALYSIS_ID="total_sign_view"
+private const val SUPABASE_RANK_ANALYSIS_ID = "total_sign_view"
 private const val SUPABASE_API_KEY = "sb_publishable_dFuI4bOoYPlDozMXOGKgPg_cCQ0o22B"
 
 object ChaoxingAnalyser {
     lateinit var rankUUID: String
 
-    suspend fun getTotalRankAnalysis(): Result<ChaoxingAnalyserRankAnalysis>{
-        return withContext(Dispatchers.IO){
+    suspend fun getTotalRankAnalysis(): Result<ChaoxingAnalyserRankAnalysis> {
+        return withContext(Dispatchers.IO) {
             runCatching {
                 ChaoxingHttpClient.instance!!.newCall(
                     Request.Builder()
@@ -51,9 +51,9 @@ object ChaoxingAnalyser {
                             SUPABASE_API_KEY
                         )
                         .build()
-                ).execute().use {response ->
+                ).execute().use { response ->
                     response.checkResponseThrowException()
-                    val jsonObject= JSONArray.parseArray(response.body.string()).getJSONObject(0)
+                    val jsonObject = JSONArray.parseArray(response.body.string()).getJSONObject(0)
                     return@runCatching ChaoxingAnalyserRankAnalysis(
                         jsonObject.getInteger("userCount"),
                         jsonObject.getInteger("totalRecordSignCount")

@@ -66,6 +66,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCloudDriveHelper
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCourseHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingRecommendHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingSignHelper
@@ -132,7 +133,12 @@ fun PhotoSignScreen(
     val snackbarHost = LocalSnackbarHostState.current
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
-    val signer = remember { ChaoxingPhotoSigner(ChaoxingHttpClient.getHttpInstanceOrClone(destination.isCloneSession)!!, destination) }
+    val signer = remember {
+        ChaoxingPhotoSigner(
+            ChaoxingHttpClient.getHttpInstanceOrClone(destination.isCloneSession)!!,
+            destination
+        )
+    }
     var isImage by remember { mutableStateOf<Boolean?>(null) }
     var signActivityStatus by remember { mutableStateOf<ChaoxingSignActivityStatus?>(null) }
     var isSignSuccess by remember { mutableStateOf(false) }
@@ -230,7 +236,12 @@ fun PhotoSignScreen(
                                                 session, context
                                             ).let { client ->
                                                 ChaoxingPhotoSigner(
-                                                    client, destination, signer.getSignInfo()
+                                                    client, if (isAlwaysForceSign || bypassChecking) destination.copy(
+                                                        classId = ChaoxingCourseHelper.getClassIdFromCourseId(
+                                                            client,
+                                                            destination.courseId
+                                                        ).getOrNull() ?: destination.classId
+                                                    ) else destination, signer.getSignInfo()
                                                 ).run {
                                                     if (!bypassChecking) checkSignStatusThrowException()
                                                     if (signByClick()) {
@@ -277,7 +288,7 @@ fun PhotoSignScreen(
                                     navToOtherUserDestination()
                                 },
                                 signStatus,
-                                isForSelf,
+                                isCurrentAlreadySigned = isForSelf,
                                 userSelections = userSelections,
                                 isSigning = isSigning,
                                 prefixTipsContent = {
@@ -293,7 +304,9 @@ fun PhotoSignScreen(
                                             destination.endTime,
                                             destination.isLate
                                         )
-                                }, onIgnoreExceptionSignAction = { index, session ->
+                                },
+                                isCloneSession = destination.isCloneSession,
+                                onIgnoreExceptionSignAction = { index, session ->
                                     signHandler.ignoreExceptionOtherUserSigning(session, index)
                                 }
                             ) { isSelf, otherUserSessionList, _ ->
@@ -409,7 +422,12 @@ fun PhotoSignScreen(
                                                     ).let { client ->
                                                         ChaoxingPhotoSigner(
                                                             client,
-                                                            destination,
+                                                            if (isAlwaysForceSign || bypassChecking) destination.copy(
+                                                                classId = ChaoxingCourseHelper.getClassIdFromCourseId(
+                                                                    client,
+                                                                    destination.courseId
+                                                                ).getOrNull() ?: destination.classId
+                                                            ) else destination,
                                                             signer.getSignInfo()
                                                         ).run {
                                                             if (!bypassChecking) checkSignStatusThrowException()
@@ -484,7 +502,8 @@ fun PhotoSignScreen(
                                                     navToOtherUserDestination()
                                                 },
                                                 signStatus,
-                                                isForSelf,
+                                                isCloneSession = destination.isCloneSession,
+                                                isCurrentAlreadySigned = isForSelf,
                                                 userSelections = userSelections,
                                                 isSigning = isSigning,
                                                 prefixTipsContent = {
@@ -795,7 +814,7 @@ fun PhotoSignScreen(
                     }
                 } else if (c != null) {
                     Box(
-                        modifier = Modifier.padding(8.dp)
+                        modifier = Modifier.padding(8.dp, 4.dp, 8.dp, 8.dp)
                     ) {
                         NotReadyToSignNoticeComponent({
                             signActivityStatus = ChaoxingSignActivityStatus.READY_TO_SIGN

@@ -7,6 +7,6 @@
 package org.aquamarine5.brainspark.chaoxingsignfaker.entity
 
 data class ChaoxingAnalyserRankAnalysis(
-    val userCount:Int,
-    val totalRecordSignCount:Int
+    val userCount: Int,
+    val totalRecordSignCount: Int
 )

@@ -56,6 +56,7 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.serialization.Serializable
 import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.UMengHelper
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCourseHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingSignHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.SignDestination
@@ -120,7 +121,12 @@ fun PasswordSignScreen(
 ) {
     var signActivityStatus by remember { mutableStateOf<ChaoxingSignActivityStatus?>(null) }
     var isSignForOther by remember { mutableStateOf(false) }
-    val signer = remember { ChaoxingPasswordSigner(ChaoxingHttpClient.getHttpInstanceOrClone(destination.isCloneSession)!!, destination) }
+    val signer = remember {
+        ChaoxingPasswordSigner(
+            ChaoxingHttpClient.getHttpInstanceOrClone(destination.isCloneSession)!!,
+            destination
+        )
+    }
     var isSponsor by remember { mutableStateOf(false) }
     var numberCount by remember { mutableIntStateOf(-1) }
     if (isSponsor) {
@@ -187,7 +193,7 @@ fun PasswordSignScreen(
         } else {
             Crossfade(signActivityStatus) { c ->
                 if (c != null && c != ChaoxingSignActivityStatus.READY_TO_SIGN) {
-                    Box(modifier = Modifier.padding(8.dp)) {
+                    Box(modifier = Modifier.padding(8.dp, 4.dp, 8.dp, 8.dp)) {
                         NotReadyToSignNoticeComponent(
                             onSignForOtherUser = {
                                 signActivityStatus = ChaoxingSignActivityStatus.READY_TO_SIGN
@@ -234,7 +240,7 @@ fun PasswordSignScreen(
                                     } else return@runCatching false
                                 }
                             },
-                            onOtherUserSigning = { value, session, bypassException, _ ->
+                            onOtherUserSigning = { value, session, bypassChecking, _ ->
                                 runCatching {
                                     ChaoxingHttpClient.loadFromOtherUserSession(
                                         session,
@@ -242,10 +248,15 @@ fun PasswordSignScreen(
                                     ).let { client ->
                                         ChaoxingPasswordSigner(
                                             client,
-                                            destination,
+                                            if (isAlwaysForceSign || bypassChecking) destination.copy(
+                                                classId = ChaoxingCourseHelper.getClassIdFromCourseId(
+                                                    client,
+                                                    destination.courseId
+                                                ).getOrNull() ?: destination.classId
+                                            ) else destination,
                                             signer.getSignInfo()
                                         ).run {
-                                            if (!bypassException)
+                                            if (!bypassChecking)
                                                 checkSignStatusThrowException()
                                             if (sign(value)) {
                                                 suspendCancellableCoroutine { continuation ->
@@ -310,7 +321,7 @@ fun PasswordSignScreen(
                                     )
                             }, onIgnoreExceptionSignAction = { index, session ->
                                 signHandler.ignoreExceptionOtherUserSigning(session, index)
-                            },
+                            }, isCloneSession = destination.isCloneSession,
                             suffixContent = {
                                 var isCheckingStatus by remember { mutableStateOf<Boolean?>(null) }
                                 LaunchedEffect(isCheckingStatus) {
