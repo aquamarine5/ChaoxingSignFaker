@@ -50,7 +50,7 @@ inline fun CourseSignActivityColumnCard(
     isCloneSession: Boolean,
     crossinline onSignAction: (SignDestination) -> Unit
 ) {
-    val isAvailable = activity.status == 1
+    val isAvailable = remember(activity) { activity.status == 1 }
     val context = LocalContext.current
     val snackbarHost = LocalSnackbarHostState.current
     val hapticFeedback = LocalHapticFeedback.current

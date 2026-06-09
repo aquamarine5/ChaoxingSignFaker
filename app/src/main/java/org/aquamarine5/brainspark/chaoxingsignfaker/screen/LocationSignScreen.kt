@@ -122,7 +122,7 @@ fun LocationSignScreen(
     var signInfo by remember { mutableStateOf<ChaoxingLocationDetailEntity?>(null) }
     val signer = remember {
         ChaoxingLocationSigner(
-            ChaoxingHttpClient.getHttpInstanceOrClone(destination.isCloneSession)!!,
+            ChaoxingHttpClient.instance!!,
             destination
         )
     }
@@ -285,7 +285,7 @@ fun LocationSignScreen(
                                                 ) else destination,
                                                 signer.getSignInfo()
                                             ).run {
-                                                if (!bypassChecking) checkSignStatusThrowException()
+                                                if (!(isAlwaysForceSign || bypassChecking)) checkSignStatusThrowException()
                                                 val faceImageUploadedObjectId =
                                                     if (isFaceRequired) {
                                                         faceImageObjectIds.getOrPut(

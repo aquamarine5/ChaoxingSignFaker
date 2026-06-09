@@ -123,7 +123,7 @@ fun PasswordSignScreen(
     var isSignForOther by remember { mutableStateOf(false) }
     val signer = remember {
         ChaoxingPasswordSigner(
-            ChaoxingHttpClient.getHttpInstanceOrClone(destination.isCloneSession)!!,
+            ChaoxingHttpClient.instance!!,
             destination
         )
     }
@@ -256,8 +256,7 @@ fun PasswordSignScreen(
                                             ) else destination,
                                             signer.getSignInfo()
                                         ).run {
-                                            if (!bypassChecking)
-                                                checkSignStatusThrowException()
+                                            if (!(isAlwaysForceSign || bypassChecking)) checkSignStatusThrowException()
                                             if (sign(value)) {
                                                 suspendCancellableCoroutine { continuation ->
                                                     captchaValidateParams =

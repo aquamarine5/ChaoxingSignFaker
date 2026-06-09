@@ -135,7 +135,7 @@ fun PhotoSignScreen(
     val coroutineScope = rememberCoroutineScope()
     val signer = remember {
         ChaoxingPhotoSigner(
-            ChaoxingHttpClient.getHttpInstanceOrClone(destination.isCloneSession)!!,
+            ChaoxingHttpClient.instance!!,
             destination
         )
     }
@@ -243,7 +243,7 @@ fun PhotoSignScreen(
                                                         ).getOrNull() ?: destination.classId
                                                     ) else destination, signer.getSignInfo()
                                                 ).run {
-                                                    if (!bypassChecking) checkSignStatusThrowException()
+                                                    if (!(isAlwaysForceSign || bypassChecking)) checkSignStatusThrowException()
                                                     if (signByClick()) {
                                                         suspendCancellableCoroutine { continuation ->
                                                             captchaValidateParams =
@@ -430,7 +430,7 @@ fun PhotoSignScreen(
                                                             ) else destination,
                                                             signer.getSignInfo()
                                                         ).run {
-                                                            if (!bypassChecking) checkSignStatusThrowException()
+                                                            if (!(isAlwaysForceSign || bypassChecking)) checkSignStatusThrowException()
                                                             val objectId =
                                                                 ChaoxingCloudDriveHelper.uploadImage(
                                                                     client,

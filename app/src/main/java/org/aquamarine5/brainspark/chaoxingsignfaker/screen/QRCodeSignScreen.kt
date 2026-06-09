@@ -77,6 +77,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCloudDriveHelper
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCourseHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingSignHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.SignDestination
@@ -148,7 +149,7 @@ fun QRCodeSignScreen(
     val coroutineScope = rememberCoroutineScope()
     val signer = remember {
         ChaoxingQRCodeSigner(
-            ChaoxingHttpClient.getHttpInstanceOrClone(destination.isCloneSession)!!,
+            ChaoxingHttpClient.instance!!,
             destination
         )
     }
@@ -351,10 +352,15 @@ fun QRCodeSignScreen(
                                             } else null
                                         ChaoxingQRCodeSigner(
                                             client,
-                                            destination,
+                                            if (isAlwaysForceSign || bypassChecking) destination.copy(
+                                                classId = ChaoxingCourseHelper.getClassIdFromCourseId(
+                                                    client,
+                                                    destination.courseId
+                                                ).getOrNull() ?: destination.classId
+                                            ) else destination,
                                             signer.getSignInfo()
                                         ).run {
-                                            if (!bypassChecking) checkSignStatusThrowException()
+                                            if (!(isAlwaysForceSign || bypassChecking)) checkSignStatusThrowException()
                                             if (sign(
                                                     value,
                                                     locationData,

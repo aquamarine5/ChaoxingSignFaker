@@ -121,7 +121,7 @@ fun GestureSignScreen(
     var isSignForOther by remember { mutableStateOf(false) }
     val signer = remember {
         ChaoxingGestureSigner(
-            ChaoxingHttpClient.getHttpInstanceOrClone(destination.isCloneSession)!!,
+            ChaoxingHttpClient.instance!!,
             destination
         )
     }
