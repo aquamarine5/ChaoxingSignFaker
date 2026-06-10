@@ -148,10 +148,24 @@ fun GestureSignScreen(
     val coroutineScope = rememberCoroutineScope()
     var isFetchedFailure by remember { mutableStateOf<Result<*>?>(null) }
     val hapticFeedback = LocalHapticFeedback.current
+    val httpClientStorage = remember { mutableMapOf<String, ChaoxingHttpClient>() }
     LaunchedEffect(Unit) {
         isFetchedFailure = runCatching {
-            signoffData = signer.getGestureSignInfo()
-            signActivityStatus = signer.preSign()
+            signoffData = if (destination.isCloneSession) {
+                ChaoxingHttpClient.cloneInstance!!.let { client ->
+                    httpClientStorage.putIfAbsent(client.userEntity.phoneNumber, client)
+                    ChaoxingGestureSigner(
+                        client,
+                        destination
+                    ).let {
+                        signActivityStatus = it.preSign()
+                        it.getGestureSignInfo()
+                    }
+                }
+            } else {
+                signActivityStatus = signer.preSign()
+                signer.getGestureSignInfo()
+            }
         }.onFailure {
             it.snackbarReport(
                 snackbarHost,
@@ -204,6 +218,7 @@ fun GestureSignScreen(
                             )
                     }
                 } else if (c == ChaoxingSignActivityStatus.READY_TO_SIGN) {
+
                     var isCheckingStatus by remember { mutableStateOf(false) }
                     var text by remember { mutableStateOf("") }
                     val signStatus = remember { mutableListOf(ChaoxingSignStatus(hapticFeedback)) }
@@ -355,40 +370,44 @@ fun GestureSignScreen(
                                 }
                             }, onOtherUserSigning = { value, session, bypassChecking, _ ->
                                 runCatching {
-                                    ChaoxingHttpClient.loadFromOtherUserSession(session, context)
-                                        .let { client ->
-                                            ChaoxingGestureSigner(
-                                                client,
-                                                if (isAlwaysForceSign || bypassChecking) destination.copy(
-                                                    classId = ChaoxingCourseHelper.getClassIdFromCourseId(
-                                                        client,
-                                                        destination.courseId
-                                                    ).getOrNull() ?: destination.classId
-                                                ) else destination,
-                                                signer.getSignInfo()
-                                            ).run {
-                                                if (!(isAlwaysForceSign || bypassChecking)) checkSignStatusThrowException()
-                                                if (sign(value)) {
-                                                    suspendCancellableCoroutine { continuation ->
-                                                        captchaValidateParams =
-                                                            this to { captchaValidate ->
-                                                                if (continuation.isActive) {
-                                                                    continuation.resumeWith(
-                                                                        runCatching {
-                                                                            captchaValidate.onSuccess {
-                                                                                signWithCaptcha(
-                                                                                    value,
-                                                                                    it
-                                                                                )
-                                                                            }.getOrThrow()
-                                                                        })
-                                                                }
+                                    httpClientStorage.getOrPut(session.phoneNumber) {
+                                        ChaoxingHttpClient.loadFromOtherUserSession(
+                                            session,
+                                            context
+                                        )
+                                    }.let { client ->
+                                        ChaoxingGestureSigner(
+                                            client,
+                                            if (isAlwaysForceSign || bypassChecking) destination.copy(
+                                                classId = ChaoxingCourseHelper.getClassIdFromCourseId(
+                                                    client,
+                                                    destination.courseId
+                                                ).getOrNull() ?: destination.classId
+                                            ) else destination,
+                                            signer.getSignInfo()
+                                        ).run {
+                                            if (!(isAlwaysForceSign || bypassChecking)) checkSignStatusThrowException()
+                                            if (sign(value)) {
+                                                suspendCancellableCoroutine { continuation ->
+                                                    captchaValidateParams =
+                                                        this to { captchaValidate ->
+                                                            if (continuation.isActive) {
+                                                                continuation.resumeWith(
+                                                                    runCatching {
+                                                                        captchaValidate.onSuccess {
+                                                                            signWithCaptcha(
+                                                                                value,
+                                                                                it
+                                                                            )
+                                                                        }.getOrThrow()
+                                                                    })
                                                             }
-                                                    }
-                                                    return@runCatching true
-                                                } else return@runCatching false
-                                            }
+                                                        }
+                                                }
+                                                return@runCatching true
+                                            } else return@runCatching false
                                         }
+                                    }
                                 }
                             },
                             onSigningFinished = { _, name, isOtherUser ->

@@ -11,7 +11,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     id("org.aquamarine5.brainspark.stackbricks-gradle-plugin") version "2.2.7"
     id("com.google.protobuf") version "0.9.6"
-    id "io.sentry.android.gradle" version "6.9.0"
+    id "io.sentry.android.gradle" version "6.10.0"
     id("org.jetbrains.kotlin.plugin.serialization") version "2.3.20"
 }
 

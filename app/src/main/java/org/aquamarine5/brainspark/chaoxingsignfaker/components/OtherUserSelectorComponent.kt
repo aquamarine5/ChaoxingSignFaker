@@ -43,6 +43,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -409,7 +410,13 @@ fun OtherUserSelectorComponent(
                             ChaoxingSignStatus(hapticFeedback)
                         })
                         userSelections.addAll(List(data.size) { false })
-                        signUserList.addAll(data)
+                        signUserList.addAll(data.let { sessions ->
+                            if (isCloneSession) {
+                                sessions.sortedBy { it.phoneNumber != ChaoxingHttpClient.cloneInstance!!.userEntity.phoneNumber }
+                            } else {
+                                sessions
+                            }
+                        })
                     }
                     success = isCurrentAlreadySigned
                     userSelections[0] = isCurrentAlreadySigned != true
@@ -589,13 +596,24 @@ fun OtherUserSelectorComponent(
                                 }, verticalAlignment = Alignment.CenterVertically) {
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Column {
-                                        Text(
-                                            text = session.name,
-                                            color = if (session.isObsoleteSession || signStatus[i].isObsoleteSession.value) Color(
-                                                0xFFFCC307
-                                            ) else Color.Unspecified,
-                                            textDecoration = if (successForOtherUser != true) TextDecoration.None else TextDecoration.LineThrough
-                                        )
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Text(
+                                                text = session.name,
+                                                color = if (session.isObsoleteSession || signStatus[i].isObsoleteSession.value) Color(
+                                                    0xFFFCC307
+                                                ) else Color.Unspecified,
+                                                textDecoration = if (successForOtherUser != true) TextDecoration.None else TextDecoration.LineThrough
+                                            )
+                                            Icon(
+                                                painterResource(R.drawable.ic_square_stack),
+                                                null,
+                                                tint = LocalContentColor.current,
+                                                modifier = Modifier
+                                                    .padding(start = 4.dp)
+                                                    .size(14.dp)
+                                                    .visible(isCloneSession && index == 0)
+                                            )
+                                        }
                                         Text(
                                             session.phoneNumber,
                                             color = Color.Gray,
@@ -609,7 +627,7 @@ fun OtherUserSelectorComponent(
                                         horizontalArrangement = Arrangement.End,
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        if ((session.isObsoleteSession || signStatus[i].isObsoleteSession.value).not())
+                                        if (session.isObsoleteSession || signStatus[i].isObsoleteSession.value)
                                             IconButton(onClick = {
                                                 repairSessionIndex = index + 1
                                             }) {
@@ -618,9 +636,7 @@ fun OtherUserSelectorComponent(
                                                     null,
                                                     tint = Color(0xFFFCC307),
                                                     modifier = Modifier
-                                                        .padding(start = 4.dp)
                                                         .size(24.dp)
-                                                        .visible(session.isObsoleteSession || signStatus[i].isObsoleteSession.value)
                                                 )
                                             }
                                         userContent?.invoke(1 + index)

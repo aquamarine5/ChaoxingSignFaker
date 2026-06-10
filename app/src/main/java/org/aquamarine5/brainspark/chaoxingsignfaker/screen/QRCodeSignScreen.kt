@@ -166,6 +166,7 @@ fun QRCodeSignScreen(
     }
     val hapticFeedback = LocalHapticFeedback.current
     var isFetchedFailure by remember { mutableStateOf<Result<*>?>(null) }
+    val httpClientStorage = remember { mutableMapOf<String, ChaoxingHttpClient>() }
     if (captchaValidateParams != null) {
         CaptchaHandlerDialog(
             captchaValidateParams!!.first,
@@ -178,10 +179,22 @@ fun QRCodeSignScreen(
                 isSigning.value = false
             })
     }
+    var isFaceRequired by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         isFetchedFailure = runCatching {
-            signActivityStatus = signer.preSign()
-            val data = signer.getQRCodeSignInfo()
+            val data = if (destination.isCloneSession) {
+                ChaoxingHttpClient.cloneInstance!!.let { cloneHttpClient ->
+                    httpClientStorage.putIfAbsent(cloneHttpClient.userEntity.phoneNumber, cloneHttpClient)
+                    ChaoxingQRCodeSigner(cloneHttpClient, destination).let {
+                        isFaceRequired = it.isFaceRequired()
+                        it.getQRCodeSignInfo()
+                    }
+                }
+            } else {
+                isFaceRequired = signer.isFaceRequired()
+                signActivityStatus = signer.preSign()
+                signer.getQRCodeSignInfo()
+            }
             isMapRequired = data.first.isPositionRequired
             signoffData = data.second
         }.onFailure {
@@ -245,7 +258,7 @@ fun QRCodeSignScreen(
                             emptyList()
                         )
                     }
-                    val httpClientStorage = remember { mutableMapOf<String, ChaoxingHttpClient>() }
+
                     var getQRCodeContinuation: CancellableContinuation<String>? by remember {
                         mutableStateOf(
                             null
@@ -263,14 +276,12 @@ fun QRCodeSignScreen(
                     }
 
                     // TODO: 人脸识别
-                    var isFaceRequired by remember { mutableStateOf(false) }
+
                     var isFaceImageCaptured by remember { mutableStateOf(false) }
 
                     val faceImageBitmaps = remember { mutableMapOf<String, Bitmap>() }
                     val faceImageObjectIds = remember { mutableMapOf<String, String>() }
-                    LaunchedEffect(Unit) {
-                        isFaceRequired = signer.isFaceRequired()
-                    }
+
                     val signHandler = remember {
                         ChaoxingSignHandler(
                             context = context,

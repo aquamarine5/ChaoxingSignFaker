@@ -127,6 +127,7 @@ fun PasswordSignScreen(
             destination
         )
     }
+    val httpClientStorage = remember { mutableMapOf<String, ChaoxingHttpClient>() }
     var isSponsor by remember { mutableStateOf(false) }
     var numberCount by remember { mutableIntStateOf(-1) }
     if (isSponsor) {
@@ -154,7 +155,21 @@ fun PasswordSignScreen(
     var isFetchedFailure by remember { mutableStateOf<Result<*>?>(null) }
     LaunchedEffect(Unit) {
         isFetchedFailure = runCatching {
-            signer.getPasswordInfo().apply {
+            (if (destination.isCloneSession) {
+                ChaoxingHttpClient.cloneInstance!!.let { client ->
+                    httpClientStorage.putIfAbsent(client.userEntity.phoneNumber, client)
+                    ChaoxingPasswordSigner(
+                        client,
+                        destination
+                    ).let {
+                        signActivityStatus = it.preSign()
+                        it.getPasswordInfo()
+                    }
+                }
+            } else {
+                signActivityStatus = signer.preSign()
+                signer.getPasswordInfo()
+            }).apply {
                 numberCount = first
                 signoffData = second
             }
@@ -242,10 +257,12 @@ fun PasswordSignScreen(
                             },
                             onOtherUserSigning = { value, session, bypassChecking, _ ->
                                 runCatching {
-                                    ChaoxingHttpClient.loadFromOtherUserSession(
-                                        session,
-                                        context
-                                    ).let { client ->
+                                    httpClientStorage.getOrPut(session.phoneNumber) {
+                                        ChaoxingHttpClient.loadFromOtherUserSession(
+                                            session,
+                                            context
+                                        )
+                                    }.let { client ->
                                         ChaoxingPasswordSigner(
                                             client,
                                             if (isAlwaysForceSign || bypassChecking) destination.copy(

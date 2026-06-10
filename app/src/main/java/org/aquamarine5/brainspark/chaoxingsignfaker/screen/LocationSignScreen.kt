@@ -149,12 +149,28 @@ fun LocationSignScreen(
     val coroutineScope = rememberCoroutineScope()
     val hapticFeedback = LocalHapticFeedback.current
     var isFetchedFailure by remember { mutableStateOf<Result<*>?>(null) }
+
+    var isFaceRequired by remember { mutableStateOf(false) }
+    val httpClientStorage = remember { mutableMapOf<String, ChaoxingHttpClient>() }
     LaunchedEffect(Unit) {
         isFetchedFailure = runCatching {
-            val data = signer.getLocationSignInfo()
+            val data = if (destination.isCloneSession) {
+                ChaoxingHttpClient.cloneInstance!!.let { client ->
+                    httpClientStorage.putIfAbsent(client.userEntity.phoneNumber, client)
+                    ChaoxingLocationSigner(
+                        client,
+                        destination
+                    ).let {
+                        signActivityStatus = it.preSign()
+                        it.getLocationSignInfo()
+                    }
+                }
+            } else {
+                signer.getLocationSignInfo()
+                signActivityStatus = signer.preSign()
+            }
             signInfo = data.first
             signoffData = data.second
-            signActivityStatus = signer.preSign()
         }.onFailure {
             it.snackbarReport(
                 snackbarHost,
@@ -208,6 +224,7 @@ fun LocationSignScreen(
                             )
                     }
                 } else if (c == ChaoxingSignActivityStatus.READY_TO_SIGN) {
+
                     var isGetLocation by remember { mutableStateOf(false) }
                     val signStatus = remember { mutableListOf(ChaoxingSignStatus(hapticFeedback)) }
                     var isSelfForSign by remember { mutableStateOf(false) }
@@ -220,16 +237,11 @@ fun LocationSignScreen(
                     val userSelections = remember { mutableStateListOf(isSignForOther.not()) }
 
                     // future will be edited.
-                    var isFaceRequired by remember { mutableStateOf(false) }
+
                     var isFaceImageCaptured by remember { mutableStateOf(false) }
 
-                    val faceImageBitmaps = remember { mutableMapOf<String, Bitmap>() }
                     val faceImageObjectIds = remember { mutableMapOf<String, String>() }
-
-                    LaunchedEffect(Unit) {
-                        isFaceRequired = signer.isFaceRequired()
-                    }
-
+                    val faceImageBitmaps = remember { mutableMapOf<String, Bitmap>() }
                     val signHandler = remember {
                         ChaoxingSignHandler<ChaoxingLocationSignEntity>(
                             context = context, userSelections = userSelections,
@@ -273,54 +285,58 @@ fun LocationSignScreen(
                             },
                             onOtherUserSigning = { value, session, bypassChecking, _ ->
                                 runCatching {
-                                    ChaoxingHttpClient.loadFromOtherUserSession(session, context)
-                                        .let { client ->
-                                            ChaoxingLocationSigner(
-                                                client,
-                                                if (isAlwaysForceSign || bypassChecking) destination.copy(
-                                                    classId = ChaoxingCourseHelper.getClassIdFromCourseId(
-                                                        client,
-                                                        destination.courseId
-                                                    ).getOrNull() ?: destination.classId
-                                                ) else destination,
-                                                signer.getSignInfo()
-                                            ).run {
-                                                if (!(isAlwaysForceSign || bypassChecking)) checkSignStatusThrowException()
-                                                val faceImageUploadedObjectId =
-                                                    if (isFaceRequired) {
-                                                        faceImageObjectIds.getOrPut(
-                                                            session.phoneNumber
-                                                        ) {
-                                                            ChaoxingCloudDriveHelper.uploadImage(
-                                                                client,
-                                                                faceImageBitmaps.remove(
-                                                                    session.phoneNumber
-                                                                )!!
-                                                            )
-                                                        }
-                                                    } else null
-                                                if (sign(value, faceImageUploadedObjectId)) {
-                                                    suspendCancellableCoroutine { continuation ->
-                                                        captchaValidateParams =
-                                                            this to { captchaValidate ->
-                                                                if (continuation.isActive) {
-                                                                    continuation.resumeWith(
-                                                                        runCatching {
-                                                                            captchaValidate.onSuccess {
-                                                                                signWithCaptcha(
-                                                                                    value,
-                                                                                    it,
-                                                                                    faceImageUploadedObjectId
-                                                                                )
-                                                                            }.getOrThrow()
-                                                                        })
-                                                                }
-                                                            }
+                                    httpClientStorage.getOrPut(session.phoneNumber) {
+                                        ChaoxingHttpClient.loadFromOtherUserSession(
+                                            session,
+                                            context
+                                        )
+                                    }.let { client ->
+                                        ChaoxingLocationSigner(
+                                            client,
+                                            if (isAlwaysForceSign || bypassChecking) destination.copy(
+                                                classId = ChaoxingCourseHelper.getClassIdFromCourseId(
+                                                    client,
+                                                    destination.courseId
+                                                ).getOrNull() ?: destination.classId
+                                            ) else destination,
+                                            signer.getSignInfo()
+                                        ).run {
+                                            if (!(isAlwaysForceSign || bypassChecking)) checkSignStatusThrowException()
+                                            val faceImageUploadedObjectId =
+                                                if (isFaceRequired) {
+                                                    faceImageObjectIds.getOrPut(
+                                                        session.phoneNumber
+                                                    ) {
+                                                        ChaoxingCloudDriveHelper.uploadImage(
+                                                            client,
+                                                            faceImageBitmaps.remove(
+                                                                session.phoneNumber
+                                                            )!!
+                                                        )
                                                     }
-                                                    return@runCatching true
-                                                } else return@runCatching false
-                                            }
+                                                } else null
+                                            if (sign(value, faceImageUploadedObjectId)) {
+                                                suspendCancellableCoroutine { continuation ->
+                                                    captchaValidateParams =
+                                                        this to { captchaValidate ->
+                                                            if (continuation.isActive) {
+                                                                continuation.resumeWith(
+                                                                    runCatching {
+                                                                        captchaValidate.onSuccess {
+                                                                            signWithCaptcha(
+                                                                                value,
+                                                                                it,
+                                                                                faceImageUploadedObjectId
+                                                                            )
+                                                                        }.getOrThrow()
+                                                                    })
+                                                            }
+                                                        }
+                                                }
+                                                return@runCatching true
+                                            } else return@runCatching false
                                         }
+                                    }
                                 }
                             },
                             destination = destination,

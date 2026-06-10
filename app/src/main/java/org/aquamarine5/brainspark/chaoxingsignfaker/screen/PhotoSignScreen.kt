@@ -146,6 +146,7 @@ fun PhotoSignScreen(
     var isForSelf by remember { mutableStateOf(false) }
     var isSponsor by remember { mutableStateOf(false) }
     var signoffEntity by remember { mutableStateOf<ChaoxingSignOutEntity?>(null) }
+    val httpClientStorage = remember { mutableMapOf<String, ChaoxingHttpClient>() }
     if (isSponsor) {
         SponsorPopupDialog()
     }
@@ -164,10 +165,23 @@ fun PhotoSignScreen(
     var isFetchedFailure by remember { mutableStateOf<Result<*>?>(null) }
     LaunchedEffect(Unit) {
         isFetchedFailure = runCatching {
-            val data = signer.ifPhotoRequiredLogin()
+            val data = if (destination.isCloneSession) {
+                ChaoxingHttpClient.cloneInstance!!.let { client ->
+                    httpClientStorage.putIfAbsent(client.userEntity.phoneNumber, client)
+                    ChaoxingPhotoSigner(
+                        client,
+                        destination
+                    ).let {
+                        signActivityStatus = it.preSign()
+                        it.ifPhotoRequiredLogin()
+                    }
+                }
+            } else {
+                signActivityStatus = signer.preSign()
+                signer.ifPhotoRequiredLogin()
+            }
             isImage = data.first
             signoffEntity = data.second
-            signActivityStatus = signer.preSign()
         }.onFailure {
             it.snackbarReport(
                 snackbarHost,
@@ -203,6 +217,7 @@ fun PhotoSignScreen(
                         Column(
                             modifier = Modifier.padding(8.dp, 8.dp, 8.dp, 0.dp)
                         ) {
+
                             val isSigning = remember { mutableStateOf(false) }
                             val signStatus =
                                 remember { mutableListOf(ChaoxingSignStatus(hapticFeedback)) }
@@ -232,16 +247,21 @@ fun PhotoSignScreen(
                                     },
                                     onOtherUserSigning = { _, session, bypassChecking, _ ->
                                         runCatching {
-                                            ChaoxingHttpClient.loadFromOtherUserSession(
-                                                session, context
-                                            ).let { client ->
+                                            httpClientStorage.getOrPut(session.phoneNumber) {
+                                                ChaoxingHttpClient.loadFromOtherUserSession(
+                                                    session,
+                                                    context
+                                                )
+                                            }.let { client ->
                                                 ChaoxingPhotoSigner(
-                                                    client, if (isAlwaysForceSign || bypassChecking) destination.copy(
+                                                    client,
+                                                    if (isAlwaysForceSign || bypassChecking) destination.copy(
                                                         classId = ChaoxingCourseHelper.getClassIdFromCourseId(
                                                             client,
                                                             destination.courseId
                                                         ).getOrNull() ?: destination.classId
-                                                    ) else destination, signer.getSignInfo()
+                                                    ) else destination,
+                                                    signer.getSignInfo()
                                                 ).run {
                                                     if (!(isAlwaysForceSign || bypassChecking)) checkSignStatusThrowException()
                                                     if (signByClick()) {
@@ -417,9 +437,12 @@ fun PhotoSignScreen(
                                             },
                                             onOtherUserSigning = { value, session, bypassChecking, index ->
                                                 runCatching {
-                                                    ChaoxingHttpClient.loadFromOtherUserSession(
-                                                        session, context
-                                                    ).let { client ->
+                                                    httpClientStorage.getOrPut(session.phoneNumber) {
+                                                        ChaoxingHttpClient.loadFromOtherUserSession(
+                                                            session,
+                                                            context
+                                                        )
+                                                    }.let { client ->
                                                         ChaoxingPhotoSigner(
                                                             client,
                                                             if (isAlwaysForceSign || bypassChecking) destination.copy(

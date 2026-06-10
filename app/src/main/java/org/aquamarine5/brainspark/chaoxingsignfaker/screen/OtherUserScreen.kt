@@ -1873,7 +1873,7 @@ fun OtherUserScreen(
                                                         }
                                                     }) {
                                                         Icon(
-                                                            painterResource(R.drawable.ic_square_stack),
+                                                            painterResource(R.drawable.ic_user_left_arrow),
                                                             null
                                                         )
                                                     }
