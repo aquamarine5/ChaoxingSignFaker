@@ -82,6 +82,7 @@ data class ChaoxingSignStatus(
                 ) {
                     if (onIgnoreException != null)
                         IconButton(onClick = {
+                            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                             onIgnoreException()
                         }) {
                             Icon(painterResource(R.drawable.ic_refresh_rounded), null)

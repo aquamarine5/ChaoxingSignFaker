@@ -113,6 +113,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.screen.SettingScreen
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.SignGraphDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.WelcomeDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.WelcomeScreen
+import org.aquamarine5.brainspark.chaoxingsignfaker.screen.isAlwaysForceSign
 import org.aquamarine5.brainspark.chaoxingsignfaker.ui.theme.ChaoxingSignFakerTheme
 import org.aquamarine5.brainspark.chaoxingsignfaker.ui.theme.Orange
 import org.aquamarine5.brainspark.stackbricks.StackbricksPolicy
@@ -370,6 +371,7 @@ class MainActivity : ComponentActivity() {
                                         datastore.preferences.customizedPackageName
                                     )
                                     isDevelopedMode = datastore.preferences.isDevelopedMode
+                                    isAlwaysForceSign = datastore.preferences.alwaysForceSign
                                     destination =
                                         when {
                                             !datastore.agreeTerms -> WelcomeDestination
@@ -442,9 +444,10 @@ class MainActivity : ComponentActivity() {
                                         )
                                     },
                                 ) {
-                                    navigation<SignGraphDestination>(startDestination = CourseListDestination) {
+                                    navigation<SignGraphDestination>(startDestination = CourseListDestination()) {
                                         composable<CourseListDestination> {
                                             CourseListScreen(
+                                                it.toRoute(),
                                                 stackbricksService,
                                                 imageLoader,
                                                 navToDetailDestination = {
@@ -570,7 +573,9 @@ class MainActivity : ComponentActivity() {
 
                                     navigation<OtherUserGraphDestination>(startDestination = OtherUserDestination) {
                                         composable<OtherUserDestination> {
-                                            OtherUserScreen {
+                                            OtherUserScreen(naviCloneCourseListScreen = {
+                                                navController.navigate(CourseListDestination(true))
+                                            }) {
                                                 navController.navigateUp()
                                             }
                                         }
@@ -597,7 +602,7 @@ class MainActivity : ComponentActivity() {
 
                                     composable<LoginDestination> {
                                         LoginPage(it.toRoute(), stackbricksService) {
-                                            navController.navigate(CourseListDestination) {
+                                            navController.navigate(CourseListDestination()) {
                                                 popUpTo<LoginDestination> { inclusive = true }
                                             }
                                         }

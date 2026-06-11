@@ -147,7 +147,10 @@ object OtherUserGraphDestination
 const val TAG_COLOR_UNSPECIFIED = -1L
 
 @Composable
-fun OtherUserScreen(naviBack: () -> Unit) {
+fun OtherUserScreen(
+    naviCloneCourseListScreen: () -> Unit,
+    naviBack: () -> Unit
+) {
     val context = LocalContext.current
     val resources = LocalResources.current
     val snackbarHost = LocalSnackbarHostState.current
@@ -1058,14 +1061,15 @@ fun OtherUserScreen(naviBack: () -> Unit) {
             )
         }, text = {
             Column {
-                Text("检测到用户 ${otherUserSessions[repairSessionIndex!!].name} 的登录状态异常，重新登录后可修复此问题。")
+                Text("在最近一次的签到过程中检测到用户 ${otherUserSessions[repairSessionIndex!!].name} 的登录状态异常，重新登录后可修复此问题。")
                 var password by remember { mutableStateOf("") }
                 OutlinedTextField(
                     value = otherUserSessions[repairSessionIndex!!].phoneNumber,
                     onValueChange = { },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.fillMaxWidth(),
-                    enabled = false
+                    enabled = false,
+                    label = { Text("手机号") }
                 )
                 var isPasswordVisible by remember { mutableStateOf(false) }
                 var errorMessage by remember { mutableStateOf("") }
@@ -1152,7 +1156,12 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                 }, modifier = Modifier.fillMaxWidth()) { Text("重新登录") }
             }
         }, confirmButton = {
-
+            Button(onClick = {
+                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                repairSessionIndex = null
+            }) {
+                Text("关闭")
+            }
         })
     }
     if (selectedUserSettingDialogIndex != null) {
@@ -1847,6 +1856,25 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                                             null,
                                                             tint = Color(0xFFFCC307),
                                                             modifier = Modifier.size(24.dp)
+                                                        )
+                                                    }
+                                                else
+                                                    IconButton(onClick = {
+                                                        coroutineScope.launch {
+                                                            hapticFeedback.performHapticFeedback(
+                                                                HapticFeedbackType.ContextClick
+                                                            )
+                                                            ChaoxingHttpClient.cloneInstance =
+                                                                ChaoxingHttpClient.loadFromOtherUserSession(
+                                                                    otherUserSessions[index],
+                                                                    context
+                                                                )
+                                                            naviCloneCourseListScreen()
+                                                        }
+                                                    }) {
+                                                        Icon(
+                                                            painterResource(R.drawable.ic_user_left_arrow),
+                                                            null
                                                         )
                                                     }
                                                 IconButton(

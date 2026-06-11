@@ -66,6 +66,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCloudDriveHelper
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCourseHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingRecommendHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingSignHelper
@@ -98,12 +99,14 @@ data class PhotoSignDestination(
     val extContent: String,
     val startTime: Long?,
     override val endTime: Long?,
-    val isLate: Boolean
+    val isLate: Boolean,
+    override val isCloneSession: Boolean
 ) : SignDestination {
     companion object {
         fun parseFromSignActivityEntity(
             activityEntity: ChaoxingSignActivityEntity,
-            isLate: Boolean
+            isLate: Boolean,
+            isCloneSession: Boolean
         ): PhotoSignDestination {
             return PhotoSignDestination(
                 activityEntity.id,
@@ -112,7 +115,8 @@ data class PhotoSignDestination(
                 activityEntity.ext,
                 activityEntity.startTime,
                 activityEntity.endTime,
-                isLate
+                isLate,
+                isCloneSession
             )
         }
     }
@@ -129,7 +133,12 @@ fun PhotoSignScreen(
     val snackbarHost = LocalSnackbarHostState.current
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
-    val signer = remember { ChaoxingPhotoSigner(ChaoxingHttpClient.instance!!, destination) }
+    val signer = remember {
+        ChaoxingPhotoSigner(
+            ChaoxingHttpClient.instance!!,
+            destination
+        )
+    }
     var isImage by remember { mutableStateOf<Boolean?>(null) }
     var signActivityStatus by remember { mutableStateOf<ChaoxingSignActivityStatus?>(null) }
     var isSignSuccess by remember { mutableStateOf(false) }
@@ -137,6 +146,7 @@ fun PhotoSignScreen(
     var isForSelf by remember { mutableStateOf(false) }
     var isSponsor by remember { mutableStateOf(false) }
     var signoffEntity by remember { mutableStateOf<ChaoxingSignOutEntity?>(null) }
+    val httpClientStorage = remember { mutableMapOf<String, ChaoxingHttpClient>() }
     if (isSponsor) {
         SponsorPopupDialog()
     }
@@ -155,10 +165,23 @@ fun PhotoSignScreen(
     var isFetchedFailure by remember { mutableStateOf<Result<*>?>(null) }
     LaunchedEffect(Unit) {
         isFetchedFailure = runCatching {
-            val data = signer.ifPhotoRequiredLogin()
+            val data = if (destination.isCloneSession) {
+                ChaoxingHttpClient.cloneInstance!!.let { client ->
+                    httpClientStorage.putIfAbsent(client.userEntity.phoneNumber, client)
+                    ChaoxingPhotoSigner(
+                        client,
+                        destination
+                    ).let {
+                        signActivityStatus = it.preSign()
+                        it.ifPhotoRequiredLogin()
+                    }
+                }
+            } else {
+                signActivityStatus = signer.preSign()
+                signer.ifPhotoRequiredLogin()
+            }
             isImage = data.first
             signoffEntity = data.second
-            signActivityStatus = signer.preSign()
         }.onFailure {
             it.snackbarReport(
                 snackbarHost,
@@ -192,8 +215,9 @@ fun PhotoSignScreen(
                 if (c == ChaoxingSignActivityStatus.READY_TO_SIGN) {
                     if (isImage == false) {
                         Column(
-                            modifier = Modifier.padding(8.dp, 8.dp, 8.dp, 0.dp)
+                            modifier = Modifier.padding(8.dp, 4.dp, 8.dp, 0.dp)
                         ) {
+
                             val isSigning = remember { mutableStateOf(false) }
                             val signStatus =
                                 remember { mutableListOf(ChaoxingSignStatus(hapticFeedback)) }
@@ -223,13 +247,23 @@ fun PhotoSignScreen(
                                     },
                                     onOtherUserSigning = { _, session, bypassChecking, _ ->
                                         runCatching {
-                                            ChaoxingHttpClient.loadFromOtherUserSession(
-                                                session, context
-                                            ).let { client ->
+                                            httpClientStorage.getOrPut(session.phoneNumber) {
+                                                ChaoxingHttpClient.loadFromOtherUserSession(
+                                                    session,
+                                                    context
+                                                )
+                                            }.let { client ->
                                                 ChaoxingPhotoSigner(
-                                                    client, destination, signer.getSignInfo()
+                                                    client,
+                                                    if (isAlwaysForceSign || bypassChecking) destination.copy(
+                                                        classId = ChaoxingCourseHelper.getClassIdFromCourseId(
+                                                            client,
+                                                            destination.courseId
+                                                        ).getOrNull() ?: destination.classId
+                                                    ) else destination,
+                                                    signer.getSignInfo()
                                                 ).run {
-                                                    if (!bypassChecking) checkSignStatusThrowException()
+                                                    if (!(isAlwaysForceSign || bypassChecking)) checkSignStatusThrowException()
                                                     if (signByClick()) {
                                                         suspendCancellableCoroutine { continuation ->
                                                             captchaValidateParams =
@@ -274,7 +308,7 @@ fun PhotoSignScreen(
                                     navToOtherUserDestination()
                                 },
                                 signStatus,
-                                isForSelf,
+                                isCurrentAlreadySigned = isForSelf,
                                 userSelections = userSelections,
                                 isSigning = isSigning,
                                 prefixTipsContent = {
@@ -290,7 +324,9 @@ fun PhotoSignScreen(
                                             destination.endTime,
                                             destination.isLate
                                         )
-                                }, onIgnoreExceptionSignAction = { index, session ->
+                                },
+                                isCloneSession = destination.isCloneSession,
+                                onIgnoreExceptionSignAction = { index, session ->
                                     signHandler.ignoreExceptionOtherUserSigning(session, index)
                                 }
                             ) { isSelf, otherUserSessionList, _ ->
@@ -401,15 +437,23 @@ fun PhotoSignScreen(
                                             },
                                             onOtherUserSigning = { value, session, bypassChecking, index ->
                                                 runCatching {
-                                                    ChaoxingHttpClient.loadFromOtherUserSession(
-                                                        session, context
-                                                    ).let { client ->
+                                                    httpClientStorage.getOrPut(session.phoneNumber) {
+                                                        ChaoxingHttpClient.loadFromOtherUserSession(
+                                                            session,
+                                                            context
+                                                        )
+                                                    }.let { client ->
                                                         ChaoxingPhotoSigner(
                                                             client,
-                                                            destination,
+                                                            if (isAlwaysForceSign || bypassChecking) destination.copy(
+                                                                classId = ChaoxingCourseHelper.getClassIdFromCourseId(
+                                                                    client,
+                                                                    destination.courseId
+                                                                ).getOrNull() ?: destination.classId
+                                                            ) else destination,
                                                             signer.getSignInfo()
                                                         ).run {
-                                                            if (!bypassChecking) checkSignStatusThrowException()
+                                                            if (!(isAlwaysForceSign || bypassChecking)) checkSignStatusThrowException()
                                                             val objectId =
                                                                 ChaoxingCloudDriveHelper.uploadImage(
                                                                     client,
@@ -474,14 +518,15 @@ fun PhotoSignScreen(
                                             .fillMaxSize()
                                     ) {
                                         Column(
-                                            modifier = Modifier.padding(8.dp)
+                                            modifier = Modifier.padding(8.dp, 4.dp, 8.dp, 0.dp)
                                         ) {
                                             OtherUserSelectorComponent(
                                                 navToOtherUser = {
                                                     navToOtherUserDestination()
                                                 },
                                                 signStatus,
-                                                isForSelf,
+                                                isCloneSession = destination.isCloneSession,
+                                                isCurrentAlreadySigned = isForSelf,
                                                 userSelections = userSelections,
                                                 isSigning = isSigning,
                                                 prefixTipsContent = {
@@ -792,7 +837,7 @@ fun PhotoSignScreen(
                     }
                 } else if (c != null) {
                     Box(
-                        modifier = Modifier.padding(8.dp)
+                        modifier = Modifier.padding(8.dp, 0.dp, 8.dp, 8.dp)
                     ) {
                         NotReadyToSignNoticeComponent({
                             signActivityStatus = ChaoxingSignActivityStatus.READY_TO_SIGN

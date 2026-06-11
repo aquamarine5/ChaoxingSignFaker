@@ -77,6 +77,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCloudDriveHelper
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCourseHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingSignHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.SignDestination
@@ -112,12 +113,14 @@ data class QRCodeSignDestination(
     val extContent: String,
     val startTime: Long?,
     override val endTime: Long?,
-    val isLate: Boolean
+    val isLate: Boolean,
+    override val isCloneSession: Boolean
 ) : SignDestination {
     companion object {
         fun parseFromSignActivityEntity(
             activityEntity: ChaoxingSignActivityEntity,
-            isLate: Boolean
+            isLate: Boolean,
+            isCloneSession: Boolean
         ): QRCodeSignDestination {
             return QRCodeSignDestination(
                 activityEntity.id,
@@ -126,7 +129,8 @@ data class QRCodeSignDestination(
                 activityEntity.ext,
                 activityEntity.startTime,
                 activityEntity.endTime,
-                isLate
+                isLate,
+                isCloneSession
             )
         }
     }
@@ -143,7 +147,12 @@ fun QRCodeSignScreen(
     var signActivityStatus by remember { mutableStateOf<ChaoxingSignActivityStatus?>(null) }
     var isCurrentAlreadySigned by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
-    val signer = remember { ChaoxingQRCodeSigner(ChaoxingHttpClient.instance!!, destination) }
+    val signer = remember {
+        ChaoxingQRCodeSigner(
+            ChaoxingHttpClient.instance!!,
+            destination
+        )
+    }
     val context = LocalContext.current
     val resources = LocalResources.current
     val snackbarHost = LocalSnackbarHostState.current
@@ -157,6 +166,7 @@ fun QRCodeSignScreen(
     }
     val hapticFeedback = LocalHapticFeedback.current
     var isFetchedFailure by remember { mutableStateOf<Result<*>?>(null) }
+    val httpClientStorage = remember { mutableMapOf<String, ChaoxingHttpClient>() }
     if (captchaValidateParams != null) {
         CaptchaHandlerDialog(
             captchaValidateParams!!.first,
@@ -169,10 +179,23 @@ fun QRCodeSignScreen(
                 isSigning.value = false
             })
     }
+    var isFaceRequired by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         isFetchedFailure = runCatching {
-            signActivityStatus = signer.preSign()
-            val data = signer.getQRCodeSignInfo()
+            val data = if (destination.isCloneSession) {
+                ChaoxingHttpClient.cloneInstance!!.let { cloneHttpClient ->
+                    httpClientStorage.putIfAbsent(cloneHttpClient.userEntity.phoneNumber, cloneHttpClient)
+                    ChaoxingQRCodeSigner(cloneHttpClient, destination).let {
+                        isFaceRequired = it.isFaceRequired()
+                        signActivityStatus = signer.preSign()
+                        it.getQRCodeSignInfo()
+                    }
+                }
+            } else {
+                isFaceRequired = signer.isFaceRequired()
+                signActivityStatus = signer.preSign()
+                signer.getQRCodeSignInfo()
+            }
             isMapRequired = data.first.isPositionRequired
             signoffData = data.second
         }.onFailure {
@@ -207,7 +230,7 @@ fun QRCodeSignScreen(
             Crossfade(signActivityStatus) { c ->
                 if (c != null && c != ChaoxingSignActivityStatus.READY_TO_SIGN) {
                     Box(
-                        modifier = Modifier.padding(8.dp)
+                        modifier = Modifier.padding(8.dp, 0.dp, 8.dp, 8.dp)
                     ) {
                         NotReadyToSignNoticeComponent(onSignForOtherUser = {
                             signActivityStatus = ChaoxingSignActivityStatus.READY_TO_SIGN
@@ -236,7 +259,7 @@ fun QRCodeSignScreen(
                             emptyList()
                         )
                     }
-                    val httpClientStorage = remember { mutableMapOf<String, ChaoxingHttpClient>() }
+
                     var getQRCodeContinuation: CancellableContinuation<String>? by remember {
                         mutableStateOf(
                             null
@@ -254,16 +277,14 @@ fun QRCodeSignScreen(
                     }
 
                     // TODO: 人脸识别
-                    var isFaceRequired by remember { mutableStateOf(false) }
+
                     var isFaceImageCaptured by remember { mutableStateOf(false) }
 
                     val faceImageBitmaps = remember { mutableMapOf<String, Bitmap>() }
                     val faceImageObjectIds = remember { mutableMapOf<String, String>() }
-                    LaunchedEffect(Unit) {
-                        isFaceRequired = signer.isFaceRequired()
-                    }
+
                     val signHandler = remember {
-                        ChaoxingSignHandler<String>(
+                        ChaoxingSignHandler(
                             context = context,
                             getSignRealtimeParameter = {
                                 suspendCancellableCoroutine { continuation ->
@@ -343,10 +364,15 @@ fun QRCodeSignScreen(
                                             } else null
                                         ChaoxingQRCodeSigner(
                                             client,
-                                            destination,
+                                            if (isAlwaysForceSign || bypassChecking) destination.copy(
+                                                classId = ChaoxingCourseHelper.getClassIdFromCourseId(
+                                                    client,
+                                                    destination.courseId
+                                                ).getOrNull() ?: destination.classId
+                                            ) else destination,
                                             signer.getSignInfo()
                                         ).run {
-                                            if (!bypassChecking) checkSignStatusThrowException()
+                                            if (!(isAlwaysForceSign || bypassChecking)) checkSignStatusThrowException()
                                             if (sign(
                                                     value,
                                                     locationData,
@@ -399,7 +425,7 @@ fun QRCodeSignScreen(
                     ) {
                         Column(
                             modifier = Modifier
-                                .padding(8.dp, 8.dp, 8.dp, 0.dp)
+                                .padding(8.dp, 4.dp, 8.dp, 0.dp)
                         ) {
                             OtherUserSelectorComponent(
                                 navToOtherUser = {
@@ -489,7 +515,7 @@ fun QRCodeSignScreen(
                                 isSigning = isSigning,
                                 onIgnoreExceptionSignAction = { index, session ->
                                     signHandler.ignoreExceptionOtherUserSigning(session, index)
-                                },
+                                }, isCloneSession = destination.isCloneSession,
                                 suffixContent = {
                                     val tooltipState = rememberTooltipState(isPersistent = true)
                                     LaunchedEffect(Unit) {

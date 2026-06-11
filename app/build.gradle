@@ -11,8 +11,8 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     id("org.aquamarine5.brainspark.stackbricks-gradle-plugin") version "2.2.7"
     id("com.google.protobuf") version "0.9.6"
-    id "io.sentry.android.gradle" version "6.9.0"
-    id("org.jetbrains.kotlin.plugin.serialization") version "2.3.20"
+    id "io.sentry.android.gradle" version "6.10.0"
+    id("org.jetbrains.kotlin.plugin.serialization") version "2.4.0"
 }
 
 sentry {
@@ -51,8 +51,8 @@ android {
         applicationId = "org.aquamarine5.brainspark.chaoxingsignfaker"
         minSdk = 26
         targetSdk = 37
-        versionCode = 1_1407_3333
-        versionName = "1.14.7-stable-260607"
+        versionCode = 1_1500_1123
+        versionName = "1.15.0-beta2-260611"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

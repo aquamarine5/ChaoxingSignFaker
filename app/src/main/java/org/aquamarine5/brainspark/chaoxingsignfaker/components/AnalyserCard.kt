@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -76,6 +77,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.chaoxingDataStore
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingAnalyserRankAnalysis
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingAnalyserRankRecord
 import org.aquamarine5.brainspark.chaoxingsignfaker.snackbarReport
 import java.time.Instant
@@ -123,6 +125,8 @@ fun AnalyserCard() {
         var isAnalyserRankHelpDialog by remember { mutableStateOf(false) }
         var isChangeDisplayedNameDialog by remember { mutableStateOf(false) }
         var rankData by remember { mutableStateOf<Result<List<ChaoxingAnalyserRankRecord>>?>(null) }
+        var rankAnalysisData by remember { mutableStateOf<ChaoxingAnalyserRankAnalysis?>(null) }
+        var userRank by remember { mutableStateOf<Int?>(null) }
         val focusRequester = remember { FocusRequester() }
         if (isChangeDisplayedNameDialog) {
             AlertDialog(onDismissRequest = {
@@ -281,6 +285,18 @@ fun AnalyserCard() {
                         )
                     }
             }
+            LaunchedEffect(Unit) {
+                if (rankAnalysisData == null)
+                    rankAnalysisData = ChaoxingAnalyser.getTotalRankAnalysis().getOrNull()
+            }
+            LaunchedEffect(rankData) {
+                if (rankData?.isSuccess == true && userRank == null) {
+                    val userIndex = rankData!!.getOrThrow()
+                        .indexOfFirst { it.uuid == ChaoxingAnalyser.rankUUID }
+                    userRank = if (userIndex != -1) userIndex + 1
+                    else ChaoxingAnalyser.getUserTopRank(ChaoxingAnalyser.rankUUID).getOrNull()
+                }
+            }
             AlertDialog(onDismissRequest = {
                 isAnalyserRankDialog = false
             }, title = {
@@ -334,22 +350,14 @@ fun AnalyserCard() {
                             val list = remember { rankData!!.getOrThrow() }
                             val userIndex =
                                 remember { list.indexOfFirst { it.uuid == ChaoxingAnalyser.rankUUID } }
-                            var userRank by remember { mutableStateOf(if (userIndex == -1) null else userIndex + 1) }
-                            LaunchedEffect(Unit) {
-                                if (userRank == null)
-                                    userRank =
-                                        ChaoxingAnalyser.getUserTopRank(ChaoxingAnalyser.rankUUID)
-                                            .getOrNull()
-                            }
                             val userRecord = remember { list.getOrNull(userIndex) }
-
                             val primaryColor = MaterialTheme.colorScheme.primary
                             val highlightSpanStyle = remember {
                                 SpanStyle(
                                     fontWeight = FontWeight.Bold,
                                     color = primaryColor,
                                     fontFamily = fontGilroy,
-                                    fontSize = 17.sp
+                                    fontSize = 17.sp,
                                 )
                             }
                             val labelSmallSpanStyle = remember {
@@ -368,7 +376,7 @@ fun AnalyserCard() {
                                                 )
                                                 clickToDisplayRankDetail = it
                                             }
-                                            .padding(0.dp, 4.dp)
+                                            .padding(0.dp, 2.dp)
                                     ) {
                                         Text(
                                             "${index + 1}.",
@@ -392,11 +400,13 @@ fun AnalyserCard() {
                                                 .padding(end = 8.dp)
                                         ) {
                                             if (it.uuid == ChaoxingAnalyser.rankUUID) {
-                                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Row(verticalAlignment = Alignment.Bottom) {
                                                     Text(
                                                         text = it.name,
                                                         color = MaterialTheme.colorScheme.primary,
                                                         fontWeight = FontWeight.Bold,
+                                                        fontSize = 14.sp,
+                                                        lineHeight = 17.sp,
                                                         maxLines = 2,
                                                         overflow = TextOverflow.Ellipsis,
                                                         modifier = Modifier.weight(1f, fill = false)
@@ -404,13 +414,17 @@ fun AnalyserCard() {
                                                     Text(
                                                         text = " (你)",
                                                         color = MaterialTheme.colorScheme.primary,
-                                                        fontWeight = FontWeight.Bold
+                                                        fontWeight = FontWeight.Bold,
+                                                        lineHeight = 17.sp,
+                                                        fontSize = 14.sp
                                                     )
                                                 }
                                             } else {
                                                 Text(
                                                     text = it.name,
                                                     maxLines = 2,
+                                                    lineHeight = 17.sp,
+                                                    fontSize = 14.sp,
                                                     overflow = TextOverflow.Ellipsis
                                                 )
                                             }
@@ -433,26 +447,29 @@ fun AnalyserCard() {
                                                 withStyle(highlightSpanStyle) {
                                                     append(it.totalSignCount.toString())
                                                 }
-                                            })
+                                            }, lineHeight = 17.sp)
                                             Text(
                                                 "代签次数: ${it.otherSign}",
                                                 fontSize = 10.sp,
-                                                lineHeight = 11.sp,
+                                                lineHeight = 10.sp,
                                                 color = Color.Gray
                                             )
+                                            Spacer(modifier = Modifier.height(4.dp))
                                         }
                                     }
                                 }
                             }
 
-                            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                            HorizontalDivider(modifier = Modifier.padding())
 
-                            Column {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(0.dp, 4.dp)
+                                        .padding(0.dp, 2.dp)
                                 ) {
                                     Text(
                                         "${userRank ?: "-"}.",
@@ -474,25 +491,27 @@ fun AnalyserCard() {
                                     Column(
                                         modifier = Modifier
                                             .weight(1f)
-                                            .padding(end = 8.dp)
+                                            .padding(end = 4.dp)
                                     ) {
                                         val baseName =
                                             remember(
                                                 customRankDisplayName
                                             ) { if (userIndex != -1) userRecord!!.name else customRankDisplayName }
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Row(verticalAlignment = Alignment.Bottom) {
                                             Text(
                                                 text = baseName,
                                                 color = MaterialTheme.colorScheme.primary,
                                                 fontWeight = FontWeight.Bold,
                                                 maxLines = 2,
+                                                lineHeight = 17.sp,
                                                 overflow = TextOverflow.Ellipsis,
                                                 modifier = Modifier.weight(1f, fill = false)
                                             )
                                             Text(
                                                 text = " (你)",
                                                 color = MaterialTheme.colorScheme.primary,
-                                                fontWeight = FontWeight.Bold
+                                                fontWeight = FontWeight.Bold,
+                                                lineHeight = 17.sp
                                             )
                                         }
                                         Text(
@@ -521,31 +540,64 @@ fun AnalyserCard() {
                                                     append(total.toString())
                                                 }
                                             }
-                                        })
+                                        }, lineHeight = 17.sp)
                                         val otherSigns =
-                                            if (userIndex != -1) userRecord!!.otherSign.toString() else analyser.otherUserSignCount.value.toString()
+                                            remember { if (userIndex != -1) userRecord!!.otherSign.toString() else analyser.otherUserSignCount.value.toString() }
                                         Text(
                                             "代签次数: $otherSigns",
                                             fontSize = 10.sp,
-                                            lineHeight = 11.sp,
+                                            lineHeight = 10.sp,
                                             color = Color.Gray
+                                        )
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                    }
+                                }
+                                Row(
+                                    verticalAlignment = Alignment.Bottom,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text(
+                                        "上次上传排行榜数据时间：\n${
+                                            if (lastUploadTimestamp == 0L) "从未成功过或因旧版本暂未记录上传时间" else Instant.ofEpochMilli(
+                                                lastUploadTimestamp
+                                            ).atZone(
+                                                ZoneId.systemDefault()
+                                            ).format(
+                                                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                                            )
+                                        }",
+                                        fontSize = 10.sp,
+                                        lineHeight = 11.sp,
+                                        color = Color.Gray,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    Column(horizontalAlignment = Alignment.End) {
+                                        Text(buildAnnotatedString {
+                                            withStyle(labelSmallSpanStyle) {
+                                                append("共计签到次数: ")
+                                            }
+                                            withStyle(highlightSpanStyle) {
+                                                append(
+                                                    rankAnalysisData?.totalRecordSignCount?.toString()
+                                                        ?: "-"
+                                                )
+                                            }
+                                        }, lineHeight = 17.sp)
+                                        Text(
+                                            buildAnnotatedString {
+                                                withStyle(SpanStyle(color = Color.Gray)) {
+                                                    append("统计人数: ")
+                                                }
+                                                append(
+                                                    rankAnalysisData?.userCount?.toString()
+                                                        ?: "-"
+                                                )
+                                            },
+                                            fontSize = 10.sp,
+                                            lineHeight = 11.sp
                                         )
                                     }
                                 }
-                                Text(
-                                    "上次上传排行榜数据时间：${
-                                        if (lastUploadTimestamp == 0L) "从未成功过或因旧版本暂未记录上传时间" else Instant.ofEpochMilli(
-                                            lastUploadTimestamp
-                                        ).atZone(
-                                            ZoneId.systemDefault()
-                                        ).format(
-                                            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-                                        )
-                                    }",
-                                    fontSize = 10.sp,
-                                    lineHeight = 11.sp,
-                                    color = Color.Gray,
-                                )
                             }
                         }
 

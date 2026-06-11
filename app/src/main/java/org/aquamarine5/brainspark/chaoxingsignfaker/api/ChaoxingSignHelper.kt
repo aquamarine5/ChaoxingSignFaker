@@ -67,14 +67,40 @@ object ChaoxingSignHelper {
     fun getSignDestination(
         context: Context,
         activityEntity: ChaoxingSignActivityEntity,
-        isLate: Boolean = false
+        isLate: Boolean = false,
+        isCloneSession: Boolean,
     ): SignDestination? =
         when (activityEntity.otherId) {
-            "5" -> PasswordSignDestination.parseFromSignActivityEntity(activityEntity, isLate)
-            "4" -> GetLocationDestination.parseFromSignActivityEntity(activityEntity, isLate)
-            "2" -> QRCodeSignDestination.parseFromSignActivityEntity(activityEntity, isLate)
-            "0" -> PhotoSignDestination.parseFromSignActivityEntity(activityEntity, isLate)
-            "3" -> GestureSignDestination.parseFromSignActivityEntity(activityEntity, isLate)
+            "5" -> PasswordSignDestination.parseFromSignActivityEntity(
+                activityEntity,
+                isLate,
+                isCloneSession
+            )
+
+            "4" -> GetLocationDestination.parseFromSignActivityEntity(
+                activityEntity,
+                isLate,
+                isCloneSession
+            )
+
+            "2" -> QRCodeSignDestination.parseFromSignActivityEntity(
+                activityEntity,
+                isLate,
+                isCloneSession
+            )
+
+            "0" -> PhotoSignDestination.parseFromSignActivityEntity(
+                activityEntity,
+                isLate,
+                isCloneSession
+            )
+
+            "3" -> GestureSignDestination.parseFromSignActivityEntity(
+                activityEntity,
+                isLate,
+                isCloneSession
+            )
+
             else -> {
                 Toast.makeText(context, "暂不支持该活动类型", Toast.LENGTH_SHORT).show()
                 null
@@ -95,7 +121,8 @@ object ChaoxingSignHelper {
                 "",
                 null,
                 null,
-                false
+                false,
+                isCloneSession = false
             )
 
             "位置签到" -> GetLocationDestination(
@@ -105,7 +132,7 @@ object ChaoxingSignHelper {
                 "",
                 null,
                 null,
-                false
+                false, isCloneSession = false
             )
 
             "二维码签到" -> QRCodeSignDestination(
@@ -115,7 +142,7 @@ object ChaoxingSignHelper {
                 "",
                 null,
                 null,
-                false
+                false, isCloneSession = false
             )
 
             "拍照签到" -> PhotoSignDestination(
@@ -125,7 +152,7 @@ object ChaoxingSignHelper {
                 "",
                 null,
                 null,
-                false
+                false, isCloneSession = false
             )
 
             "手势签到" -> GestureSignDestination(
@@ -135,7 +162,7 @@ object ChaoxingSignHelper {
                 "",
                 null,
                 null,
-                false
+                false, isCloneSession = false
             )
 
             else -> getRedirectDestination(activeId, classId, courseId)
@@ -166,7 +193,8 @@ object ChaoxingSignHelper {
                         "",
                         result.getLong("starttime"),
                         endTime,
-                        if (endTime != null) System.currentTimeMillis() > endTime else false
+                        if (endTime != null) System.currentTimeMillis() > endTime else false,
+                        isCloneSession = false
                     )
 
                     2 -> QRCodeSignDestination(
@@ -176,7 +204,8 @@ object ChaoxingSignHelper {
                         "",
                         result.getLong("starttime"),
                         endTime,
-                        if (endTime != null) System.currentTimeMillis() > endTime else false
+                        if (endTime != null) System.currentTimeMillis() > endTime else false,
+                        isCloneSession = false
                     )
 
                     4 -> GetLocationDestination(
@@ -186,7 +215,8 @@ object ChaoxingSignHelper {
                         "",
                         result.getLong("starttime"),
                         endTime,
-                        if (endTime != null) System.currentTimeMillis() > endTime else false
+                        if (endTime != null) System.currentTimeMillis() > endTime else false,
+                        isCloneSession = false
                     )
 
                     5 -> PasswordSignDestination(
@@ -196,7 +226,8 @@ object ChaoxingSignHelper {
                         "",
                         result.getLong("starttime"),
                         endTime,
-                        if (endTime != null) System.currentTimeMillis() > endTime else false
+                        if (endTime != null) System.currentTimeMillis() > endTime else false,
+                        isCloneSession = false
                     )
 
                     3 -> GestureSignDestination(
@@ -206,7 +237,8 @@ object ChaoxingSignHelper {
                         "",
                         result.getLong("starttime"),
                         endTime,
-                        if (endTime != null) System.currentTimeMillis() > endTime else false
+                        if (endTime != null) System.currentTimeMillis() > endTime else false,
+                        isCloneSession = false
                     )
 
                     else -> {
