@@ -413,7 +413,7 @@ fun CourseListScreen(
                              */
                             var debouncePreviousTime = 0L
                             LazyColumn {
-                                if (!destination.isCloneSession)
+                                if (!destination.isCloneSession || ChaoxingHttpClient.cloneInstance == null)
                                     item {
                                         Card {
                                             Row(
@@ -456,7 +456,7 @@ fun CourseListScreen(
                                                     ) {
                                                         Row(
                                                             verticalAlignment = Alignment.CenterVertically,
-                                                            horizontalArrangement = Arrangement.Start,
+                                                            horizontalArrangement = Arrangement.Center,
                                                             modifier = Modifier.fillMaxWidth()
                                                         ) {
                                                             Icon(
@@ -478,9 +478,7 @@ fun CourseListScreen(
                                     }
                                 else
                                     item {
-                                        if (destination.isCloneSession) {
-                                            CloneSessionTips()
-                                        }
+                                        CloneSessionTips()
                                     }
                                 items(activitiesData) { data ->
                                     key(data.classId) {

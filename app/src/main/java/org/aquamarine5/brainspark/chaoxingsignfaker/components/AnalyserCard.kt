@@ -491,7 +491,7 @@ fun AnalyserCard() {
                                     Column(
                                         modifier = Modifier
                                             .weight(1f)
-                                            .padding(end = 8.dp)
+                                            .padding(end = 4.dp)
                                     ) {
                                         val baseName =
                                             remember(

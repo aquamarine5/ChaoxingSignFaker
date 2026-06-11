@@ -207,7 +207,7 @@ fun OtherUserSelectorComponent(
                         coroutineScope.launch {
                             val sessionIndex = repairSessionIndex ?: return@launch
                             val sessionToRepair = signUserList[sessionIndex]
-                            val result = withContext(Dispatchers.IO) {
+                            withContext(Dispatchers.IO) {
                                 runCatching {
                                     ChaoxingOtherUserHelper.repairOtherUserSession(
                                         context,
@@ -215,8 +215,7 @@ fun OtherUserSelectorComponent(
                                         password
                                     )
                                 }
-                            }
-                            result.onSuccess { repairedSession ->
+                            }.onSuccess { repairedSession ->
                                 signUserList[sessionIndex] = repairedSession
                                 signStatus[sessionIndex].isObsoleteSession.value = false
                                 hapticFeedback.performHapticFeedback(HapticFeedbackType.Confirm)
@@ -340,7 +339,7 @@ fun OtherUserSelectorComponent(
         ) {
             Column(
                 modifier = Modifier
-                    .padding(0.dp, 4.dp, 0.dp, 8.dp)
+                    .padding(8.dp,0.dp)
                     .verticalScroll(scrollState)
             ) {
                 prefixTipsContent()
@@ -629,7 +628,8 @@ fun OtherUserSelectorComponent(
                                     ) {
                                         if (session.isObsoleteSession || signStatus[i].isObsoleteSession.value)
                                             IconButton(onClick = {
-                                                repairSessionIndex = index + 1
+                                                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                                                repairSessionIndex = index
                                             }) {
                                                 Icon(
                                                     painterResource(R.drawable.ic_triangle_alert),

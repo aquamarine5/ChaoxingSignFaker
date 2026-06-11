@@ -187,6 +187,7 @@ fun QRCodeSignScreen(
                     httpClientStorage.putIfAbsent(cloneHttpClient.userEntity.phoneNumber, cloneHttpClient)
                     ChaoxingQRCodeSigner(cloneHttpClient, destination).let {
                         isFaceRequired = it.isFaceRequired()
+                        signActivityStatus = signer.preSign()
                         it.getQRCodeSignInfo()
                     }
                 }
@@ -229,7 +230,7 @@ fun QRCodeSignScreen(
             Crossfade(signActivityStatus) { c ->
                 if (c != null && c != ChaoxingSignActivityStatus.READY_TO_SIGN) {
                     Box(
-                        modifier = Modifier.padding(8.dp, 4.dp, 8.dp, 8.dp)
+                        modifier = Modifier.padding(8.dp, 0.dp, 8.dp, 8.dp)
                     ) {
                         NotReadyToSignNoticeComponent(onSignForOtherUser = {
                             signActivityStatus = ChaoxingSignActivityStatus.READY_TO_SIGN
@@ -424,7 +425,7 @@ fun QRCodeSignScreen(
                     ) {
                         Column(
                             modifier = Modifier
-                                .padding(8.dp, 8.dp, 8.dp, 0.dp)
+                                .padding(8.dp, 4.dp, 8.dp, 0.dp)
                         ) {
                             OtherUserSelectorComponent(
                                 navToOtherUser = {

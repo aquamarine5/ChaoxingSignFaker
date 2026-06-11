@@ -215,7 +215,7 @@ fun PhotoSignScreen(
                 if (c == ChaoxingSignActivityStatus.READY_TO_SIGN) {
                     if (isImage == false) {
                         Column(
-                            modifier = Modifier.padding(8.dp, 8.dp, 8.dp, 0.dp)
+                            modifier = Modifier.padding(8.dp, 4.dp, 8.dp, 0.dp)
                         ) {
 
                             val isSigning = remember { mutableStateOf(false) }
@@ -518,7 +518,7 @@ fun PhotoSignScreen(
                                             .fillMaxSize()
                                     ) {
                                         Column(
-                                            modifier = Modifier.padding(8.dp)
+                                            modifier = Modifier.padding(8.dp, 4.dp, 8.dp, 0.dp)
                                         ) {
                                             OtherUserSelectorComponent(
                                                 navToOtherUser = {
@@ -837,7 +837,7 @@ fun PhotoSignScreen(
                     }
                 } else if (c != null) {
                     Box(
-                        modifier = Modifier.padding(8.dp, 4.dp, 8.dp, 8.dp)
+                        modifier = Modifier.padding(8.dp, 0.dp, 8.dp, 8.dp)
                     ) {
                         NotReadyToSignNoticeComponent({
                             signActivityStatus = ChaoxingSignActivityStatus.READY_TO_SIGN

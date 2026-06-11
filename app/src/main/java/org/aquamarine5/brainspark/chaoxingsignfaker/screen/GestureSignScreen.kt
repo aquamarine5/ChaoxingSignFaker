@@ -199,7 +199,7 @@ fun GestureSignScreen(
         } else {
             Crossfade(signActivityStatus) { c ->
                 if (c != null && c != ChaoxingSignActivityStatus.READY_TO_SIGN) {
-                    Box(modifier = Modifier.padding(8.dp, 4.dp, 8.dp, 8.dp)) {
+                    Box(modifier = Modifier.padding(8.dp, 0.dp, 8.dp, 8.dp)) {
                         NotReadyToSignNoticeComponent(
                             onSignForOtherUser = {
                                 signActivityStatus = ChaoxingSignActivityStatus.READY_TO_SIGN
@@ -425,7 +425,7 @@ fun GestureSignScreen(
                             }, destination = destination
                         )
                     }
-                    Column(modifier = Modifier.padding(8.dp, 8.dp, 8.dp, 0.dp)) {
+                    Column(modifier = Modifier.padding(8.dp, 4.dp, 8.dp, 0.dp)) {
                         if (destination.isCloneSession)
                             CloneSessionTips()
                         OtherUserSelectorComponent(
