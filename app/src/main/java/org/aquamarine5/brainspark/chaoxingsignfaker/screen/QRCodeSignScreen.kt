@@ -104,6 +104,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.isDevelopedMode
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingQRCodeSigner
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSignHandler
 import org.aquamarine5.brainspark.chaoxingsignfaker.snackbarReport
+import kotlin.time.Duration.Companion.seconds
 
 @Serializable
 data class QRCodeSignDestination(
@@ -170,13 +171,9 @@ fun QRCodeSignScreen(
     if (captchaValidateParams != null) {
         CaptchaHandlerDialog(
             captchaValidateParams!!.first,
-            {
-                captchaValidateParams!!.second(it)
-                captchaValidateParams = null
-            },
+            captchaValidateParams!!.second,
             onDismiss = {
                 captchaValidateParams = null
-                isSigning.value = false
             })
     }
     var isFaceRequired by remember { mutableStateOf(false) }
@@ -184,7 +181,10 @@ fun QRCodeSignScreen(
         isFetchedFailure = runCatching {
             val data = if (destination.isCloneSession) {
                 ChaoxingHttpClient.cloneInstance!!.let { cloneHttpClient ->
-                    httpClientStorage.putIfAbsent(cloneHttpClient.userEntity.phoneNumber, cloneHttpClient)
+                    httpClientStorage.putIfAbsent(
+                        cloneHttpClient.userEntity.phoneNumber,
+                        cloneHttpClient
+                    )
                     ChaoxingQRCodeSigner(cloneHttpClient, destination).let {
                         isFaceRequired = it.isFaceRequired()
                         signActivityStatus = signer.preSign()
@@ -534,7 +534,9 @@ fun QRCodeSignScreen(
                                             positionProvider = TooltipDefaults.rememberTooltipPositionProvider(
                                                 TooltipAnchorPosition.Below,
                                                 13.dp
-                                            ), tooltip = {
+                                            ),
+                                            hasAction = true,
+                                            tooltip = {
                                                 RichTooltip(
                                                     maxWidth = 200.dp,
                                                     caretShape = TooltipDefaults.caretShape(
@@ -634,7 +636,7 @@ fun QRCodeSignScreen(
                                         fadeOut(animationSpec = tween(300)),
                             modifier = Modifier.zIndex(1f)
                         ) {
-                            BackHandler() {
+                            BackHandler {
                                 isSigning.value = false
                                 isFaceImageCaptured = false
                             }
@@ -775,9 +777,9 @@ fun QRCodeSignScreen(
                                             it.message ?: "二维码解析失败，不是正确码。"
                                         job?.cancel()
                                         job = coroutineScope.launch {
-                                            delay(1000)
+                                            delay(1.seconds)
                                             isQRCodeScanPause.value = false
-                                            delay(1000)
+                                            delay(1.seconds)
                                             isQRCodeIllegal = false
                                         }
                                     }

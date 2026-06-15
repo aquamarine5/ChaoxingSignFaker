@@ -34,6 +34,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.checkResponseThrowException
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCaptchaDataEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityStatus
 import java.util.UUID
+import kotlin.time.Duration.Companion.seconds
 
 abstract class ChaoxingSigner(
     val client: ChaoxingHttpClient,
@@ -350,7 +351,7 @@ abstract class ChaoxingSigner(
                     webview?.destroy()
                 webview = null
             }
-            delay(10000)
+            delay(10.seconds)
             if (job.isActive) {
                 job.cancel()
                 webview?.destroy()

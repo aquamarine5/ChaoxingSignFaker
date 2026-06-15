@@ -67,6 +67,7 @@ message LearntTooltip{
   bool qrcodeSupportScanFromGallery = 5;
   bool restoreLocationOfQRCodeSign = 6;
   bool cameraSelectedMultipleImagesFromGallery = 7;
+  bool supportCloneOtherUserSession = 8;
 }
 
 message OtherUserTagType{

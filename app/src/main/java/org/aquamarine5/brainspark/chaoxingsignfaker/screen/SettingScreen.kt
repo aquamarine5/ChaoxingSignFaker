@@ -162,8 +162,8 @@ fun SettingScreen(
                                 it.toBuilder().setBypassBlockedChecking(true).build()
                             }
                         }
-                    } else if (inputPassword.startsWith("setRankCount")) {
-                        inputPassword.substringAfter("setRankCount").toIntOrNull()?.let { count ->
+                    } else if (inputPassword.startsWith(COMMAND_SET_RANK_COUNT_PREFIX)) {
+                        inputPassword.substringAfter(COMMAND_SET_RANK_COUNT_PREFIX).toIntOrNull()?.let { count ->
                             coroutineScope.launch(Dispatchers.IO) {
                                 context.chaoxingDataStore.updateData {
                                     it.toBuilder().setPreferences(
@@ -177,8 +177,8 @@ fun SettingScreen(
                                 )
                             }
                         }
-                    } else if (inputPassword.startsWith("alwaysForceSign ")) {
-                        inputPassword.substringAfter("alwaysForceSign ").toBooleanStrictOrNull()
+                    } else if (inputPassword.startsWith(COMMAND_ALWAYS_FORCE_SIGN_PREFIX)) {
+                        inputPassword.substringAfter(COMMAND_ALWAYS_FORCE_SIGN_PREFIX).toBooleanStrictOrNull()
                             ?.let { value ->
                                 coroutineScope.launch(Dispatchers.IO) {
                                     context.chaoxingDataStore.updateData {

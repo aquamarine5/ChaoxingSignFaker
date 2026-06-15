@@ -16,6 +16,6 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 
 @Composable
 fun CloneSessionTips() {
-    Text("当前克隆用户：${ChaoxingHttpClient.cloneInstance?.userEntity?.name} (${ChaoxingHttpClient.cloneInstance?.userEntity?.schoolName})")
+    Text("当前克隆登录用户：${ChaoxingHttpClient.cloneInstance?.userEntity?.name} (${ChaoxingHttpClient.cloneInstance?.userEntity?.schoolName})")
     HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 }

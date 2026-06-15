@@ -76,6 +76,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignStatus
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingGestureSigner
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSignHandler
 import org.aquamarine5.brainspark.chaoxingsignfaker.snackbarReport
+import kotlin.time.Duration.Companion.milliseconds
 
 
 @Serializable
@@ -316,7 +317,7 @@ fun GestureSignScreen(
                                                             )
                                                             view.updateStatus(true)
                                                             coroutineScope.launch {
-                                                                delay(600L)
+                                                                delay(600.milliseconds)
                                                                 view.clearHitState()
                                                             }
                                                         }

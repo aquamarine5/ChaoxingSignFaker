@@ -87,6 +87,8 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.entity.RecommendActivityEnti
 import org.aquamarine5.brainspark.chaoxingsignfaker.snackbarReport
 import org.aquamarine5.brainspark.stackbricks.StackbricksService
 import org.aquamarine5.brainspark.stackbricks.StackbricksVersionData
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 
 @Serializable
 data class CourseListDestination(
@@ -130,7 +132,7 @@ fun CourseListScreen(
         withContext(Dispatchers.IO) {
             launch {
                 runCatching {
-                    withTimeout(2000L) {
+                    withTimeout(2.seconds) {
                         if (stackbricksService.internalVersionData == null) {
                             newestVersionData = stackbricksService.isNeedUpdate()
                             newestVersionData?.forceInstallLessVersion?.let {
@@ -338,12 +340,14 @@ fun CourseListScreen(
                                         hapticFeedback
                                     )
                                 }
-                                delay(500)
+                                delay(500.milliseconds)
                                 pullToRefreshState = false
                             }
                         }
                     ) {
                         Column(modifier = Modifier.fillMaxSize()) {
+                            if (destination.isCloneSession && ChaoxingHttpClient.cloneInstance != null)
+                                CloneSessionTips()
                             /**
                             if (false) {
                             AnimatedVisibility(
@@ -475,10 +479,6 @@ fun CourseListScreen(
                                             }
                                         }
                                         Spacer(modifier = Modifier.height(8.dp))
-                                    }
-                                else
-                                    item {
-                                        CloneSessionTips()
                                     }
                                 items(activitiesData) { data ->
                                     key(data.classId) {

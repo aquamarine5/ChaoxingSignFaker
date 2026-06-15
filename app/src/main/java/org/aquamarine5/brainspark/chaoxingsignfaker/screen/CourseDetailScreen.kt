@@ -60,6 +60,7 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import kotlin.time.Duration.Companion.milliseconds
 
 typealias CourseDetailDestination = ChaoxingCourseEntity
 
@@ -197,7 +198,7 @@ fun CourseDetailScreen(
                                         hapticFeedback
                                     )
                                 }
-                                delay(500)
+                                delay(500.milliseconds)
                                 pullToRefreshState = false
 
                             }

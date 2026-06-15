@@ -75,6 +75,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignStatus
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingPasswordSigner
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSignHandler
 import org.aquamarine5.brainspark.chaoxingsignfaker.snackbarReport
+import kotlin.time.Duration.Companion.seconds
 
 
 @Serializable
@@ -341,7 +342,7 @@ fun PasswordSignScreen(
                             suffixContent = {
                                 var isCheckingStatus by remember { mutableStateOf<Boolean?>(null) }
                                 LaunchedEffect(isCheckingStatus) {
-                                    delay(1000L)
+                                    delay(1.seconds)
                                     if (isCheckingStatus == false) {
                                         isCheckingStatus = null
                                         text = ""

@@ -71,6 +71,7 @@ import java.io.File
 
 private const val SPONSOR_IMAGE_FILENAME_BASE = "ChaoxingSignFaker_sponsor"
 
+@Suppress("DEPRECATION")
 @OptIn(ExperimentalPermissionsApi::class)
 @SuppressLint("WrongConstant")
 @Composable
@@ -94,7 +95,7 @@ fun SponsorAlertDialog(onDismissRequest: () -> Unit) {
                     updateDate = json.getString("updateTime")
                     if (list.isNotEmpty()) {
                         sponsorList = buildList {
-                            for (i in 0 until list.size) {
+                            for (i in list.indices) {
                                 val item = list.getJSONArray(i)
                                 if (item.size == 2) {
                                     add(item.getString(0) to item.getString(1))

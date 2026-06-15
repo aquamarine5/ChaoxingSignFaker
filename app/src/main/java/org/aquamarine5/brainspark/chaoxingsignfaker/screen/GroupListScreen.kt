@@ -141,7 +141,7 @@ fun GroupListScreen(
                 }
 
                 else -> {
-                    LazyColumn() {
+                    LazyColumn {
                         items(imGroupsInfo!!) { item ->
                             Button(
                                 onClick = {

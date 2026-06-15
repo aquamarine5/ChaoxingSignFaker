@@ -52,6 +52,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -60,10 +61,15 @@ import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RichTooltip
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
+import androidx.compose.material3.TooltipAnchorPosition
+import androidx.compose.material3.TooltipBox
+import androidx.compose.material3.TooltipDefaults
+import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
@@ -105,6 +111,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
@@ -137,6 +144,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingOtherUserShar
 import org.aquamarine5.brainspark.chaoxingsignfaker.snackbarReport
 import sh.calvin.reorderable.ReorderableColumn
 import kotlin.random.Random
+import kotlin.time.Duration.Companion.seconds
 
 @Serializable
 object OtherUserDestination
@@ -146,6 +154,7 @@ object OtherUserGraphDestination
 
 const val TAG_COLOR_UNSPECIFIED = -1L
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OtherUserScreen(
     naviCloneCourseListScreen: () -> Unit,
@@ -173,9 +182,12 @@ fun OtherUserScreen(
     val tagsEntityList = remember { mutableStateListOf<OtherUserTagType>() }
     val userTagList = remember { mutableStateListOf<MutableState<List<OtherUserTagType>>>() }
     val coroutineScope = rememberCoroutineScope()
+    val tooltipState = rememberTooltipState(isPersistent = true)
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
             context.chaoxingDataStore.data.first().let { datastore ->
+                if (!datastore.learntTooltips.supportCloneOtherUserSession)
+                    tooltipState.show()
                 tagsEntityList.addAll(datastore.tagsLibraryList)
                 otherUserSessions.addAll(datastore.otherUsersList.run {
                     indexOfFirst { it.phoneNumber == datastore.loginSession.phoneNumber }.let {
@@ -1720,199 +1732,257 @@ fun OtherUserScreen(
                 } else {
                     Spacer(modifier = Modifier.height(4.dp))
                     val mutex = remember { Mutex() }
-                    ReorderableColumn(list = otherUserSessions.toList(), onMove = {
-                        hapticFeedback.performHapticFeedback(HapticFeedbackType.SegmentFrequentTick)
-                    }, onSettle = { from, to ->
-                        snackbarHost.displaySnackbar("正在保存新顺序...", coroutineScope)
-                        userTagList.add(to, userTagList.removeAt(from))
-                        otherUserSessions.add(to, otherUserSessions.removeAt(from))
-                        coroutineScope.launch(Dispatchers.IO) {
-                            mutex.withLock {
-                                context.chaoxingDataStore.updateData { datastore ->
-                                    datastore.toBuilder().apply {
-                                        val sortedValue = getOtherUsers(from)
-                                        removeOtherUsers(from)
-                                        addOtherUsers(to, sortedValue)
-                                    }.build()
-                                }
-                            }
-                            snackbarHost.currentSnackbarData?.dismiss()
-                            snackbarHost.showSnackbar("新顺序已保存", withDismissAction = true)
-                        }
-                    }, modifier = Modifier.fillMaxWidth()) { index, user, _ ->
-                        key(user.phoneNumber) {
-                            ReorderableItem {
-                                val interactionSource = remember { MutableInteractionSource() }
-                                Card(
-                                    onClick = {},
-                                    interactionSource = interactionSource,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(8.dp, 4.dp),
-                                    shape = RoundedCornerShape(8.dp),
-                                    elevation = CardDefaults.cardElevation(4.dp)
+                    TooltipBox(
+                        onDismissRequest = {},
+                        positionProvider = TooltipDefaults.rememberTooltipPositionProvider(
+                            TooltipAnchorPosition.Above,
+                            13.dp
+                        ), tooltip = {
+                            RichTooltip(
+                                maxWidth = 200.dp,
+                                caretShape = TooltipDefaults.caretShape(
+                                    DpSize(14.dp, 7.dp)
+                                )
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center,
+                                    modifier = Modifier.padding(
+                                        2.dp,
+                                        6.dp,
+                                        0.dp,
+                                        6.dp
+                                    )
                                 ) {
-                                    Column(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(17.dp, 2.dp, 6.dp, 2.dp),
-                                    ) {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.SpaceBetween
-                                        ) {
-                                            Column(
-                                                modifier = Modifier
-                                                    .weight(1f)
-                                                    .padding(0.dp, 2.dp)
-                                            ) {
-                                                Text(
-                                                    text = buildAnnotatedString {
-                                                        withStyle(
-                                                            SpanStyle(
-                                                                color = if (user.isObsoleteSession) Color(
-                                                                    0xFFFCC307
-                                                                ) else Color.Unspecified
-                                                            )
-                                                        ) {
-                                                            append(user.name)
-                                                        }
-                                                        withStyle(
-                                                            SpanStyle(
-                                                                color = if (isSystemInDarkTheme()) Color.Gray else Color.DarkGray,
-                                                                fontSize = 12.sp
-                                                            )
-                                                        ) {
-                                                            append(" (${user.phoneNumber})")
-                                                        }
-                                                    },
-                                                    fontSize = 14.sp,
-                                                    lineHeight = 16.sp,
-                                                    fontWeight = FontWeight.Medium,
-                                                    modifier = Modifier
-                                                        .fillMaxWidth(),
-                                                )
-                                                if (userTagList.getOrNull(index)?.value?.isNotEmpty() == true) {
-                                                    Spacer(
-                                                        modifier = Modifier.padding(
-                                                            0.dp,
-                                                            2.dp,
-                                                            0.dp,
-                                                            0.dp
-                                                        )
-                                                    )
-                                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                                        Icon(
-                                                            painterResource(R.drawable.ic_tag),
-                                                            null
-                                                        )
-                                                        Spacer(modifier = Modifier.width(4.dp))
-                                                        val fontSize10spStyle =
-                                                            remember { SpanStyle(fontSize = 10.sp) }
-                                                        Text(
-                                                            buildAnnotatedString {
-                                                                userTagList[index].value.forEachIndexed { tagIndex, tagEntity ->
-                                                                    withStyle(
-                                                                        SpanStyle(
-                                                                            color = if (tagEntity.color == TAG_COLOR_UNSPECIFIED) {
-                                                                                if (isSystemInDarkTheme()) Color.LightGray else Color.DarkGray
-                                                                            } else Color(
-                                                                                tagEntity.color
-                                                                            ), fontSize = 10.sp
-                                                                        )
-                                                                    ) {
-                                                                        append(tagEntity.name)
-                                                                    }
-                                                                    if (tagIndex != userTagList[index].value.size - 1)
-                                                                        withStyle(fontSize10spStyle) {
-                                                                            append(", ")
-                                                                        }
-                                                                }
-                                                            },
-                                                            lineHeight = 12.sp,
-                                                            style = TextStyle.Default.copy(
-                                                                lineBreak = LineBreak.Paragraph
-                                                            ),
-                                                            modifier = Modifier.padding(0.dp, 1.dp)
-                                                        )
-                                                    }
+                                    Text(
+                                        "现在可以克隆登录其他人的账号，来给其他人代签你没有的课程。",
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    IconButton(
+                                        onClick = {
+                                            tooltipState.dismiss()
+                                            coroutineScope.launch(Dispatchers.IO) {
+                                                context.chaoxingDataStore.updateData {
+                                                    it.toBuilder()
+                                                        .setLearntTooltips(
+                                                            it.learntTooltips.toBuilder()
+                                                                .setSupportCloneOtherUserSession(
+                                                                    true
+                                                                ).build()
+                                                        ).build()
                                                 }
                                             }
+                                        },
+                                        modifier = Modifier.size(32.dp)
+                                    ) {
+                                        Icon(
+                                            painterResource(R.drawable.ic_x),
+                                            contentDescription = "关闭提示"
+                                        )
+                                    }
+                                }
+                            }
+                        }, hasAction = true, state = tooltipState
+                    ) {
+                        ReorderableColumn(list = otherUserSessions.toList(), onMove = {
+                            hapticFeedback.performHapticFeedback(HapticFeedbackType.SegmentFrequentTick)
+                        }, onSettle = { from, to ->
+                            snackbarHost.displaySnackbar("正在保存新顺序...", coroutineScope)
+                            userTagList.add(to, userTagList.removeAt(from))
+                            otherUserSessions.add(to, otherUserSessions.removeAt(from))
+                            coroutineScope.launch(Dispatchers.IO) {
+                                mutex.withLock {
+                                    context.chaoxingDataStore.updateData { datastore ->
+                                        datastore.toBuilder().apply {
+                                            val sortedValue = getOtherUsers(from)
+                                            removeOtherUsers(from)
+                                            addOtherUsers(to, sortedValue)
+                                        }.build()
+                                    }
+                                }
+                                snackbarHost.currentSnackbarData?.dismiss()
+                                snackbarHost.showSnackbar("新顺序已保存", withDismissAction = true)
+                            }
+                        }, modifier = Modifier.fillMaxWidth()) { index, user, _ ->
+                            key(user.phoneNumber) {
+                                ReorderableItem {
+                                    val interactionSource = remember { MutableInteractionSource() }
+                                    Card(
+                                        onClick = {},
+                                        interactionSource = interactionSource,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(8.dp, 4.dp),
+                                        shape = RoundedCornerShape(8.dp),
+                                        elevation = CardDefaults.cardElevation(4.dp)
+                                    ) {
+                                        Column(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(17.dp, 2.dp, 6.dp, 2.dp),
+                                        ) {
                                             Row(
-                                                horizontalArrangement = Arrangement.End,
-                                                verticalAlignment = Alignment.CenterVertically
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.SpaceBetween
                                             ) {
-                                                if (user.isObsoleteSession)
+                                                Column(
+                                                    modifier = Modifier
+                                                        .weight(1f)
+                                                        .padding(0.dp, 2.dp)
+                                                ) {
+                                                    Text(
+                                                        text = buildAnnotatedString {
+                                                            withStyle(
+                                                                SpanStyle(
+                                                                    color = if (user.isObsoleteSession) Color(
+                                                                        0xFFFCC307
+                                                                    ) else Color.Unspecified
+                                                                )
+                                                            ) {
+                                                                append(user.name)
+                                                            }
+                                                            withStyle(
+                                                                SpanStyle(
+                                                                    color = if (isSystemInDarkTheme()) Color.Gray else Color.DarkGray,
+                                                                    fontSize = 12.sp
+                                                                )
+                                                            ) {
+                                                                append(" (${user.phoneNumber})")
+                                                            }
+                                                        },
+                                                        fontSize = 14.sp,
+                                                        lineHeight = 16.sp,
+                                                        fontWeight = FontWeight.Medium,
+                                                        modifier = Modifier
+                                                            .fillMaxWidth(),
+                                                    )
+                                                    if (userTagList.getOrNull(index)?.value?.isNotEmpty() == true) {
+                                                        Spacer(
+                                                            modifier = Modifier.padding(
+                                                                0.dp,
+                                                                2.dp,
+                                                                0.dp,
+                                                                0.dp
+                                                            )
+                                                        )
+                                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                                            Icon(
+                                                                painterResource(R.drawable.ic_tag),
+                                                                null
+                                                            )
+                                                            Spacer(modifier = Modifier.width(4.dp))
+                                                            val fontSize10spStyle =
+                                                                remember { SpanStyle(fontSize = 10.sp) }
+                                                            Text(
+                                                                buildAnnotatedString {
+                                                                    userTagList[index].value.forEachIndexed { tagIndex, tagEntity ->
+                                                                        withStyle(
+                                                                            SpanStyle(
+                                                                                color = if (tagEntity.color == TAG_COLOR_UNSPECIFIED) {
+                                                                                    if (isSystemInDarkTheme()) Color.LightGray else Color.DarkGray
+                                                                                } else Color(
+                                                                                    tagEntity.color
+                                                                                ), fontSize = 10.sp
+                                                                            )
+                                                                        ) {
+                                                                            append(tagEntity.name)
+                                                                        }
+                                                                        if (tagIndex != userTagList[index].value.size - 1)
+                                                                            withStyle(
+                                                                                fontSize10spStyle
+                                                                            ) {
+                                                                                append(", ")
+                                                                            }
+                                                                    }
+                                                                },
+                                                                lineHeight = 12.sp,
+                                                                style = TextStyle.Default.copy(
+                                                                    lineBreak = LineBreak.Paragraph
+                                                                ),
+                                                                modifier = Modifier.padding(
+                                                                    0.dp,
+                                                                    1.dp
+                                                                )
+                                                            )
+                                                        }
+                                                    }
+                                                }
+                                                Row(
+                                                    horizontalArrangement = Arrangement.End,
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ) {
+                                                    if (user.isObsoleteSession)
+                                                        IconButton(
+                                                            onClick = {
+                                                                repairSessionIndex = index
+                                                                hapticFeedback.performHapticFeedback(
+                                                                    HapticFeedbackType.ContextClick
+                                                                )
+                                                            }
+                                                        ) {
+                                                            Icon(
+                                                                painterResource(R.drawable.ic_triangle_alert),
+                                                                null,
+                                                                tint = Color(0xFFFCC307),
+                                                                modifier = Modifier.size(24.dp)
+                                                            )
+                                                        }
+                                                    else
+                                                        IconButton(onClick = {
+                                                            coroutineScope.launch {
+                                                                hapticFeedback.performHapticFeedback(
+                                                                    HapticFeedbackType.ContextClick
+                                                                )
+                                                                ChaoxingHttpClient.cloneInstance =
+                                                                    ChaoxingHttpClient.loadFromOtherUserSession(
+                                                                        otherUserSessions[index],
+                                                                        context
+                                                                    )
+                                                                naviCloneCourseListScreen()
+                                                            }
+                                                        }) {
+                                                            Icon(
+                                                                painterResource(R.drawable.ic_user_left_arrow),
+                                                                null
+                                                            )
+                                                        }
                                                     IconButton(
                                                         onClick = {
-                                                            repairSessionIndex = index
+                                                            selectedUserSettingDialogIndex = index
                                                             hapticFeedback.performHapticFeedback(
                                                                 HapticFeedbackType.ContextClick
                                                             )
                                                         }
                                                     ) {
                                                         Icon(
-                                                            painterResource(R.drawable.ic_triangle_alert),
-                                                            null,
-                                                            tint = Color(0xFFFCC307),
-                                                            modifier = Modifier.size(24.dp)
+                                                            painter = painterResource(R.drawable.ic_user_round_pen),
+                                                            contentDescription = null
                                                         )
                                                     }
-                                                else
-                                                    IconButton(onClick = {
-                                                        coroutineScope.launch {
-                                                            hapticFeedback.performHapticFeedback(
-                                                                HapticFeedbackType.ContextClick
-                                                            )
-                                                            ChaoxingHttpClient.cloneInstance =
-                                                                ChaoxingHttpClient.loadFromOtherUserSession(
-                                                                    otherUserSessions[index],
-                                                                    context
-                                                                )
-                                                            naviCloneCourseListScreen()
-                                                        }
-                                                    }) {
-                                                        Icon(
-                                                            painterResource(R.drawable.ic_user_left_arrow),
-                                                            null
-                                                        )
-                                                    }
-                                                IconButton(
-                                                    onClick = {
-                                                        selectedUserSettingDialogIndex = index
-                                                        hapticFeedback.performHapticFeedback(
-                                                            HapticFeedbackType.ContextClick
-                                                        )
-                                                    }
-                                                ) {
-                                                    Icon(
-                                                        painter = painterResource(R.drawable.ic_user_round_pen),
-                                                        contentDescription = null
-                                                    )
-                                                }
 
-                                                IconButton(
-                                                    modifier = Modifier.draggableHandle(
-                                                        interactionSource = interactionSource,
-                                                        onDragStarted = {
-                                                            hapticFeedback.performHapticFeedback(
-                                                                HapticFeedbackType.GestureThresholdActivate
-                                                            )
-                                                        }, onDragStopped = {
-                                                            hapticFeedback.performHapticFeedback(
-                                                                HapticFeedbackType.GestureEnd
-                                                            )
-                                                        }
-                                                    ), onClick = {}) {
-                                                    Icon(
-                                                        painterResource(R.drawable.ic_drag_handle_rounded),
-                                                        "",
-                                                        tint = Color.Gray
-                                                    )
+                                                    IconButton(
+                                                        modifier = Modifier.draggableHandle(
+                                                            interactionSource = interactionSource,
+                                                            onDragStarted = {
+                                                                hapticFeedback.performHapticFeedback(
+                                                                    HapticFeedbackType.GestureThresholdActivate
+                                                                )
+                                                            }, onDragStopped = {
+                                                                hapticFeedback.performHapticFeedback(
+                                                                    HapticFeedbackType.GestureEnd
+                                                                )
+                                                            }
+                                                        ), onClick = {}) {
+                                                        Icon(
+                                                            painterResource(R.drawable.ic_drag_handle_rounded),
+                                                            "",
+                                                            tint = Color.Gray
+                                                        )
+                                                    }
                                                 }
                                             }
-                                        }
 
+                                        }
                                     }
                                 }
                             }
@@ -1996,9 +2066,9 @@ fun OtherUserScreen(
                                     qrcodeIllegalText = it.message ?: "二维码解析失败，登录失败。"
                                     job?.cancel()
                                     job = coroutineScope.launch {
-                                        delay(1000)
+                                        delay(1.seconds)
                                         isQRCodeScanPause.value = false
-                                        delay(1000)
+                                        delay(1.seconds)
                                         isQRCodeIllegal = false
                                     }
                                 }
@@ -2010,7 +2080,7 @@ fun OtherUserScreen(
                             qrcodeIllegalText = it.message ?: "二维码解析失败，不是正确码。"
                             job?.cancel()
                             job = coroutineScope.launch {
-                                delay(3000)
+                                delay(3.seconds)
                                 isQRCodeScanPause.value = false
                                 isQRCodeIllegal = false
                             }

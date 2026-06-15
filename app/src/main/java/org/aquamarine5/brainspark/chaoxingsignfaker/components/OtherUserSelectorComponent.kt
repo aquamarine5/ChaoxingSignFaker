@@ -269,11 +269,12 @@ fun OtherUserSelectorComponent(
                     hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                     coroutineScope.launch {
                         isIgnoreExceptionSigning = true
-                        onIgnoreExceptionSignAction(
-                            ignoreExceptionUserIndex!!.first,
-                            ignoreExceptionUserIndex!!.second
-                        )
+                        val data = ignoreExceptionUserIndex!!
                         ignoreExceptionUserIndex = null
+                        onIgnoreExceptionSignAction(
+                            data.first,
+                            data.second
+                        )
                         isIgnoreExceptionSigning = false
                     }
                 }, enabled = isIgnoreExceptionSigning.not()) {
@@ -339,7 +340,7 @@ fun OtherUserSelectorComponent(
         ) {
             Column(
                 modifier = Modifier
-                    .padding(8.dp,0.dp)
+                    .padding(8.dp, 0.dp)
                     .verticalScroll(scrollState)
             ) {
                 prefixTipsContent()
@@ -628,7 +629,9 @@ fun OtherUserSelectorComponent(
                                     ) {
                                         if (session.isObsoleteSession || signStatus[i].isObsoleteSession.value)
                                             IconButton(onClick = {
-                                                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                                                hapticFeedback.performHapticFeedback(
+                                                    HapticFeedbackType.ContextClick
+                                                )
                                                 repairSessionIndex = index
                                             }) {
                                                 Icon(

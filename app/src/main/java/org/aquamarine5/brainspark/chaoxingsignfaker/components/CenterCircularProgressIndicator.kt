@@ -20,9 +20,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import kotlinx.coroutines.delay
+import kotlin.time.Duration.Companion.milliseconds
 
-
-private const val WAIT_DELAY = 500L
 
 @Composable
 fun CenterCircularProgressIndicator(
@@ -32,7 +31,7 @@ fun CenterCircularProgressIndicator(
     var isShow by remember { mutableStateOf(isDelay.not()) }
     if (isDelay) {
         LaunchedEffect(Unit) {
-            delay(WAIT_DELAY)
+            delay(500.milliseconds)
             isShow = true
         }
     }

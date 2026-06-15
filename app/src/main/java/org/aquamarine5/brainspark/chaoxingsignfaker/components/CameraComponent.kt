@@ -96,6 +96,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.displaySnackbar
 import org.aquamarine5.brainspark.chaoxingsignfaker.snackbarReport
+import kotlin.time.Duration.Companion.milliseconds
 
 @OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -194,7 +195,7 @@ fun CameraComponent(
                     }
                     LaunchedEffect(it) {
                         job = launch {
-                            delay(500L)
+                            delay(500.milliseconds)
                             takeImage = null
                         }
                     }
@@ -287,7 +288,7 @@ fun CameraComponent(
                         positionProvider = TooltipDefaults.rememberTooltipPositionProvider(
                             TooltipAnchorPosition.Above,
                             13.dp
-                        ), modifier = Modifier.zIndex(2f),
+                        ), modifier = Modifier.zIndex(2f),hasAction = true,
                         tooltip = {
                             RichTooltip(
                                 maxWidth = 200.dp, caretShape = TooltipDefaults.caretShape(
