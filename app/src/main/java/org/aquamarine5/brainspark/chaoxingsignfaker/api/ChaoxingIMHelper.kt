@@ -168,7 +168,7 @@ object ChaoxingIMHelper {
                 val data = json.getJSONObject("data")
                 val messages = data.getJSONArray("msgs")
                 val resultList = mutableListOf<MessageBody>()
-                for (i in 0 until messages.size) {
+                for (i in messages.indices) {
                     val msgObj = messages.getJSONObject(i)
                     val msgStr = msgObj.getString("msg")
                     val msgBytes = Base64.decode(msgStr, Base64.DEFAULT)

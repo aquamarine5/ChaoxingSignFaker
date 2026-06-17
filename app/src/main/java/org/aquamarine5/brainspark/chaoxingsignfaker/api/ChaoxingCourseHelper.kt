@@ -48,7 +48,7 @@ object ChaoxingCourseHelper {
             if (jsonResult.getInteger("result") == 0 || channelList == null) {
                 return@use null
             }
-            for (i in 0 until channelList.size) {
+            for (i in channelList.indices) {
                 if (channelList.getJSONObject(i).getJSONObject("content")
                         .getInteger("id") == classId
                 )
@@ -67,7 +67,7 @@ object ChaoxingCourseHelper {
                 .use { rawResponse ->
                     val jsonResult = JSONObject.parseObject(rawResponse.body.string())
                     val channelList = jsonResult.getJSONArray("channelList")
-                    for (i in 0 until channelList.size) {
+                    for (i in channelList.indices) {
                         val course = channelList.getJSONObject(i)
                         val content = course.getJSONObject("content")
                         if (!content.containsKey("course")) continue
@@ -136,7 +136,7 @@ object ChaoxingCourseHelper {
                             }
                         }
 
-                        for (i in 0 until channelList.size) {
+                        for (i in channelList.indices) {
                             val course = channelList.getJSONObject(i)
                             val content = course.getJSONObject("content")
                             if (!content.containsKey("course")) continue
