@@ -26,7 +26,7 @@ message ChaoxingSignFakerDataStore{
   repeated OtherUserTagType tagsLibrary = 15;
   LearntTooltip learntTooltips = 17;
   Preferences preferences = 18;
-  map<uint32, ChaoxingFaceRecognitionConfigure> faceRecognitionConfigures = 19;
+  map<string, ChaoxingFaceRecognitionConfigure> faceRecognitionConfigures = 19;
   uint32 lastUploadAnalysisDate = 20;
   string analysisUUID = 21;
   string analysisRankName = 22;
@@ -51,6 +51,7 @@ message Preferences{
   string customizedUserAgent = 4;
   string customizedPackageName = 5;
   uint32 displayRankCount = 6;
+  bool alwaysForceSign = 7;
 }
 
 message ChaoxingCourseClass{
@@ -65,6 +66,8 @@ message LearntTooltip{
   bool supportFavoriteLocation = 4;
   bool qrcodeSupportScanFromGallery = 5;
   bool restoreLocationOfQRCodeSign = 6;
+  bool cameraSelectedMultipleImagesFromGallery = 7;
+  bool supportCloneOtherUserSession = 8;
 }
 
 message OtherUserTagType{

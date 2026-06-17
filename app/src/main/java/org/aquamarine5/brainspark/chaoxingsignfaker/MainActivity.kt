@@ -7,9 +7,11 @@
 package org.aquamarine5.brainspark.chaoxingsignfaker
 
 import android.content.Intent
-import android.content.pm.PackageManager.GET_META_DATA
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.os.Debug
+import android.os.Process
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -113,6 +115,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.screen.SettingScreen
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.SignGraphDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.WelcomeDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.WelcomeScreen
+import org.aquamarine5.brainspark.chaoxingsignfaker.screen.isAlwaysForceSign
 import org.aquamarine5.brainspark.chaoxingsignfaker.ui.theme.ChaoxingSignFakerTheme
 import org.aquamarine5.brainspark.chaoxingsignfaker.ui.theme.Orange
 import org.aquamarine5.brainspark.stackbricks.StackbricksPolicy
@@ -121,8 +124,10 @@ import org.aquamarine5.brainspark.stackbricks.providers.qiniu.QiniuConfiguration
 import org.aquamarine5.brainspark.stackbricks.providers.qiniu.QiniuMessageProvider
 import org.aquamarine5.brainspark.stackbricks.providers.qiniu.QiniuPackageProvider
 import org.aquamarine5.brainspark.stackbricks.rememberStackbricksStatus
+import java.security.MessageDigest
 import java.util.concurrent.TimeUnit
 import kotlin.reflect.typeOf
+import kotlin.system.exitProcess
 
 class MainActivity : ComponentActivity() {
     companion object {
@@ -132,10 +137,20 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        @Suppress("DEPRECATION")
         val versionData = packageManager.getPackageInfo(
             packageName,
-            GET_META_DATA
+            (PackageManager.GET_META_DATA or (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) PackageManager.GET_SIGNING_CERTIFICATES else PackageManager.GET_SIGNATURES))
         )
+        val verifiedSignature = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            versionData.signingInfo?.apkContentsSigners
+        } else {
+            @Suppress("DEPRECATION")
+            versionData.signatures
+        }?.joinToString {
+            MessageDigest.getInstance("SHA-256").digest(it.toByteArray())
+                .joinToString("") { (it.toInt() and 0xff).toString(16).padStart(2, '0') }
+        }
         SentryAndroid.init(this) {
             if (Debug.isDebuggerConnected()) {
                 it.isEnabled = false
@@ -160,6 +175,7 @@ class MainActivity : ComponentActivity() {
                 "SSLHandshakeException"
             )
             it.beforeSend = { event, hint ->
+                event.setExtra("sign",verifiedSignature)
                 if (ignoreExceptions.contains(event.throwable?.javaClass?.simpleName)) {
                     null
                 } else {
@@ -370,6 +386,7 @@ class MainActivity : ComponentActivity() {
                                         datastore.preferences.customizedPackageName
                                     )
                                     isDevelopedMode = datastore.preferences.isDevelopedMode
+                                    isAlwaysForceSign = datastore.preferences.alwaysForceSign
                                     destination =
                                         when {
                                             !datastore.agreeTerms -> WelcomeDestination
@@ -406,6 +423,8 @@ class MainActivity : ComponentActivity() {
                                                                 versionData
                                                             )
                                                             MobclickAgent.onKillProcess(this@MainActivity)
+                                                            Process.killProcess(Process.myPid())
+                                                            exitProcess(0)
                                                             throw ChaoxingPredictableException.ApplicationIllegalChannelException()
                                                         }
                                                     }
@@ -442,9 +461,10 @@ class MainActivity : ComponentActivity() {
                                         )
                                     },
                                 ) {
-                                    navigation<SignGraphDestination>(startDestination = CourseListDestination) {
+                                    navigation<SignGraphDestination>(startDestination = CourseListDestination()) {
                                         composable<CourseListDestination> {
                                             CourseListScreen(
+                                                it.toRoute(),
                                                 stackbricksService,
                                                 imageLoader,
                                                 navToDetailDestination = {
@@ -570,7 +590,9 @@ class MainActivity : ComponentActivity() {
 
                                     navigation<OtherUserGraphDestination>(startDestination = OtherUserDestination) {
                                         composable<OtherUserDestination> {
-                                            OtherUserScreen {
+                                            OtherUserScreen(naviCloneCourseListScreen = {
+                                                navController.navigate(CourseListDestination(true))
+                                            }) {
                                                 navController.navigateUp()
                                             }
                                         }
@@ -597,7 +619,7 @@ class MainActivity : ComponentActivity() {
 
                                     composable<LoginDestination> {
                                         LoginPage(it.toRoute(), stackbricksService) {
-                                            navController.navigate(CourseListDestination) {
+                                            navController.navigate(CourseListDestination()) {
                                                 popUpTo<LoginDestination> { inclusive = true }
                                             }
                                         }

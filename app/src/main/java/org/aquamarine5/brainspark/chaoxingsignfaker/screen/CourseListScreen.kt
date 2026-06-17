@@ -7,13 +7,10 @@
 package org.aquamarine5.brainspark.chaoxingsignfaker.screen
 
 import android.widget.Toast
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.VisibilityThreshold
 import androidx.compose.animation.core.spring
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -82,19 +79,21 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.SignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.BlockedContent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.CloneSessionTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CourseInfoColumnCard
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NetworkExceptionComponent
-import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingCourseClass
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCourseEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.RecommendActivityEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.snackbarReport
 import org.aquamarine5.brainspark.stackbricks.StackbricksService
 import org.aquamarine5.brainspark.stackbricks.StackbricksVersionData
-import java.time.Instant
-import java.time.LocalDateTime
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 
 @Serializable
-object CourseListDestination
+data class CourseListDestination(
+    val isCloneSession: Boolean = false
+)
 
 @Serializable
 object SignGraphDestination
@@ -106,6 +105,7 @@ private const val SORT_COMMON = 0
 
 @Composable
 fun CourseListScreen(
+    destination: CourseListDestination,
     stackbricksService: StackbricksService,
     imageLoader: ImageLoader,
     navToDetailDestination: (ChaoxingCourseEntity) -> Unit,
@@ -132,7 +132,7 @@ fun CourseListScreen(
         withContext(Dispatchers.IO) {
             launch {
                 runCatching {
-                    withTimeout(2000L) {
+                    withTimeout(2.seconds) {
                         if (stackbricksService.internalVersionData == null) {
                             newestVersionData = stackbricksService.isNeedUpdate()
                             newestVersionData?.forceInstallLessVersion?.let {
@@ -149,49 +149,53 @@ fun CourseListScreen(
                 ChaoxingRecommendHelper.checkRecommendedActivities(context, snackbarHost)
             if (activitiesData.isEmpty()) {
                 isFetchedFailure = runCatching {
+                    /**
                     if (false) {
-                        context.chaoxingDataStore.data.first().apply {
-                            if (version <= 0) {
-                                ChaoxingHttpClient.instance?.let { httpClient ->
-                                    ChaoxingCourseHelper.getAllCourse(
-                                        httpClient,
-                                        context,
-                                        navToLoginDestination
-                                    ).let { data ->
-                                        context.chaoxingDataStore.updateData { dataStore ->
-                                            dataStore.toBuilder().apply {
-                                                addAllPreferCourseClass(preferClassIdList.map { classId ->
-                                                    ChaoxingCourseClass.newBuilder()
-                                                        .setClassId(classId)
-                                                        .setCourseId(data.first { it.classId == classId }.courseId)
-                                                        .build()
-                                                })
-                                                setVersion(1)
-                                            }.build()
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                    context.chaoxingDataStore.data.first().apply {
+                    if (version <= 0) {
+                    ChaoxingHttpClient.instance?.let { httpClient ->
+                    ChaoxingCourseHelper.getAllCourse(
+                    httpClient,
+                    context,
+                    navToLoginDestination
+                    ).let { data ->
+                    context.chaoxingDataStore.updateData { dataStore ->
+                    dataStore.toBuilder().apply {
+                    addAllPreferCourseClass(preferClassIdList.map { classId ->
+                    ChaoxingCourseClass.newBuilder()
+                    .setClassId(classId)
+                    .setCourseId(data.first { it.classId == classId }.courseId)
+                    .build()
+                    })
+                    setVersion(1)
+                    }.build()
+                    }
+                    }
+                    }
+                    }
+                    }
                     } //TODO: Recommend preferred class
+                     */
 
                     preferredClassIds.addAll(
                         context.chaoxingDataStore.data.first().preferClassIdList.reversed()
                     )
-                    ChaoxingHttpClient.instance?.let { httpClient ->
-                        ChaoxingCourseHelper.getAllCourse(
-                            httpClient,
-                            context,
-                            navToLoginDestination
-                        )
-                            .apply {
-                                activitiesData.addAll(this.filter {
-                                    preferredClassIds.contains(it.classId)
-                                }.map { it.apply { isPreferred = true } } + this.filter {
-                                    !preferredClassIds.contains(it.classId)
-                                })
-                            }
-                    }
+                    ChaoxingHttpClient.getHttpInstanceOrClone(destination.isCloneSession)
+                        ?.let { httpClient ->
+                            ChaoxingCourseHelper.getAllCourse(
+                                httpClient,
+                                context,
+                                destination.isCloneSession,
+                                navToLoginDestination
+                            )
+                                .apply {
+                                    activitiesData.addAll(this.filter {
+                                        preferredClassIds.contains(it.classId)
+                                    }.map { it.apply { isPreferred = true } } + this.filter {
+                                        !preferredClassIds.contains(it.classId)
+                                    })
+                                }
+                        }
                 }.onFailure {
                     it.snackbarReport(
                         snackbarHost,
@@ -208,7 +212,7 @@ fun CourseListScreen(
         AlertDialog(onDismissRequest = {
             isEmergencyToSkipUpdate = false
         }, dismissButton = {
-            OutlinedButton(onClick = {
+            TextButton(onClick = {
                 isEmergencyToSkipUpdate = false
                 newestVersionData = null
             }) {
@@ -224,10 +228,10 @@ fun CourseListScreen(
             Icon(
                 painterResource(R.drawable.ic_arrow_big_up_dash),
                 null,
-                tint = MaterialTheme.colorScheme.error
+                tint = MaterialTheme.colorScheme.primary
             )
         }, text = {
-            Text("此版本设置了强制更新，强烈建议进行更新。")
+            Text("此版本设置了强制更新，强烈建议进行更新，忽略更新可能导致签到失败或其他意外的BUG。")
         })
     }
     if (newestVersionData != null) {
@@ -306,26 +310,28 @@ fun CourseListScreen(
                             pullToRefreshState = true
                             coroutineScope.launch(Dispatchers.IO) {
                                 isFetchedFailure = runCatching {
-                                    ChaoxingHttpClient.instance?.let { httpClient ->
-                                        ChaoxingCourseHelper.getAllCourse(
-                                            httpClient,
-                                            context,
-                                            navToLoginDestination
-                                        )
-                                            .apply {
-                                                val newActivities = this.filter {
-                                                    preferredClassIds.contains(it.classId)
-                                                }.map {
-                                                    it.apply {
-                                                        isPreferred = true
+                                    ChaoxingHttpClient.getHttpInstanceOrClone(destination.isCloneSession)
+                                        ?.let { httpClient ->
+                                            ChaoxingCourseHelper.getAllCourse(
+                                                httpClient,
+                                                context,
+                                                destination.isCloneSession,
+                                                navToLoginDestination
+                                            )
+                                                .apply {
+                                                    val newActivities = this.filter {
+                                                        preferredClassIds.contains(it.classId)
+                                                    }.map {
+                                                        it.apply {
+                                                            isPreferred = true
+                                                        }
+                                                    } + this.filter {
+                                                        !preferredClassIds.contains(it.classId)
                                                     }
-                                                } + this.filter {
-                                                    !preferredClassIds.contains(it.classId)
+                                                    activitiesData.clear()
+                                                    activitiesData.addAll(newActivities)
                                                 }
-                                                activitiesData.clear()
-                                                activitiesData.addAll(newActivities)
-                                            }
-                                    }
+                                        }
                                 }.onFailure {
                                     it.snackbarReport(
                                         snackbarHost,
@@ -334,142 +340,146 @@ fun CourseListScreen(
                                         hapticFeedback
                                     )
                                 }
-                                delay(500)
+                                delay(500.milliseconds)
                                 pullToRefreshState = false
                             }
                         }
                     ) {
                         Column(modifier = Modifier.fillMaxSize()) {
+                            if (destination.isCloneSession && ChaoxingHttpClient.cloneInstance != null)
+                                CloneSessionTips()
+                            /**
                             if (false) {
-                                AnimatedVisibility(
-                                    recommendActivities != null,
-                                    enter = fadeIn() + slideInVertically()
-                                ) {
-                                    recommendActivities?.forEachIndexed { index, item ->
-                                        Card(
-                                            onClick = {
-                                                hapticFeedback.performHapticFeedback(
-                                                    HapticFeedbackType.ContextClick
-                                                )
-                                                navToSignActivityDestination(item.destination)
-                                            },
-                                            shape = RoundedCornerShape(18.dp),
-                                            modifier = Modifier.fillMaxWidth()
-                                        ) {
-                                            Row(
-                                                modifier = Modifier
-                                                    .padding(24.dp, 8.dp)
-                                                    .padding(3.dp)
-                                            ) {
-                                                Icon(
-                                                    painterResource(R.drawable.ic_brain_circuit),
-                                                    null
-                                                )
-                                                Spacer(modifier = Modifier.width(8.dp))
-                                                Column {
-                                                    Text("根据平时的签到习惯推断出可能会点击的签到活动：")
-                                                    Text(buildAnnotatedString {
-                                                        withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
-                                                            append(item.className)
-                                                        }
-                                                        append(" 在 ")
-                                                        withStyle(
-                                                            SpanStyle(
-                                                                fontFamily = FontFamily(
-                                                                    Font(
-                                                                        R.font.gilroy
-                                                                    )
-                                                                )
-                                                            )
-                                                        ) {
-                                                            append(
-                                                                LocalDateTime.from(
-                                                                    Instant.ofEpochMilli(
-                                                                        item.startTime
-                                                                    )
-                                                                ).run {
-                                                                    "$hour:$minute:$second"
-                                                                })
-                                                        }
-                                                        append(" 的 ")
-                                                        append(item.activityName)
-                                                    })
+                            AnimatedVisibility(
+                            recommendActivities != null,
+                            enter = fadeIn() + slideInVertically()
+                            ) {
+                            recommendActivities?.forEachIndexed { index, item ->
+                            Card(
+                            onClick = {
+                            hapticFeedback.performHapticFeedback(
+                            HapticFeedbackType.ContextClick
+                            )
+                            navToSignActivityDestination(item.destination)
+                            },
+                            shape = RoundedCornerShape(18.dp),
+                            modifier = Modifier.fillMaxWidth()
+                            ) {
+                            Row(
+                            modifier = Modifier
+                            .padding(24.dp, 8.dp)
+                            .padding(3.dp)
+                            ) {
+                            Icon(
+                            painterResource(R.drawable.ic_brain_circuit),
+                            null
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Column {
+                            Text("根据平时的签到习惯推断出可能会点击的签到活动：")
+                            Text(buildAnnotatedString {
+                            withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+                            append(item.className)
+                            }
+                            append(" 在 ")
+                            withStyle(
+                            SpanStyle(
+                            fontFamily = FontFamily(
+                            Font(
+                            R.font.gilroy
+                            )
+                            )
+                            )
+                            ) {
+                            append(
+                            LocalDateTime.from(
+                            Instant.ofEpochMilli(
+                            item.startTime
+                            )
+                            ).run {
+                            "$hour:$minute:$second"
+                            })
+                            }
+                            append(" 的 ")
+                            append(item.activityName)
+                            })
 
-                                                }
-                                            }
-                                        }
-                                        if (index != recommendActivities?.lastIndex) {
-                                            Spacer(modifier = Modifier.padding(vertical = 8.dp))
-                                        }
+                            }
+                            }
+                            }
+                            if (index != recommendActivities?.lastIndex) {
+                            Spacer(modifier = Modifier.padding(vertical = 8.dp))
+                            }
 
-                                    }
-                                }
+                            }
+                            }
                             } //TODO: Recommend
+                             */
                             var debouncePreviousTime = 0L
                             LazyColumn {
-                                item {
-                                    Card {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(16.dp, 8.dp)
-                                        ) {
-                                            Icon(
-                                                painterResource(R.drawable.ic_circle_question_mark),
-                                                null
-                                            )
-                                            Column(
-                                                modifier = Modifier.padding(
-                                                    start = 12.dp
-                                                )
+                                if (!destination.isCloneSession || ChaoxingHttpClient.cloneInstance == null)
+                                    item {
+                                        Card {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(16.dp, 8.dp)
                                             ) {
-                                                Text(
-                                                    "找不到要签到的班级或者签到的活动？可能老师是在群聊里面发起的签到",
-                                                    fontSize = 14.sp,
-                                                    lineHeight = 17.sp,
-                                                    style = TextStyle.Default.copy(
-                                                        lineBreak = LineBreak(
-                                                            strategy = LineBreak.Strategy.HighQuality,
-                                                            strictness = LineBreak.Strictness.Strict,
-                                                            wordBreak = LineBreak.WordBreak.Default
+                                                Icon(
+                                                    painterResource(R.drawable.ic_circle_question_mark),
+                                                    null
+                                                )
+                                                Column(
+                                                    modifier = Modifier.padding(
+                                                        start = 12.dp
+                                                    )
+                                                ) {
+                                                    Text(
+                                                        "找不到要签到的班级或者签到的活动？可能老师是在群聊里面发起的签到",
+                                                        fontSize = 14.sp,
+                                                        lineHeight = 17.sp,
+                                                        style = TextStyle.Default.copy(
+                                                            lineBreak = LineBreak(
+                                                                strategy = LineBreak.Strategy.HighQuality,
+                                                                strictness = LineBreak.Strictness.Strict,
+                                                                wordBreak = LineBreak.WordBreak.Default
+                                                            )
                                                         )
                                                     )
-                                                )
-                                                OutlinedButton(
-                                                    onClick = {
-                                                        hapticFeedback.performHapticFeedback(
-                                                            HapticFeedbackType.ContextClick
-                                                        )
-                                                        navToGroupDestination()
-                                                    },
-                                                    shape = RoundedCornerShape(18.dp),
-                                                    modifier = Modifier
-                                                        .fillMaxWidth()
-                                                ) {
-                                                    Row(
-                                                        verticalAlignment = Alignment.CenterVertically,
-                                                        horizontalArrangement = Arrangement.Start,
-                                                        modifier = Modifier.fillMaxWidth()
+                                                    OutlinedButton(
+                                                        onClick = {
+                                                            hapticFeedback.performHapticFeedback(
+                                                                HapticFeedbackType.ContextClick
+                                                            )
+                                                            navToGroupDestination()
+                                                        },
+                                                        shape = RoundedCornerShape(18.dp),
+                                                        modifier = Modifier
+                                                            .fillMaxWidth()
                                                     ) {
-                                                        Icon(
-                                                            painter = painterResource(R.drawable.ic_users_round),
-                                                            null,
-                                                            modifier = Modifier.size(18.dp)
-                                                        )
-                                                        Spacer(modifier = Modifier.width(10.dp))
-                                                        Text(
-                                                            "从群聊列表查找签到",
-                                                            color = MaterialTheme.colorScheme.primary
-                                                        )
+                                                        Row(
+                                                            verticalAlignment = Alignment.CenterVertically,
+                                                            horizontalArrangement = Arrangement.Center,
+                                                            modifier = Modifier.fillMaxWidth()
+                                                        ) {
+                                                            Icon(
+                                                                painter = painterResource(R.drawable.ic_users_round),
+                                                                null,
+                                                                modifier = Modifier.size(18.dp)
+                                                            )
+                                                            Spacer(modifier = Modifier.width(10.dp))
+                                                            Text(
+                                                                "从群聊列表查找签到",
+                                                                color = MaterialTheme.colorScheme.primary
+                                                            )
+                                                        }
                                                     }
                                                 }
                                             }
                                         }
+                                        Spacer(modifier = Modifier.height(8.dp))
                                     }
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                }
-
                                 items(activitiesData) { data ->
                                     key(data.classId) {
                                         CourseInfoColumnCard(
@@ -547,24 +557,26 @@ fun CourseListScreen(
                     NetworkExceptionComponent(v.exceptionOrNull()!!) {
                         coroutineScope.launch {
                             isFetchedFailure = runCatching {
-                                ChaoxingHttpClient.instance?.let { httpClient ->
-                                    ChaoxingCourseHelper.getAllCourse(
-                                        httpClient,
-                                        context,
-                                        navToLoginDestination
-                                    )
-                                        .apply {
-                                            activitiesData.addAll(this.filter {
-                                                preferredClassIds.contains(it.classId)
-                                            }.map {
-                                                it.apply {
-                                                    isPreferred = true
-                                                }
-                                            } + this.filter {
-                                                !preferredClassIds.contains(it.classId)
-                                            })
-                                        }
-                                }
+                                ChaoxingHttpClient.getHttpInstanceOrClone(destination.isCloneSession)
+                                    ?.let { httpClient ->
+                                        ChaoxingCourseHelper.getAllCourse(
+                                            httpClient,
+                                            context,
+                                            destination.isCloneSession,
+                                            navToLoginDestination
+                                        )
+                                            .apply {
+                                                activitiesData.addAll(this.filter {
+                                                    preferredClassIds.contains(it.classId)
+                                                }.map {
+                                                    it.apply {
+                                                        isPreferred = true
+                                                    }
+                                                } + this.filter {
+                                                    !preferredClassIds.contains(it.classId)
+                                                })
+                                            }
+                                    }
                             }.onFailure {
                                 it.snackbarReport(
                                     snackbarHost,

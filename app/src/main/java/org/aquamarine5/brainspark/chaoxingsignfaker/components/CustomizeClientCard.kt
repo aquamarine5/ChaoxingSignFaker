@@ -37,10 +37,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
@@ -168,17 +165,20 @@ fun CustomizeClientCard() {
                             selectedOption = ChaoxingClientInfo.DEFAULT
                         }
                     )
-                    Text(
-                        buildAnnotatedString {
-                            append("学习通\n")
-                            withStyle(SpanStyle(fontSize = 10.sp, color = Color.Gray)) {
-                                append(ChaoxingClientInfo.DEFAULT.packageName)
-                            }
-                        }, modifier = Modifier
+                    Column(
+                        modifier = Modifier
                             .clickable {
                                 selectedOption = ChaoxingClientInfo.DEFAULT
                             }
-                            .fillMaxWidth())
+                            .fillMaxWidth()) {
+                        Text("学习通")
+                        Text(
+                            ChaoxingClientInfo.DEFAULT.packageName,
+                            fontSize = 10.sp,
+                            color = Color.Gray,
+                            lineHeight = 11.sp
+                        )
+                    }
                 }
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -191,17 +191,20 @@ fun CustomizeClientCard() {
                             selectedOption = ChaoxingClientInfo.XUEZAIXIDIAN
                         }
                     )
-                    Text(
-                        buildAnnotatedString {
-                            append("学在西电\n")
-                            withStyle(SpanStyle(fontSize = 10.sp, color = Color.Gray)) {
-                                append(ChaoxingClientInfo.XUEZAIXIDIAN.packageName)
-                            }
-                        }, modifier = Modifier
+                    Column(
+                        modifier = Modifier
                             .clickable {
                                 selectedOption = ChaoxingClientInfo.XUEZAIXIDIAN
                             }
-                            .fillMaxWidth())
+                            .fillMaxWidth()) {
+                        Text("学在西电")
+                        Text(
+                            ChaoxingClientInfo.XUEZAIXIDIAN.packageName,
+                            fontSize = 10.sp,
+                            color = Color.Gray,
+                            lineHeight = 11.sp
+                        )
+                    }
                 }
                 Row(
                     verticalAlignment = Alignment.CenterVertically,

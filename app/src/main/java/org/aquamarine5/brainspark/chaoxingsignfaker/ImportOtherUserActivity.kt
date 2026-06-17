@@ -9,6 +9,7 @@ package org.aquamarine5.brainspark.chaoxingsignfaker
 import android.content.Intent
 import android.content.pm.PackageManager.GET_META_DATA
 import android.os.Bundle
+import android.os.Process
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.Crossfade
@@ -42,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingOtherUserHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingOtherUserSharedEntity
+import kotlin.system.exitProcess
 
 class ImportOtherUserActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -55,6 +57,8 @@ class ImportOtherUserActivity : ComponentActivity() {
             ) != "181b23fb3bfa29181fcde41f72757e97"
         ) {
             UMengHelper.onIllegalChannelEvent(this, versionData)
+            Process.killProcess(Process.myPid())
+            exitProcess(0)
             throw ChaoxingPredictableException.ApplicationIllegalChannelException()
         }
         setContent {

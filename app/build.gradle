@@ -11,8 +11,8 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     id("org.aquamarine5.brainspark.stackbricks-gradle-plugin") version "2.2.7"
     id("com.google.protobuf") version "0.9.6"
-    id "io.sentry.android.gradle" version "6.9.0"
-    id("org.jetbrains.kotlin.plugin.serialization") version "2.3.20"
+    id "io.sentry.android.gradle" version "6.11.0"
+    id("org.jetbrains.kotlin.plugin.serialization") version "2.4.0"
 }
 
 sentry {
@@ -26,7 +26,8 @@ stackbricksConfig {
             new PossibleConfigurationPath("cdn.aquamarine5.fun", "chaoxingsignfaker_stackbricks_v2_manifest.json")
     ]
     changelog =
-            "**随地大小签是开源软件，但这不意味着你可以随意修改代码并二次分发。**\n"+
+            "**随地大小签是开源软件，但这不意味着你可以随意修改代码并二次分发。**\n" +
+            "# 1.15.0 更新：\n1. 支持登录代签用户的账号以给他有你没有的课程签到\n\n"+
             "# 1.14.7 更新：\n1. （重要）修复了含验证码签到的代签时出现的签到失败错误。\n2. 修复了在可能错误的设置下导致的无法加载课程图片问题、\n3. 修复了二维码签到时重复进入扫描页面可能导致的崩溃问题。\n4. 修复了验证码签到在弹窗后不会自动关闭的问题。\n5. 提升了自动更新二维码签到的签到速度。\n6. 优化了人脸识别相关设备参数的获取方式。\n\n"
             "# 1.14.6 更新：\n1. （重要）回退了百度地图定位依赖的更新，因为发现有时会导致位置签到的崩溃。\n2. 签到排行榜从Top20改成了Top50，同时如果不在Top50时也可以看到自己的排名是多少。\n\n"+
             "lovely but not lonely, 20260607 高考加油, @aquamarine5 Brainspark."
@@ -46,13 +47,14 @@ android {
 
     defaultConfig {
         ndk {
+            //noinspection ChromeOsAbiSupport
             abiFilters "arm64-v8a"
         }
         applicationId = "org.aquamarine5.brainspark.chaoxingsignfaker"
         minSdk = 26
         targetSdk = 37
-        versionCode = 1_1407_3333
-        versionName = "1.14.7-stable-260607"
+        versionCode = 1_1501_2027
+        versionName = "1.15.1-stable-260618"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -98,7 +100,7 @@ android {
 
 protobuf {
     protoc {
-        artifact = "com.google.protobuf:protoc:4.35.0"
+        artifact = "com.google.protobuf:protoc:4.35.1"
     }
 
     generateProtoTasks {

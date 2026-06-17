@@ -52,6 +52,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCaptchaDataEn
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSigner
 import org.aquamarine5.brainspark.chaoxingsignfaker.snackbarReport
 import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.time.Duration.Companion.seconds
 
 @Composable
 fun CaptchaHandlerDialog(
@@ -185,7 +186,7 @@ fun CaptchaHandlerDialog(
 
                     var shouldRetry by remember(data) { mutableStateOf(false) }
                     LaunchedEffect(data) {
-                        delay(5000)
+                        delay(5.seconds)
                         shouldRetry = true
                     }
                     AnimatedVisibility(shouldRetry, enter = fadeIn() + slideInVertically()) {

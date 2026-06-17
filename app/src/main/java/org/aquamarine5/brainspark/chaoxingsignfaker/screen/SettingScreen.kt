@@ -96,6 +96,10 @@ object SettingGraphDestination
 object SettingDestination
 
 private const val BYPASS_BLOCKED_CHECKING_KEY = "ggg1215love"
+private const val COMMAND_SET_RANK_COUNT_PREFIX = "setRankCount"
+private const val COMMAND_ALWAYS_FORCE_SIGN_PREFIX = "alwaysForceSign "
+
+var isAlwaysForceSign by mutableStateOf(false)
 
 @Composable
 fun SettingScreen(
@@ -158,8 +162,8 @@ fun SettingScreen(
                                 it.toBuilder().setBypassBlockedChecking(true).build()
                             }
                         }
-                    } else if (inputPassword.startsWith("setRankCount")) {
-                        inputPassword.substringAfter("setRankCount").toIntOrNull()?.let { count ->
+                    } else if (inputPassword.startsWith(COMMAND_SET_RANK_COUNT_PREFIX)) {
+                        inputPassword.substringAfter(COMMAND_SET_RANK_COUNT_PREFIX).toIntOrNull()?.let { count ->
                             coroutineScope.launch(Dispatchers.IO) {
                                 context.chaoxingDataStore.updateData {
                                     it.toBuilder().setPreferences(
@@ -173,6 +177,27 @@ fun SettingScreen(
                                 )
                             }
                         }
+                    } else if (inputPassword.startsWith(COMMAND_ALWAYS_FORCE_SIGN_PREFIX)) {
+                        inputPassword.substringAfter(COMMAND_ALWAYS_FORCE_SIGN_PREFIX).toBooleanStrictOrNull()
+                            ?.let { value ->
+                                coroutineScope.launch(Dispatchers.IO) {
+                                    context.chaoxingDataStore.updateData {
+                                        it.toBuilder().setPreferences(
+                                            it.preferences.toBuilder()
+                                                .setAlwaysForceSign(value)
+                                        ).build()
+                                    }
+                                    snackbarHostState.displaySnackbar(
+                                        "已设置${if (value) "总是强制签到" else "不总是强制签到"}",
+                                        coroutineScope
+                                    )
+                                }
+                            }
+                    } else {
+                        snackbarHostState.displaySnackbar(
+                            "密码错误",
+                            coroutineScope
+                        )
                     }
                 }) {
                     Text("确认")

@@ -47,9 +47,10 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.ui.theme.Orange
 inline fun CourseSignActivityColumnCard(
     activity: ChaoxingSignActivityEntity,
     getFormattedStartTime: (Long) -> String,
+    isCloneSession: Boolean,
     crossinline onSignAction: (SignDestination) -> Unit
 ) {
-    val isAvailable = activity.status == 1
+    val isAvailable = remember(activity) { activity.status == 1 }
     val context = LocalContext.current
     val snackbarHost = LocalSnackbarHostState.current
     val hapticFeedback = LocalHapticFeedback.current
@@ -61,7 +62,12 @@ inline fun CourseSignActivityColumnCard(
                 .fillMaxWidth()
                 .clickable {
                     hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                    ChaoxingSignHelper.getSignDestination(context, activity, !isAvailable)?.let {
+                    ChaoxingSignHelper.getSignDestination(
+                        context,
+                        activity,
+                        !isAvailable,
+                        isCloneSession
+                    )?.let {
                         onSignAction(it)
                     }
                 }) {

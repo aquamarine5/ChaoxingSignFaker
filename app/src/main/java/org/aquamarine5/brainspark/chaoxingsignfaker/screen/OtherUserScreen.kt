@@ -52,6 +52,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -137,6 +138,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingOtherUserShar
 import org.aquamarine5.brainspark.chaoxingsignfaker.snackbarReport
 import sh.calvin.reorderable.ReorderableColumn
 import kotlin.random.Random
+import kotlin.time.Duration.Companion.seconds
 
 @Serializable
 object OtherUserDestination
@@ -146,8 +148,12 @@ object OtherUserGraphDestination
 
 const val TAG_COLOR_UNSPECIFIED = -1L
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun OtherUserScreen(naviBack: () -> Unit) {
+fun OtherUserScreen(
+    naviCloneCourseListScreen: () -> Unit,
+    naviBack: () -> Unit
+) {
     val context = LocalContext.current
     val resources = LocalResources.current
     val snackbarHost = LocalSnackbarHostState.current
@@ -167,29 +173,29 @@ fun OtherUserScreen(naviBack: () -> Unit) {
     var importSharedEntity by remember { mutableStateOf<ChaoxingOtherUserSharedEntity?>(null) }
     val otherUserSessions = remember { mutableStateListOf<ChaoxingOtherUserSession>() }
     var qrCode by remember { mutableStateOf<Bitmap?>(null) }
+    var isTooltipShowed by remember { mutableStateOf(false) }
     val tagsEntityList = remember { mutableStateListOf<OtherUserTagType>() }
     val userTagList = remember { mutableStateListOf<MutableState<List<OtherUserTagType>>>() }
     val coroutineScope = rememberCoroutineScope()
     LaunchedEffect(Unit) {
-        withContext(Dispatchers.IO) {
-            context.chaoxingDataStore.data.first().let { datastore ->
-                tagsEntityList.addAll(datastore.tagsLibraryList)
-                otherUserSessions.addAll(datastore.otherUsersList.run {
-                    indexOfFirst { it.phoneNumber == datastore.loginSession.phoneNumber }.let {
-                        if (it != -1) drop(it) else this
-                    }
-                })
-                userTagList.addAll(buildList {
-                    otherUserSessions.forEach { session ->
-                        add(mutableStateOf(buildList {
-                            session.tagsList.forEach { tagId ->
-                                tagsEntityList.find { it.id == tagId }?.let { add(it) }
-                            }
-                        }))
-                    }
-                })
-                isLocalSharedEntityReady = ChaoxingOtherUserHelper.checkSharedEntity(datastore)
-            }
+        context.chaoxingDataStore.data.first().let { datastore ->
+            tagsEntityList.addAll(datastore.tagsLibraryList)
+            otherUserSessions.addAll(datastore.otherUsersList.run {
+                indexOfFirst { it.phoneNumber == datastore.loginSession.phoneNumber }.let {
+                    if (it != -1) drop(it) else this
+                }
+            })
+            userTagList.addAll(buildList {
+                otherUserSessions.forEach { session ->
+                    add(mutableStateOf(buildList {
+                        session.tagsList.forEach { tagId ->
+                            tagsEntityList.find { it.id == tagId }?.let { add(it) }
+                        }
+                    }))
+                }
+            })
+            isTooltipShowed = !datastore.learntTooltips.supportCloneOtherUserSession
+            isLocalSharedEntityReady = ChaoxingOtherUserHelper.checkSharedEntity(datastore)
         }
     }
     var job: Job? = null
@@ -1058,14 +1064,15 @@ fun OtherUserScreen(naviBack: () -> Unit) {
             )
         }, text = {
             Column {
-                Text("检测到用户 ${otherUserSessions[repairSessionIndex!!].name} 的登录状态异常，重新登录后可修复此问题。")
+                Text("在最近一次的签到过程中检测到用户 ${otherUserSessions[repairSessionIndex!!].name} 的登录状态异常，重新登录后可修复此问题。")
                 var password by remember { mutableStateOf("") }
                 OutlinedTextField(
                     value = otherUserSessions[repairSessionIndex!!].phoneNumber,
                     onValueChange = { },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.fillMaxWidth(),
-                    enabled = false
+                    enabled = false,
+                    label = { Text("手机号") }
                 )
                 var isPasswordVisible by remember { mutableStateOf(false) }
                 var errorMessage by remember { mutableStateOf("") }
@@ -1152,7 +1159,12 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                 }, modifier = Modifier.fillMaxWidth()) { Text("重新登录") }
             }
         }, confirmButton = {
-
+            Button(onClick = {
+                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                repairSessionIndex = null
+            }) {
+                Text("关闭")
+            }
         })
     }
     if (selectedUserSettingDialogIndex != null) {
@@ -1548,7 +1560,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        "随意分享此二维码给他人会增加你的学习通账号风险，他人可以通过此二维码来控制你的账号，但这个分享行为只针对于学习通，并不会暴露你的实际密码。",
+                        "随意分享此二维码给他人会增加你的学习通账号风险，他人可以通过此二维码来控制你的账号，但这个分享行为只针对于学习通账号，并不会暴露你的实际密码。",
                         color = Color.White,
                         fontSize = 13.sp,
                         lineHeight = 18.sp,
@@ -1711,6 +1723,57 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                 } else {
                     Spacer(modifier = Modifier.height(4.dp))
                     val mutex = remember { Mutex() }
+                    if (isTooltipShowed)
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(8.dp, 4.dp),
+                            shape = RoundedCornerShape(8.dp),
+                            elevation = CardDefaults.cardElevation(4.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                modifier = Modifier.padding(
+                                    11.dp,8.dp
+                                )
+                            ) {
+                                Icon(
+                                    painterResource(R.drawable.ic_sparkles),
+                                    null,
+                                    tint = Color.Gray,
+                                )
+                                Spacer(modifier=Modifier.width(8.dp))
+                                Text(
+                                    "现在可以克隆登录其他人的账号，来给其他人代签你没有的课程。",
+                                    modifier = Modifier.weight(1f),
+                                    fontSize = 14.sp,
+                                    lineHeight = 16.sp
+                                )
+                                IconButton(
+                                    onClick = {
+                                        coroutineScope.launch(Dispatchers.IO) {
+                                            context.chaoxingDataStore.updateData {
+                                                it.toBuilder()
+                                                    .setLearntTooltips(
+                                                        it.learntTooltips.toBuilder()
+                                                            .setSupportCloneOtherUserSession(
+                                                                true
+                                                            ).build()
+                                                    ).build()
+                                            }
+                                        }
+                                    },
+                                    modifier = Modifier.size(32.dp)
+                                ) {
+                                    Icon(
+                                        painterResource(R.drawable.ic_x),
+                                        contentDescription = "关闭提示"
+                                    )
+                                }
+                            }
+                        }
+
                     ReorderableColumn(list = otherUserSessions.toList(), onMove = {
                         hapticFeedback.performHapticFeedback(HapticFeedbackType.SegmentFrequentTick)
                     }, onSettle = { from, to ->
@@ -1815,7 +1878,9 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                                                         append(tagEntity.name)
                                                                     }
                                                                     if (tagIndex != userTagList[index].value.size - 1)
-                                                                        withStyle(fontSize10spStyle) {
+                                                                        withStyle(
+                                                                            fontSize10spStyle
+                                                                        ) {
                                                                             append(", ")
                                                                         }
                                                                 }
@@ -1824,7 +1889,10 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                                             style = TextStyle.Default.copy(
                                                                 lineBreak = LineBreak.Paragraph
                                                             ),
-                                                            modifier = Modifier.padding(0.dp, 1.dp)
+                                                            modifier = Modifier.padding(
+                                                                0.dp,
+                                                                1.dp
+                                                            )
                                                         )
                                                     }
                                                 }
@@ -1847,6 +1915,25 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                                             null,
                                                             tint = Color(0xFFFCC307),
                                                             modifier = Modifier.size(24.dp)
+                                                        )
+                                                    }
+                                                else
+                                                    IconButton(onClick = {
+                                                        coroutineScope.launch {
+                                                            hapticFeedback.performHapticFeedback(
+                                                                HapticFeedbackType.ContextClick
+                                                            )
+                                                            ChaoxingHttpClient.cloneInstance =
+                                                                ChaoxingHttpClient.loadFromOtherUserSession(
+                                                                    otherUserSessions[index],
+                                                                    context
+                                                                )
+                                                            naviCloneCourseListScreen()
+                                                        }
+                                                    }) {
+                                                        Icon(
+                                                            painterResource(R.drawable.ic_user_left_arrow),
+                                                            null
                                                         )
                                                     }
                                                 IconButton(
@@ -1968,9 +2055,9 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                                     qrcodeIllegalText = it.message ?: "二维码解析失败，登录失败。"
                                     job?.cancel()
                                     job = coroutineScope.launch {
-                                        delay(1000)
+                                        delay(1.seconds)
                                         isQRCodeScanPause.value = false
-                                        delay(1000)
+                                        delay(1.seconds)
                                         isQRCodeIllegal = false
                                     }
                                 }
@@ -1982,7 +2069,7 @@ fun OtherUserScreen(naviBack: () -> Unit) {
                             qrcodeIllegalText = it.message ?: "二维码解析失败，不是正确码。"
                             job?.cancel()
                             job = coroutineScope.launch {
-                                delay(3000)
+                                delay(3.seconds)
                                 isQRCodeScanPause.value = false
                                 isQRCodeIllegal = false
                             }

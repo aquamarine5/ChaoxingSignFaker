@@ -96,6 +96,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.displaySnackbar
 import org.aquamarine5.brainspark.chaoxingsignfaker.snackbarReport
+import kotlin.time.Duration.Companion.milliseconds
 
 @OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -194,7 +195,7 @@ fun CameraComponent(
                     }
                     LaunchedEffect(it) {
                         job = launch {
-                            delay(500L)
+                            delay(500.milliseconds)
                             takeImage = null
                         }
                     }
@@ -261,9 +262,17 @@ fun CameraComponent(
                 }
             )
             val tooltipState = rememberTooltipState(isPersistent = true)
+            var tooltipText by remember { mutableStateOf("") }
             LaunchedEffect(Unit) {
-                if (!context.chaoxingDataStore.data.first().learntTooltips.cameraSelectedFromGallery)
-                    tooltipState.show()
+                context.chaoxingDataStore.data.first().learntTooltips.let {
+                    if (!it.cameraSelectedMultipleImagesFromGallery) {
+                        tooltipText = "点击可以从图库选择多张图片，一次就可以上传完毕"
+                        tooltipState.show()
+                    } else if (!it.cameraSelectedFromGallery) {
+                        tooltipText = "点击可以从图库选择现有图片"
+                        tooltipState.show()
+                    }
+                }
             }
             Box(modifier = Modifier.fillMaxSize()) {
                 Column(
@@ -279,7 +288,7 @@ fun CameraComponent(
                         positionProvider = TooltipDefaults.rememberTooltipPositionProvider(
                             TooltipAnchorPosition.Above,
                             13.dp
-                        ), modifier = Modifier.zIndex(2f),
+                        ), modifier = Modifier.zIndex(2f),hasAction = true,
                         tooltip = {
                             RichTooltip(
                                 maxWidth = 200.dp, caretShape = TooltipDefaults.caretShape(
@@ -292,7 +301,7 @@ fun CameraComponent(
                                     modifier = Modifier.padding(2.dp, 6.dp, 0.dp, 6.dp)
                                 ) {
                                     Text(
-                                        "点击可以从图库选择现有图片",
+                                        tooltipText,
                                         modifier = Modifier.weight(1f)
                                     )
                                     IconButton(
@@ -303,6 +312,9 @@ fun CameraComponent(
                                                     it.toBuilder().setLearntTooltips(
                                                         it.learntTooltips.toBuilder()
                                                             .setCameraSelectedFromGallery(
+                                                                true
+                                                            )
+                                                            .setCameraSelectedMultipleImagesFromGallery(
                                                                 true
                                                             ).build()
                                                     ).build()

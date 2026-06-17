@@ -164,6 +164,7 @@ class ChaoxingSignHandler<in T>(
                         )
                         hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
                         onAllSigningFinished(false)
+                        return@forEachIndexed
                     } else {
                         if (otherUserSessionList.checkIsLast(index + 1)) {
                             onAllSigningFinished(userSelections.all { !it })

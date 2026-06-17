@@ -75,7 +75,7 @@ fun GroupListScreen(
                 save = { state -> state.value?.let { Json.encodeToString(it) } ?: "" },
                 restore = { value ->
                     mutableStateOf(
-                        if ((value as String).isEmpty()) {
+                        if (value.isEmpty()) {
                             null
                         } else {
                             runCatching {
@@ -141,7 +141,7 @@ fun GroupListScreen(
                 }
 
                 else -> {
-                    LazyColumn() {
+                    LazyColumn {
                         items(imGroupsInfo!!) { item ->
                             Button(
                                 onClick = {

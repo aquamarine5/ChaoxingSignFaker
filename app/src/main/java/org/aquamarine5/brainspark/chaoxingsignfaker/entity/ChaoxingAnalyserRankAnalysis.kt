@@ -4,12 +4,9 @@
  * Repository: https://github.com/aquamarine5/ChaoxingSignFaker
  */
 
-package org.aquamarine5.brainspark.chaoxingsignfaker.api
+package org.aquamarine5.brainspark.chaoxingsignfaker.entity
 
-interface SignDestination {
-    val activeId: Long
-    val classId: Int
-    val courseId: Int
-    val endTime: Long?
-    val isCloneSession: Boolean
-}
+data class ChaoxingAnalyserRankAnalysis(
+    val userCount: Int,
+    val totalRecordSignCount: Int
+)

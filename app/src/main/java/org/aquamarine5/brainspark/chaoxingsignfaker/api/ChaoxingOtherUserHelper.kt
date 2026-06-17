@@ -31,9 +31,10 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserS
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingSignFakerDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.HttpCookie
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingOtherUserSharedEntity
+import kotlin.time.Duration.Companion.milliseconds
 
 object ChaoxingOtherUserHelper {
-    const val TIMEOUT_NEXT_SIGN = 200L
+    val TIMEOUT_NEXT_SIGN = 200.milliseconds
 
     class NotAvailableQRCodeException(message: String) : ChaoxingPredictableException(message)
 

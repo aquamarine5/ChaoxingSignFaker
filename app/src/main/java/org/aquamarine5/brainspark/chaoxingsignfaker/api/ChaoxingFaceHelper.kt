@@ -112,8 +112,7 @@ object ChaoxingFaceHelper {
     suspend fun saveFaceImage(
         client: ChaoxingHttpClient,
         context: Context,
-        bitmap: Bitmap,
-        phoneNumber: String? = null
+        bitmap: Bitmap
     ) =
         withContext(Dispatchers.IO) {
             ChaoxingCloudDriveHelper.uploadImage(
@@ -122,21 +121,8 @@ object ChaoxingFaceHelper {
             ).let { objectId ->
                 context.chaoxingDataStore.updateData {
                     it.toBuilder().apply {
-                        if (phoneNumber == null) {
-                            setLoginSession(
-                                loginSession.toBuilder().setFaceImageObjectId(objectId).build()
-                            )
-                        } else {
-                            val index =
-                                otherUsersList.indexOfFirst { user -> user.phoneNumber == phoneNumber }
-                            if (index != -1) {
-                                setOtherUsers(
-                                    index,
-                                    getOtherUsers(index).toBuilder().setFaceImageObjectId(objectId)
-                                        .build()
-                                )
-                            }
-                        }
+                        val phoneNumber = client.userEntity.phoneNumber
+                        containsFaceRecognitionConfigures(client.userEntity.phoneNumber)
                     }.build()
                 }
             }
