@@ -65,7 +65,6 @@ import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
@@ -174,10 +173,10 @@ fun OtherUserScreen(
     var importSharedEntity by remember { mutableStateOf<ChaoxingOtherUserSharedEntity?>(null) }
     val otherUserSessions = remember { mutableStateListOf<ChaoxingOtherUserSession>() }
     var qrCode by remember { mutableStateOf<Bitmap?>(null) }
+    var isTooltipShowed by remember { mutableStateOf(false) }
     val tagsEntityList = remember { mutableStateListOf<OtherUserTagType>() }
     val userTagList = remember { mutableStateListOf<MutableState<List<OtherUserTagType>>>() }
     val coroutineScope = rememberCoroutineScope()
-    val tooltipState = rememberTooltipState(isPersistent = true)
     LaunchedEffect(Unit) {
         context.chaoxingDataStore.data.first().let { datastore ->
             tagsEntityList.addAll(datastore.tagsLibraryList)
@@ -195,8 +194,8 @@ fun OtherUserScreen(
                     }))
                 }
             })
+            isTooltipShowed = !datastore.learntTooltips.supportCloneOtherUserSession
             isLocalSharedEntityReady = ChaoxingOtherUserHelper.checkSharedEntity(datastore)
-
         }
     }
     var job: Job? = null
@@ -1561,7 +1560,7 @@ fun OtherUserScreen(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        "随意分享此二维码给他人会增加你的学习通账号风险，他人可以通过此二维码来控制你的账号，但这个分享行为只针对于学习通，并不会暴露你的实际密码。",
+                        "随意分享此二维码给他人会增加你的学习通账号风险，他人可以通过此二维码来控制你的账号，但这个分享行为只针对于学习通账号，并不会暴露你的实际密码。",
                         color = Color.White,
                         fontSize = 13.sp,
                         lineHeight = 18.sp,
@@ -1724,48 +1723,54 @@ fun OtherUserScreen(
                 } else {
                     Spacer(modifier = Modifier.height(4.dp))
                     val mutex = remember { Mutex() }
-                    var isTooltipShowed by remember { mutableStateOf(false) }
-                    LaunchedEffect(Unit) {
-                        context.chaoxingDataStore.data.first().let {
-                            isTooltipShowed=!it.learntTooltips.supportCloneOtherUserSession
-                        }
-                    }
-                    if(isTooltipShowed)
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center,
-                            modifier = Modifier.padding(
-                                2.dp,
-                                6.dp,
-                                0.dp,
-                                6.dp
-                            )
+                    if (isTooltipShowed)
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(8.dp, 4.dp),
+                            shape = RoundedCornerShape(8.dp),
+                            elevation = CardDefaults.cardElevation(4.dp)
                         ) {
-                            Text(
-                                "现在可以克隆登录其他人的账号，来给其他人代签你没有的课程。",
-                                modifier = Modifier.weight(1f)
-                            )
-                            IconButton(
-                                onClick = {
-                                    tooltipState.dismiss()
-                                    coroutineScope.launch(Dispatchers.IO) {
-                                        context.chaoxingDataStore.updateData {
-                                            it.toBuilder()
-                                                .setLearntTooltips(
-                                                    it.learntTooltips.toBuilder()
-                                                        .setSupportCloneOtherUserSession(
-                                                            true
-                                                        ).build()
-                                                ).build()
-                                        }
-                                    }
-                                },
-                                modifier = Modifier.size(32.dp)
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                modifier = Modifier.padding(
+                                    11.dp,8.dp
+                                )
                             ) {
                                 Icon(
-                                    painterResource(R.drawable.ic_x),
-                                    contentDescription = "关闭提示"
+                                    painterResource(R.drawable.ic_sparkles),
+                                    null,
+                                    tint = Color.Gray,
                                 )
+                                Spacer(modifier=Modifier.width(8.dp))
+                                Text(
+                                    "现在可以克隆登录其他人的账号，来给其他人代签你没有的课程。",
+                                    modifier = Modifier.weight(1f),
+                                    fontSize = 14.sp,
+                                    lineHeight = 16.sp
+                                )
+                                IconButton(
+                                    onClick = {
+                                        coroutineScope.launch(Dispatchers.IO) {
+                                            context.chaoxingDataStore.updateData {
+                                                it.toBuilder()
+                                                    .setLearntTooltips(
+                                                        it.learntTooltips.toBuilder()
+                                                            .setSupportCloneOtherUserSession(
+                                                                true
+                                                            ).build()
+                                                    ).build()
+                                            }
+                                        }
+                                    },
+                                    modifier = Modifier.size(32.dp)
+                                ) {
+                                    Icon(
+                                        painterResource(R.drawable.ic_x),
+                                        contentDescription = "关闭提示"
+                                    )
+                                }
                             }
                         }
 
