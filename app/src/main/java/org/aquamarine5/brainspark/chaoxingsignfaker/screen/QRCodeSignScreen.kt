@@ -237,13 +237,14 @@ fun QRCodeSignScreen(
                             isCurrentAlreadySigned = true
                         }, onDismiss = {
                             signActivityStatus = ChaoxingSignActivityStatus.READY_TO_SIGN
-                        }) { navBack() }
+                        }, isExpiredSign = c == ChaoxingSignActivityStatus.EXPIRED) { navBack() }
 
                         if (destination.startTime != null)
                             SignPotentialWarningTips(
                                 destination.startTime,
                                 destination.endTime,
-                                destination.isLate
+                                destination.isLate,
+                                isPadding = true
                             )
                     }
                 } else if (c == ChaoxingSignActivityStatus.READY_TO_SIGN) {

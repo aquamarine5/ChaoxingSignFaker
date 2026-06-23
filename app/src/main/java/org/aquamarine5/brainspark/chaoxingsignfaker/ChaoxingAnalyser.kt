@@ -113,7 +113,6 @@ object ChaoxingAnalyser {
         }
     }
 
-    @OptIn(ExperimentalUuidApi::class)
     suspend fun checkAndUploadAnalyserRankData(context: Context) {
         withContext(Dispatchers.IO) {
             val currentDate =

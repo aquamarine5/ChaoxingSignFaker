@@ -844,7 +844,7 @@ fun PhotoSignScreen(
                             isForSelf = true
                         }, onDismiss = {
                             signActivityStatus = ChaoxingSignActivityStatus.READY_TO_SIGN
-                        }) {
+                        }, isExpiredSign = c == ChaoxingSignActivityStatus.EXPIRED) {
                             navBack()
                         }
                         if (destination.startTime != null)
