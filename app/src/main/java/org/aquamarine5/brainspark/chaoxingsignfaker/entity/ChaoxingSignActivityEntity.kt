@@ -7,10 +7,12 @@
 package org.aquamarine5.brainspark.chaoxingsignfaker.entity
 
 import android.os.Bundle
+import androidx.compose.runtime.Immutable
 import androidx.navigation.NavType
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
+@Immutable
 @Serializable
 data class ChaoxingSignActivityEntity(
     val startTime: Long,

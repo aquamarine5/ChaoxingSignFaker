@@ -10,13 +10,14 @@ import android.content.Context
 import com.alibaba.fastjson2.JSONObject
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Request
-import org.aquamarine5.brainspark.chaoxingsignfaker.chaoxingDataStore
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
+import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingCaptchaResult
 
 object ChaoxingCaptchaHelper {
     val URL_REMOTE_CAPTCHA_MEMORIES =
         "http://cdn.aquamarine5.fun/chaoxingsignfaker_captcha_memories_manifest.json".toHttpUrl()
 
-    const val SUPPORT_CAPTCHA_MEMORIES_MANIFEST_VERSION=1
+    const val SUPPORT_CAPTCHA_MEMORIES_MANIFEST_VERSION = 1
 
     suspend fun updateRemoteCaptchaMemoriesData(context: Context) {
         ChaoxingHttpClient.instance!!.newCall(
@@ -24,13 +25,25 @@ object ChaoxingCaptchaHelper {
                 .url(URL_REMOTE_CAPTCHA_MEMORIES)
                 .get()
                 .build()
-        ).execute().use {
-            val jsonObject= JSONObject.parseObject(it.body.string())
-            context.chaoxingDataStore.updateData {
-                it.toBuilder()
-                    .setCaptchaMemories(it.captchaMemories.toBuilder()
-                        .setMemoriesVersion(jsonObject.getInteger("memoriesVersion"))
-                        .build())
+        ).execute().use { response ->
+            val jsonObject = JSONObject.parseObject(response.body.string())
+            context.chaoxingDataStore.updateData { dataStore ->
+                dataStore.toBuilder()
+                    .setCaptchaMemories(
+                        dataStore.captchaMemories.toBuilder()
+                            .setMemoriesVersion(jsonObject.getInteger("memoriesVersion"))
+                            .clearMemories()
+                            .addAllMemories(jsonObject.getJSONArray("captchaMemories").let {
+                                List(it.size) { index ->
+                                    val jsonMemory = it.getJSONObject(index)
+                                    return@List ChaoxingCaptchaResult.newBuilder()
+                                        .setToken(jsonMemory.getString("token"))
+                                        .setXPosition(jsonMemory.getInteger("xPosition"))
+                                        .build()
+                                }
+                            })
+                            .build()
+                    )
                     .build()
             }
         }

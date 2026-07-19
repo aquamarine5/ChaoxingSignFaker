@@ -6,6 +6,9 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.entity
 
+import androidx.compose.runtime.Immutable
+
+@Immutable
 enum class ChaoxingSignActivityStatus {
     READY_TO_SIGN,
     ALREADY_SIGNED,

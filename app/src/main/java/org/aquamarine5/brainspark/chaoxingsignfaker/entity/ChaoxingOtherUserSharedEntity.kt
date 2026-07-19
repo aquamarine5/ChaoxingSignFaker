@@ -6,10 +6,12 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.entity
 
+import androidx.compose.runtime.Immutable
 import com.google.mlkit.vision.barcode.common.Barcode
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingOtherUserHelper
 
+@Immutable
 data class ChaoxingOtherUserSharedEntity(
     val phoneNumber: String,
     val encryptedPassword: String,

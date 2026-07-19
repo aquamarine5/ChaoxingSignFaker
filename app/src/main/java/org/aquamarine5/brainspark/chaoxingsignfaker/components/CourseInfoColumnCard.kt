@@ -39,7 +39,7 @@ import coil3.ImageLoader
 import coil3.compose.AsyncImage
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCourseEntity
-import org.aquamarine5.brainspark.chaoxingsignfaker.isDevelopedMode
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.isDevelopedMode
 
 @Composable
 fun CourseInfoColumnCard(

@@ -47,10 +47,12 @@ import androidx.compose.ui.zIndex
 import coil3.compose.AsyncImage
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
+import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingCaptchaResult
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCaptchaDataEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSigner
-import org.aquamarine5.brainspark.chaoxingsignfaker.snackbarReport
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.OnlyAppDevelopedMode
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.time.Duration.Companion.seconds
 
@@ -59,6 +61,7 @@ fun CaptchaHandlerDialog(
     signer: ChaoxingSigner,
     onResult: suspend (Result<String>) -> Unit,
     onDismiss: () -> Unit,
+    @OnlyAppDevelopedMode isRecordingCaptchaMemories: Boolean = false
 ) {
     var data by remember { mutableStateOf<ChaoxingCaptchaDataEntity?>(null) }
     val shadeImageUrl by remember(data) { mutableStateOf(data?.shadeImageUrl) }
@@ -71,6 +74,10 @@ fun CaptchaHandlerDialog(
     val coroutineScope = rememberCoroutineScope()
     val density by remember(containerWidth) { mutableFloatStateOf(containerWidth / 320) }
     val sliderMaxValue = remember(containerWidth) { containerWidth - 56f * density }
+
+    @OnlyAppDevelopedMode val captchaMemories = remember { mutableListOf<ChaoxingCaptchaResult>() }
+    @OnlyAppDevelopedMode var isDisplayCaptchaMemoriesResultDialog by remember { mutableStateOf(false) }
+
     LaunchedEffect(signer) {
         runCatching {
             data = signer.getCaptchaImageV2()

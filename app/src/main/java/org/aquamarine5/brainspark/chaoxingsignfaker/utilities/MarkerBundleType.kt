@@ -4,7 +4,7 @@
  * Repository: https://github.com/aquamarine5/ChaoxingSignFaker
  */
 
-package org.aquamarine5.brainspark.chaoxingsignfaker
+package org.aquamarine5.brainspark.chaoxingsignfaker.utilities
 
 const val MARKER_BUNDLE_ADDRESS = "address"
 const val MARKER_BUNDLE_LABEL = "label"

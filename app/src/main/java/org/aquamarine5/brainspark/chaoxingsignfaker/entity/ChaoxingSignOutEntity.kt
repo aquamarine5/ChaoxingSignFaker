@@ -6,6 +6,9 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.entity
 
+import androidx.compose.runtime.Immutable
+
+@Immutable
 data class ChaoxingSignOutEntity(
     val signInId: Long?,
     val signOffId: Long?,

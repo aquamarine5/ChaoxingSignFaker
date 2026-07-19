@@ -98,6 +98,11 @@ android {
     }
 }
 
+composeCompiler {
+    reportsDestination = layout.buildDirectory.dir("compose_compiler")
+    metricsDestination = layout.buildDirectory.dir("compose_compiler")
+}
+
 protobuf {
     protoc {
         artifact = "com.google.protobuf:protoc:4.35.1"

@@ -30,7 +30,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
-import org.aquamarine5.brainspark.chaoxingsignfaker.getNetworkExceptionMessage
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.getNetworkExceptionMessage
 
 @Composable
 fun NetworkExceptionComponent(

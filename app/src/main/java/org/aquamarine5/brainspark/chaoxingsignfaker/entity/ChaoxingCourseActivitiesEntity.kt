@@ -6,10 +6,12 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.entity
 
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.listSaver
 import kotlinx.serialization.Serializable
 
+@Immutable
 @Serializable
 data class ChaoxingCourseActivitiesEntity(
     val ext: String,

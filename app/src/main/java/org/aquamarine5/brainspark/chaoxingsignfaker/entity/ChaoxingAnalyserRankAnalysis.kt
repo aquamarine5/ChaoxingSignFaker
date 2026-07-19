@@ -6,6 +6,10 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.entity
 
+import androidx.compose.runtime.Immutable
+
+
+@Immutable
 data class ChaoxingAnalyserRankAnalysis(
     val userCount: Int,
     val totalRecordSignCount: Int

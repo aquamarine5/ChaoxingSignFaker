@@ -4,12 +4,13 @@
  * Repository: https://github.com/aquamarine5/ChaoxingSignFaker
  */
 
-package org.aquamarine5.brainspark.chaoxingsignfaker
+package org.aquamarine5.brainspark.chaoxingsignfaker.utilities
 
 import android.content.Context
 import android.content.pm.PackageInfo
 import com.umeng.analytics.MobclickAgent
 import com.umeng.commonsdk.UMConfigure
+import org.aquamarine5.brainspark.chaoxingsignfaker.BuildConfig
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationSignEntity
