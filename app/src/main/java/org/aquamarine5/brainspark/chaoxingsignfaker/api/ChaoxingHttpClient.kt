@@ -87,6 +87,7 @@ class ChaoxingHttpClient private constructor(
         @Deprecated("Should use ChaoxingHttpClient().deviceCode not ChaoxingHttpClient.Companion.deviceCode")
         var deviceCode: String? = null
 
+        @Suppress("Deprecation")
         @Deprecated("Don't use saveDeviceCode() and ChaoxingHttpClient.Companion.deviceCode")
         suspend fun saveDeviceCode(context: Context): String {
             val rawData = MessageDigest.getInstance("SHA-256").digest(
@@ -347,9 +348,9 @@ class ChaoxingHttpClient private constructor(
                                             schoolConfigs.forEachIndexed { index, _ ->
                                                 schoolConfigs.getJSONObject(index)
                                                     .getString("schoolname").let {
-                                                    if (!it.isNullOrBlank() && it != defaultSchoolName)
-                                                        add(it)
-                                                }
+                                                        if (!it.isNullOrBlank() && it != defaultSchoolName)
+                                                            add(it)
+                                                    }
                                             }
                                         }
                                     if (isEmpty())

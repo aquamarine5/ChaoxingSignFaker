@@ -76,7 +76,11 @@ fun CaptchaHandlerDialog(
     val sliderMaxValue = remember(containerWidth) { containerWidth - 56f * density }
 
     @OnlyAppDevelopedMode val captchaMemories = remember { mutableListOf<ChaoxingCaptchaResult>() }
-    @OnlyAppDevelopedMode var isDisplayCaptchaMemoriesResultDialog by remember { mutableStateOf(false) }
+    @OnlyAppDevelopedMode var isDisplayCaptchaMemoriesResultDialog by remember {
+        mutableStateOf(
+            false
+        )
+    }
 
     LaunchedEffect(signer) {
         runCatching {

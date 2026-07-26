@@ -8,10 +8,13 @@ package org.aquamarine5.brainspark.chaoxingsignfaker.api
 
 import android.content.Context
 import com.alibaba.fastjson2.JSONObject
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Request
-import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingCaptchaResult
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.checkResponseThrowException
 
 object ChaoxingCaptchaHelper {
     val URL_REMOTE_CAPTCHA_MEMORIES =
@@ -26,25 +29,28 @@ object ChaoxingCaptchaHelper {
                 .get()
                 .build()
         ).execute().use { response ->
-            val jsonObject = JSONObject.parseObject(response.body.string())
-            context.chaoxingDataStore.updateData { dataStore ->
-                dataStore.toBuilder()
-                    .setCaptchaMemories(
-                        dataStore.captchaMemories.toBuilder()
-                            .setMemoriesVersion(jsonObject.getInteger("memoriesVersion"))
-                            .clearMemories()
-                            .addAllMemories(jsonObject.getJSONArray("captchaMemories").let {
-                                List(it.size) { index ->
-                                    val jsonMemory = it.getJSONObject(index)
-                                    return@List ChaoxingCaptchaResult.newBuilder()
-                                        .setToken(jsonMemory.getString("token"))
-                                        .setXPosition(jsonMemory.getInteger("xPosition"))
-                                        .build()
-                                }
-                            })
-                            .build()
-                    )
-                    .build()
+            response.checkResponseThrowException()
+            withContext(Dispatchers.IO) {
+                val jsonObject = JSONObject.parseObject(response.body.string())
+                context.chaoxingDataStore.updateData { dataStore ->
+                    dataStore.toBuilder()
+                        .setCaptchaMemories(
+                            dataStore.captchaMemories.toBuilder()
+                                .setMemoriesVersion(jsonObject.getInteger("memoriesVersion"))
+                                .clearMemories()
+                                .addAllMemories(jsonObject.getJSONArray("captchaMemories").let {
+                                    List(it.size) { index ->
+                                        val jsonMemory = it.getJSONObject(index)
+                                        return@List ChaoxingCaptchaResult.newBuilder()
+                                            .setToken(jsonMemory.getString("token"))
+                                            .setXPosition(jsonMemory.getInteger("xPosition"))
+                                            .build()
+                                    }
+                                })
+                                .build()
+                        )
+                        .build()
+                }
             }
         }
     }

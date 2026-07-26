@@ -83,6 +83,7 @@ import okhttp3.OkHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.initializeClientInfo
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingEasemobIMGroup
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.NavigationBarItemData
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.CourseDetailDestination
@@ -181,7 +182,7 @@ class MainActivity : ComponentActivity() {
                 "SSLHandshakeException"
             )
             it.beforeSend = { event, hint ->
-                event.setExtra("sign",verifiedSignature)
+                event.setExtra("sign", verifiedSignature)
                 if (ignoreExceptions.contains(event.throwable?.javaClass?.simpleName)) {
                     null
                 } else {
@@ -499,13 +500,13 @@ class MainActivity : ComponentActivity() {
                                                         restoreState = true
                                                     }
                                                 }, navToGroupDestination = {
-                                                    navController.navigate(GroupListDestination)
+                                                    navController.navigate(GroupListDestination(it))
                                                 })
                                         }
                                         composable<GroupDetailDestination>(
-//                                            typeMap = mapOf(
-//                                                typeOf<ChaoxingIMGroup>() to ChaoxingIMGroup.ChaoxingIMGroupNavType
-//                                            )
+                                            typeMap = mapOf(
+                                                typeOf<ChaoxingEasemobIMGroup>() to ChaoxingEasemobIMGroup.ChaoxingEasemobIMGroupNavType
+                                            )
                                         ) {
                                             GroupDetailScreen(
                                                 it.toRoute(),
@@ -518,7 +519,7 @@ class MainActivity : ComponentActivity() {
                                         }
 
                                         composable<GroupListDestination> {
-                                            GroupListScreen(imageLoader) { destination ->
+                                            GroupListScreen(it.toRoute(),imageLoader) { destination ->
                                                 navController.navigate(destination)
                                             }
                                         }

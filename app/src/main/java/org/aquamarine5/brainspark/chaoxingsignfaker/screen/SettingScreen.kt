@@ -97,8 +97,10 @@ object SettingGraphDestination
 object SettingDestination
 
 private const val BYPASS_BLOCKED_CHECKING_KEY = "ggg1215love"
-@OnlyAppDevelopedMode private const val COMMAND_SET_RANK_COUNT_PREFIX = "setRankCount"
-@OnlyAppDevelopedMode private const val COMMAND_ALWAYS_FORCE_SIGN_PREFIX = "alwaysForceSign "
+@OnlyAppDevelopedMode
+private const val COMMAND_SET_RANK_COUNT_PREFIX = "setRankCount"
+@OnlyAppDevelopedMode
+private const val COMMAND_ALWAYS_FORCE_SIGN_PREFIX = "alwaysForceSign "
 
 var isAlwaysForceSign by mutableStateOf(false)
 
@@ -164,22 +166,24 @@ fun SettingScreen(
                             }
                         }
                     } else if (inputPassword.startsWith(COMMAND_SET_RANK_COUNT_PREFIX)) {
-                        inputPassword.substringAfter(COMMAND_SET_RANK_COUNT_PREFIX).toIntOrNull()?.let { count ->
-                            coroutineScope.launch(Dispatchers.IO) {
-                                context.chaoxingDataStore.updateData {
-                                    it.toBuilder().setPreferences(
-                                        it.preferences.toBuilder()
-                                            .setDisplayRankCount(count.coerceAtLeast(5))
-                                    ).build()
+                        inputPassword.substringAfter(COMMAND_SET_RANK_COUNT_PREFIX).toIntOrNull()
+                            ?.let { count ->
+                                coroutineScope.launch(Dispatchers.IO) {
+                                    context.chaoxingDataStore.updateData {
+                                        it.toBuilder().setPreferences(
+                                            it.preferences.toBuilder()
+                                                .setDisplayRankCount(count.coerceAtLeast(5))
+                                        ).build()
+                                    }
+                                    snackbarHostState.displaySnackbar(
+                                        "已设置排行榜显示数量为$count",
+                                        coroutineScope
+                                    )
                                 }
-                                snackbarHostState.displaySnackbar(
-                                    "已设置排行榜显示数量为$count",
-                                    coroutineScope
-                                )
                             }
-                        }
                     } else if (inputPassword.startsWith(COMMAND_ALWAYS_FORCE_SIGN_PREFIX)) {
-                        inputPassword.substringAfter(COMMAND_ALWAYS_FORCE_SIGN_PREFIX).toBooleanStrictOrNull()
+                        inputPassword.substringAfter(COMMAND_ALWAYS_FORCE_SIGN_PREFIX)
+                            .toBooleanStrictOrNull()
                             ?.let { value ->
                                 coroutineScope.launch(Dispatchers.IO) {
                                     context.chaoxingDataStore.updateData {
@@ -549,7 +553,7 @@ fun SettingScreen(
         Spacer(modifier = Modifier.height(8.dp))
         var clickCount by remember { mutableIntStateOf(0) }
         Text(
-            "ChaoxingSignFaker ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE}), channel: ${BuildConfig.UMENG_CHANNEL}, buildDate: ${BuildConfig.releaseDate},${if (isBypassBlockedChecking) " BypassBlockedChecking," else ""} developed by @aquamarine5, All Rights Reserved.",
+            "ChaoxingSignFaker ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE}), channel: ${BuildConfig.umengChannel}, buildDate: ${BuildConfig.releaseDate},${if (isBypassBlockedChecking) " BypassBlockedChecking," else ""} developed by @aquamarine5, All Rights Reserved.",
             fontSize = 10.sp,
             lineHeight = 12.sp,
             color = Color.Gray,

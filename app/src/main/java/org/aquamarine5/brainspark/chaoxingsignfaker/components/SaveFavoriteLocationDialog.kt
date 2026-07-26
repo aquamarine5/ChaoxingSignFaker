@@ -17,8 +17,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationSignEntity
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
 
 @Composable
 fun SaveFavoriteLocationDialog(

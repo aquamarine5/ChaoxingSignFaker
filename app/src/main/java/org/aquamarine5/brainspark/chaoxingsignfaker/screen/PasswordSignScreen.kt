@@ -54,8 +54,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.serialization.Serializable
-import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
-import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCourseHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingSignHelper
@@ -74,6 +72,8 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignOutEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignStatus
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingPasswordSigner
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSignHandler
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
 import kotlin.time.Duration.Companion.seconds
 

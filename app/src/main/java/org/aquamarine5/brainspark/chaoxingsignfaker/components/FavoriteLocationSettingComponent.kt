@@ -75,14 +75,14 @@ import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import org.aquamarine5.brainspark.chaoxingsignfaker.R
+import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingLocation
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.MARKER_BUNDLE_ADDRESS
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.MARKER_BUNDLE_LABEL
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.MARKER_BUNDLE_TYPE
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.MarkerBundleType
-import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
-import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingLocation
 
 @OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
 @Composable

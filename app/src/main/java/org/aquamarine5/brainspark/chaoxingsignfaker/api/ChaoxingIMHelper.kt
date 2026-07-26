@@ -143,11 +143,9 @@ object ChaoxingIMHelper {
                     jsonObject.getJSONObject(index).run {
                         val jsonDescription = JSONObject.parseObject(getString("description"))
                         ChaoxingEasemobIMGroup(
-                            getString("name").ifEmpty {
-                                jsonDescription.getString("coursename")
-                            },
+                            getString("name").takeUnless { it.isNullOrBlank() } ?: jsonDescription.getJSONObject("courseInfo").getString("coursename"),
                             getString("id"),
-                            jsonDescription.getString("imageUrl")
+                            jsonDescription.getJSONObject("courseInfo")?.getString("imageUrl")
                         )
                     }
                 }

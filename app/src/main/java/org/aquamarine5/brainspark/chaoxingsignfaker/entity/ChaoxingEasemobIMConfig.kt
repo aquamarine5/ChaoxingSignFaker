@@ -11,6 +11,6 @@ import androidx.compose.runtime.Immutable
 @Immutable
 data class ChaoxingEasemobIMConfig(
     val accessToken: String,
-    val uuid:String,
+    val uuid: String,
     val username: String
 )

@@ -6,6 +6,7 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.screen
 
+import android.util.Log
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -33,7 +34,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
@@ -46,16 +49,20 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingIMHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.CloneSessionTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NetworkExceptionComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingEasemobIMGroup
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
 
 @Serializable
-object GroupListDestination
+data class GroupListDestination(
+    val isCloneSession: Boolean
+)
 
 @Composable
 fun GroupListScreen(
+    destination: GroupListDestination,
     imageLoader: ImageLoader,
     navToGroupDetail: (GroupDetailDestination) -> Unit
 ) {
@@ -74,8 +81,8 @@ fun GroupListScreen(
             isFetchedFailure = runCatching {
                 if (imGroupsInfo == null)
                     imGroupsInfo = ChaoxingIMHelper.getEasemobIMGroups(
-                        ChaoxingHttpClient.instance!!,
-                        ChaoxingHttpClient.instance!!.getIMConfig()
+                        ChaoxingHttpClient.getHttpInstanceOrClone(destination.isCloneSession)!!,
+                        ChaoxingHttpClient.getHttpInstanceOrClone(destination.isCloneSession)!!.getIMConfig()
                     )
             }.onFailure {
                 it.snackbarReport(
@@ -97,8 +104,8 @@ fun GroupListScreen(
                         coroutineScope.launch {
                             isFetchedFailure = runCatching {
                                 imGroupsInfo = ChaoxingIMHelper.getEasemobIMGroups(
-                                    ChaoxingHttpClient.instance!!,
-                                    ChaoxingHttpClient.instance!!.getIMConfig()
+                                    ChaoxingHttpClient.getHttpInstanceOrClone(destination.isCloneSession)!!,
+                                    ChaoxingHttpClient.getHttpInstanceOrClone(destination.isCloneSession)!!.getIMConfig()
                                 )
                             }.onFailure {
                                 it.snackbarReport(
@@ -115,6 +122,9 @@ fun GroupListScreen(
                 }
 
                 imGroupsInfo!!.isEmpty() -> {
+                    if (destination.isCloneSession) {
+                        CloneSessionTips()
+                    }
                     Box(modifier = Modifier.fillMaxSize()) {
                         Column(modifier = Modifier.align(Alignment.Center)) {
                             Icon(painterResource(R.drawable.ic_circle_question_mark), null)
@@ -124,6 +134,9 @@ fun GroupListScreen(
                 }
 
                 else -> {
+                    if (destination.isCloneSession) {
+                        CloneSessionTips()
+                    }
                     LazyColumn {
                         items(imGroupsInfo!!, key = {
                             it.id
@@ -144,23 +157,29 @@ fun GroupListScreen(
                                         if (item.imageUrl != null) {
                                             AsyncImage(
                                                 model = item.imageUrl,
-                                                modifier = Modifier.size(50.dp),
+                                                modifier = Modifier
+                                                    .size(50.dp)
+                                                    .clip(RoundedCornerShape(3.dp)),
                                                 imageLoader = imageLoader,
-                                                contentDescription = null
+                                                contentDescription = null,
+                                                contentScale = ContentScale.FillHeight,
+                                                onError = {
+                                                    Log.w("GroupListScreen", "Error loading image: ${it.result}")
+                                                }
                                             )
                                         } else {
                                             Spacer(modifier = Modifier.size(50.dp))
                                         }
+                                        Text(
+                                            text = item.chatName,
+                                            modifier = Modifier.padding(start = 16.dp)
+                                        )
                                     }
-                                    Text(
-                                        text = item.name,
-                                        modifier = Modifier.padding(start = 16.dp)
-                                    )
                                 }
                             }
+                            Spacer(modifier = Modifier.height(8.dp))
                         }
                     }
-                    Spacer(modifier = Modifier.height(8.dp))
                 }
             }
         }
