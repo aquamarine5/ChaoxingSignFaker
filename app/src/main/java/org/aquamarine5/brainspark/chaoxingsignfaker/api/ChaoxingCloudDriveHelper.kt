@@ -24,9 +24,9 @@ import okhttp3.MultipartBody
 import okhttp3.Request
 import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
-import org.aquamarine5.brainspark.chaoxingsignfaker.checkResponseThrowException
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingPhotoSigner.ChaoxingPhotoSignException
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingPhotoSigner.Companion.URL_CLOUD_UPLOAD
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.checkResponseThrowException
 import java.io.ByteArrayOutputStream
 import java.util.UUID
 

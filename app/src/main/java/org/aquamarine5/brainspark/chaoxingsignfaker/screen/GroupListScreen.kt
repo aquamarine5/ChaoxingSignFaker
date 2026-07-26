@@ -6,6 +6,7 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.screen
 
+import android.util.Log
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -29,12 +30,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
@@ -43,21 +45,24 @@ import coil3.ImageLoader
 import coil3.compose.AsyncImage
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
-import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingIMHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.CloneSessionTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NetworkExceptionComponent
-import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingIMGroup
-import org.aquamarine5.brainspark.chaoxingsignfaker.snackbarReport
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingEasemobIMGroup
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
 
 @Serializable
-object GroupListDestination
+data class GroupListDestination(
+    val isCloneSession: Boolean
+)
 
 @Composable
 fun GroupListScreen(
+    destination: GroupListDestination,
     imageLoader: ImageLoader,
     navToGroupDetail: (GroupDetailDestination) -> Unit
 ) {
@@ -70,29 +75,14 @@ fun GroupListScreen(
         val context = LocalContext.current
         val snackbarHostState = LocalSnackbarHostState.current
         val hapticFeedback = LocalHapticFeedback.current
-        var imGroupsInfo by rememberSaveable(
-            saver = Saver(
-                save = { state -> state.value?.let { Json.encodeToString(it) } ?: "" },
-                restore = { value ->
-                    mutableStateOf(
-                        if (value.isEmpty()) {
-                            null
-                        } else {
-                            runCatching {
-                                Json.decodeFromString<List<ChaoxingIMGroup>>(value)
-                            }.getOrNull()
-                        }
-                    )
-                }
-            )
-        ) { mutableStateOf<List<ChaoxingIMGroup>?>(null) }
+        var imGroupsInfo by rememberSaveable { mutableStateOf<List<ChaoxingEasemobIMGroup>?>(null) }
         var isFetchedFailure by remember { mutableStateOf<Result<*>?>(null) }
         LaunchedEffect(Unit) {
             isFetchedFailure = runCatching {
                 if (imGroupsInfo == null)
-                    imGroupsInfo = ChaoxingIMHelper.getIMGroups(
-                        ChaoxingHttpClient.instance!!,
-                        ChaoxingHttpClient.instance!!.getIMConfig()
+                    imGroupsInfo = ChaoxingIMHelper.getEasemobIMGroups(
+                        ChaoxingHttpClient.getHttpInstanceOrClone(destination.isCloneSession)!!,
+                        ChaoxingHttpClient.getHttpInstanceOrClone(destination.isCloneSession)!!.getIMConfig()
                     )
             }.onFailure {
                 it.snackbarReport(
@@ -113,9 +103,9 @@ fun GroupListScreen(
                     NetworkExceptionComponent(v.exceptionOrNull()!!) {
                         coroutineScope.launch {
                             isFetchedFailure = runCatching {
-                                imGroupsInfo = ChaoxingIMHelper.getIMGroups(
-                                    ChaoxingHttpClient.instance!!,
-                                    ChaoxingHttpClient.instance!!.getIMConfig()
+                                imGroupsInfo = ChaoxingIMHelper.getEasemobIMGroups(
+                                    ChaoxingHttpClient.getHttpInstanceOrClone(destination.isCloneSession)!!,
+                                    ChaoxingHttpClient.getHttpInstanceOrClone(destination.isCloneSession)!!.getIMConfig()
                                 )
                             }.onFailure {
                                 it.snackbarReport(
@@ -132,6 +122,9 @@ fun GroupListScreen(
                 }
 
                 imGroupsInfo!!.isEmpty() -> {
+                    if (destination.isCloneSession) {
+                        CloneSessionTips()
+                    }
                     Box(modifier = Modifier.fillMaxSize()) {
                         Column(modifier = Modifier.align(Alignment.Center)) {
                             Icon(painterResource(R.drawable.ic_circle_question_mark), null)
@@ -141,8 +134,13 @@ fun GroupListScreen(
                 }
 
                 else -> {
+                    if (destination.isCloneSession) {
+                        CloneSessionTips()
+                    }
                     LazyColumn {
-                        items(imGroupsInfo!!) { item ->
+                        items(imGroupsInfo!!, key = {
+                            it.id
+                        }) { item ->
                             Button(
                                 onClick = {
                                     hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
@@ -156,79 +154,21 @@ fun GroupListScreen(
                                         horizontalArrangement = Arrangement.Start,
                                         modifier = Modifier.fillMaxWidth()
                                     ) {
-                                        item.picArray.let { pics ->
-                                            if (pics.size == 1) {
-                                                AsyncImage(
-                                                    model = pics[0],
-                                                    contentDescription = null,
-                                                    imageLoader = imageLoader,
-                                                    modifier = Modifier.size(50.dp)
-                                                )
-                                            } else if (pics.size > 1) {
-                                                Box(modifier = Modifier.size(50.dp)) {
-                                                    Column {
-                                                        Row {
-                                                            AsyncImage(
-                                                                model = pics[0],
-                                                                contentDescription = null,
-                                                                imageLoader = imageLoader,
-                                                                modifier = Modifier.size(25.dp)
-                                                            )
-                                                            if (pics.size != 2) {
-                                                                AsyncImage(
-                                                                    model = pics[1],
-                                                                    contentDescription = null,
-                                                                    imageLoader = imageLoader,
-                                                                    modifier = Modifier.size(25.dp)
-                                                                )
-                                                            } else {
-                                                                Spacer(
-                                                                    modifier = Modifier.size(
-                                                                        25.dp
-                                                                    )
-                                                                )
-                                                            }
-                                                        }
-                                                        Row {
-                                                            if (pics.size > 2) {
-                                                                AsyncImage(
-                                                                    model = pics[2],
-                                                                    contentDescription = null,
-                                                                    imageLoader = imageLoader,
-                                                                    modifier = Modifier.size(25.dp)
-                                                                )
-                                                            } else {
-                                                                Spacer(
-                                                                    modifier = Modifier.size(
-                                                                        25.dp
-                                                                    )
-                                                                )
-                                                            }
-                                                            if (pics.size == 2) {
-                                                                AsyncImage(
-                                                                    model = pics[1],
-                                                                    contentDescription = null,
-                                                                    imageLoader = imageLoader,
-                                                                    modifier = Modifier.size(25.dp)
-                                                                )
-                                                            } else if (pics.size > 3) {
-                                                                AsyncImage(
-                                                                    model = pics[3],
-                                                                    contentDescription = null,
-                                                                    imageLoader = imageLoader,
-                                                                    modifier = Modifier.size(25.dp)
-                                                                )
-                                                            } else {
-                                                                Spacer(
-                                                                    modifier = Modifier.size(
-                                                                        25.dp
-                                                                    )
-                                                                )
-                                                            }
-                                                        }
-                                                    }
+                                        if (item.imageUrl != null) {
+                                            AsyncImage(
+                                                model = item.imageUrl,
+                                                modifier = Modifier
+                                                    .size(50.dp)
+                                                    .clip(RoundedCornerShape(3.dp)),
+                                                imageLoader = imageLoader,
+                                                contentDescription = null,
+                                                contentScale = ContentScale.FillHeight,
+                                                onError = {
+                                                    Log.w("GroupListScreen", "Error loading image: ${it.result}")
                                                 }
-                                            }
+                                            )
+                                        } else {
+                                            Spacer(modifier = Modifier.size(50.dp))
                                         }
                                         Text(
                                             text = item.chatName,
@@ -245,3 +185,4 @@ fun GroupListScreen(
         }
     }
 }
+

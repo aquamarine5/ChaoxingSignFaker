@@ -9,6 +9,8 @@ package org.aquamarine5.brainspark.chaoxingsignfaker.components
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
@@ -31,6 +33,11 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -72,18 +79,19 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import org.aquamarine5.brainspark.chaoxingsignfaker.ChaoxingAnalyser
-import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
-import org.aquamarine5.brainspark.chaoxingsignfaker.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingAnalyserRankAnalysis
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingAnalyserRankRecord
-import org.aquamarine5.brainspark.chaoxingsignfaker.snackbarReport
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingAnalyser
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AnalyserCard() {
     LocalContext.current.let { context ->
@@ -98,21 +106,38 @@ fun AnalyserCard() {
         var isDisableAnalyserRank by remember { mutableStateOf(false) }
         var displayRankCount by remember { mutableIntStateOf(50) }
         var isHideAnalyserSchoolName by remember { mutableStateOf(false) }
+        var displaySchoolName by remember { mutableStateOf("") }
         LaunchedEffect(analyser.isLoaded) {
             if (analyser.isLoaded.value.not())
                 ChaoxingAnalyser.setupStateAnalyser(context)
-            context.chaoxingDataStore.data.first().let {
-                customRankDisplayName = it.analysisRankName.ifEmpty {
+            context.chaoxingDataStore.data.first().let { dataStore ->
+                customRankDisplayName = dataStore.analysisRankName.ifEmpty {
                     "****${
                         ChaoxingHttpClient.instance!!.userEntity.phoneNumber.takeLast(
                             2
                         )
                     } 用户"
                 }
-                lastUploadTimestamp = it.lastUploadAnalysisTimestamp
-                isDisableAnalyserRank = it.disableAnalysisRank
-                isHideAnalyserSchoolName = it.hideAnalysisRankSchoolName
-                displayRankCount = it.preferences.displayRankCount.let {
+                displaySchoolName =
+                    ChaoxingHttpClient.instance!!.userEntity.schoolName.let { rawList ->
+                        if (dataStore.selectedAnalysisRankSchoolName.isNotEmpty() && rawList.contains(
+                                dataStore.selectedAnalysisRankSchoolName
+                            )
+                        )
+                            return@let dataStore.selectedAnalysisRankSchoolName
+                        rawList.toMutableList().run {
+                            removeAll { it[0].isDigit() }
+                            removeAll { it.endsWith("图书馆") }
+                            if (isEmpty())
+                                return@let rawList[0]
+                            sortBy { it.length }
+                            return@let get(0)
+                        }
+                    }
+                lastUploadTimestamp = dataStore.lastUploadAnalysisTimestamp
+                isDisableAnalyserRank = dataStore.disableAnalysisRank
+                isHideAnalyserSchoolName = dataStore.hideAnalysisRankSchoolName
+                displayRankCount = dataStore.preferences.displayRankCount.let {
                     if (it == 0) 50 else it
                 }
             }
@@ -233,6 +258,45 @@ fun AnalyserCard() {
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("隐藏上传学校信息")
+                    }
+                    AnimatedVisibility(
+                        !isHideAnalyserSchoolName,
+                        enter = slideInVertically(),
+                        exit = slideOutVertically()
+                    ) {
+                        val schoolNames =
+                            remember { ChaoxingHttpClient.instance!!.userEntity.schoolName }
+                        var isExpanded by remember { mutableStateOf(false) }
+                        ExposedDropdownMenuBox(expanded = isExpanded, onExpandedChange = {
+                            isExpanded = it
+                        }) {
+                            TextField(
+                                displaySchoolName,
+                                onValueChange = {},
+                                readOnly = true,
+                                modifier = Modifier.menuAnchor(
+                                    ExposedDropdownMenuAnchorType.PrimaryNotEditable
+                                ),
+                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = isExpanded) },
+                                colors = ExposedDropdownMenuDefaults.textFieldColors(),
+                            )
+                            ExposedDropdownMenu(expanded = isExpanded, onDismissRequest = {
+                                isExpanded = false
+                            }) {
+                                schoolNames.forEach { name ->
+                                    DropdownMenuItem(
+                                        text = {
+                                            Text(name, style = MaterialTheme.typography.bodyLarge)
+                                        },
+                                        onClick = {
+                                            displaySchoolName = name
+                                            isExpanded = false
+                                        },
+                                        contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }, confirmButton = {
@@ -365,7 +429,9 @@ fun AnalyserCard() {
                             }
 
                             LazyColumn(modifier = Modifier.weight(1f, fill = false)) {
-                                itemsIndexed(list) { index, it ->
+                                itemsIndexed(list, key = { _, it ->
+                                    it.uuid
+                                }) { index, it ->
                                     Row(
                                         verticalAlignment = Alignment.CenterVertically,
                                         modifier = Modifier
@@ -519,7 +585,7 @@ fun AnalyserCard() {
                                                 userRecord!!.schoolName.let { school ->
                                                     if (school.endsWith("HIDE")) "已隐藏学校信息" else school.ifBlank { "未知学校" }
                                                 }
-                                            } else ChaoxingHttpClient.instance!!.userEntity.schoolName,
+                                            } else ChaoxingHttpClient.instance!!.userEntity.schoolName[0],
                                             fontSize = 10.sp,
                                             lineHeight = 11.sp,
                                             color = Color.Gray,

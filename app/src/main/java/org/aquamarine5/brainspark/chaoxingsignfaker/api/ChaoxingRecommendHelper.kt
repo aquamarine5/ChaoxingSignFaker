@@ -11,12 +11,12 @@ import androidx.compose.material3.SnackbarHostState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
-import org.aquamarine5.brainspark.chaoxingsignfaker.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingSignFakerDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.RecommendHabit
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.RecommendRecord
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.RecommendRecordList
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.RecommendActivityEntity
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
 import java.time.LocalDateTime
 import kotlin.math.abs
 

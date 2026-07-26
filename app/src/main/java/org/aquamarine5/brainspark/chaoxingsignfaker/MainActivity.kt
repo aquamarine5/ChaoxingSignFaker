@@ -83,7 +83,7 @@ import okhttp3.OkHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.initializeClientInfo
-import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingIMGroup
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingEasemobIMGroup
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.NavigationBarItemData
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.CourseDetailDestination
@@ -118,6 +118,13 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.screen.WelcomeScreen
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.isAlwaysForceSign
 import org.aquamarine5.brainspark.chaoxingsignfaker.ui.theme.ChaoxingSignFakerTheme
 import org.aquamarine5.brainspark.chaoxingsignfaker.ui.theme.Orange
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingAnalyser
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingParseDataException
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingPredictableException
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.UMengHelper
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.isDevelopedMode
 import org.aquamarine5.brainspark.stackbricks.StackbricksPolicy
 import org.aquamarine5.brainspark.stackbricks.StackbricksService
 import org.aquamarine5.brainspark.stackbricks.providers.qiniu.QiniuConfiguration
@@ -175,7 +182,7 @@ class MainActivity : ComponentActivity() {
                 "SSLHandshakeException"
             )
             it.beforeSend = { event, hint ->
-                event.setExtra("sign",verifiedSignature)
+                event.setExtra("sign", verifiedSignature)
                 if (ignoreExceptions.contains(event.throwable?.javaClass?.simpleName)) {
                     null
                 } else {
@@ -493,12 +500,12 @@ class MainActivity : ComponentActivity() {
                                                         restoreState = true
                                                     }
                                                 }, navToGroupDestination = {
-                                                    navController.navigate(GroupListDestination)
+                                                    navController.navigate(GroupListDestination(it))
                                                 })
                                         }
                                         composable<GroupDetailDestination>(
                                             typeMap = mapOf(
-                                                typeOf<ChaoxingIMGroup>() to ChaoxingIMGroup.ChaoxingIMGroupNavType
+                                                typeOf<ChaoxingEasemobIMGroup>() to ChaoxingEasemobIMGroup.ChaoxingEasemobIMGroupNavType
                                             )
                                         ) {
                                             GroupDetailScreen(
@@ -512,7 +519,7 @@ class MainActivity : ComponentActivity() {
                                         }
 
                                         composable<GroupListDestination> {
-                                            GroupListScreen(imageLoader) { destination ->
+                                            GroupListScreen(it.toRoute(),imageLoader) { destination ->
                                                 navController.navigate(destination)
                                             }
                                         }

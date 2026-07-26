@@ -33,6 +33,18 @@ message ChaoxingSignFakerDataStore{
   bool disableAnalysisRank = 23;
   bool hideAnalysisRankSchoolName = 24;
   uint64 lastUploadAnalysisTimestamp = 25;
+  ChaoxingCaptchaMemories captchaMemories = 26;
+  string selectedAnalysisRankSchoolName = 27;
+}
+
+message ChaoxingCaptchaMemories{
+  uint32 memoriesVersion = 1;
+  repeated ChaoxingCaptchaResult memories = 2;
+}
+
+message ChaoxingCaptchaResult{
+  string token = 1;
+  uint32 xPosition = 2;
 }
 
 message ChaoxingFaceRecognitionImage{

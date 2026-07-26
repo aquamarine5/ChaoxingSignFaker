@@ -38,8 +38,8 @@ import com.baidu.mapapi.SDKInitializer
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import org.aquamarine5.brainspark.chaoxingsignfaker.MainActivity
-import org.aquamarine5.brainspark.chaoxingsignfaker.UMengHelper
-import org.aquamarine5.brainspark.chaoxingsignfaker.chaoxingDataStore
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.UMengHelper
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
 
 @Serializable
 object WelcomeDestination

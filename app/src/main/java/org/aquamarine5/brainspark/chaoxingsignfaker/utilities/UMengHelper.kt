@@ -4,12 +4,13 @@
  * Repository: https://github.com/aquamarine5/ChaoxingSignFaker
  */
 
-package org.aquamarine5.brainspark.chaoxingsignfaker
+package org.aquamarine5.brainspark.chaoxingsignfaker.utilities
 
 import android.content.Context
 import android.content.pm.PackageInfo
 import com.umeng.analytics.MobclickAgent
 import com.umeng.commonsdk.UMConfigure
+import org.aquamarine5.brainspark.chaoxingsignfaker.BuildConfig
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationSignEntity
@@ -19,7 +20,7 @@ import java.security.MessageDigest
 
 object UMengHelper {
     private const val API_KEY = "67d42c1c48ac1b4f87e7edae"
-    private const val API_CHANNEL = BuildConfig.UMENG_CHANNEL
+    private const val API_CHANNEL = BuildConfig.umengChannel
 
     private const val EVENT_TAG_ACCOUNT_LOGIN = "account_login"
     private const val EVENT_TAG_SIGN_LOCATION = "sign_location"

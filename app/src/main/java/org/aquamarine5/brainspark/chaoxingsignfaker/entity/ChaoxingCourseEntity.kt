@@ -6,12 +6,17 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.entity
 
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.Stable
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 
 @Serializable
+@Stable
 data class ChaoxingCourseEntity(
     val courseName: String,
     val teacherName: String?,
@@ -20,7 +25,8 @@ data class ChaoxingCourseEntity(
     val className: String,
     val imageUrl: String,
     val schools: String?,
-    var isPreferred: Boolean = false,
+    @Transient
+    val isPreferred: MutableState<Boolean> = mutableStateOf(false),
     val isCloneSession: Boolean = false
 ) {
     companion object {
@@ -35,7 +41,7 @@ data class ChaoxingCourseEntity(
                         it.className,
                         it.imageUrl,
                         it.schools,
-                        it.isPreferred,
+                        it.isPreferred.value,
                         it.isCloneSession
                     )
                 }
@@ -52,7 +58,7 @@ data class ChaoxingCourseEntity(
                                 it[4] as String,
                                 it[5] as String,
                                 it[6] as String?,
-                                it[7] as Boolean,
+                                mutableStateOf(it[7] as Boolean),
                                 it[8] as Boolean
                             )
                         }

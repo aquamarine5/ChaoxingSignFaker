@@ -35,20 +35,20 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
-import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingSignHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.SignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
-import org.aquamarine5.brainspark.chaoxingsignfaker.isDevelopedMode
 import org.aquamarine5.brainspark.chaoxingsignfaker.ui.theme.Orange
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.isDevelopedMode
 
 
 @Composable
-inline fun CourseSignActivityColumnCard(
+fun CourseSignActivityColumnCard(
     activity: ChaoxingSignActivityEntity,
     getFormattedStartTime: (Long) -> String,
     isCloneSession: Boolean,
-    crossinline onSignAction: (SignDestination) -> Unit
+    onSignAction: (SignDestination) -> Unit
 ) {
     val isAvailable = remember(activity) { activity.status == 1 }
     val context = LocalContext.current

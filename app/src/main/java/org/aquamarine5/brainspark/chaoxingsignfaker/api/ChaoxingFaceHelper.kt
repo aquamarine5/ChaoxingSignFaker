@@ -14,9 +14,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Request
-import org.aquamarine5.brainspark.chaoxingsignfaker.ChaoxingParseDataException
-import org.aquamarine5.brainspark.chaoxingsignfaker.chaoxingDataStore
-import org.aquamarine5.brainspark.chaoxingsignfaker.checkResponseThrowException
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingParseDataException
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.checkResponseThrowException
 import java.security.MessageDigest
 import java.util.TreeMap
 

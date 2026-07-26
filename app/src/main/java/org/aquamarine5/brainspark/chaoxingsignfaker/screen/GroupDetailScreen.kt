@@ -26,6 +26,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -45,7 +46,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
-import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingIMHelper
@@ -53,14 +53,16 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingSignHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.SignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NetworkExceptionComponent
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingEasemobIMGroup
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingGroupSignActivityEntity
-import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingIMGroup
-import org.aquamarine5.brainspark.chaoxingsignfaker.isDevelopedMode
-import org.aquamarine5.brainspark.chaoxingsignfaker.snackbarReport
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.isDevelopedMode
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
 
+@Immutable
 @Serializable
 data class GroupDetailDestination(
-    val groupEntity: ChaoxingIMGroup
+    val groupEntity: ChaoxingEasemobIMGroup
 )
 
 @Composable
@@ -169,7 +171,9 @@ fun GroupDetailScreen(
                         } else {
                             Spacer(modifier = Modifier.height(12.dp))
                             LazyColumn {
-                                items(messages!!) { message ->
+                                items(messages!!, key = {
+                                    it.activeId
+                                }) { message ->
                                     Column {
                                         Row(
                                             verticalAlignment = Alignment.CenterVertically,

@@ -22,18 +22,18 @@ import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import org.aquamarine5.brainspark.chaoxingsignfaker.ChaoxingPredictableException
-import org.aquamarine5.brainspark.chaoxingsignfaker.UMengHelper
-import org.aquamarine5.brainspark.chaoxingsignfaker.chaoxingDataStore
-import org.aquamarine5.brainspark.chaoxingsignfaker.checkResponseThrowException
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.chaoxingUserAgent
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingLoginSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingSignFakerDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.HttpCookie
-import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingIMConfig
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingEasemobIMConfig
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingOtherUserSharedEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingUserEntity
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingPredictableException
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.UMengHelper
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.checkResponseThrowException
 import java.security.MessageDigest
 import java.util.Base64
 import java.util.UUID
@@ -60,13 +60,13 @@ class ChaoxingHttpClient private constructor(
 
     var storageCloudToken: String? = null
 
-    private var storageIMConfig: ChaoxingIMConfig? = null
+    private var storageIMConfig: ChaoxingEasemobIMConfig? = null
 
     fun newCall(request: Request): Call = okHttpClient.newCall(request)
 
-    suspend fun getIMConfig(): ChaoxingIMConfig {
+    suspend fun getIMConfig(): ChaoxingEasemobIMConfig {
         if (storageIMConfig != null) return storageIMConfig!!
-        return ChaoxingIMHelper.getIMConfig(this).also {
+        return ChaoxingIMHelper.getEasemobConfig(this).also {
             storageIMConfig = it
         }
     }
@@ -87,6 +87,7 @@ class ChaoxingHttpClient private constructor(
         @Deprecated("Should use ChaoxingHttpClient().deviceCode not ChaoxingHttpClient.Companion.deviceCode")
         var deviceCode: String? = null
 
+        @Suppress("Deprecation")
         @Deprecated("Don't use saveDeviceCode() and ChaoxingHttpClient.Companion.deviceCode")
         suspend fun saveDeviceCode(context: Context): String {
             val rawData = MessageDigest.getInstance("SHA-256").digest(
@@ -136,8 +137,13 @@ class ChaoxingHttpClient private constructor(
                 }
             }).addInterceptor { chain ->
                 chain.proceed(
-                    chain.request().newBuilder()
-                        .header("User-Agent", chaoxingUserAgent).build()
+                    chain.request().run {
+                        if (headers.none { it.first == "User-Agent" }) {
+                            newBuilder()
+                                .header("User-Agent", chaoxingUserAgent)
+                                .build()
+                        } else this
+                    }
                 )
             }.retryOnConnectionFailure(true)
                 .build().apply {
@@ -193,8 +199,13 @@ class ChaoxingHttpClient private constructor(
                 .retryOnConnectionFailure(true)
                 .addInterceptor { chain ->
                     chain.proceed(
-                        chain.request().newBuilder()
-                            .header("User-Agent", chaoxingUserAgent).build()
+                        chain.request().run {
+                            if (headers.none { it.first == "User-Agent" }) {
+                                newBuilder()
+                                    .header("User-Agent", chaoxingUserAgent)
+                                    .build()
+                            } else this
+                        }
                     )
                 }
                 .build()
@@ -238,8 +249,13 @@ class ChaoxingHttpClient private constructor(
                 }
             }).addInterceptor { chain ->
                 chain.proceed(
-                    chain.request().newBuilder()
-                        .header("User-Agent", chaoxingUserAgent).build()
+                    chain.request().run {
+                        if (headers.none { it.first == "User-Agent" }) {
+                            newBuilder()
+                                .header("User-Agent", chaoxingUserAgent)
+                                .build()
+                        } else this
+                    }
                 )
             }.retryOnConnectionFailure(true).build().apply {
                 cookieJar.saveFromResponse(
@@ -323,11 +339,22 @@ class ChaoxingHttpClient private constructor(
                                 jsonResult.getInteger("uid"),
                                 jsonResult.getInteger("fid"),
                                 jsonResult.getString("name"),
-                                jsonResult.getString("schoolname", "").ifBlank {
-                                    runCatching {
-                                        jsonResult.getJSONArray("unitConfigInfos")?.getJSONObject(0)
-                                            ?.getString("schoolname")
-                                    }.getOrNull() ?: "未知学校"
+                                buildList {
+                                    val defaultSchoolName = jsonResult.getString("schoolname", "")
+                                    if (!defaultSchoolName.isBlank())
+                                        add(defaultSchoolName)
+                                    jsonResult.getJSONArray("unitConfigInfos")
+                                        ?.let { schoolConfigs ->
+                                            schoolConfigs.forEachIndexed { index, _ ->
+                                                schoolConfigs.getJSONObject(index)
+                                                    .getString("schoolname").let {
+                                                        if (!it.isNullOrBlank() && it != defaultSchoolName)
+                                                            add(it)
+                                                    }
+                                            }
+                                        }
+                                    if (isEmpty())
+                                        add("未知学校")
                                 },
                                 jsonResult.getString("uname"),
                                 jsonResult.getString("pic").replace("http://", "https://"),

@@ -91,11 +91,11 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
-import org.aquamarine5.brainspark.chaoxingsignfaker.chaoxingDataStore
-import org.aquamarine5.brainspark.chaoxingsignfaker.displaySnackbar
-import org.aquamarine5.brainspark.chaoxingsignfaker.snackbarReport
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.displaySnackbar
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
 import kotlin.time.Duration.Companion.milliseconds
 
 @OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
@@ -288,7 +288,7 @@ fun CameraComponent(
                         positionProvider = TooltipDefaults.rememberTooltipPositionProvider(
                             TooltipAnchorPosition.Above,
                             13.dp
-                        ), modifier = Modifier.zIndex(2f),hasAction = true,
+                        ), modifier = Modifier.zIndex(2f), hasAction = true,
                         tooltip = {
                             RichTooltip(
                                 maxWidth = 200.dp, caretShape = TooltipDefaults.caretShape(

@@ -70,13 +70,11 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.Serializable
 import org.aquamarine5.brainspark.chaoxingsignfaker.BuildConfig
-import org.aquamarine5.brainspark.chaoxingsignfaker.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCourseHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingRecommendHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.SignDestination
-import org.aquamarine5.brainspark.chaoxingsignfaker.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.BlockedContent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CloneSessionTips
@@ -84,7 +82,9 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.components.CourseInfoColumnC
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NetworkExceptionComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCourseEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.RecommendActivityEntity
-import org.aquamarine5.brainspark.chaoxingsignfaker.snackbarReport
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
 import org.aquamarine5.brainspark.stackbricks.StackbricksService
 import org.aquamarine5.brainspark.stackbricks.StackbricksVersionData
 import kotlin.time.Duration.Companion.milliseconds
@@ -113,7 +113,7 @@ fun CourseListScreen(
     navToSettingDestination: () -> Unit,
     navToSignActivityDestination: (SignDestination) -> Unit,
     navToLoginDestination: () -> Unit,
-    navToGroupDestination: () -> Unit
+    navToGroupDestination: (isCloneSession: Boolean) -> Unit
 ) {
     val activitiesData =
         rememberSaveable(saver = ChaoxingCourseEntity.Saver) { mutableStateListOf() }
@@ -191,7 +191,7 @@ fun CourseListScreen(
                                 .apply {
                                     activitiesData.addAll(this.filter {
                                         preferredClassIds.contains(it.classId)
-                                    }.map { it.apply { isPreferred = true } } + this.filter {
+                                    }.map { it.apply { isPreferred.value = true } } + this.filter {
                                         !preferredClassIds.contains(it.classId)
                                     })
                                 }
@@ -323,7 +323,7 @@ fun CourseListScreen(
                                                         preferredClassIds.contains(it.classId)
                                                     }.map {
                                                         it.apply {
-                                                            isPreferred = true
+                                                            isPreferred.value = true
                                                         }
                                                     } + this.filter {
                                                         !preferredClassIds.contains(it.classId)
@@ -346,8 +346,6 @@ fun CourseListScreen(
                         }
                     ) {
                         Column(modifier = Modifier.fillMaxSize()) {
-                            if (destination.isCloneSession && ChaoxingHttpClient.cloneInstance != null)
-                                CloneSessionTips()
                             /**
                             if (false) {
                             AnimatedVisibility(
@@ -415,71 +413,72 @@ fun CourseListScreen(
                             }
                             } //TODO: Recommend
                              */
+                            if (destination.isCloneSession && ChaoxingHttpClient.cloneInstance != null)
+                                CloneSessionTips()
                             var debouncePreviousTime = 0L
                             LazyColumn {
-                                if (!destination.isCloneSession || ChaoxingHttpClient.cloneInstance == null)
-                                    item {
-                                        Card {
-                                            Row(
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .padding(16.dp, 8.dp)
-                                            ) {
-                                                Icon(
-                                                    painterResource(R.drawable.ic_circle_question_mark),
-                                                    null
+                                item {
+                                    Card {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(16.dp, 8.dp)
+                                        ) {
+                                            Icon(
+                                                painterResource(R.drawable.ic_circle_question_mark),
+                                                null
+                                            )
+                                            Column(
+                                                modifier = Modifier.padding(
+                                                    start = 12.dp
                                                 )
-                                                Column(
-                                                    modifier = Modifier.padding(
-                                                        start = 12.dp
-                                                    )
-                                                ) {
-                                                    Text(
-                                                        "找不到要签到的班级或者签到的活动？可能老师是在群聊里面发起的签到",
-                                                        fontSize = 14.sp,
-                                                        lineHeight = 17.sp,
-                                                        style = TextStyle.Default.copy(
-                                                            lineBreak = LineBreak(
-                                                                strategy = LineBreak.Strategy.HighQuality,
-                                                                strictness = LineBreak.Strictness.Strict,
-                                                                wordBreak = LineBreak.WordBreak.Default
-                                                            )
+                                            ) {
+                                                Text(
+                                                    "找不到要签到的班级或者签到的活动？可能老师是在群聊里面发起的签到",
+                                                    fontSize = 14.sp,
+                                                    lineHeight = 17.sp,
+                                                    style = TextStyle.Default.copy(
+                                                        lineBreak = LineBreak(
+                                                            strategy = LineBreak.Strategy.HighQuality,
+                                                            strictness = LineBreak.Strictness.Strict,
+                                                            wordBreak = LineBreak.WordBreak.Default
                                                         )
                                                     )
-                                                    OutlinedButton(
-                                                        onClick = {
-                                                            hapticFeedback.performHapticFeedback(
-                                                                HapticFeedbackType.ContextClick
-                                                            )
-                                                            navToGroupDestination()
-                                                        },
-                                                        shape = RoundedCornerShape(18.dp),
-                                                        modifier = Modifier
-                                                            .fillMaxWidth()
+                                                )
+                                                OutlinedButton(
+                                                    onClick = {
+                                                        hapticFeedback.performHapticFeedback(
+                                                            HapticFeedbackType.ContextClick
+                                                        )
+                                                        navToGroupDestination(destination.isCloneSession)
+                                                    },
+                                                    shape = RoundedCornerShape(18.dp),
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                ) {
+                                                    Row(
+                                                        verticalAlignment = Alignment.CenterVertically,
+                                                        horizontalArrangement = Arrangement.Center,
+                                                        modifier = Modifier.fillMaxWidth()
                                                     ) {
-                                                        Row(
-                                                            verticalAlignment = Alignment.CenterVertically,
-                                                            horizontalArrangement = Arrangement.Center,
-                                                            modifier = Modifier.fillMaxWidth()
-                                                        ) {
-                                                            Icon(
-                                                                painter = painterResource(R.drawable.ic_users_round),
-                                                                null,
-                                                                modifier = Modifier.size(18.dp)
-                                                            )
-                                                            Spacer(modifier = Modifier.width(10.dp))
-                                                            Text(
-                                                                "从群聊列表查找签到",
-                                                                color = MaterialTheme.colorScheme.primary
-                                                            )
-                                                        }
+                                                        Icon(
+                                                            painter = painterResource(R.drawable.ic_users_round),
+                                                            null,
+                                                            modifier = Modifier.size(18.dp)
+                                                        )
+                                                        Spacer(modifier = Modifier.width(10.dp))
+                                                        Text(
+                                                            "从群聊列表查找签到",
+                                                            color = MaterialTheme.colorScheme.primary
+                                                        )
                                                     }
                                                 }
                                             }
                                         }
-                                        Spacer(modifier = Modifier.height(8.dp))
                                     }
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                }
                                 items(activitiesData) { data ->
                                     key(data.classId) {
                                         CourseInfoColumnCard(
@@ -570,7 +569,7 @@ fun CourseListScreen(
                                                     preferredClassIds.contains(it.classId)
                                                 }.map {
                                                     it.apply {
-                                                        isPreferred = true
+                                                        isPreferred.value = true
                                                     }
                                                 } + this.filter {
                                                     !preferredClassIds.contains(it.classId)

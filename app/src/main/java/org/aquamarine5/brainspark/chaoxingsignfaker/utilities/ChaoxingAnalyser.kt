@@ -4,7 +4,7 @@
  * Repository: https://github.com/aquamarine5/ChaoxingSignFaker
  */
 
-package org.aquamarine5.brainspark.chaoxingsignfaker
+package org.aquamarine5.brainspark.chaoxingsignfaker.utilities
 
 import android.content.Context
 import android.widget.Toast
@@ -113,7 +113,6 @@ object ChaoxingAnalyser {
         }
     }
 
-    @OptIn(ExperimentalUuidApi::class)
     suspend fun checkAndUploadAnalyserRankData(context: Context) {
         withContext(Dispatchers.IO) {
             val currentDate =
@@ -173,7 +172,21 @@ object ChaoxingAnalyser {
                                             .addEncoded("latestDate", stringDate)
                                             .addEncoded(
                                                 "schoolName",
-                                                ChaoxingHttpClient.instance!!.userEntity.schoolName.let { str ->
+                                                ChaoxingHttpClient.instance!!.userEntity.schoolName.let { rawList ->
+                                                    if (it.selectedAnalysisRankSchoolName.isNotEmpty() && rawList.contains(
+                                                            it.selectedAnalysisRankSchoolName
+                                                        )
+                                                    )
+                                                        return@let it.selectedAnalysisRankSchoolName
+                                                    rawList.toMutableList().run {
+                                                        removeAll { it[0].isDigit() }
+                                                        removeAll { it.endsWith("图书馆") }
+                                                        if (isEmpty())
+                                                            return@let rawList[0]
+                                                        sortBy { it.length }
+                                                        return@let get(0)
+                                                    }
+                                                }.let { str ->
                                                     if (it.hideAnalysisRankSchoolName) str.plus("HIDE") else str
                                                 }
                                             )

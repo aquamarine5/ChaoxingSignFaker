@@ -8,12 +8,16 @@ package org.aquamarine5.brainspark.chaoxingsignfaker.entity
 
 import android.net.Uri
 import android.os.Bundle
+import androidx.compose.runtime.Immutable
 import androidx.navigation.NavType
 import com.alibaba.fastjson2.JSONObject
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import org.aquamarine5.brainspark.chaoxingsignfaker.ChaoxingParseDataException
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingParseDataException
 
+@Immutable
+@Suppress("DEPRECATION")
+@Deprecated("`im.chaoxing.com` is deprecated", replaceWith = ReplaceWith("ChaoxingEasemobIMGroup"))
 @Serializable
 data class ChaoxingIMGroup(
     val picArray: List<String>,

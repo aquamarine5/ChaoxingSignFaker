@@ -6,6 +6,9 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.api
 
+import androidx.compose.runtime.Immutable
+
+@Immutable
 interface SignDestination {
     val activeId: Long
     val classId: Int

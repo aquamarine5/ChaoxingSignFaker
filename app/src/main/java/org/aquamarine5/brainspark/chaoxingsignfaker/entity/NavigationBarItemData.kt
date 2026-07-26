@@ -6,8 +6,10 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.entity
 
+import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.painter.Painter
 
+@Immutable
 data class NavigationBarItemData<T : Any>(
     val destination: T,
     val name: String,
