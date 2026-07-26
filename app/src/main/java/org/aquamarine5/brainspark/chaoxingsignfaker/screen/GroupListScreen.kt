@@ -29,7 +29,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -43,13 +42,12 @@ import coil3.ImageLoader
 import coil3.compose.AsyncImage
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingIMHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NetworkExceptionComponent
-import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingIMGroup
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingEasemobIMGroup
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
 
@@ -70,27 +68,12 @@ fun GroupListScreen(
         val context = LocalContext.current
         val snackbarHostState = LocalSnackbarHostState.current
         val hapticFeedback = LocalHapticFeedback.current
-        var imGroupsInfo by rememberSaveable(
-            saver = Saver(
-                save = { state -> state.value?.let { Json.encodeToString(it) } ?: "" },
-                restore = { value ->
-                    mutableStateOf(
-                        if (value.isEmpty()) {
-                            null
-                        } else {
-                            runCatching {
-                                Json.decodeFromString<List<ChaoxingIMGroup>>(value)
-                            }.getOrNull()
-                        }
-                    )
-                }
-            )
-        ) { mutableStateOf<List<ChaoxingIMGroup>?>(null) }
+        var imGroupsInfo by rememberSaveable { mutableStateOf<List<ChaoxingEasemobIMGroup>?>(null) }
         var isFetchedFailure by remember { mutableStateOf<Result<*>?>(null) }
         LaunchedEffect(Unit) {
             isFetchedFailure = runCatching {
                 if (imGroupsInfo == null)
-                    imGroupsInfo = ChaoxingIMHelper.getIMGroups(
+                    imGroupsInfo = ChaoxingIMHelper.getEasemobIMGroups(
                         ChaoxingHttpClient.instance!!,
                         ChaoxingHttpClient.instance!!.getIMConfig()
                     )
@@ -113,7 +96,7 @@ fun GroupListScreen(
                     NetworkExceptionComponent(v.exceptionOrNull()!!) {
                         coroutineScope.launch {
                             isFetchedFailure = runCatching {
-                                imGroupsInfo = ChaoxingIMHelper.getIMGroups(
+                                imGroupsInfo = ChaoxingIMHelper.getEasemobIMGroups(
                                     ChaoxingHttpClient.instance!!,
                                     ChaoxingHttpClient.instance!!.getIMConfig()
                                 )
@@ -142,8 +125,8 @@ fun GroupListScreen(
 
                 else -> {
                     LazyColumn {
-                        items(imGroupsInfo!!,key={
-                            it.chatId
+                        items(imGroupsInfo!!, key = {
+                            it.id
                         }) { item ->
                             Button(
                                 onClick = {
@@ -158,92 +141,29 @@ fun GroupListScreen(
                                         horizontalArrangement = Arrangement.Start,
                                         modifier = Modifier.fillMaxWidth()
                                     ) {
-                                        item.picArray.let { pics ->
-                                            if (pics.size == 1) {
-                                                AsyncImage(
-                                                    model = pics[0],
-                                                    contentDescription = null,
-                                                    imageLoader = imageLoader,
-                                                    modifier = Modifier.size(50.dp)
-                                                )
-                                            } else if (pics.size > 1) {
-                                                Box(modifier = Modifier.size(50.dp)) {
-                                                    Column {
-                                                        Row {
-                                                            AsyncImage(
-                                                                model = pics[0],
-                                                                contentDescription = null,
-                                                                imageLoader = imageLoader,
-                                                                modifier = Modifier.size(25.dp)
-                                                            )
-                                                            if (pics.size != 2) {
-                                                                AsyncImage(
-                                                                    model = pics[1],
-                                                                    contentDescription = null,
-                                                                    imageLoader = imageLoader,
-                                                                    modifier = Modifier.size(25.dp)
-                                                                )
-                                                            } else {
-                                                                Spacer(
-                                                                    modifier = Modifier.size(
-                                                                        25.dp
-                                                                    )
-                                                                )
-                                                            }
-                                                        }
-                                                        Row {
-                                                            if (pics.size > 2) {
-                                                                AsyncImage(
-                                                                    model = pics[2],
-                                                                    contentDescription = null,
-                                                                    imageLoader = imageLoader,
-                                                                    modifier = Modifier.size(25.dp)
-                                                                )
-                                                            } else {
-                                                                Spacer(
-                                                                    modifier = Modifier.size(
-                                                                        25.dp
-                                                                    )
-                                                                )
-                                                            }
-                                                            if (pics.size == 2) {
-                                                                AsyncImage(
-                                                                    model = pics[1],
-                                                                    contentDescription = null,
-                                                                    imageLoader = imageLoader,
-                                                                    modifier = Modifier.size(25.dp)
-                                                                )
-                                                            } else if (pics.size > 3) {
-                                                                AsyncImage(
-                                                                    model = pics[3],
-                                                                    contentDescription = null,
-                                                                    imageLoader = imageLoader,
-                                                                    modifier = Modifier.size(25.dp)
-                                                                )
-                                                            } else {
-                                                                Spacer(
-                                                                    modifier = Modifier.size(
-                                                                        25.dp
-                                                                    )
-                                                                )
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            }
+                                        if (item.imageUrl != null) {
+                                            AsyncImage(
+                                                model = item.imageUrl,
+                                                modifier = Modifier.size(50.dp),
+                                                imageLoader = imageLoader,
+                                                contentDescription = null
+                                            )
+                                        } else {
+                                            Spacer(modifier = Modifier.size(50.dp))
                                         }
-                                        Text(
-                                            text = item.chatName,
-                                            modifier = Modifier.padding(start = 16.dp)
-                                        )
                                     }
+                                    Text(
+                                        text = item.name,
+                                        modifier = Modifier.padding(start = 16.dp)
+                                    )
                                 }
                             }
-                            Spacer(modifier = Modifier.height(8.dp))
                         }
                     }
+                    Spacer(modifier = Modifier.height(8.dp))
                 }
             }
         }
     }
 }
+

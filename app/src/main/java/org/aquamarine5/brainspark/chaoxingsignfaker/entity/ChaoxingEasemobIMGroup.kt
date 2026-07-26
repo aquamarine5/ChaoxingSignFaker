@@ -7,14 +7,12 @@
 package org.aquamarine5.brainspark.chaoxingsignfaker.entity
 
 import androidx.compose.runtime.Immutable
+import kotlinx.serialization.Serializable
 
-@Deprecated("`im.chaoxing.com` is deprecated", replaceWith = ReplaceWith("ChaoxingEasemobIMConfig"))
 @Immutable
-data class ChaoxingIMConfig(
-    val imImgUrl: String,
-    val imName: String,
-    val imToken: String,
-    val imTuid: String,
-    val imPuid: String,
-    val imFid: String
+@Serializable
+data class ChaoxingEasemobIMGroup(
+    val name: String,
+    val id: String,
+    val imageUrl:String?
 )

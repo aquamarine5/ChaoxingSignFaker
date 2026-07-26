@@ -16,6 +16,7 @@ import kotlinx.serialization.json.Json
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingParseDataException
 
 @Immutable
+@Deprecated("`im.chaoxing.com` is deprecated", replaceWith = ReplaceWith("ChaoxingEasemobIMGroup"))
 @Serializable
 data class ChaoxingIMGroup(
     val picArray: List<String>,

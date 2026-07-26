@@ -16,31 +16,148 @@ import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
-import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingParseDataException
-import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.checkResponseThrowException
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.easemob.MessageBody
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.easemob.Meta
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingEasemobIMConfig
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingEasemobIMGroup
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingGroupSignActivityEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingIMConfig
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingIMGroup
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingParseDataException
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.checkResponseThrowException
 
 object ChaoxingIMHelper {
     private class ChaoxingIMConfigParseException(
         arg: String,
         message: String? = null,
         data: String? = null
-    ) :
-        ChaoxingParseDataException(
-            "IM配置解析异常: $arg 获取失败，${message ?: "未知错误"}",
-            data = data
-        )
+    ) : ChaoxingParseDataException(
+        "IM配置解析异常: $arg 获取失败，${message ?: "未知错误"}",
+        data = data
+    )
 
+    @Deprecated(
+        message = "`im.chaoxing.com` is deprecated",
+        replaceWith = ReplaceWith("URL_EASEMOB_IM_TOKEN")
+    )
     val URL_IM_ME = "https://im.chaoxing.com/webim/me".toHttpUrl()
+
+    @Deprecated(message = "`im.chaoxing.com` is deprecated")
     val URL_IM_GROUPS = "https://im.chaoxing.com/webim/message/list/getMessageList".toHttpUrl()
+
+    val URL_EASEMOB_IM_TOKEN = "https://a1-vip6.easemob.com/cx-dev/cxstudy/token".toHttpUrl()
+    val URL_EASEMOB_IM_JOINED_GROUPS =
+        "https://a1-vip6.easemob.com/cx-dev/cxstudy/users/295148424/joined_chatgroups?detail=true&version=v3&pagenum=1&pagesize=200"
 
     const val URL_MESSAGE_ROAMING =
         "https://a1-vip6.easecdn.com/cx-dev/cxstudy/users/%s/messageroaming"
+    const val USER_AGENT_EASEMOB = "Easemob-SDK(Android) 4.9.0.1"
 
+//
+//    fun initializeEasemobClient(httpClient: ChaoxingHttpClient, context: Context) {
+//        EMClient.getInstance().init(context, EMOptions().apply {
+//            appKey = "cx-dev#cxstudy"
+//        })
+//        EMClient.getInstance()
+//            .login(httpClient.userEntity.uid.toString(), "kwe371", object : EMCallBack {
+//                override fun onSuccess() {
+//                    Log.i("ChaoxingIMHelper", "Success")
+//                }
+//
+//                override fun onError(p0: Int, p1: String?) {
+//                    Log.e("ChaoxingIMHelper", "$p0 $p1")
+//                }
+//            })
+//    }
+//
+//    fun getHistoryMessages() {
+////        EMClient.getInstance().chatManager().asyncFetchHistoryMessages()
+//    }
+//
+//    suspend fun getConversations(): List<EMConversation> =
+//        suspendCancellableCoroutine { continuation ->
+//            EMClient.getInstance().chatManager().asyncFetchConversationsFromServer(
+//                100,
+//                "",
+//                object : EMValueCallBack<EMCursorResult<EMConversation>> {
+//                    override fun onSuccess(p0: EMCursorResult<EMConversation>?) {
+//                        Log.i("ChaoxingIMHelper", p0!!.data.toString())
+//                        continuation.resume(p0!!.data)
+//                    }
+//
+//                    override fun onError(p0: Int, p1: String?) {
+//                        TODO("Not yet implemented")
+//                    }
+//                })
+//        }
+//
+//
+//    suspend fun getEasemobGroups(
+//        httpClient: ChaoxingHttpClient,
+//        config: ChaoxingEasemobIMConfig
+//    ): List<ChaoxingIMGroup> {
+//        return TODO()
+//    }
+
+    suspend fun getEasemobConfig(httpClient: ChaoxingHttpClient): ChaoxingEasemobIMConfig {
+        return withContext(Dispatchers.IO) {
+            httpClient.newCall(
+                Request.Builder().url(URL_EASEMOB_IM_TOKEN)
+                    .post(
+                        JSONObject()
+                            .fluentPut("grant_type", "password")
+                            .fluentPut("password", "kwe371")
+                            .fluentPut("username", httpClient.userEntity.uid)
+                            .toJSONString().toRequestBody()
+                    )
+                    .header("Content-Type", "application/x-www-form-urlencoded")
+                    .header("User-Agent", USER_AGENT_EASEMOB)
+                    .build()
+            ).execute().use {
+                it.checkResponseThrowException()
+                val jsonObject = JSONObject.parseObject(it.body.string())
+                return@use ChaoxingEasemobIMConfig(
+                    jsonObject.getString("access_token"),
+                    jsonObject.getJSONObject("user").getString("uuid"),
+                    jsonObject.getJSONObject("user").getString("username")
+                )
+            }
+        }
+    }
+
+    suspend fun getEasemobIMGroups(
+        httpClient: ChaoxingHttpClient,
+        imConfig: ChaoxingEasemobIMConfig
+    ): List<ChaoxingEasemobIMGroup> {
+        return withContext(Dispatchers.IO) {
+            httpClient.newCall(
+                Request.Builder()
+                    .url(URL_EASEMOB_IM_JOINED_GROUPS)
+                    .addHeader("Authorization", "Bearer ${imConfig.accessToken}")
+                    .header("User-Agent", USER_AGENT_EASEMOB)
+                    .build()
+            ).execute().use {
+                it.checkResponseThrowException()
+                val jsonObject = JSONObject.parseObject(it.body.string()).getJSONArray("data")
+                return@withContext List(jsonObject.size) { index ->
+                    jsonObject.getJSONObject(index).run {
+                        val jsonDescription = JSONObject.parseObject(getString("description"))
+                        ChaoxingEasemobIMGroup(
+                            getString("name").ifEmpty {
+                                jsonDescription.getString("coursename")
+                            },
+                            getString("id"),
+                            jsonDescription.getString("imageUrl")
+                        )
+                    }
+                }
+
+            }
+        }
+    }
+
+    @Suppress("Deprecation")
+    @Deprecated(message = "`im.chaoxing.com` is deprecated", level = DeprecationLevel.ERROR)
     suspend fun getIMGroups(
         httpClient: ChaoxingHttpClient,
         config: ChaoxingIMConfig
@@ -66,6 +183,9 @@ object ChaoxingIMHelper {
         }
     }
 
+
+    @Suppress("Deprecation")
+    @Deprecated(message = "`im.chaoxing.com` is deprecated", level = DeprecationLevel.ERROR)
     suspend fun getIMConfig(httpClient: ChaoxingHttpClient): ChaoxingIMConfig {
         return withContext(Dispatchers.IO) {
             httpClient.newCall(Request.Builder().url(URL_IM_ME).build()).execute().use { response ->
@@ -138,6 +258,48 @@ object ChaoxingIMHelper {
         return signActivities
     }
 
+    suspend fun fetchIMHistoryMessages(
+        imGroup: ChaoxingEasemobIMGroup,
+        httpClient: ChaoxingHttpClient,
+        imConfig: ChaoxingEasemobIMConfig
+    ): List<ChaoxingGroupSignActivityEntity> {
+        return withContext(Dispatchers.IO) {
+            httpClient.newCall(
+                Request.Builder().post(
+                    JSONObject()
+                        .fluentPut("end", "-1")
+                        .fluentPut(
+                            "queue", "${imGroup.id}@conference.easemob.com"
+                        )
+                        .fluentPut("start", "-1").toString()
+                        .toRequestBody("text/plain;charset=UTF-8".toMediaType())
+                )
+                    .addHeader("Authorization", "Bearer ${imConfig.accessToken}")
+                    .header("User-Agent", USER_AGENT_EASEMOB)
+                    .url(URL_MESSAGE_ROAMING.format(imConfig.username))
+                    .build()
+            ).execute().use { response ->
+                response.checkResponseThrowException()
+                val responseBody = response.body.string()
+                val json = JSON.parseObject(responseBody)
+                val data = json.getJSONObject("data")
+                val messages = data.getJSONArray("msgs")
+                val resultList = mutableListOf<MessageBody>()
+                for (i in messages.indices) {
+                    val msgObj = messages.getJSONObject(i)
+                    val msgStr = msgObj.getString("msg")
+                    val msgBytes = Base64.decode(msgStr, Base64.DEFAULT)
+                    val meta = Meta.parseFrom(msgBytes)
+                    val messageBody = MessageBody.parseFrom(meta.field6)
+                    resultList.add(messageBody)
+                }
+                return@use parseIMMessageBody(resultList)
+            }
+        }
+    }
+
+    @Suppress("Deprecation")
+    @Deprecated(message = "`im.chaoxing.com` is deprecated", level = DeprecationLevel.ERROR)
     suspend fun fetchIMHistoryMessages(
         imGroup: ChaoxingIMGroup,
         httpClient: ChaoxingHttpClient,

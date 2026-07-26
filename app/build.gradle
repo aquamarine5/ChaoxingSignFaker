@@ -80,7 +80,7 @@ android {
             )
             signingConfig signingConfigs.chaoxingsignfaker
             buildConfigField("String", "releaseDate", "\"${new Date().format('yyyy-MM-dd HH:mm:ss')}\"")
-            buildConfigField("String", "UMENG_CHANNEL", "\"${System.getenv("UMENG_CHANNEL")}\"" ?: '"Stackbricks"')
+            buildConfigField("String", "UMENG_CANNEL", "\"${System.getenv("UMENG_CHANNEL")}\"" ?: '"Stackbricks"')
         }
         debug {
             signingConfig signingConfigs.chaoxingsignfaker
@@ -120,6 +120,7 @@ protobuf {
 }
 
 dependencies {
+//    implementation 'io.hyphenate:hyphenate-chat:4.9.0.1'
     implementation(libs.reorderable)
     implementation(libs.lbsyun.base)
     implementation libs.patternlocker

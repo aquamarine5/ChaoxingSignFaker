@@ -33,8 +33,11 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -261,11 +264,38 @@ fun AnalyserCard() {
                         enter = slideInVertically(),
                         exit = slideOutVertically()
                     ) {
+                        val schoolNames =
+                            remember { ChaoxingHttpClient.instance!!.userEntity.schoolName }
                         var isExpanded by remember { mutableStateOf(false) }
                         ExposedDropdownMenuBox(expanded = isExpanded, onExpandedChange = {
-                            isExpanded = !isExpanded
+                            isExpanded = it
                         }) {
-                            TextField(displaySchoolName, onValueChange = {}, readOnly = true)
+                            TextField(
+                                displaySchoolName,
+                                onValueChange = {},
+                                readOnly = true,
+                                modifier = Modifier.menuAnchor(
+                                    ExposedDropdownMenuAnchorType.PrimaryNotEditable
+                                ),
+                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = isExpanded) },
+                                colors = ExposedDropdownMenuDefaults.textFieldColors(),
+                            )
+                            ExposedDropdownMenu(expanded = isExpanded, onDismissRequest = {
+                                isExpanded = false
+                            }) {
+                                schoolNames.forEach { name ->
+                                    DropdownMenuItem(
+                                        text = {
+                                            Text(name, style = MaterialTheme.typography.bodyLarge)
+                                        },
+                                        onClick = {
+                                            displaySchoolName = name
+                                            isExpanded = false
+                                        },
+                                        contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -399,8 +429,8 @@ fun AnalyserCard() {
                             }
 
                             LazyColumn(modifier = Modifier.weight(1f, fill = false)) {
-                                itemsIndexed(list, key = { index,it->
-                                    index
+                                itemsIndexed(list, key = { _, it ->
+                                    it.uuid
                                 }) { index, it ->
                                     Row(
                                         verticalAlignment = Alignment.CenterVertically,

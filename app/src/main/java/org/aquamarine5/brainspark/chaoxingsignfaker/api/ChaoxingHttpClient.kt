@@ -27,7 +27,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingLoginSessi
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingSignFakerDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.HttpCookie
-import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingIMConfig
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingEasemobIMConfig
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingOtherUserSharedEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingUserEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingPredictableException
@@ -60,13 +60,13 @@ class ChaoxingHttpClient private constructor(
 
     var storageCloudToken: String? = null
 
-    private var storageIMConfig: ChaoxingIMConfig? = null
+    private var storageIMConfig: ChaoxingEasemobIMConfig? = null
 
     fun newCall(request: Request): Call = okHttpClient.newCall(request)
 
-    suspend fun getIMConfig(): ChaoxingIMConfig {
+    suspend fun getIMConfig(): ChaoxingEasemobIMConfig {
         if (storageIMConfig != null) return storageIMConfig!!
-        return ChaoxingIMHelper.getIMConfig(this).also {
+        return ChaoxingIMHelper.getEasemobConfig(this).also {
             storageIMConfig = it
         }
     }
@@ -136,8 +136,13 @@ class ChaoxingHttpClient private constructor(
                 }
             }).addInterceptor { chain ->
                 chain.proceed(
-                    chain.request().newBuilder()
-                        .header("User-Agent", chaoxingUserAgent).build()
+                    chain.request().run {
+                        if (headers.none { it.first == "User-Agent" }) {
+                            newBuilder()
+                                .header("User-Agent", chaoxingUserAgent)
+                                .build()
+                        } else this
+                    }
                 )
             }.retryOnConnectionFailure(true)
                 .build().apply {
@@ -193,8 +198,13 @@ class ChaoxingHttpClient private constructor(
                 .retryOnConnectionFailure(true)
                 .addInterceptor { chain ->
                     chain.proceed(
-                        chain.request().newBuilder()
-                            .header("User-Agent", chaoxingUserAgent).build()
+                        chain.request().run {
+                            if (headers.none { it.first == "User-Agent" }) {
+                                newBuilder()
+                                    .header("User-Agent", chaoxingUserAgent)
+                                    .build()
+                            } else this
+                        }
                     )
                 }
                 .build()
@@ -238,8 +248,13 @@ class ChaoxingHttpClient private constructor(
                 }
             }).addInterceptor { chain ->
                 chain.proceed(
-                    chain.request().newBuilder()
-                        .header("User-Agent", chaoxingUserAgent).build()
+                    chain.request().run {
+                        if (headers.none { it.first == "User-Agent" }) {
+                            newBuilder()
+                                .header("User-Agent", chaoxingUserAgent)
+                                .build()
+                        } else this
+                    }
                 )
             }.retryOnConnectionFailure(true).build().apply {
                 cookieJar.saveFromResponse(
@@ -324,18 +339,20 @@ class ChaoxingHttpClient private constructor(
                                 jsonResult.getInteger("fid"),
                                 jsonResult.getString("name"),
                                 buildList {
-                                    val defaultSchoolName=jsonResult.getString("schoolname", "")
-                                    if(!defaultSchoolName.isBlank())
+                                    val defaultSchoolName = jsonResult.getString("schoolname", "")
+                                    if (!defaultSchoolName.isBlank())
                                         add(defaultSchoolName)
-                                    jsonResult.getJSONArray("unitConfigInfos")?.let{ schoolConfigs->
-                                        schoolConfigs.forEachIndexed { index, _ ->
-                                            schoolConfigs.getJSONObject(index).getString("schoolname").let {
-                                                if(!it.isNullOrBlank() && it!=defaultSchoolName)
-                                                    add(it)
+                                    jsonResult.getJSONArray("unitConfigInfos")
+                                        ?.let { schoolConfigs ->
+                                            schoolConfigs.forEachIndexed { index, _ ->
+                                                schoolConfigs.getJSONObject(index)
+                                                    .getString("schoolname").let {
+                                                    if (!it.isNullOrBlank() && it != defaultSchoolName)
+                                                        add(it)
+                                                }
                                             }
                                         }
-                                    }
-                                    if(isEmpty())
+                                    if (isEmpty())
                                         add("未知学校")
                                 },
                                 jsonResult.getString("uname"),
