@@ -44,7 +44,7 @@ message ChaoxingCaptchaMemories{
 
 message ChaoxingCaptchaResult{
   string token = 1;
-  uint32 xPosition = 2;
+  float xPosition = 2;
 }
 
 message ChaoxingFaceRecognitionImage{

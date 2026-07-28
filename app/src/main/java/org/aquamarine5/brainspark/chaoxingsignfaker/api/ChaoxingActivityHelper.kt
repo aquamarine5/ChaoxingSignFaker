@@ -19,6 +19,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityE
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.RecommendActivityEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingParseDataException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.checkResponse
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.checkResponseThrowException
 
 object ChaoxingActivityHelper {
     enum class SignRedirectStatus {
@@ -77,11 +78,9 @@ object ChaoxingActivityHelper {
         }
     }
 
-    suspend fun getActivities(
+    suspend fun getActivitiesEntity(
         client: ChaoxingHttpClient,
-        course: ChaoxingCourseEntity,
-        context: Context,
-        snackbarHostState: SnackbarHostState
+        course: ChaoxingCourseEntity
     ): ChaoxingCourseActivitiesEntity =
         withContext(Dispatchers.IO) {
             client.newCall(
@@ -92,9 +91,8 @@ object ChaoxingActivityHelper {
                         .build()
                 ).build()
             ).execute().use {
+                it.checkResponseThrowException()
                 val responseBody = it.body.string()
-                if (it.checkResponse(snackbarHostState))
-                    throw ChaoxingHttpClient.ChaoxingNetworkException(responseBody)
                 val jsonResult = JSONObject.parseObject(responseBody)?.getJSONObject("data")
                     ?: throw ChaoxingParseDataException(
                         "解析课程数据失败",
@@ -147,7 +145,6 @@ object ChaoxingActivityHelper {
                         jsonResult.toJSONString()
                     )
                 }
-
             }
         }
 }

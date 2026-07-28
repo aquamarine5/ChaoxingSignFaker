@@ -80,11 +80,9 @@ fun CourseDetailScreen(
         isFetchedFailure = runCatching {
             if (activitiesData == null) {
                 ChaoxingHttpClient.getHttpInstanceOrClone(courseEntity.isCloneSession)?.let {
-                    activitiesData = ChaoxingActivityHelper.getActivities(
+                    activitiesData = ChaoxingActivityHelper.getActivitiesEntity(
                         it,
-                        courseEntity,
-                        context,
-                        snackbarHost
+                        courseEntity
                     )
                 }
             }
@@ -112,11 +110,9 @@ fun CourseDetailScreen(
                             if (activitiesData == null) {
                                 ChaoxingHttpClient.getHttpInstanceOrClone(courseEntity.isCloneSession)
                                     ?.let {
-                                        activitiesData = ChaoxingActivityHelper.getActivities(
+                                        activitiesData = ChaoxingActivityHelper.getActivitiesEntity(
                                             it,
-                                            courseEntity,
-                                            context,
-                                            snackbarHost
+                                            courseEntity
                                         )
                                     }
                             }
@@ -182,11 +178,9 @@ fun CourseDetailScreen(
                                         ChaoxingHttpClient.getHttpInstanceOrClone(courseEntity.isCloneSession)
                                             ?.let {
                                                 activitiesData =
-                                                    ChaoxingActivityHelper.getActivities(
+                                                    ChaoxingActivityHelper.getActivitiesEntity(
                                                         it,
-                                                        courseEntity,
-                                                        context,
-                                                        snackbarHost
+                                                        courseEntity
                                                     )
                                             }
                                     }

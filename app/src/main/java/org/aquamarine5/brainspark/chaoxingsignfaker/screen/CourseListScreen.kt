@@ -7,10 +7,13 @@
 package org.aquamarine5.brainspark.chaoxingsignfaker.screen
 
 import android.widget.Toast
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.VisibilityThreshold
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -80,13 +83,18 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularPro
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CloneSessionTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CourseInfoColumnCard
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NetworkExceptionComponent
+import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingCourseClass
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCourseEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.RecommendActivityEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.disableCode
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.disableComposableCode
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
 import org.aquamarine5.brainspark.stackbricks.StackbricksService
 import org.aquamarine5.brainspark.stackbricks.StackbricksVersionData
+import java.time.Instant
+import java.time.LocalDateTime
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
@@ -149,33 +157,34 @@ fun CourseListScreen(
                 ChaoxingRecommendHelper.checkRecommendedActivities(context, snackbarHost)
             if (activitiesData.isEmpty()) {
                 isFetchedFailure = runCatching {
-                    /**
-                    if (false) {
-                    context.chaoxingDataStore.data.first().apply {
-                    if (version <= 0) {
-                    ChaoxingHttpClient.instance?.let { httpClient ->
-                    ChaoxingCourseHelper.getAllCourse(
-                    httpClient,
-                    context,
-                    navToLoginDestination
-                    ).let { data ->
-                    context.chaoxingDataStore.updateData { dataStore ->
-                    dataStore.toBuilder().apply {
-                    addAllPreferCourseClass(preferClassIdList.map { classId ->
-                    ChaoxingCourseClass.newBuilder()
-                    .setClassId(classId)
-                    .setCourseId(data.first { it.classId == classId }.courseId)
-                    .build()
-                    })
-                    setVersion(1)
-                    }.build()
-                    }
-                    }
-                    }
-                    }
-                    }
+
+                    disableCode {
+                        context.chaoxingDataStore.data.first().apply {
+                            if (version <= 0) {
+                                ChaoxingHttpClient.instance?.let { httpClient ->
+                                    ChaoxingCourseHelper.getAllCourse(
+                                        httpClient,
+                                        context,
+                                        destination.isCloneSession,
+                                        navToLoginDestination
+                                    ).let { data ->
+                                        context.chaoxingDataStore.updateData { dataStore ->
+                                            dataStore.toBuilder().apply {
+                                                addAllPreferCourseClass(preferClassIdList.map { classId ->
+                                                    ChaoxingCourseClass.newBuilder()
+                                                        .setClassId(classId)
+                                                        .setCourseId(data.first { it.classId == classId }.courseId)
+                                                        .build()
+                                                })
+                                                setVersion(1)
+                                            }.build()
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     } //TODO: Recommend preferred class
-                     */
+
 
                     preferredClassIds.addAll(
                         context.chaoxingDataStore.data.first().preferClassIdList.reversed()
@@ -346,73 +355,72 @@ fun CourseListScreen(
                         }
                     ) {
                         Column(modifier = Modifier.fillMaxSize()) {
-                            /**
-                            if (false) {
-                            AnimatedVisibility(
-                            recommendActivities != null,
-                            enter = fadeIn() + slideInVertically()
-                            ) {
-                            recommendActivities?.forEachIndexed { index, item ->
-                            Card(
-                            onClick = {
-                            hapticFeedback.performHapticFeedback(
-                            HapticFeedbackType.ContextClick
-                            )
-                            navToSignActivityDestination(item.destination)
-                            },
-                            shape = RoundedCornerShape(18.dp),
-                            modifier = Modifier.fillMaxWidth()
-                            ) {
-                            Row(
-                            modifier = Modifier
-                            .padding(24.dp, 8.dp)
-                            .padding(3.dp)
-                            ) {
-                            Icon(
-                            painterResource(R.drawable.ic_brain_circuit),
-                            null
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Column {
-                            Text("根据平时的签到习惯推断出可能会点击的签到活动：")
-                            Text(buildAnnotatedString {
-                            withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
-                            append(item.className)
-                            }
-                            append(" 在 ")
-                            withStyle(
-                            SpanStyle(
-                            fontFamily = FontFamily(
-                            Font(
-                            R.font.gilroy
-                            )
-                            )
-                            )
-                            ) {
-                            append(
-                            LocalDateTime.from(
-                            Instant.ofEpochMilli(
-                            item.startTime
-                            )
-                            ).run {
-                            "$hour:$minute:$second"
-                            })
-                            }
-                            append(" 的 ")
-                            append(item.activityName)
-                            })
+                            disableComposableCode {
+                                AnimatedVisibility(
+                                    recommendActivities != null,
+                                    enter = fadeIn() + slideInVertically()
+                                ) {
+                                    recommendActivities?.forEachIndexed { index, item ->
+                                        Card(
+                                            onClick = {
+                                                hapticFeedback.performHapticFeedback(
+                                                    HapticFeedbackType.ContextClick
+                                                )
+                                                navToSignActivityDestination(item.destination)
+                                            },
+                                            shape = RoundedCornerShape(18.dp),
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            Row(
+                                                modifier = Modifier
+                                                    .padding(24.dp, 8.dp)
+                                                    .padding(3.dp)
+                                            ) {
+                                                Icon(
+                                                    painterResource(R.drawable.ic_brain_circuit),
+                                                    null
+                                                )
+                                                Spacer(modifier = Modifier.width(8.dp))
+                                                Column {
+                                                    Text("根据平时的签到习惯推断出可能会点击的签到活动：")
+                                                    Text(buildAnnotatedString {
+                                                        withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+                                                            append(item.className)
+                                                        }
+                                                        append(" 在 ")
+                                                        withStyle(
+                                                            SpanStyle(
+                                                                fontFamily = FontFamily(
+                                                                    Font(
+                                                                        R.font.gilroy
+                                                                    )
+                                                                )
+                                                            )
+                                                        ) {
+                                                            append(
+                                                                LocalDateTime.from(
+                                                                    Instant.ofEpochMilli(
+                                                                        item.startTime
+                                                                    )
+                                                                ).run {
+                                                                    "$hour:$minute:$second"
+                                                                })
+                                                        }
+                                                        append(" 的 ")
+                                                        append(item.activityName)
+                                                    })
 
-                            }
-                            }
-                            }
-                            if (index != recommendActivities?.lastIndex) {
-                            Spacer(modifier = Modifier.padding(vertical = 8.dp))
-                            }
+                                                }
+                                            }
+                                        }
+                                        if (index != recommendActivities?.lastIndex) {
+                                            Spacer(modifier = Modifier.padding(vertical = 8.dp))
+                                        }
 
-                            }
-                            }
+                                    }
+                                }
                             } //TODO: Recommend
-                             */
+
                             if (destination.isCloneSession && ChaoxingHttpClient.cloneInstance != null)
                                 CloneSessionTips()
                             var debouncePreviousTime = 0L

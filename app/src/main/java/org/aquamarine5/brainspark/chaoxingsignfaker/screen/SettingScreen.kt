@@ -6,6 +6,7 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.screen
 
+import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Intent
 import androidx.compose.animation.AnimatedVisibility
@@ -18,6 +19,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -73,16 +75,23 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import org.aquamarine5.brainspark.chaoxingsignfaker.BuildConfig
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingActivityHelper
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCaptchaHelper
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCourseHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingRecommendHelper
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingSignHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.AnalyserCard
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CustomizeClientCard
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SponsorCard
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.RecommendHabit
+import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSigner
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.OnlyAppDevelopedMode
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.disableComposableCode
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.displaySnackbar
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.isDevelopedMode
 import org.aquamarine5.brainspark.stackbricks.StackbricksComponent
@@ -97,8 +106,10 @@ object SettingGraphDestination
 object SettingDestination
 
 private const val BYPASS_BLOCKED_CHECKING_KEY = "ggg1215love"
+
 @OnlyAppDevelopedMode
 private const val COMMAND_SET_RANK_COUNT_PREFIX = "setRankCount"
+
 @OnlyAppDevelopedMode
 private const val COMMAND_ALWAYS_FORCE_SIGN_PREFIX = "alwaysForceSign "
 
@@ -330,7 +341,7 @@ fun SettingScreen(
 
         SponsorCard()
 
-        if (false) {
+        disableComposableCode {
             Card(
                 shape = RoundedCornerShape(18.dp),
                 border = BorderStroke(
@@ -446,6 +457,7 @@ fun SettingScreen(
             }
             Spacer(modifier = Modifier.height(8.dp))
         }
+
         AnalyserCard()
         Spacer(modifier = Modifier.height(8.dp))
         CustomizeClientCard()
@@ -608,6 +620,91 @@ fun SettingScreen(
                 }
             })
             Text("启用开发模式")
+        }
+        AnimatedVisibility(
+            isUiDevelopedMode,
+            enter = slideInVertically(),
+            exit = slideOutVertically()
+        ) {
+            var isShowCaptchaMemoriesDialog by remember { mutableStateOf(false) }
+            var signer: ChaoxingSigner? = remember { null }
+            Button(onClick = {
+                isShowCaptchaMemoriesDialog = true
+            }) {
+                Text("MatchCaptchaHashMapDialog")
+            }
+            if (isShowCaptchaMemoriesDialog) {
+                var isCaptchaMemoriesResultDialog by remember { mutableStateOf(false) }
+                LaunchedEffect(Unit) {
+                    signer = ChaoxingSignHelper.getSigner(
+                        ChaoxingHttpClient.instance!!,
+                        ChaoxingCourseHelper.getAllCourse(ChaoxingHttpClient.instance!!)
+                            .firstNotNullOf { course ->
+                                runCatching {
+                                    ChaoxingActivityHelper.getActivitiesEntity(
+                                        ChaoxingHttpClient.instance!!,
+                                        course
+                                    )
+                                }.getOrNull()
+                                    ?.takeIf { it.signActivities.isNotEmpty() }
+                                    ?.signActivities
+                                    ?.get(0)
+                            })
+                }
+                signer?.let {
+                    CaptchaHandlerDialog(
+                        it,
+                        {},
+                        {
+                            isShowCaptchaMemoriesDialog = false
+                        },
+                        isRecordingCaptchaMemories = true
+                    )
+                }
+                if (isCaptchaMemoriesResultDialog) {
+                    var jsonText by remember { mutableStateOf("") }
+                    LaunchedEffect(Unit) {
+                        jsonText = ChaoxingCaptchaHelper.buildCaptchaMemoriesDataToJson(context)
+                    }
+                    AlertDialog(
+                        onDismissRequest = {
+                            isCaptchaMemoriesResultDialog = false
+                        },
+                        confirmButton = {
+                            OutlinedButton(onClick = {
+                                isCaptchaMemoriesResultDialog = false
+                            }) {
+                                Text("关闭")
+                            }
+                        }, text = {
+                            TextField(
+                                jsonText,
+                                {
+                                    jsonText = it
+                                },
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        },
+                        dismissButton = {
+                            Button(onClick = {
+                                runCatching {
+                                    context.getSystemService(ClipboardManager::class.java)
+                                        .setPrimaryClip(
+                                            ClipData.newPlainText(
+                                                "chaoxingsignfaker.captchaMemoriesJsonString",
+                                                jsonText
+                                            )
+                                        )
+                                }.onFailure {
+                                    snackbarHostState.displaySnackbar("剪切板写入失败",coroutineScope)
+                                }
+                            }) {
+                                Text("复制到剪切板")
+                            }
+                        }
+                    )
+                }
+            }
         }
     }
 }

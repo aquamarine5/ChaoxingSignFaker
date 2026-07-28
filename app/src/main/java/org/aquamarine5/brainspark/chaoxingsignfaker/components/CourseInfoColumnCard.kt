@@ -109,6 +109,7 @@ fun CourseInfoColumnCard(
                 Text(
                     "classId: ${course.classId}, courseId：${course.courseId}",
                     fontSize = 10.sp,
+                    lineHeight = 10.sp,
                     color = Color.Gray,
                     modifier = Modifier.padding(top = 4.dp)
                 )

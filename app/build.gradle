@@ -11,7 +11,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     id("org.aquamarine5.brainspark.stackbricks-gradle-plugin") version "2.2.7"
     id("com.google.protobuf") version "0.9.6"
-    id "io.sentry.android.gradle" version "6.14.0"
+    id "io.sentry.android.gradle" version "6.16.0"
     id("org.jetbrains.kotlin.plugin.serialization") version "2.4.10"
 }
 
@@ -73,6 +73,9 @@ android {
     }
     buildTypes {
         release {
+            optimization {
+                enable = true // Enables code and resource optimizations.
+            }
             minifyEnabled true
             shrinkResources true
             proguardFiles(
