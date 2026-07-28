@@ -17,6 +17,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowColumn
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -565,7 +566,12 @@ fun SettingScreen(
         Spacer(modifier = Modifier.height(8.dp))
         var clickCount by remember { mutableIntStateOf(0) }
         Text(
-            "ChaoxingSignFaker ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE}), channel: ${BuildConfig.umengChannel}, buildDate: ${BuildConfig.releaseDate},${if (isBypassBlockedChecking) " BypassBlockedChecking," else ""} developed by @aquamarine5, All Rights Reserved.",
+            "ChaoxingSignFaker ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})," +
+                    " channel: ${BuildConfig.umengChannel}," +
+                    " buildDate: ${BuildConfig.releaseDate}," +
+                    " " +
+                    "${if (isBypassBlockedChecking) " BypassBlockedChecking," else ""} " +
+                    "developed by @aquamarine5, All Rights Reserved.",
             fontSize = 10.sp,
             lineHeight = 12.sp,
             color = Color.Gray,
@@ -621,17 +627,46 @@ fun SettingScreen(
             })
             Text("启用开发模式")
         }
-        AnimatedVisibility(
+
+        @OnlyAppDevelopedMode AnimatedVisibility(
             isUiDevelopedMode,
             enter = slideInVertically(),
             exit = slideOutVertically()
         ) {
             var isShowCaptchaMemoriesDialog by remember { mutableStateOf(false) }
             var signer: ChaoxingSigner? = remember { null }
-            Button(onClick = {
-                isShowCaptchaMemoriesDialog = true
-            }) {
-                Text("MatchCaptchaHashMapDialog")
+            FlowColumn() {
+                Button(onClick = {
+                    coroutineScope.launch(Dispatchers.IO) {
+                        context.chaoxingDataStore.updateData {
+                            @Suppress("Deprecation")
+                            it.toBuilder().setLearntTooltips(
+                                it.learntTooltips.toBuilder()
+                                    .clearTagsFeature()
+                                    .clearSupportFavoriteLocation()
+                                    .clearCameraSelectedFromGallery()
+                                    .clearMapSupportNormalSatelliteSwitch()
+                                    .clearCameraSelectedMultipleImagesFromGallery()
+                                    .clearQrcodeSupportScanFromGallery()
+                                    .clearRestoreLocationOfQRCodeSign()
+                                    .clearSupportCloneOtherUserSession()
+                                    .build()
+                            ).build()
+                        }
+                    }
+                }) {
+                    Text("ResetAllStoredLearntTooltips")
+                }
+                Button(onClick = {
+                    isShowCaptchaMemoriesDialog = true
+                }) {
+                    Text("DisplayMatchCaptchaHashMapDialog")
+                }
+                Button(onClick = {
+                    coroutineScope.launch {
+                        ChaoxingCaptchaHelper.updateRemoteCaptchaMemoriesData(context)
+                    }
+                }) { Text("ForceUpdateRemoteCaptchaMemoriesData") }
             }
             if (isShowCaptchaMemoriesDialog) {
                 var isCaptchaMemoriesResultDialog by remember { mutableStateOf(false) }
@@ -696,7 +731,10 @@ fun SettingScreen(
                                             )
                                         )
                                 }.onFailure {
-                                    snackbarHostState.displaySnackbar("剪切板写入失败",coroutineScope)
+                                    snackbarHostState.displaySnackbar(
+                                        "剪切板写入失败",
+                                        coroutineScope
+                                    )
                                 }
                             }) {
                                 Text("复制到剪切板")

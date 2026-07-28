@@ -83,6 +83,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularPro
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CloneSessionTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CourseInfoColumnCard
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NetworkExceptionComponent
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.NewFeatureTipsCard
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingCourseClass
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCourseEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.RecommendActivityEntity
@@ -136,6 +137,7 @@ fun CourseListScreen(
     var recommendActivities by remember { mutableStateOf<List<RecommendActivityEntity>?>(null) }
     var isFetchedFailure by remember { mutableStateOf<Result<*>?>(null) }
     val coroutineScope = rememberCoroutineScope()
+    val isCaptchaAutoResolveLearntTooltip = remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
             launch {
@@ -157,9 +159,9 @@ fun CourseListScreen(
                 ChaoxingRecommendHelper.checkRecommendedActivities(context, snackbarHost)
             if (activitiesData.isEmpty()) {
                 isFetchedFailure = runCatching {
-
+                    val datastoreData = context.chaoxingDataStore.data.first()
                     disableCode {
-                        context.chaoxingDataStore.data.first().apply {
+                        datastoreData.apply {
                             if (version <= 0) {
                                 ChaoxingHttpClient.instance?.let { httpClient ->
                                     ChaoxingCourseHelper.getAllCourse(
@@ -184,10 +186,9 @@ fun CourseListScreen(
                             }
                         }
                     } //TODO: Recommend preferred class
-
-
+                    isCaptchaAutoResolveLearntTooltip.value=!datastoreData.learntTooltips.sliderCaptchaAutoResolveByHashMap
                     preferredClassIds.addAll(
-                        context.chaoxingDataStore.data.first().preferClassIdList.reversed()
+                        datastoreData.preferClassIdList.reversed()
                     )
                     ChaoxingHttpClient.getHttpInstanceOrClone(destination.isCloneSession)
                         ?.let { httpClient ->
@@ -486,6 +487,21 @@ fun CourseListScreen(
                                         }
                                     }
                                     Spacer(modifier = Modifier.height(8.dp))
+                                }
+                                item {
+                                    NewFeatureTipsCard(isCaptchaAutoResolveLearntTooltip,"现在部分的验证码会根据内置的数据表自动滑动完成了。") {
+                                        coroutineScope.launch(Dispatchers.IO) {
+                                            context.chaoxingDataStore.updateData {
+                                                it.toBuilder()
+                                                    .setLearntTooltips(
+                                                        it.learntTooltips.toBuilder()
+                                                            .setSliderCaptchaAutoResolveByHashMap(
+                                                                true
+                                                            ).build()
+                                                    ).build()
+                                            }
+                                        }
+                                    }
                                 }
                                 items(activitiesData) { data ->
                                     key(data.classId) {

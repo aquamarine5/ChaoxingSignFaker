@@ -99,16 +99,19 @@ fun CaptchaHandlerDialog(
                     return false
                 } else {
                     onResult(Result.success(result))
-                    if (isRecordingCaptchaMemories) {
-                        localCaptchaMemories!![data!!.captchaId] = normalizedPosition
+                    @OnlyAppDevelopedMode if (!isRecordingCaptchaMemories) {
+                        onDismiss()
+                    } else {
+                        localCaptchaMemories!![data!!.token] = normalizedPosition
                         sliderPosition = 0f
                         var captchaData: ChaoxingCaptchaDataEntity
                         do {
                             captchaData = signer.getCaptchaImageV2()
-                        } while (captchaData.captchaId in ChaoxingCaptchaHelper.getCaptchaMemories(context).keys)
+                        } while (captchaData.token in ChaoxingCaptchaHelper.getCaptchaMemories(
+                                context
+                            ).keys
+                        )
                         data = captchaData
-                    } else {
-                        onDismiss()
                     }
                     isCheckingCaptcha?.set(false)
                     return true
@@ -121,7 +124,7 @@ fun CaptchaHandlerDialog(
         runCatching {
             localCaptchaMemories = ChaoxingCaptchaHelper.getCaptchaMemories(context)
             data = signer.getCaptchaImageV2().also {
-                localCaptchaMemories[it.captchaId]?.let {
+                localCaptchaMemories[it.token]?.let {
                     if (!check(it, null))
                         isDisplayCaptchaDialog = true
                 }

@@ -10,7 +10,10 @@ import androidx.compose.runtime.Composable
 
 @Retention(AnnotationRetention.SOURCE)
 @Target(
-    AnnotationTarget.VALUE_PARAMETER, AnnotationTarget.FUNCTION, AnnotationTarget.LOCAL_VARIABLE,
+    AnnotationTarget.VALUE_PARAMETER,
+    AnnotationTarget.FUNCTION,
+    AnnotationTarget.LOCAL_VARIABLE,
+    AnnotationTarget.EXPRESSION,
     AnnotationTarget.PROPERTY
 )
 annotation class OnlyAppDevelopedMode()

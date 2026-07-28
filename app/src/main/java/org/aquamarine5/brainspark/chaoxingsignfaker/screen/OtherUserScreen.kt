@@ -125,6 +125,7 @@ import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingOtherUserHelper
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.NewFeatureTipsCard
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.QRCodeScanComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.RequireLoginAlertDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
@@ -173,7 +174,7 @@ fun OtherUserScreen(
     var importSharedEntity by remember { mutableStateOf<ChaoxingOtherUserSharedEntity?>(null) }
     val otherUserSessions = remember { mutableStateListOf<ChaoxingOtherUserSession>() }
     var qrCode by remember { mutableStateOf<Bitmap?>(null) }
-    var isTooltipShowed by remember { mutableStateOf(false) }
+    val isTooltipShowed = remember { mutableStateOf(false) }
     val tagsEntityList = remember { mutableStateListOf<OtherUserTagType>() }
     val userTagList = remember { mutableStateListOf<MutableState<List<OtherUserTagType>>>() }
     val coroutineScope = rememberCoroutineScope()
@@ -194,7 +195,7 @@ fun OtherUserScreen(
                     }))
                 }
             })
-            isTooltipShowed = !datastore.learntTooltips.supportCloneOtherUserSession
+            isTooltipShowed.value = !datastore.learntTooltips.supportCloneOtherUserSession
             isLocalSharedEntityReady = ChaoxingOtherUserHelper.checkSharedEntity(datastore)
         }
     }
@@ -1723,56 +1724,22 @@ fun OtherUserScreen(
                 } else {
                     Spacer(modifier = Modifier.height(4.dp))
                     val mutex = remember { Mutex() }
-                    if (isTooltipShowed)
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(8.dp, 4.dp),
-                            shape = RoundedCornerShape(8.dp),
-                            elevation = CardDefaults.cardElevation(4.dp)
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                modifier = Modifier.padding(
-                                    11.dp, 8.dp
-                                )
-                            ) {
-                                Icon(
-                                    painterResource(R.drawable.ic_sparkles),
-                                    null,
-                                    tint = Color.Gray,
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    "现在可以克隆登录其他人的账号，来给其他人代签你没有的课程。",
-                                    modifier = Modifier.weight(1f),
-                                    fontSize = 14.sp,
-                                    lineHeight = 16.sp
-                                )
-                                IconButton(
-                                    onClick = {
-                                        coroutineScope.launch(Dispatchers.IO) {
-                                            context.chaoxingDataStore.updateData {
-                                                it.toBuilder()
-                                                    .setLearntTooltips(
-                                                        it.learntTooltips.toBuilder()
-                                                            .setSupportCloneOtherUserSession(
-                                                                true
-                                                            ).build()
-                                                    ).build()
-                                            }
-                                        }
-                                    },
-                                    modifier = Modifier.size(32.dp)
-                                ) {
-                                    Icon(
-                                        painterResource(R.drawable.ic_x),
-                                        contentDescription = "关闭提示"
-                                    )
-                                }
+                    NewFeatureTipsCard(
+                        isTooltipShowed,
+                        "现在可以克隆登录其他人的账号，来给其他人代签你没有的课程。"
+                    ) {
+                        coroutineScope.launch(Dispatchers.IO) {
+                            context.chaoxingDataStore.updateData {
+                                it.toBuilder()
+                                    .setLearntTooltips(
+                                        it.learntTooltips.toBuilder()
+                                            .setSupportCloneOtherUserSession(
+                                                true
+                                            ).build()
+                                    ).build()
                             }
                         }
+                    }
 
                     ReorderableColumn(list = otherUserSessions.toList(), onMove = {
                         hapticFeedback.performHapticFeedback(HapticFeedbackType.SegmentFrequentTick)
