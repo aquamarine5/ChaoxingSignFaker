@@ -47,7 +47,7 @@ object ChaoxingIMHelper {
 
     val URL_EASEMOB_IM_TOKEN = "https://a1-vip6.easemob.com/cx-dev/cxstudy/token".toHttpUrl()
     val URL_EASEMOB_IM_JOINED_GROUPS =
-        "https://a1-vip6.easemob.com/cx-dev/cxstudy/users/295148424/joined_chatgroups?detail=true&version=v3&pagenum=1&pagesize=200"
+        "https://a1-vip6.easemob.com/cx-dev/cxstudy/users/295148424/joined_chatgroups?detail=true&version=v3&pagenum=1&pagesize=200".toHttpUrl()
 
     const val URL_MESSAGE_ROAMING =
         "https://a1-vip6.easecdn.com/cx-dev/cxstudy/users/%s/messageroaming"
@@ -143,7 +143,9 @@ object ChaoxingIMHelper {
                     jsonObject.getJSONObject(index).run {
                         val jsonDescription = JSONObject.parseObject(getString("description"))
                         ChaoxingEasemobIMGroup(
-                            getString("name").takeUnless { it.isNullOrBlank() } ?: jsonDescription.getJSONObject("courseInfo").getString("coursename"),
+                            getString("name").takeUnless { it.isNullOrBlank() }
+                                ?: jsonDescription.getJSONObject("courseInfo")
+                                    .getString("coursename"),
                             getString("id"),
                             jsonDescription.getJSONObject("courseInfo")?.getString("imageUrl")
                         )

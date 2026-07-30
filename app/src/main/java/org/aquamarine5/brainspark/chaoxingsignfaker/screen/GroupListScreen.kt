@@ -82,7 +82,8 @@ fun GroupListScreen(
                 if (imGroupsInfo == null)
                     imGroupsInfo = ChaoxingIMHelper.getEasemobIMGroups(
                         ChaoxingHttpClient.getHttpInstanceOrClone(destination.isCloneSession)!!,
-                        ChaoxingHttpClient.getHttpInstanceOrClone(destination.isCloneSession)!!.getIMConfig()
+                        ChaoxingHttpClient.getHttpInstanceOrClone(destination.isCloneSession)!!
+                            .getIMConfig()
                     )
             }.onFailure {
                 it.snackbarReport(
@@ -105,7 +106,8 @@ fun GroupListScreen(
                             isFetchedFailure = runCatching {
                                 imGroupsInfo = ChaoxingIMHelper.getEasemobIMGroups(
                                     ChaoxingHttpClient.getHttpInstanceOrClone(destination.isCloneSession)!!,
-                                    ChaoxingHttpClient.getHttpInstanceOrClone(destination.isCloneSession)!!.getIMConfig()
+                                    ChaoxingHttpClient.getHttpInstanceOrClone(destination.isCloneSession)!!
+                                        .getIMConfig()
                                 )
                             }.onFailure {
                                 it.snackbarReport(
@@ -164,7 +166,10 @@ fun GroupListScreen(
                                                 contentDescription = null,
                                                 contentScale = ContentScale.FillHeight,
                                                 onError = {
-                                                    Log.w("GroupListScreen", "Error loading image: ${it.result}")
+                                                    Log.w(
+                                                        "GroupListScreen",
+                                                        "Error loading image: ${it.result}"
+                                                    )
                                                 }
                                             )
                                         } else {

@@ -1726,7 +1726,8 @@ fun OtherUserScreen(
                     val mutex = remember { Mutex() }
                     NewFeatureTipsCard(
                         isTooltipShowed,
-                        "现在可以克隆登录其他人的账号，来给其他人代签你没有的课程。"
+                        "现在可以克隆登录其他人的账号，来给其他人代签你没有的课程。",
+                        modifier = Modifier.padding(8.dp, 4.dp)
                     ) {
                         coroutineScope.launch(Dispatchers.IO) {
                             context.chaoxingDataStore.updateData {

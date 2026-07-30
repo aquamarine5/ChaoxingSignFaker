@@ -131,7 +131,7 @@ fun CourseListScreen(
     }
     val hapticFeedback = LocalHapticFeedback.current
     val context = LocalContext.current
-    var newestVersionData by remember { mutableStateOf<StackbricksVersionData?>(null) }
+    var newestVersionData by rememberSaveable { mutableStateOf<StackbricksVersionData?>(null) }
     var isForceInstall by rememberSaveable { mutableStateOf(false) }
     val snackbarHost = LocalSnackbarHostState.current
     var recommendActivities by remember { mutableStateOf<List<RecommendActivityEntity>?>(null) }
@@ -156,7 +156,7 @@ fun CourseListScreen(
                 }
             }
             recommendActivities =
-                ChaoxingRecommendHelper.checkRecommendedActivities(context, snackbarHost)
+                ChaoxingRecommendHelper.checkRecommendedActivities(context)
             if (activitiesData.isEmpty()) {
                 isFetchedFailure = runCatching {
                     val datastoreData = context.chaoxingDataStore.data.first()
@@ -186,7 +186,8 @@ fun CourseListScreen(
                             }
                         }
                     } //TODO: Recommend preferred class
-                    isCaptchaAutoResolveLearntTooltip.value=!datastoreData.learntTooltips.sliderCaptchaAutoResolveByHashMap
+                    isCaptchaAutoResolveLearntTooltip.value =
+                        !datastoreData.learntTooltips.sliderCaptchaAutoResolveByHashMap
                     preferredClassIds.addAll(
                         datastoreData.preferClassIdList.reversed()
                     )
@@ -489,7 +490,10 @@ fun CourseListScreen(
                                     Spacer(modifier = Modifier.height(8.dp))
                                 }
                                 item {
-                                    NewFeatureTipsCard(isCaptchaAutoResolveLearntTooltip,"现在部分的验证码会根据内置的数据表自动滑动完成了。") {
+                                    NewFeatureTipsCard(
+                                        isCaptchaAutoResolveLearntTooltip,
+                                        "现在部分的验证码会根据内置的数据表自动滑动完成了。"
+                                    ) {
                                         coroutineScope.launch(Dispatchers.IO) {
                                             context.chaoxingDataStore.updateData {
                                                 it.toBuilder()

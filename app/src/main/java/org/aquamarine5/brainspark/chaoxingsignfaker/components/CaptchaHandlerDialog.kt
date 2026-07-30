@@ -79,8 +79,6 @@ fun CaptchaHandlerDialog(
     val density by remember(containerWidth) { mutableFloatStateOf(containerWidth / 320) }
     val sliderMaxValue = remember(containerWidth) { containerWidth - 56f * density }
 
-    var localCaptchaMemories: HashMap<String, Float>? = remember { null }
-
     suspend fun check(normalizedPosition: Float, isCheckingCaptcha: AtomicBoolean?): Boolean {
         signer.checkCaptchaResult(normalizedPosition, data!!)
             .let { result ->
@@ -102,7 +100,7 @@ fun CaptchaHandlerDialog(
                     @OnlyAppDevelopedMode if (!isRecordingCaptchaMemories) {
                         onDismiss()
                     } else {
-                        localCaptchaMemories!![data!!.token] = normalizedPosition
+                        ChaoxingCaptchaHelper.storedCaptchaMemories.getValue(context)[data!!.token] = normalizedPosition
                         sliderPosition = 0f
                         var captchaData: ChaoxingCaptchaDataEntity
                         do {
@@ -122,10 +120,9 @@ fun CaptchaHandlerDialog(
     var isDisplayCaptchaDialog by remember { mutableStateOf(false) }
     LaunchedEffect(signer) {
         runCatching {
-            localCaptchaMemories = ChaoxingCaptchaHelper.getCaptchaMemories(context)
             data = signer.getCaptchaImageV2().also {
-                localCaptchaMemories[it.token]?.let {
-                    if (!check(it, null))
+                ChaoxingCaptchaHelper.storedCaptchaMemories.getValue(context)[it.token].let {
+                    if (it==null || !check(it, null))
                         isDisplayCaptchaDialog = true
                 }
             }

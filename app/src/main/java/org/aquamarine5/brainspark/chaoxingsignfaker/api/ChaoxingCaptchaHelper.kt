@@ -28,57 +28,96 @@ object ChaoxingCaptchaHelper {
 
     const val SUPPORT_CAPTCHA_MEMORIES_MANIFEST_VERSION = 1
 
-    private var storedCaptchaMemories: StoredData<Context, HashMap<String, Float>> = storedData { getCaptchaMemories(it) }
+    var storedCaptchaMemories: StoredData<Context, HashMap<String, Float>> =
+        storedData { getCaptchaMemories(it) }
 
     suspend fun getCaptchaMemories(context: Context): HashMap<String, Float> {
-        return context.chaoxingDataStore.data.first().captchaMemories.memoriesList.associateTo(HashMap()) { it.token to it.xPosition }
+        return context.chaoxingDataStore.data.first().captchaMemories.memoriesList.associateTo(
+            HashMap()
+        ) { it.token to it.xPosition }
+    }
+
+    @OnlyAppDevelopedMode
+    suspend fun saveCaptchaMemories(context: Context){
+        context.chaoxingDataStore.updateData { dataStore ->
+            dataStore.toBuilder()
+                .setCaptchaMemories(
+                    dataStore.captchaMemories.toBuilder()
+                        .clearMemories()
+                        .addAllMemories(
+                            storedCaptchaMemories.getValue(context).map { (token, xPosition) ->
+                                ChaoxingCaptchaResult.newBuilder()
+                                    .setToken(token)
+                                    .setXPosition(xPosition)
+                                    .build()
+                            }
+                        )
+                        .build()
+                )
+                .build()
+        }
     }
 
     suspend fun updateRemoteCaptchaMemoriesData(context: Context) {
-        ChaoxingHttpClient.instance!!.newCall(
-            Request.Builder()
-                .url(URL_REMOTE_CAPTCHA_MEMORIES)
-                .get()
-                .build()
-        ).execute().use { response ->
-            response.checkResponseThrowException()
-            withContext(Dispatchers.IO) {
-                val jsonObject = JSONObject.parseObject(response.body.string())
-                context.chaoxingDataStore.updateData { dataStore ->
-                    dataStore.toBuilder()
-                        .setCaptchaMemories(
-                            dataStore.captchaMemories.toBuilder()
-                                .setMemoriesVersion(jsonObject.getInteger("memoriesVersion"))
-                                .clearMemories()
-                                .addAllMemories(jsonObject.getJSONArray("captchaMemories").let { array ->
-                                    List(array.size) { index ->
-                                        val jsonMemory = array.getJSONObject(index)
-                                        return@List ChaoxingCaptchaResult.newBuilder()
-                                            .setToken(jsonMemory.getString("token"))
-                                            .setXPosition(jsonMemory.getFloat("xPosition"))
-                                            .build()
-                                    }.also { memories ->
-                                        storedCaptchaMemories.setValue(memories.associateTo(HashMap()) { it.token to it.xPosition })
+        runCatching {
+            ChaoxingHttpClient.instance!!.newCall(
+                Request.Builder()
+                    .url(URL_REMOTE_CAPTCHA_MEMORIES)
+                    .get()
+                    .build()
+            ).execute().use { response ->
+                response.checkResponseThrowException()
+                withContext(Dispatchers.IO) {
+                    val jsonObject = JSONObject.parseObject(response.body.string())
+                    context.chaoxingDataStore.updateData { dataStore ->
+                        dataStore.toBuilder()
+                            .setCaptchaMemories(
+                                dataStore.captchaMemories.toBuilder()
+                                    .setLastCheckRemoteMemoriesTimestamp(System.currentTimeMillis())
+                                    .apply {
+                                        if (jsonObject.getInteger("memoriesVersion") > dataStore.captchaMemories.memoriesVersion) {
+                                            setMemoriesVersion(jsonObject.getInteger("memoriesVersion"))
+                                            clearMemories()
+                                            addAllMemories(
+                                                jsonObject.getJSONArray("captchaMemories")
+                                                    .let { array ->
+                                                        List(array.size) { index ->
+                                                            val jsonMemory =
+                                                                array.getJSONObject(index)
+                                                            return@List ChaoxingCaptchaResult.newBuilder()
+                                                                .setToken(jsonMemory.getString("token"))
+                                                                .setXPosition(jsonMemory.getFloat("xPosition"))
+                                                                .build()
+                                                        }.also { memories ->
+                                                            storedCaptchaMemories.setValue(
+                                                                memories.associateTo(
+                                                                    HashMap()
+                                                                ) { it.token to it.xPosition })
+                                                        }
+                                                    })
+                                        }
                                     }
-                                })
-                                .build()
-                        )
-                        .build()
+                                    .build()
+                            )
+                            .build()
+                    }
                 }
             }
         }
     }
 
     @OnlyAppDevelopedMode
-    suspend fun buildCaptchaMemoriesDataToJson(context: Context): String{
+    suspend fun buildCaptchaMemoriesDataToJson(context: Context): String {
         return JSONObject().apply {
             put("memoriesVersion", SUPPORT_CAPTCHA_MEMORIES_MANIFEST_VERSION)
-            put("captchaMemories", storedCaptchaMemories.getValue(context).mapTo(JSONArray()) { memory ->
-                JSONObject().apply {
-                    put("token", memory.key)
-                    put("xPosition", memory.value)
-                }
-            })
+            put(
+                "captchaMemories",
+                storedCaptchaMemories.getValue(context).mapTo(JSONArray()) { memory ->
+                    JSONObject().apply {
+                        put("token", memory.key)
+                        put("xPosition", memory.value)
+                    }
+                })
         }.toJSONString(JSONWriter.Feature.PrettyFormat)
     }
 }

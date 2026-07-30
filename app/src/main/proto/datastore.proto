@@ -40,6 +40,7 @@ message ChaoxingSignFakerDataStore{
 message ChaoxingCaptchaMemories{
   uint32 memoriesVersion = 1;
   repeated ChaoxingCaptchaResult memories = 2;
+  uint64 lastCheckRemoteMemoriesTimestamp = 3;
 }
 
 message ChaoxingCaptchaResult{

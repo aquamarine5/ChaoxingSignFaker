@@ -634,24 +634,13 @@ fun SettingScreen(
             exit = slideOutVertically()
         ) {
             var isShowCaptchaMemoriesDialog by remember { mutableStateOf(false) }
-            var signer: ChaoxingSigner? = remember { null }
+            var isCaptchaMemoriesResultDialog by remember { mutableStateOf(false) }
+            var signer: ChaoxingSigner? by remember { mutableStateOf(null) }
             FlowColumn() {
                 Button(onClick = {
                     coroutineScope.launch(Dispatchers.IO) {
                         context.chaoxingDataStore.updateData {
-                            @Suppress("Deprecation")
-                            it.toBuilder().setLearntTooltips(
-                                it.learntTooltips.toBuilder()
-                                    .clearTagsFeature()
-                                    .clearSupportFavoriteLocation()
-                                    .clearCameraSelectedFromGallery()
-                                    .clearMapSupportNormalSatelliteSwitch()
-                                    .clearCameraSelectedMultipleImagesFromGallery()
-                                    .clearQrcodeSupportScanFromGallery()
-                                    .clearRestoreLocationOfQRCodeSign()
-                                    .clearSupportCloneOtherUserSession()
-                                    .build()
-                            ).build()
+                            it.toBuilder().clearLearntTooltips().build()
                         }
                     }
                 }) {
@@ -669,7 +658,6 @@ fun SettingScreen(
                 }) { Text("ForceUpdateRemoteCaptchaMemoriesData") }
             }
             if (isShowCaptchaMemoriesDialog) {
-                var isCaptchaMemoriesResultDialog by remember { mutableStateOf(false) }
                 LaunchedEffect(Unit) {
                     signer = ChaoxingSignHelper.getSigner(
                         ChaoxingHttpClient.instance!!,
@@ -691,57 +679,61 @@ fun SettingScreen(
                         it,
                         {},
                         {
+                            coroutineScope.launch {
+                                ChaoxingCaptchaHelper.saveCaptchaMemories(context)
+                            }
                             isShowCaptchaMemoriesDialog = false
+                            isCaptchaMemoriesResultDialog = true
                         },
                         isRecordingCaptchaMemories = true
                     )
                 }
-                if (isCaptchaMemoriesResultDialog) {
-                    var jsonText by remember { mutableStateOf("") }
-                    LaunchedEffect(Unit) {
-                        jsonText = ChaoxingCaptchaHelper.buildCaptchaMemoriesDataToJson(context)
-                    }
-                    AlertDialog(
-                        onDismissRequest = {
-                            isCaptchaMemoriesResultDialog = false
-                        },
-                        confirmButton = {
-                            OutlinedButton(onClick = {
-                                isCaptchaMemoriesResultDialog = false
-                            }) {
-                                Text("关闭")
-                            }
-                        }, text = {
-                            TextField(
-                                jsonText,
-                                {
-                                    jsonText = it
-                                },
-                                modifier = Modifier.fillMaxSize()
-                            )
-                        },
-                        dismissButton = {
-                            Button(onClick = {
-                                runCatching {
-                                    context.getSystemService(ClipboardManager::class.java)
-                                        .setPrimaryClip(
-                                            ClipData.newPlainText(
-                                                "chaoxingsignfaker.captchaMemoriesJsonString",
-                                                jsonText
-                                            )
-                                        )
-                                }.onFailure {
-                                    snackbarHostState.displaySnackbar(
-                                        "剪切板写入失败",
-                                        coroutineScope
-                                    )
-                                }
-                            }) {
-                                Text("复制到剪切板")
-                            }
-                        }
-                    )
+            }
+            if (isCaptchaMemoriesResultDialog) {
+                var jsonText by remember { mutableStateOf("") }
+                LaunchedEffect(Unit) {
+                    jsonText = ChaoxingCaptchaHelper.buildCaptchaMemoriesDataToJson(context)
                 }
+                AlertDialog(
+                    onDismissRequest = {
+                        isCaptchaMemoriesResultDialog = false
+                    },
+                    confirmButton = {
+                        OutlinedButton(onClick = {
+                            isCaptchaMemoriesResultDialog = false
+                        }) {
+                            Text("关闭")
+                        }
+                    }, text = {
+                        TextField(
+                            jsonText,
+                            {
+                                jsonText = it
+                            },
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    },
+                    dismissButton = {
+                        Button(onClick = {
+                            runCatching {
+                                context.getSystemService(ClipboardManager::class.java)
+                                    .setPrimaryClip(
+                                        ClipData.newPlainText(
+                                            "chaoxingsignfaker.captchaMemoriesJsonString",
+                                            jsonText
+                                        )
+                                    )
+                            }.onFailure {
+                                snackbarHostState.displaySnackbar(
+                                    "剪切板写入失败",
+                                    coroutineScope
+                                )
+                            }
+                        }) {
+                            Text("复制到剪切板")
+                        }
+                    }
+                )
             }
         }
     }

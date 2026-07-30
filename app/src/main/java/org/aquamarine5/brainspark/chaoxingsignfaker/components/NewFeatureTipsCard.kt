@@ -6,6 +6,9 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.components
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -24,6 +27,8 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -32,14 +37,15 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.R
 @Composable
 fun NewFeatureTipsCard(
     isDisplay: MutableState<Boolean>,
-    tipsText:String,
+    tipsText: String,
+    modifier: Modifier = Modifier,
     onDismiss: () -> Unit
 ) {
-    if (isDisplay.value)
+    val hapticFeedback = LocalHapticFeedback.current
+    AnimatedVisibility(isDisplay.value, enter = slideInVertically(), exit = slideOutVertically()) {
         Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(8.dp, 4.dp),
+            modifier = modifier
+                .fillMaxWidth(),
             shape = RoundedCornerShape(8.dp),
             elevation = CardDefaults.cardElevation(4.dp)
         ) {
@@ -64,6 +70,7 @@ fun NewFeatureTipsCard(
                 )
                 IconButton(
                     onClick = {
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                         onDismiss()
                         isDisplay.value = false
                     },
@@ -76,4 +83,5 @@ fun NewFeatureTipsCard(
                 }
             }
         }
+    }
 }

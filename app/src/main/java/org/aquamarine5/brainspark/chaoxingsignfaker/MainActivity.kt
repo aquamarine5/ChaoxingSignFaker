@@ -519,7 +519,10 @@ class MainActivity : ComponentActivity() {
                                         }
 
                                         composable<GroupListDestination> {
-                                            GroupListScreen(it.toRoute(),imageLoader) { destination ->
+                                            GroupListScreen(
+                                                it.toRoute(),
+                                                imageLoader
+                                            ) { destination ->
                                                 navController.navigate(destination)
                                             }
                                         }

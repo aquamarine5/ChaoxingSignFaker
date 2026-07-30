@@ -109,11 +109,13 @@ object ChaoxingCourseHelper {
                     )
                 )
             }.getOrElse {
-                Sentry.captureException(ChaoxingParseDataException(
-                    "课程数据解析失败: ${it.message}",
-                    it,
-                    course.toJSONString()
-                ))
+                Sentry.captureException(
+                    ChaoxingParseDataException(
+                        "课程数据解析失败: ${it.message}",
+                        it,
+                        course.toJSONString()
+                    )
+                )
             }
         }
     }
