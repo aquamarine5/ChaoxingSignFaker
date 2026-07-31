@@ -120,8 +120,8 @@ fun CaptchaHandlerDialog(
     var isDisplayCaptchaDialog by remember { mutableStateOf(false) }
     LaunchedEffect(signer) {
         runCatching {
-            data = signer.getCaptchaImageV2().also {
-                ChaoxingCaptchaHelper.storedCaptchaMemories.getValue(context)[it.token].let {
+            data = signer.getCaptchaImageV2().also { captchaDataEntity ->
+                ChaoxingCaptchaHelper.storedCaptchaMemories.getValue(context)[captchaDataEntity.token].let {
                     if (it==null || !check(it, null))
                         isDisplayCaptchaDialog = true
                 }

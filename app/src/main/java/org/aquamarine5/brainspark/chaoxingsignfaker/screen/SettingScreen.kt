@@ -9,6 +9,7 @@ package org.aquamarine5.brainspark.chaoxingsignfaker.screen
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Intent
+import android.os.Debug
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
@@ -651,28 +652,31 @@ fun SettingScreen(
                 }) {
                     Text("DisplayMatchCaptchaHashMapDialog")
                 }
-                Button(onClick = {
-                    coroutineScope.launch {
-                        ChaoxingCaptchaHelper.updateRemoteCaptchaMemoriesData(context)
-                    }
-                }) { Text("ForceUpdateRemoteCaptchaMemoriesData") }
+                if (Debug.isDebuggerConnected())
+                    Button(onClick = {
+                        coroutineScope.launch {
+                            ChaoxingCaptchaHelper.updateRemoteCaptchaMemoriesData(context)
+                        }
+                    }) { Text("ForceUpdateRemoteCaptchaMemoriesData") }
             }
             if (isShowCaptchaMemoriesDialog) {
                 LaunchedEffect(Unit) {
-                    signer = ChaoxingSignHelper.getSigner(
-                        ChaoxingHttpClient.instance!!,
-                        ChaoxingCourseHelper.getAllCourse(ChaoxingHttpClient.instance!!)
-                            .firstNotNullOf { course ->
-                                runCatching {
-                                    ChaoxingActivityHelper.getActivitiesEntity(
-                                        ChaoxingHttpClient.instance!!,
-                                        course
-                                    )
-                                }.getOrNull()
-                                    ?.takeIf { it.signActivities.isNotEmpty() }
-                                    ?.signActivities
-                                    ?.get(0)
-                            })
+                    if (signer == null) {
+                        signer = ChaoxingSignHelper.getSigner(
+                            ChaoxingHttpClient.instance!!,
+                            ChaoxingCourseHelper.getAllCourse(ChaoxingHttpClient.instance!!)
+                                .firstNotNullOf { course ->
+                                    runCatching {
+                                        ChaoxingActivityHelper.getActivitiesEntity(
+                                            ChaoxingHttpClient.instance!!,
+                                            course
+                                        )
+                                    }.getOrNull()
+                                        ?.takeIf { it.signActivities.isNotEmpty() }
+                                        ?.signActivities
+                                        ?.get(0)
+                                })
+                    }
                 }
                 signer?.let {
                     CaptchaHandlerDialog(

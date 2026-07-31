@@ -16,6 +16,7 @@ import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import org.aquamarine5.brainspark.chaoxingsignfaker.BuildConfig
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.easemob.MessageBody
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.easemob.Meta
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingEasemobIMConfig
@@ -25,6 +26,8 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingIMConfig
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingIMGroup
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingParseDataException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.checkResponseThrowException
+import javax.crypto.Cipher
+import javax.crypto.spec.SecretKeySpec
 
 object ChaoxingIMHelper {
     private class ChaoxingIMConfigParseException(
@@ -52,6 +55,8 @@ object ChaoxingIMHelper {
     const val URL_MESSAGE_ROAMING =
         "https://a1-vip6.easecdn.com/cx-dev/cxstudy/users/%s/messageroaming"
     const val USER_AGENT_EASEMOB = "Easemob-SDK(Android) 4.9.0.1"
+
+    val IM_ENCRYPTED_KEY = BuildConfig.imEncryptedKey.toByteArray(Charsets.UTF_8)
 
 //
 //    fun initializeEasemobClient(httpClient: ChaoxingHttpClient, context: Context) {
@@ -98,6 +103,13 @@ object ChaoxingIMHelper {
 //    ): List<ChaoxingIMGroup> {
 //        return TODO()
 //    }
+    fun desDecrypt(imEncryptedPassword:String): String {
+        @Suppress("GetInstance")
+        val cipher = Cipher.getInstance("DES/ECB/PKCS5Padding")
+        val secretKey = SecretKeySpec(IM_ENCRYPTED_KEY, "DES")
+        cipher.init(Cipher.DECRYPT_MODE, secretKey)
+        return cipher.doFinal(imEncryptedPassword.hexToByteArray()).toString(Charsets.UTF_8)
+    }
 
     suspend fun getEasemobConfig(httpClient: ChaoxingHttpClient): ChaoxingEasemobIMConfig {
         return withContext(Dispatchers.IO) {
@@ -106,7 +118,7 @@ object ChaoxingIMHelper {
                     .post(
                         JSONObject()
                             .fluentPut("grant_type", "password")
-                            .fluentPut("password", "kwe371")
+                            .fluentPut("password", desDecrypt(httpClient.userEntity.imEncryptedPassword))
                             .fluentPut("username", httpClient.userEntity.uid)
                             .toJSONString().toRequestBody()
                     )

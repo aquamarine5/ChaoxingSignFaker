@@ -77,6 +77,7 @@ fun GroupListScreen(
         val hapticFeedback = LocalHapticFeedback.current
         var imGroupsInfo by rememberSaveable { mutableStateOf<List<ChaoxingEasemobIMGroup>?>(null) }
         var isFetchedFailure by remember { mutableStateOf<Result<*>?>(null) }
+
         LaunchedEffect(Unit) {
             isFetchedFailure = runCatching {
                 if (imGroupsInfo == null)
@@ -86,12 +87,12 @@ fun GroupListScreen(
                             .getIMConfig()
                     )
             }.onFailure {
-                it.snackbarReport(
-                    snackbarHostState,
-                    coroutineScope,
-                    "获取群列表失败",
-                    hapticFeedback
-                )
+//                it.snackbarReport(
+//                    snackbarHostState,
+//                    coroutineScope,
+//                    "获取群列表失败",
+//                    hapticFeedback
+//                )
             }
         }
         Crossfade(isFetchedFailure) { v ->

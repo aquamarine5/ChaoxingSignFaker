@@ -24,7 +24,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.storedData
 
 object ChaoxingCaptchaHelper {
     val URL_REMOTE_CAPTCHA_MEMORIES =
-        "http://cdn.aquamarine5.fun/chaoxingsignfaker_captcha_memories_manifest.json".toHttpUrl()
+        "http://cdn.aquamarine5.fun/chaoxingsignfaker_captcha_memories.json".toHttpUrl()
 
     const val SUPPORT_CAPTCHA_MEMORIES_MANIFEST_VERSION = 1
 

@@ -360,6 +360,9 @@ class ChaoxingHttpClient private constructor(
                                 jsonResult.getString("pic").replace("http://", "https://"),
                                 jsonResult.getInteger("puid"),
                                 phoneNumber,
+                                jsonResult.getJSONObject("accountInfo")
+                                    .getJSONObject("imAccount")
+                                    .getString("password"),
                                 jsonResult.getString("clientId")?.takeIf { it.isNotEmpty() }
                             )
                         }
