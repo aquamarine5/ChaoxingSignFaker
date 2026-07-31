@@ -40,11 +40,12 @@ message ChaoxingSignFakerDataStore{
 message ChaoxingCaptchaMemories{
   uint32 memoriesVersion = 1;
   repeated ChaoxingCaptchaResult memories = 2;
+  uint64 lastCheckRemoteMemoriesTimestamp = 3;
 }
 
 message ChaoxingCaptchaResult{
   string token = 1;
-  uint32 xPosition = 2;
+  float xPosition = 2;
 }
 
 message ChaoxingFaceRecognitionImage{
@@ -80,6 +81,7 @@ message LearntTooltip{
   bool restoreLocationOfQRCodeSign = 6;
   bool cameraSelectedMultipleImagesFromGallery = 7;
   bool supportCloneOtherUserSession = 8;
+  bool sliderCaptchaAutoResolveByHashMap = 9;
 }
 
 message OtherUserTagType{

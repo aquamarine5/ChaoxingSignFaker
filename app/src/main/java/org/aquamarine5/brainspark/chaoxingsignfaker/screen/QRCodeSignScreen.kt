@@ -80,6 +80,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingSignHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.SignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerDialog
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerParams
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.FaceRecognitionComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.GetLocationComponent
@@ -161,7 +162,7 @@ fun QRCodeSignScreen(
     var isMapRequired by remember { mutableStateOf(false) }
     var signoffData by remember { mutableStateOf<ChaoxingSignOutEntity?>(null) }
     var captchaValidateParams by remember {
-        mutableStateOf<Pair<ChaoxingQRCodeSigner, suspend (Result<String>) -> Unit>?>(
+        mutableStateOf<CaptchaHandlerParams<ChaoxingQRCodeSigner>>(
             null
         )
     }

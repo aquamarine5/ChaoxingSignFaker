@@ -19,7 +19,7 @@ data class ChaoxingEasemobIMGroup(
     val chatName: String,
     val id: String,
     val imageUrl: String?
-){
+) {
     object ChaoxingEasemobIMGroupNavType : NavType<ChaoxingEasemobIMGroup>(false) {
         override fun get(bundle: Bundle, key: String): ChaoxingEasemobIMGroup? {
             return Json.decodeFromString(bundle.getString(key) ?: return null)

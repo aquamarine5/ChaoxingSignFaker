@@ -77,20 +77,22 @@ fun GroupListScreen(
         val hapticFeedback = LocalHapticFeedback.current
         var imGroupsInfo by rememberSaveable { mutableStateOf<List<ChaoxingEasemobIMGroup>?>(null) }
         var isFetchedFailure by remember { mutableStateOf<Result<*>?>(null) }
+
         LaunchedEffect(Unit) {
             isFetchedFailure = runCatching {
                 if (imGroupsInfo == null)
                     imGroupsInfo = ChaoxingIMHelper.getEasemobIMGroups(
                         ChaoxingHttpClient.getHttpInstanceOrClone(destination.isCloneSession)!!,
-                        ChaoxingHttpClient.getHttpInstanceOrClone(destination.isCloneSession)!!.getIMConfig()
+                        ChaoxingHttpClient.getHttpInstanceOrClone(destination.isCloneSession)!!
+                            .getIMConfig()
                     )
             }.onFailure {
-                it.snackbarReport(
-                    snackbarHostState,
-                    coroutineScope,
-                    "获取群列表失败",
-                    hapticFeedback
-                )
+//                it.snackbarReport(
+//                    snackbarHostState,
+//                    coroutineScope,
+//                    "获取群列表失败",
+//                    hapticFeedback
+//                )
             }
         }
         Crossfade(isFetchedFailure) { v ->
@@ -105,7 +107,8 @@ fun GroupListScreen(
                             isFetchedFailure = runCatching {
                                 imGroupsInfo = ChaoxingIMHelper.getEasemobIMGroups(
                                     ChaoxingHttpClient.getHttpInstanceOrClone(destination.isCloneSession)!!,
-                                    ChaoxingHttpClient.getHttpInstanceOrClone(destination.isCloneSession)!!.getIMConfig()
+                                    ChaoxingHttpClient.getHttpInstanceOrClone(destination.isCloneSession)!!
+                                        .getIMConfig()
                                 )
                             }.onFailure {
                                 it.snackbarReport(
@@ -164,7 +167,10 @@ fun GroupListScreen(
                                                 contentDescription = null,
                                                 contentScale = ContentScale.FillHeight,
                                                 onError = {
-                                                    Log.w("GroupListScreen", "Error loading image: ${it.result}")
+                                                    Log.w(
+                                                        "GroupListScreen",
+                                                        "Error loading image: ${it.result}"
+                                                    )
                                                 }
                                             )
                                         } else {

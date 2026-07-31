@@ -17,6 +17,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.RecommendRecord
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.RecommendRecordList
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.RecommendActivityEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.disableCode
 import java.time.LocalDateTime
 import kotlin.math.abs
 
@@ -63,24 +64,20 @@ object ChaoxingRecommendHelper {
     }
 
     suspend fun checkRecommendedActivities(
-        context: Context,
-        snackbarHostState: SnackbarHostState
+        context: Context
     ): List<RecommendActivityEntity> {
         return buildList {
             getRecommendedCourses(context).forEach { ids ->
                 ChaoxingActivityHelper.checkCourseHaveAvailableActivity(
                     ChaoxingHttpClient.instance!!,
-                    context,
                     ids.first,
-                    ids.second,
-                    snackbarHostState
+                    ids.second
                 )?.let { add(it) }
             }
         }
     }
 
     suspend fun analyseRecommendHabit(
-        context: Context,
         classId: Int,
         courseId: Int,
         recommendRecords: Map<Int, RecommendRecordList>,
@@ -142,33 +139,36 @@ object ChaoxingRecommendHelper {
         client: ChaoxingHttpClient
     ) =
         withContext(Dispatchers.IO) {
-            return@withContext
-            val time = LocalDateTime.now()
-            context.chaoxingDataStore.updateData { datastore ->
-                if (datastore.disableRecommend) return@updateData datastore
-                datastore.toBuilder().apply {
-                    val newRecord = RecommendRecord.newBuilder()
-                        .setDayOfWeek(time.dayOfWeek.value)
-                        .setMinuteOfDay(time.hour * 60 + time.minute)
-                        .setCourseId(courseId)
-                        .build()
+            disableCode {
+                val time = LocalDateTime.now()
+                context.chaoxingDataStore.updateData { datastore ->
+                    if (datastore.disableRecommend) return@updateData datastore
+                    datastore.toBuilder().apply {
+                        val newRecord = RecommendRecord.newBuilder()
+                            .setDayOfWeek(time.dayOfWeek.value)
+                            .setMinuteOfDay(time.hour * 60 + time.minute)
+                            .setCourseId(courseId)
+                            .build()
 
-                    analyseRecommendHabit(
-                        context,
-                        classId, courseId,
-                        recommendRecordsMap,
-                        recommendHabitsList,
-                        newRecord,
-                        client,
-                        this@apply
-                    )
+                        analyseRecommendHabit(
+                            classId, courseId,
+                            recommendRecordsMap,
+                            recommendHabitsList,
+                            newRecord,
+                            client,
+                            this@apply
+                        )
 
-                    val recordListBuilder =
-                        if (containsRecommendRecords(classId)) getRecommendRecordsOrThrow(
-                            classId
-                        ).toBuilder() else RecommendRecordList.newBuilder()
-                    putRecommendRecords(classId, recordListBuilder.addRecords(newRecord).build())
-                }.build()
+                        val recordListBuilder =
+                            if (containsRecommendRecords(classId)) getRecommendRecordsOrThrow(
+                                classId
+                            ).toBuilder() else RecommendRecordList.newBuilder()
+                        putRecommendRecords(
+                            classId,
+                            recordListBuilder.addRecords(newRecord).build()
+                        )
+                    }.build()
+                }
             }
         }
 }

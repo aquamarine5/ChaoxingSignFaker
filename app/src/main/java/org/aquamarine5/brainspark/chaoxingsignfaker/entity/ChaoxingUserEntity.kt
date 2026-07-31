@@ -18,5 +18,6 @@ data class ChaoxingUserEntity(
     val pic: String,
     val puid: Int,
     val phoneNumber: String,
+    val imEncryptedPassword: String,
     val clientId: String? = null
 )

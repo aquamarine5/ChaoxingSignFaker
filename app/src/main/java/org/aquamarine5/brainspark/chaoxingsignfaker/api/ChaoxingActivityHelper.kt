@@ -6,8 +6,6 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.api
 
-import android.content.Context
-import androidx.compose.material3.SnackbarHostState
 import com.alibaba.fastjson2.JSONObject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -18,7 +16,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCourseEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.RecommendActivityEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingParseDataException
-import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.checkResponse
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.checkResponseThrowException
 
 object ChaoxingActivityHelper {
     enum class SignRedirectStatus {
@@ -37,10 +35,8 @@ object ChaoxingActivityHelper {
 
     suspend fun checkCourseHaveAvailableActivity(
         client: ChaoxingHttpClient,
-        context: Context,
         classId: Int,
-        courseId: Int,
-        snackbarHostState: SnackbarHostState
+        courseId: Int
     ): RecommendActivityEntity? = withContext(Dispatchers.IO) {
         client.newCall(
             Request.Builder().get().url(
@@ -50,8 +46,7 @@ object ChaoxingActivityHelper {
                     .build()
             ).build()
         ).execute().use {
-            if (it.checkResponse(snackbarHostState))
-                throw ChaoxingHttpClient.ChaoxingNetworkException()
+            it.checkResponseThrowException()
             val jsonResult = JSONObject.parseObject(it.body.string()).getJSONObject("data")
             val nowTimeMillis = System.currentTimeMillis()
             jsonResult.getJSONArray("activeList").map { activity ->
@@ -77,11 +72,9 @@ object ChaoxingActivityHelper {
         }
     }
 
-    suspend fun getActivities(
+    suspend fun getActivitiesEntity(
         client: ChaoxingHttpClient,
-        course: ChaoxingCourseEntity,
-        context: Context,
-        snackbarHostState: SnackbarHostState
+        course: ChaoxingCourseEntity
     ): ChaoxingCourseActivitiesEntity =
         withContext(Dispatchers.IO) {
             client.newCall(
@@ -92,9 +85,8 @@ object ChaoxingActivityHelper {
                         .build()
                 ).build()
             ).execute().use {
+                it.checkResponseThrowException()
                 val responseBody = it.body.string()
-                if (it.checkResponse(snackbarHostState))
-                    throw ChaoxingHttpClient.ChaoxingNetworkException(responseBody)
                 val jsonResult = JSONObject.parseObject(responseBody)?.getJSONObject("data")
                     ?: throw ChaoxingParseDataException(
                         "解析课程数据失败",
@@ -147,7 +139,6 @@ object ChaoxingActivityHelper {
                         jsonResult.toJSONString()
                     )
                 }
-
             }
         }
 }

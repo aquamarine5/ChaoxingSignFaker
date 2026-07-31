@@ -125,6 +125,7 @@ fun Throwable.snackbarReport(
     coroutineScope: CoroutineScope,
     prefixTips: String? = null,
     hapticFeedback: HapticFeedback,
+    shouldDismiss: Boolean = true,
     duration: SnackbarDuration = SnackbarDuration.Short,
     actionLabel: String? = null,
     onSnackbarResult: ((SnackbarResult) -> Unit)? = null
@@ -134,7 +135,8 @@ fun Throwable.snackbarReport(
     hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
     val networkExceptionTips = this.getNetworkExceptionMessage()
     if (networkExceptionTips != null) {
-        snackbarHostState?.currentSnackbarData?.dismiss()
+        if (shouldDismiss)
+            snackbarHostState?.currentSnackbarData?.dismiss()
         coroutineScope.launch {
             snackbarHostState?.showSnackbar(
                 "${prefixTips?.plus(" ") ?: ""}$networkExceptionTips",
@@ -147,7 +149,8 @@ fun Throwable.snackbarReport(
         }
     } else if (this !is ChaoxingPredictableException) {
         Sentry.captureException(this)
-        snackbarHostState?.currentSnackbarData?.dismiss()
+        if (shouldDismiss)
+            snackbarHostState?.currentSnackbarData?.dismiss()
         coroutineScope.launch {
             snackbarHostState?.showSnackbar(
                 "${prefixTips?.plus(" ") ?: ""}预期外错误:${this@snackbarReport.getPredictableMessage()}",
@@ -161,7 +164,8 @@ fun Throwable.snackbarReport(
     } else if (this.cause != null && this.cause !is ChaoxingPredictableException) {
         Sentry.captureException(this)
         this.cause?.let {
-            snackbarHostState?.currentSnackbarData?.dismiss()
+            if (shouldDismiss)
+                snackbarHostState?.currentSnackbarData?.dismiss()
             coroutineScope.launch {
                 snackbarHostState?.showSnackbar(
                     "${prefixTips?.plus(" ") ?: ""}${it.getPredictableMessage()}",
@@ -174,7 +178,8 @@ fun Throwable.snackbarReport(
             }
         }
     } else {
-        snackbarHostState?.currentSnackbarData?.dismiss()
+        if (shouldDismiss)
+            snackbarHostState?.currentSnackbarData?.dismiss()
         coroutineScope.launch {
             snackbarHostState?.showSnackbar(
                 "${prefixTips?.plus(" ") ?: ""}${this@snackbarReport.getPredictableMessage()}",

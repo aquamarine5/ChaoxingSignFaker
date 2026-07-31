@@ -45,9 +45,10 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import coil3.compose.AsyncImage
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingCaptchaResult
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCaptchaHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCaptchaDataEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSigner
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
@@ -56,6 +57,9 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.time.Duration.Companion.seconds
 
+typealias CaptchaHandlerParams<T> = Pair<T, suspend (Result<String>) -> Unit>?
+
+@OptIn(ExperimentalCoroutinesApi::class)
 @Composable
 fun CaptchaHandlerDialog(
     signer: ChaoxingSigner,
@@ -75,16 +79,54 @@ fun CaptchaHandlerDialog(
     val density by remember(containerWidth) { mutableFloatStateOf(containerWidth / 320) }
     val sliderMaxValue = remember(containerWidth) { containerWidth - 56f * density }
 
-    @OnlyAppDevelopedMode val captchaMemories = remember { mutableListOf<ChaoxingCaptchaResult>() }
-    @OnlyAppDevelopedMode var isDisplayCaptchaMemoriesResultDialog by remember {
-        mutableStateOf(
-            false
-        )
+    suspend fun check(normalizedPosition: Float, isCheckingCaptcha: AtomicBoolean?): Boolean {
+        signer.checkCaptchaResult(normalizedPosition, data!!)
+            .let { result ->
+                if (result == null) {
+                    hapticFeedback.performHapticFeedback(
+                        HapticFeedbackType.Reject
+                    )
+                    sliderPosition = 0f
+                    Toast.makeText(
+                        context,
+                        "验证失败，请重试",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    data = signer.getCaptchaImageV2()
+                    isCheckingCaptcha?.set(false)
+                    return false
+                } else {
+                    onResult(Result.success(result))
+                    @OnlyAppDevelopedMode if (!isRecordingCaptchaMemories) {
+                        onDismiss()
+                    } else {
+                        ChaoxingCaptchaHelper.storedCaptchaMemories.getValue(context)[data!!.token] =
+                            normalizedPosition
+                        sliderPosition = 0f
+                        var captchaData: ChaoxingCaptchaDataEntity
+                        do {
+                            captchaData = signer.getCaptchaImageV2()
+                        } while (captchaData.token in ChaoxingCaptchaHelper.getCaptchaMemories(
+                                context
+                            ).keys
+                        )
+                        data = captchaData
+                    }
+                    isCheckingCaptcha?.set(false)
+                    return true
+                }
+            }
     }
 
+    var isDisplayCaptchaDialog by remember { mutableStateOf(false) }
     LaunchedEffect(signer) {
         runCatching {
-            data = signer.getCaptchaImageV2()
+            data = signer.getCaptchaImageV2().also { captchaDataEntity ->
+                ChaoxingCaptchaHelper.storedCaptchaMemories.getValue(context)[captchaDataEntity.token].let {
+                    if (it == null || !check(it, null))
+                        isDisplayCaptchaDialog = true
+                }
+            }
         }.onFailure {
             it.snackbarReport(
                 snackbar,
@@ -94,152 +136,135 @@ fun CaptchaHandlerDialog(
             )
         }
     }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("请完成滑动验证") },
-        text = {
-            if (data != null) {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .aspectRatio(2f)
-                            .onSizeChanged {
-                                containerWidth = it.width.toFloat()
-                            }
-                            .background(Color.Gray)
-                    ) {
-                        AsyncImage(
-                            model = shadeImageUrl,
-                            contentDescription = "背景图",
+
+    if (isDisplayCaptchaDialog)
+        AlertDialog(
+            onDismissRequest = onDismiss,
+            title = { Text("请完成滑动验证") },
+            text = {
+                if (data != null) {
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .zIndex(0f)
-                        )
+                                .aspectRatio(2f)
+                                .onSizeChanged {
+                                    containerWidth = it.width.toFloat()
+                                }
+                                .background(Color.Gray)
+                        ) {
+                            AsyncImage(
+                                model = shadeImageUrl,
+                                contentDescription = "背景图",
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .zIndex(0f)
+                            )
 
-                        AsyncImage(
-                            model = cutoutImageUrl,
-                            contentDescription = "滑块",
-                            modifier = Modifier
-                                .offset { IntOffset((sliderPosition).toInt(), 0) }
-                                .aspectRatio(56f / 160f)
-                                .fillMaxHeight()
-                                .zIndex(1f)
+                            AsyncImage(
+                                model = cutoutImageUrl,
+                                contentDescription = "滑块",
+                                modifier = Modifier
+                                    .offset { IntOffset((sliderPosition).toInt(), 0) }
+                                    .aspectRatio(56f / 160f)
+                                    .fillMaxHeight()
+                                    .zIndex(1f)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+                        val isCheckingCaptcha = remember { AtomicBoolean(false) }
+                        Slider(
+                            value = sliderPosition,
+                            onValueChange = {
+                                if (isCheckingCaptcha.get()) {
+                                    return@Slider
+                                }
+                                sliderPosition = it
+                            },
+                            onValueChangeFinished = {
+                                if (isCheckingCaptcha.get()) {
+                                    return@Slider
+                                }
+                                coroutineScope.launch {
+                                    runCatching {
+                                        isCheckingCaptcha.set(true)
+                                        // (-8 ~ 272) + 28
+                                        // 0 ~280
+                                        val normalizedPosition =
+                                            (sliderPosition / sliderMaxValue) * 280f - 8
+
+                                        check(normalizedPosition, isCheckingCaptcha)
+                                    }.onFailure {
+                                        it.snackbarReport(
+                                            snackbar,
+                                            coroutineScope,
+                                            "验证码校验失败",
+                                            hapticFeedback
+                                        )
+                                        onResult(Result.failure(it))
+                                        onDismiss()
+                                        isCheckingCaptcha.set(false)
+                                    }
+                                }
+                            },
+                            valueRange = 0f..sliderMaxValue,
+                            modifier = Modifier.fillMaxWidth()
                         )
                     }
+                } else {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.Center,
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        CircularProgressIndicator()
 
-                    Spacer(modifier = Modifier.height(16.dp))
-                    val isCheckingCaptcha = remember { AtomicBoolean(false) }
-                    Slider(
-                        value = sliderPosition,
-                        onValueChange = {
-                            if (isCheckingCaptcha.get()) {
-                                return@Slider
-                            }
-                            sliderPosition = it
-                        },
-                        onValueChangeFinished = {
-                            if (isCheckingCaptcha.get()) {
-                                return@Slider
-                            }
-                            coroutineScope.launch {
-                                runCatching {
-                                    isCheckingCaptcha.set(true)
-                                    // (-8 ~ 272) + 28
-                                    // 0 ~280
-                                    val normalizedPosition =
-                                        (sliderPosition / sliderMaxValue) * 280f - 8
-
-                                    signer.checkCaptchaResult(normalizedPosition, data!!)
-                                        .let { result ->
-                                            if (result == null) {
-                                                hapticFeedback.performHapticFeedback(
-                                                    HapticFeedbackType.Reject
-                                                )
-                                                sliderPosition = 0f
-                                                Toast.makeText(
-                                                    context,
-                                                    "验证失败，请重试",
-                                                    Toast.LENGTH_SHORT
-                                                ).show()
-                                                data = signer.getCaptchaImageV2()
-                                                isCheckingCaptcha.set(false)
-                                            } else {
-                                                onResult(Result.success(result))
-                                                onDismiss()
-                                                isCheckingCaptcha.set(false)
-                                            }
-                                        }
-                                }.onFailure {
-                                    it.snackbarReport(
-                                        snackbar,
-                                        coroutineScope,
-                                        "验证码校验失败",
-                                        hapticFeedback
-                                    )
-                                    onResult(Result.failure(it))
-                                    onDismiss()
-                                    isCheckingCaptcha.set(false)
+                        var shouldRetry by remember(data) { mutableStateOf(false) }
+                        LaunchedEffect(data) {
+                            delay(5.seconds)
+                            shouldRetry = true
+                        }
+                        AnimatedVisibility(shouldRetry, enter = fadeIn() + slideInVertically()) {
+                            Button(onClick = {
+                                coroutineScope.launch {
+                                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                                    runCatching {
+                                        data = signer.getCaptchaImageV2()
+                                    }.onFailure {
+                                        it.snackbarReport(
+                                            snackbar,
+                                            coroutineScope,
+                                            "获取验证码信息失败",
+                                            hapticFeedback
+                                        )
+                                    }
                                 }
+                            }) {
+                                Text("重试")
                             }
-                        },
-                        valueRange = 0f..sliderMaxValue,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            } else {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    CircularProgressIndicator()
-
-                    var shouldRetry by remember(data) { mutableStateOf(false) }
-                    LaunchedEffect(data) {
-                        delay(5.seconds)
-                        shouldRetry = true
-                    }
-                    AnimatedVisibility(shouldRetry, enter = fadeIn() + slideInVertically()) {
-                        Button(onClick = {
-                            coroutineScope.launch {
-                                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                                runCatching {
-                                    data = signer.getCaptchaImageV2()
-                                }.onFailure {
-                                    it.snackbarReport(
-                                        snackbar,
-                                        coroutineScope,
-                                        "获取验证码信息失败",
-                                        hapticFeedback
-                                    )
-                                }
-                            }
-                        }) {
-                            Text("重试")
                         }
                     }
                 }
-            }
-        },
-        dismissButton = {
-            Button(onClick = {
-                coroutineScope.launch {
-                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                    data = signer.getCaptchaImageV2()
+            },
+            dismissButton = {
+                Button(onClick = {
+                    coroutineScope.launch {
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                        data = signer.getCaptchaImageV2()
+                    }
+                }) {
+                    Text("刷新验证码")
                 }
-            }) {
-                Text("刷新验证码")
-            }
-        },
-        confirmButton = {
-            OutlinedButton(
-                onClick = {
-                    onDismiss()
+            },
+            confirmButton = {
+                OutlinedButton(
+                    onClick = {
+                        onDismiss()
+                    }
+                ) {
+                    Text("取消")
                 }
-            ) {
-                Text("取消")
             }
-        }
-    )
+        )
 }

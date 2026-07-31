@@ -35,7 +35,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.ui.theme.Orange
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import java.util.concurrent.TimeUnit
+import kotlin.time.Duration.Companion.hours
 
 @Composable
 fun SignPotentialWarningTips(
@@ -90,7 +90,7 @@ fun SignPotentialWarningTips(
                 }
             }
         else
-            if (System.currentTimeMillis() - startTime > TimeUnit.HOURS.toMillis(6))
+            if (System.currentTimeMillis() - startTime > 6.hours.inWholeMilliseconds)
                 Card(
                     shape = RoundedCornerShape(18.dp),
                     colors = CardDefaults.cardColors(

@@ -6,9 +6,22 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.utilities
 
+import androidx.compose.runtime.Composable
+
 @Retention(AnnotationRetention.SOURCE)
 @Target(
-    AnnotationTarget.VALUE_PARAMETER, AnnotationTarget.FUNCTION, AnnotationTarget.LOCAL_VARIABLE,
+    AnnotationTarget.VALUE_PARAMETER,
+    AnnotationTarget.FUNCTION,
+    AnnotationTarget.LOCAL_VARIABLE,
+    AnnotationTarget.EXPRESSION,
     AnnotationTarget.PROPERTY
 )
-public annotation class OnlyAppDevelopedMode()
+annotation class OnlyAppDevelopedMode()
+
+@OnlyAppDevelopedMode
+fun disableComposableCode(block: @Composable () -> Unit) {
+}
+
+@OnlyAppDevelopedMode
+fun disableCode(block: suspend () -> Unit) {
+}

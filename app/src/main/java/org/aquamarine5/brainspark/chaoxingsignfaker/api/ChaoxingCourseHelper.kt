@@ -8,14 +8,18 @@ package org.aquamarine5.brainspark.chaoxingsignfaker.api
 
 import android.content.Context
 import android.widget.Toast
+import com.alibaba.fastjson2.JSONArray
 import com.alibaba.fastjson2.JSONObject
+import io.sentry.Sentry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Request
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCourseEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingParseDataException
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.OnlyAppDevelopedMode
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.checkResponse
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.checkResponseThrowException
 
 object ChaoxingCourseHelper {
     private val URL_COURSE_LIST =
@@ -82,6 +86,54 @@ object ChaoxingCourseHelper {
         }
     }
 
+    private fun MutableList<ChaoxingCourseEntity>.parseCourseListData(channelList: JSONArray) {
+        for (i in channelList.indices) {
+            val course = channelList.getJSONObject(i)
+            val content = course.getJSONObject("content")
+            if (!content.containsKey("course")) continue
+            if (!course.containsKey("cataName")) continue
+            val courseContent =
+                content.getJSONObject("course").getJSONArray("data").getJSONObject(0)
+            runCatching {
+                add(
+                    ChaoxingCourseEntity(
+                        courseContent.getString("name"),
+                        courseContent.getString("teacherfactor"),
+                        courseContent.getInteger("id"),
+                        content.getInteger("id"),
+                        courseContent.getString("name"),
+                        courseContent.getString("imageurl")
+                            ?: "https://p.ananas.chaoxing.com/star3/270_160c/669ca80d6a0c5f74835bb936a41aabca.jpg",
+                        courseContent.getString("schools"),
+                        isCloneSession = false
+                    )
+                )
+            }.getOrElse {
+                Sentry.captureException(
+                    ChaoxingParseDataException(
+                        "课程数据解析失败: ${it.message}",
+                        it,
+                        course.toJSONString()
+                    )
+                )
+            }
+        }
+    }
+
+    @OnlyAppDevelopedMode
+    suspend fun getAllCourse(client: ChaoxingHttpClient): List<ChaoxingCourseEntity> =
+        withContext(Dispatchers.IO) {
+            buildList {
+                client.newCall(Request.Builder().get().url(URL_COURSE_LIST).build()).execute()
+                    .use { rawResponse ->
+                        rawResponse.checkResponseThrowException()
+                        val jsonResult = JSONObject.parseObject(rawResponse.body.string())
+                        val channelList = jsonResult.getJSONArray("channelList")
+                        parseCourseListData(channelList)
+                    }
+            }
+        }
+
     suspend fun getAllCourse(
         client: ChaoxingHttpClient,
         context: Context,
@@ -136,36 +188,7 @@ object ChaoxingCourseHelper {
                             }
                         }
 
-                        for (i in channelList.indices) {
-                            val course = channelList.getJSONObject(i)
-                            val content = course.getJSONObject("content")
-                            if (!content.containsKey("course")) continue
-                            if (!course.containsKey("cataName")) continue
-                            val courseContent =
-                                content.getJSONObject("course").getJSONArray("data")
-                                    .getJSONObject(0)
-                            runCatching {
-                                add(
-                                    ChaoxingCourseEntity(
-                                        courseContent.getString("name"),
-                                        courseContent.getString("teacherfactor"),
-                                        courseContent.getInteger("id"),
-                                        content.getInteger("id"),
-                                        courseContent.getString("name"),
-                                        courseContent.getString("imageurl")
-                                            ?: "https://p.ananas.chaoxing.com/star3/270_160c/669ca80d6a0c5f74835bb936a41aabca.jpg",
-                                        courseContent.getString("schools"),
-                                        isCloneSession = isCloneSession
-                                    )
-                                )
-                            }.getOrElse {
-                                throw ChaoxingParseDataException(
-                                    "课程数据解析失败: ${it.message}",
-                                    it,
-                                    course.toJSONString()
-                                )
-                            }
-                        }
+                        parseCourseListData(channelList)
                     }
             }
         }

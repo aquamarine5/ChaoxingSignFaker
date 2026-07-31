@@ -80,6 +80,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCaptchaHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.initializeClientInfo
@@ -125,6 +126,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostS
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.isDevelopedMode
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
 import org.aquamarine5.brainspark.stackbricks.StackbricksPolicy
 import org.aquamarine5.brainspark.stackbricks.StackbricksService
 import org.aquamarine5.brainspark.stackbricks.providers.qiniu.QiniuConfiguration
@@ -135,6 +137,7 @@ import java.security.MessageDigest
 import java.util.concurrent.TimeUnit
 import kotlin.reflect.typeOf
 import kotlin.system.exitProcess
+import kotlin.time.Duration.Companion.days
 
 class MainActivity : ComponentActivity() {
     companion object {
@@ -392,6 +395,22 @@ class MainActivity : ComponentActivity() {
                                         datastore.preferences.customizedUserAgent,
                                         datastore.preferences.customizedPackageName
                                     )
+                                    if (System.currentTimeMillis() - datastore.captchaMemories.lastCheckRemoteMemoriesTimestamp > 1.days.inWholeMilliseconds)
+                                        launch {
+                                            runCatching {
+                                                ChaoxingCaptchaHelper.updateRemoteCaptchaMemoriesData(
+                                                    applicationContext
+                                                )
+                                            }.onFailure {
+                                                it.snackbarReport(
+                                                    snackbarHostState,
+                                                    this,
+                                                    "更新验证码记忆数据失败",
+                                                    hapticFeedback,
+                                                    shouldDismiss = false
+                                                )
+                                            }
+                                        }
                                     isDevelopedMode = datastore.preferences.isDevelopedMode
                                     isAlwaysForceSign = datastore.preferences.alwaysForceSign
                                     destination =
@@ -519,7 +538,10 @@ class MainActivity : ComponentActivity() {
                                         }
 
                                         composable<GroupListDestination> {
-                                            GroupListScreen(it.toRoute(),imageLoader) { destination ->
+                                            GroupListScreen(
+                                                it.toRoute(),
+                                                imageLoader
+                                            ) { destination ->
                                                 navController.navigate(destination)
                                             }
                                         }

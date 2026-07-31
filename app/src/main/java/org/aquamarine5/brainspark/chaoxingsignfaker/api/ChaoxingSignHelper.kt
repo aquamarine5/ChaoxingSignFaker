@@ -22,8 +22,14 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.screen.GetLocationDestinatio
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.PasswordSignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.PhotoSignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.QRCodeSignDestination
+import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingGestureSigner
+import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingLocationSigner
+import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingPasswordSigner
+import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingPhotoSigner
+import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingQRCodeSigner
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSigner
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingPredictableException
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.OnlyAppDevelopedMode
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.checkResponseThrowException
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.time.Duration.Companion.milliseconds
@@ -64,6 +70,47 @@ object ChaoxingSignHelper {
             painterResource(id = iconRes)
         }
     }
+
+    @OnlyAppDevelopedMode
+    fun getSigner(
+        client: ChaoxingHttpClient,
+        activity: ChaoxingSignActivityEntity,
+        isLate: Boolean = false,
+        isCloneSession: Boolean = false
+    ): ChaoxingSigner =
+        when (activity.otherId) {
+            "5" -> ChaoxingPasswordSigner(
+                client,
+                PasswordSignDestination.parseFromSignActivityEntity(
+                    activity,
+                    isLate,
+                    isCloneSession
+                )
+            )
+
+            "4" -> ChaoxingLocationSigner(
+                client,
+                GetLocationDestination.parseFromSignActivityEntity(activity, isLate, isCloneSession)
+            )
+
+            "2" -> ChaoxingQRCodeSigner(
+                client,
+                QRCodeSignDestination.parseFromSignActivityEntity(activity, isLate, isCloneSession)
+            )
+
+            "0" -> ChaoxingPhotoSigner(
+                client,
+                PhotoSignDestination.parseFromSignActivityEntity(activity, isLate, isCloneSession)
+            )
+
+            "3" -> ChaoxingGestureSigner(
+                client,
+                GestureSignDestination.parseFromSignActivityEntity(activity, isLate, isCloneSession)
+            )
+
+            else -> throw ChaoxingUnsupportedSignTypeException()
+        }
+
 
     fun getSignDestination(
         context: Context,

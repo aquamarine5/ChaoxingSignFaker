@@ -59,6 +59,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingSignHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.SignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerDialog
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerParams
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NetworkExceptionComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NotReadyToSignNoticeComponent
@@ -135,7 +136,7 @@ fun PasswordSignScreen(
         SponsorPopupDialog()
     }
     var captchaValidateParams by remember {
-        mutableStateOf<Pair<ChaoxingPasswordSigner, suspend (Result<String>) -> Unit>?>(
+        mutableStateOf<CaptchaHandlerParams<ChaoxingPasswordSigner>>(
             null
         )
     }

@@ -58,6 +58,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingSignHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.SignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerDialog
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerParams
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CloneSessionTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NetworkExceptionComponent
@@ -131,7 +132,7 @@ fun GestureSignScreen(
         SponsorPopupDialog()
     }
     var captchaValidateParams by remember {
-        mutableStateOf<Pair<ChaoxingGestureSigner, suspend (Result<String>) -> Unit>?>(
+        mutableStateOf<CaptchaHandlerParams<ChaoxingGestureSigner>>(
             null
         )
     }
@@ -219,7 +220,6 @@ fun GestureSignScreen(
                             )
                     }
                 } else if (c == ChaoxingSignActivityStatus.READY_TO_SIGN) {
-
                     var isCheckingStatus by remember { mutableStateOf(false) }
                     var text by remember { mutableStateOf("") }
                     val signStatus = remember { mutableListOf(ChaoxingSignStatus(hapticFeedback)) }

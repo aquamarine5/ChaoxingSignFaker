@@ -121,6 +121,4 @@ object ChaoxingCloudDriveHelper {
                 JSONObject.parseObject(it.body.string()).getString("objectId")
             }
         }
-
-
 }

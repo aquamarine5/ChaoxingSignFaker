@@ -72,6 +72,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingSignHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.SignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CameraComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerDialog
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerParams
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NetworkExceptionComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NotReadyToSignNoticeComponent
@@ -153,7 +154,7 @@ fun PhotoSignScreen(
         SponsorPopupDialog()
     }
     var captchaValidateParams by remember {
-        mutableStateOf<Pair<ChaoxingPhotoSigner, suspend (Result<String>) -> Unit>?>(null)
+        mutableStateOf<CaptchaHandlerParams<ChaoxingPhotoSigner>>(null)
     }
     if (captchaValidateParams != null) {
         CaptchaHandlerDialog(

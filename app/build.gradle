@@ -11,7 +11,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     id("org.aquamarine5.brainspark.stackbricks-gradle-plugin") version "2.2.7"
     id("com.google.protobuf") version "0.9.6"
-    id "io.sentry.android.gradle" version "6.14.0"
+    id "io.sentry.android.gradle" version "6.16.0"
     id("org.jetbrains.kotlin.plugin.serialization") version "2.4.10"
 }
 
@@ -27,11 +27,10 @@ stackbricksConfig {
     ]
     changelog =
             "**随地大小签是开源软件，但这不意味着你可以随意修改代码并二次分发。**\n" +
+                    "# 1.16.1 更新：\n1. 低估了上一个版本的群聊列表更新技术难度，但现已成功攻克，可以正常使用了。\n\n" +
                     "# 1.16.0 更新：\n1. 由于学习通更新导致原接口失效，修复了获取群聊列表失败的问题。\n\n" +
                     "# 1.15.0 更新：\n1. 支持登录代签用户的账号以给他有你没有的课程签到\n\n" +
-                    "# 1.14.7 更新：\n1. （重要）修复了含验证码签到的代签时出现的签到失败错误。\n2. 修复了在可能错误的设置下导致的无法加载课程图片问题、\n3. 修复了二维码签到时重复进入扫描页面可能导致的崩溃问题。\n4. 修复了验证码签到在弹窗后不会自动关闭的问题。\n5. 提升了自动更新二维码签到的签到速度。\n6. 优化了人脸识别相关设备参数的获取方式。\n\n"
-    "# 1.14.6 更新：\n1. （重要）回退了百度地图定位依赖的更新，因为发现有时会导致位置签到的崩溃。\n2. 签到排行榜从Top20改成了Top50，同时如果不在Top50时也可以看到自己的排名是多少。\n\n" +
-            "lovely but not lonely, 20260607 高考加油, @aquamarine5 Brainspark."
+            "lovely but not lonely, 20260731 life need dimoo, @aquamarine5 Brainspark."
     requiredManifestVersion2MigrateForceInstall = true
     forceInstallLessVersion = 1_1407_2000
     qiniuConfig {
@@ -54,8 +53,8 @@ android {
         applicationId = "org.aquamarine5.brainspark.chaoxingsignfaker"
         minSdk = 26
         targetSdk = 37
-        versionCode = 1_1600_1215
-        versionName = "1.16.0-stable-260726"
+        versionCode = 1_1601_1215
+        versionName = "1.16.1-stable-260731"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -73,6 +72,9 @@ android {
     }
     buildTypes {
         release {
+            optimization {
+                enable = true // Enables code and resource optimizations.
+            }
             minifyEnabled true
             shrinkResources true
             proguardFiles(
@@ -82,11 +84,13 @@ android {
             signingConfig signingConfigs.chaoxingsignfaker
             buildConfigField("String", "releaseDate", "\"${new Date().format('yyyy-MM-dd HH:mm:ss')}\"")
             buildConfigField("String", "umengChannel", "\"${System.getenv("UMENG_CHANNEL")}\"" ?: '"Stackbricks"')
+            buildConfigField("String", "imEncryptedKey", "\"${project.findProperty("imEncryptedKey")?: System.getenv("imEncryptedKey") ?: ""}\"")
         }
         debug {
             signingConfig signingConfigs.chaoxingsignfaker
             buildConfigField("String", "releaseDate", "\"${new Date().format('yyyy-MM-dd HH:mm:ss')}\"")
             buildConfigField("String", "umengChannel", "\"${System.getenv("UMENG_CHANNEL")}\"" ?: '"Stackbricks"')
+            buildConfigField("String", "imEncryptedKey", "\"${project.findProperty("imEncryptedKey")?: System.getenv("imEncryptedKey") ?: ""}\"")
         }
     }
 

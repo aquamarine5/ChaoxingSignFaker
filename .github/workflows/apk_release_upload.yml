@@ -29,6 +29,7 @@ jobs:
           UMENG_CHANNEL: GithubRelease
           SENTRY_AUTH_TOKEN : ${{ secrets.SENTRY_AUTH_TOKEN }}
           keystorePassword: ${{ secrets.KEYSTORE_PASSWORD }}
+          imEncryptedKey: ${{ secrets.IMENCRYPTEDKEY }}
       - name: Build apk file with Gradle
         run: ./gradlew assembleRelease
         env:
@@ -36,6 +37,7 @@ jobs:
           UMENG_CHANNEL: GithubRelease
           SENTRY_AUTH_TOKEN : ${{ secrets.SENTRY_AUTH_TOKEN }}
           keystorePassword: ${{ secrets.KEYSTORE_PASSWORD }}
+          imEncryptedKey: ${{ secrets.IMENCRYPTEDKEY }}
       - name: Get version code
         id: version
         run: echo "VERSION=${GITHUB_REF:10}" >> $GITHUB_OUTPUT
@@ -49,4 +51,5 @@ jobs:
           GH_TOKEN: ${{ secrets.GHP_TOKEN }}
           UMENG_CHANNEL: GithubRelease
           SENTRY_AUTH_TOKEN : ${{ secrets.SENTRY_AUTH_TOKEN }}
+          imEncryptedKey: ${{ secrets.IMENCRYPTEDKEY }}
           keystorePassword: ${{ secrets.KEYSTORE_PASSWORD }}

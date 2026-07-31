@@ -11,6 +11,7 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
@@ -77,6 +78,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
@@ -107,6 +110,7 @@ fun AnalyserCard() {
         var displayRankCount by remember { mutableIntStateOf(50) }
         var isHideAnalyserSchoolName by remember { mutableStateOf(false) }
         var displaySchoolName by remember { mutableStateOf("") }
+        var previousSchoolName by remember { mutableStateOf("") }
         LaunchedEffect(analyser.isLoaded) {
             if (analyser.isLoaded.value.not())
                 ChaoxingAnalyser.setupStateAnalyser(context)
@@ -134,6 +138,7 @@ fun AnalyserCard() {
                             return@let get(0)
                         }
                     }
+                previousSchoolName = displaySchoolName
                 lastUploadTimestamp = dataStore.lastUploadAnalysisTimestamp
                 isDisableAnalyserRank = dataStore.disableAnalysisRank
                 isHideAnalyserSchoolName = dataStore.hideAnalysisRankSchoolName
@@ -226,8 +231,20 @@ fun AnalyserCard() {
             })
         }
         if (isAnalyserRankHelpDialog) {
-            AlertDialog(onDismissRequest = {
+            fun dismissDialogAction() {
+                if (displaySchoolName != previousSchoolName)
+                    coroutineScope.launch(Dispatchers.IO) {
+                        context.chaoxingDataStore.updateData {
+                            it.toBuilder()
+                                .setSelectedAnalysisRankSchoolName(displaySchoolName)
+                                .build()
+                        }
+                        previousSchoolName = displaySchoolName
+                    }
                 isAnalyserRankHelpDialog = false
+            }
+            AlertDialog(onDismissRequest = {
+                dismissDialogAction()
             }, icon = {
                 Icon(
                     painterResource(R.drawable.ic_info),
@@ -238,62 +255,86 @@ fun AnalyserCard() {
             }, title = {
                 Text("排行榜说明")
             }, text = {
-                Column {
-                    Text("随地大小签的签到排行榜每日根据用户的签到数据上传至数据库进行更新，并非实时更新，上传的数据不会包含学习通账号的隐私信息，上传的数据仅用作排行榜展示，不会用于其他用途。随地大小签的排行榜功能仍在测试阶段。\n如果不想展示学校信息，可以勾选下方的【隐藏上传学校信息】。\n请注意，任何操作都会在修改后的第二天打开应用时提交至服务器进行修改。")
-                    HorizontalDivider(modifier = Modifier.padding(0.dp, 8.dp, 0.dp, 0.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Switch(
-                            checked = isHideAnalyserSchoolName,
-                            onCheckedChange = {
-                                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                                isHideAnalyserSchoolName = it
-                                coroutineScope.launch {
-                                    context.chaoxingDataStore.updateData {
-                                        it.toBuilder()
-                                            .setHideAnalysisRankSchoolName(isHideAnalyserSchoolName)
-                                            .build()
+                Column() {
+                    Column(
+                        modifier = Modifier
+                            .background(
+                                MaterialTheme.colorScheme.surfaceContainerHigh
+                            )
+                            .zIndex(1f)
+                    ) {
+                        Text("随地大小签的签到排行榜每日根据用户的签到数据上传至数据库进行更新，并非实时更新，上传的数据不会包含学习通账号的隐私信息，上传的数据仅用作排行榜展示，不会用于其他用途。随地大小签的排行榜功能仍在测试阶段。\n如果不想展示学校信息，可以勾选下方的【隐藏上传学校信息】。\n请注意，任何操作都会在修改后的第二天打开应用时提交至服务器进行修改。")
+                        HorizontalDivider(modifier = Modifier.padding(0.dp, 8.dp, 0.dp, 0.dp))
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+
+                            ) {
+                            Switch(
+                                checked = isHideAnalyserSchoolName,
+                                onCheckedChange = {
+                                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                                    isHideAnalyserSchoolName = it
+                                    coroutineScope.launch {
+                                        context.chaoxingDataStore.updateData {
+                                            it.toBuilder()
+                                                .setHideAnalysisRankSchoolName(
+                                                    isHideAnalyserSchoolName
+                                                )
+                                                .build()
+                                        }
                                     }
                                 }
-                            }
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("隐藏上传学校信息")
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("隐藏上传学校信息")
+                        }
                     }
                     AnimatedVisibility(
                         !isHideAnalyserSchoolName,
                         enter = slideInVertically(),
-                        exit = slideOutVertically()
+                        exit = slideOutVertically(targetOffsetY = { -it })
                     ) {
                         val schoolNames =
                             remember { ChaoxingHttpClient.instance!!.userEntity.schoolName }
                         var isExpanded by remember { mutableStateOf(false) }
-                        ExposedDropdownMenuBox(expanded = isExpanded, onExpandedChange = {
-                            isExpanded = it
-                        }) {
-                            TextField(
-                                displaySchoolName,
-                                onValueChange = {},
-                                readOnly = true,
-                                modifier = Modifier.menuAnchor(
-                                    ExposedDropdownMenuAnchorType.PrimaryNotEditable
-                                ),
-                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = isExpanded) },
-                                colors = ExposedDropdownMenuDefaults.textFieldColors(),
-                            )
-                            ExposedDropdownMenu(expanded = isExpanded, onDismissRequest = {
-                                isExpanded = false
+                        Column {
+                            Text("用于展示的学校名称：")
+                            ExposedDropdownMenuBox(expanded = isExpanded, onExpandedChange = {
+                                isExpanded = it
                             }) {
-                                schoolNames.forEach { name ->
-                                    DropdownMenuItem(
-                                        text = {
-                                            Text(name, style = MaterialTheme.typography.bodyLarge)
-                                        },
-                                        onClick = {
-                                            displaySchoolName = name
-                                            isExpanded = false
-                                        },
-                                        contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
-                                    )
+                                TextField(
+                                    displaySchoolName,
+                                    onValueChange = {},
+                                    readOnly = true,
+                                    modifier = Modifier.menuAnchor(
+                                        ExposedDropdownMenuAnchorType.PrimaryNotEditable
+                                    ),
+                                    trailingIcon = {
+                                        ExposedDropdownMenuDefaults.TrailingIcon(
+                                            expanded = isExpanded
+                                        )
+                                    },
+                                    colors = ExposedDropdownMenuDefaults.textFieldColors(),
+                                )
+                                ExposedDropdownMenu(expanded = isExpanded, onDismissRequest = {
+                                    isExpanded = false
+                                }) {
+                                    schoolNames.forEach { name ->
+                                        DropdownMenuItem(
+                                            text = {
+                                                Text(
+                                                    name,
+                                                    style = MaterialTheme.typography.bodyLarge
+                                                )
+                                            },
+                                            onClick = {
+                                                displaySchoolName = name
+                                                isExpanded = false
+                                            },
+                                            contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding,
+                                            enabled = !name[0].isDigit()
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -302,7 +343,7 @@ fun AnalyserCard() {
             }, confirmButton = {
                 Button(onClick = {
                     hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                    isAnalyserRankHelpDialog = false
+                    dismissDialogAction()
                 }) { Text("关闭") }
             })
         }
