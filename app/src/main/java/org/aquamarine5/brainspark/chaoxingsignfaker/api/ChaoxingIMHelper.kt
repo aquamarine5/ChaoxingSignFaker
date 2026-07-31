@@ -49,8 +49,8 @@ object ChaoxingIMHelper {
     val URL_IM_GROUPS = "https://im.chaoxing.com/webim/message/list/getMessageList".toHttpUrl()
 
     val URL_EASEMOB_IM_TOKEN = "https://a1-vip6.easemob.com/cx-dev/cxstudy/token".toHttpUrl()
-    val URL_EASEMOB_IM_JOINED_GROUPS =
-        "https://a1-vip6.easemob.com/cx-dev/cxstudy/users/295148424/joined_chatgroups?detail=true&version=v3&pagenum=1&pagesize=200".toHttpUrl()
+    const val URL_EASEMOB_IM_JOINED_GROUPS =
+        "https://a1-vip6.easemob.com/cx-dev/cxstudy/users/%s/joined_chatgroups?detail=true&version=v3&pagenum=1&pagesize=200"
 
     const val URL_MESSAGE_ROAMING =
         "https://a1-vip6.easecdn.com/cx-dev/cxstudy/users/%s/messageroaming"
@@ -147,7 +147,7 @@ object ChaoxingIMHelper {
         return withContext(Dispatchers.IO) {
             httpClient.newCall(
                 Request.Builder()
-                    .url(URL_EASEMOB_IM_JOINED_GROUPS)
+                    .url(URL_EASEMOB_IM_JOINED_GROUPS.format(imConfig.username))
                     .addHeader("Authorization", "Bearer ${imConfig.accessToken}")
                     .header("User-Agent", USER_AGENT_EASEMOB)
                     .build()
