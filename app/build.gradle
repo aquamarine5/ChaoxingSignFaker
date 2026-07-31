@@ -27,6 +27,7 @@ stackbricksConfig {
     ]
     changelog =
             "**随地大小签是开源软件，但这不意味着你可以随意修改代码并二次分发。**\n" +
+                    "# 1.16.2 更新：\n1. 修复了在某些情况下无法正确显示群聊列表的问题。\n\n" +
                     "# 1.16.1 更新：\n1. 低估了上一个版本的群聊列表更新技术难度，但现已成功攻克，可以正常使用了。\n\n" +
                     "# 1.16.0 更新：\n1. 由于学习通更新导致原接口失效，修复了获取群聊列表失败的问题。\n\n" +
                     "# 1.15.0 更新：\n1. 支持登录代签用户的账号以给他有你没有的课程签到\n\n" +
@@ -53,8 +54,8 @@ android {
         applicationId = "org.aquamarine5.brainspark.chaoxingsignfaker"
         minSdk = 26
         targetSdk = 37
-        versionCode = 1_1601_1215
-        versionName = "1.16.1-stable-260731"
+        versionCode = 1_1602_1215
+        versionName = "1.16.2-stable-260731"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
