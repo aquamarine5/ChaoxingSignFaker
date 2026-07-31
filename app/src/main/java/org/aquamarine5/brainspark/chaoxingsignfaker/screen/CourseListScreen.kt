@@ -506,7 +506,6 @@ fun CourseListScreen(
                                             }
                                         }
                                     }
-                                    Spacer(modifier = Modifier.height(8.dp))
                                 }
                                 items(activitiesData) { data ->
                                     key(data.classId) {

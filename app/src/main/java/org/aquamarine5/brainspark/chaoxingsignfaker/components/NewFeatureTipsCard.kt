@@ -10,9 +10,11 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -43,45 +45,48 @@ fun NewFeatureTipsCard(
 ) {
     val hapticFeedback = LocalHapticFeedback.current
     AnimatedVisibility(isDisplay.value, enter = slideInVertically(), exit = slideOutVertically()) {
-        Card(
-            modifier = modifier
-                .fillMaxWidth(),
-            shape = RoundedCornerShape(8.dp),
-            elevation = CardDefaults.cardElevation(4.dp)
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.padding(
-                    11.dp, 8.dp
-                )
+        Column {
+            Card(
+                modifier = modifier
+                    .fillMaxWidth(),
+                shape = RoundedCornerShape(8.dp),
+                elevation = CardDefaults.cardElevation(4.dp)
             ) {
-                Icon(
-                    painterResource(R.drawable.ic_sparkles),
-                    null,
-                    tint = Color.Gray,
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    tipsText,
-                    modifier = Modifier.weight(1f),
-                    fontSize = 14.sp,
-                    lineHeight = 16.sp
-                )
-                IconButton(
-                    onClick = {
-                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                        onDismiss()
-                        isDisplay.value = false
-                    },
-                    modifier = Modifier.size(32.dp)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.padding(
+                        11.dp, 8.dp
+                    )
                 ) {
                     Icon(
-                        painterResource(R.drawable.ic_x),
-                        contentDescription = "关闭提示"
+                        painterResource(R.drawable.ic_sparkles),
+                        null,
+                        tint = Color.Gray,
                     )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        tipsText,
+                        modifier = Modifier.weight(1f),
+                        fontSize = 14.sp,
+                        lineHeight = 16.sp
+                    )
+                    IconButton(
+                        onClick = {
+                            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                            onDismiss()
+                            isDisplay.value = false
+                        },
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            painterResource(R.drawable.ic_x),
+                            contentDescription = "关闭提示"
+                        )
+                    }
                 }
             }
+            Spacer(modifier = Modifier.height(8.dp))
         }
     }
 }
