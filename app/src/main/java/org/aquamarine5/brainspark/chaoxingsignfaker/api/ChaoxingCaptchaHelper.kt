@@ -38,7 +38,7 @@ object ChaoxingCaptchaHelper {
     }
 
     @OnlyAppDevelopedMode
-    suspend fun saveCaptchaMemories(context: Context){
+    suspend fun saveCaptchaMemories(context: Context) {
         context.chaoxingDataStore.updateData { dataStore ->
             dataStore.toBuilder()
                 .setCaptchaMemories(

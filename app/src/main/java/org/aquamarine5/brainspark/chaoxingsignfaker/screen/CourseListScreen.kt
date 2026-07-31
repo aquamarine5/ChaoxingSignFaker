@@ -64,6 +64,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import coil3.ImageLoader
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -428,7 +429,7 @@ fun CourseListScreen(
                             var debouncePreviousTime = 0L
                             LazyColumn {
                                 item {
-                                    Card {
+                                    Card(modifier = Modifier.zIndex(1f)) {
                                         Row(
                                             verticalAlignment = Alignment.CenterVertically,
                                             modifier = Modifier

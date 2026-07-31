@@ -44,7 +44,11 @@ fun NewFeatureTipsCard(
     onDismiss: () -> Unit
 ) {
     val hapticFeedback = LocalHapticFeedback.current
-    AnimatedVisibility(isDisplay.value, enter = slideInVertically(), exit = slideOutVertically()) {
+    AnimatedVisibility(
+        isDisplay.value,
+        enter = slideInVertically(),
+        exit = slideOutVertically(targetOffsetY = { -it })
+    ) {
         Column {
             Card(
                 modifier = modifier

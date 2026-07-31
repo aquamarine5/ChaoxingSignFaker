@@ -58,7 +58,7 @@ object ChaoxingIMHelper {
 
     val IM_ENCRYPTED_KEY = BuildConfig.imEncryptedKey.toByteArray(Charsets.UTF_8)
 
-//
+    //
 //    fun initializeEasemobClient(httpClient: ChaoxingHttpClient, context: Context) {
 //        EMClient.getInstance().init(context, EMOptions().apply {
 //            appKey = "cx-dev#cxstudy"
@@ -103,7 +103,7 @@ object ChaoxingIMHelper {
 //    ): List<ChaoxingIMGroup> {
 //        return TODO()
 //    }
-    fun desDecrypt(imEncryptedPassword:String): String {
+    fun desDecrypt(imEncryptedPassword: String): String {
         @Suppress("GetInstance")
         val cipher = Cipher.getInstance("DES/ECB/PKCS5Padding")
         val secretKey = SecretKeySpec(IM_ENCRYPTED_KEY, "DES")
@@ -118,7 +118,10 @@ object ChaoxingIMHelper {
                     .post(
                         JSONObject()
                             .fluentPut("grant_type", "password")
-                            .fluentPut("password", desDecrypt(httpClient.userEntity.imEncryptedPassword))
+                            .fluentPut(
+                                "password",
+                                desDecrypt(httpClient.userEntity.imEncryptedPassword)
+                            )
                             .fluentPut("username", httpClient.userEntity.uid)
                             .toJSONString().toRequestBody()
                     )

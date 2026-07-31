@@ -100,7 +100,8 @@ fun CaptchaHandlerDialog(
                     @OnlyAppDevelopedMode if (!isRecordingCaptchaMemories) {
                         onDismiss()
                     } else {
-                        ChaoxingCaptchaHelper.storedCaptchaMemories.getValue(context)[data!!.token] = normalizedPosition
+                        ChaoxingCaptchaHelper.storedCaptchaMemories.getValue(context)[data!!.token] =
+                            normalizedPosition
                         sliderPosition = 0f
                         var captchaData: ChaoxingCaptchaDataEntity
                         do {
@@ -122,7 +123,7 @@ fun CaptchaHandlerDialog(
         runCatching {
             data = signer.getCaptchaImageV2().also { captchaDataEntity ->
                 ChaoxingCaptchaHelper.storedCaptchaMemories.getValue(context)[captchaDataEntity.token].let {
-                    if (it==null || !check(it, null))
+                    if (it == null || !check(it, null))
                         isDisplayCaptchaDialog = true
                 }
             }
