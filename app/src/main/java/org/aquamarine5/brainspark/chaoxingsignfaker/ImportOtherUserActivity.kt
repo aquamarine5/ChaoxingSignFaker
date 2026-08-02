@@ -82,6 +82,11 @@ class ImportOtherUserActivity : ComponentActivity() {
                     val phone = data?.getQueryParameter("phone")
                     val pwd = data?.getQueryParameter("pwd")
                     val name = data?.getQueryParameter("name")
+                    val faceObjectIds = data?.getQueryParameter("face")
+                        ?.split(',')
+                        ?.filter { it.isNotBlank() }
+                        ?.distinct()
+                        .orEmpty()
                     Crossfade(errorTips) {
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
@@ -114,7 +119,10 @@ class ImportOtherUserActivity : ComponentActivity() {
                                                 ChaoxingOtherUserHelper.saveOtherUser(
                                                     this@ImportOtherUserActivity,
                                                     ChaoxingOtherUserSharedEntity(
-                                                        phone, pwd, name
+                                                        phone,
+                                                        pwd,
+                                                        name,
+                                                        faceObjectIds,
                                                     )
                                                 )
                                             }.onSuccess {

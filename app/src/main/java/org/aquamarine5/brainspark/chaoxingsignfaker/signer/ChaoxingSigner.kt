@@ -197,11 +197,13 @@ abstract class ChaoxingSigner(
                 activeId
             )
         )
+        addQueryParameter("faceCode", "")
+        addQueryParameter("faceEncAid", "")
     }
 
-    protected open fun Response.checkSignResult(): Boolean{
+    protected open fun Response.checkSignResult(): Boolean {
         val result = body.string()
-        if(result.startsWith("[face]"))
+        if (result.startsWith("[face]"))
             throw ChaoxingFaceSignException(result.removePrefix("[face]"))
         if (result == "success2")
             throw SignAlreadyEndedException()

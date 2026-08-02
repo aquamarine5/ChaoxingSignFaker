@@ -81,6 +81,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCaptchaHelper
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingFaceHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.initializeClientInfo
@@ -386,6 +387,9 @@ class MainActivity : ComponentActivity() {
                                 withContext(Dispatchers.IO) {
                                     val datastore =
                                         applicationContext.chaoxingDataStore.data.first()
+                                    ChaoxingFaceHelper.storedFaceRecognitionImages.setValue(
+                                        datastore.faceRecognitionConfiguresMap.mapValues { it.value.imagesList }
+                                    )
                                     if (datastore.agreeTerms) {
                                         UMengHelper.init(applicationContext)
                                         LocationClient.setAgreePrivacy(true)

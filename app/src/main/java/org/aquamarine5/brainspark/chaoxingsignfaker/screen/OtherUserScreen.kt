@@ -1408,6 +1408,11 @@ fun OtherUserScreen(
                             val phone = url.queryParameter("phone")
                             val pwd = url.queryParameter("pwd")
                             val name = url.queryParameter("name")
+                            val faceObjectIds = url.queryParameter("face")
+                                ?.split(',')
+                                ?.filter { it.isNotBlank() }
+                                ?.distinct()
+                                .orEmpty()
                             if (phone == null || pwd == null || name == null) {
                                 hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
                                 Toast.makeText(context, "链接格式错误", Toast.LENGTH_SHORT).show()
@@ -1417,7 +1422,12 @@ fun OtherUserScreen(
                                 runCatching {
                                     ChaoxingOtherUserHelper.saveOtherUser(
                                         context,
-                                        ChaoxingOtherUserSharedEntity(phone, pwd, name)
+                                        ChaoxingOtherUserSharedEntity(
+                                            phone,
+                                            pwd,
+                                            name,
+                                            faceObjectIds,
+                                        )
                                     )
                                 }.onSuccess {
                                     hapticFeedback.performHapticFeedback(HapticFeedbackType.Confirm)

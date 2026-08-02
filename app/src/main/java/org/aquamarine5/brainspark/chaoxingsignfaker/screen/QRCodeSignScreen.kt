@@ -76,6 +76,7 @@ import kotlinx.serialization.Serializable
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCloudDriveHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCourseHelper
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingFaceHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingSignHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.SignDestination
@@ -99,6 +100,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignOutEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignStatus
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingQRCodeSigner
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSignHandler
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingFaceSignException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
@@ -284,6 +286,7 @@ fun QRCodeSignScreen(
 
                     val faceImageBitmaps = remember { mutableMapOf<String, Bitmap>() }
                     val faceImageObjectIds = remember { mutableMapOf<String, String>() }
+                    val storedFaceImageObjectIds = remember { mutableMapOf<String, String>() }
 
                     val signHandler = remember {
                         ChaoxingSignHandler(
@@ -332,6 +335,16 @@ fun QRCodeSignScreen(
                                         }
                                         return@runCatching true
                                     } else return@runCatching false
+                                }.onFailure { exception ->
+                                    storedFaceImageObjectIds[ChaoxingHttpClient.instance!!.userEntity.phoneNumber]
+                                        ?.let { objectId ->
+                                            ChaoxingFaceHelper.afterUsingFaceImage(
+                                                context,
+                                                ChaoxingHttpClient.instance!!.userEntity.phoneNumber,
+                                                objectId,
+                                                exception is ChaoxingFaceSignException,
+                                            )
+                                        }
                                 }
                             },
                             onSigningFinished = { _, name, isOtherUser ->
@@ -402,6 +415,15 @@ fun QRCodeSignScreen(
                                                 return@runCatching true
                                             } else return@runCatching false
                                         }
+                                    }
+                                }.onFailure { exception ->
+                                    storedFaceImageObjectIds[session.phoneNumber]?.let { objectId ->
+                                        ChaoxingFaceHelper.afterUsingFaceImage(
+                                            context,
+                                            session.phoneNumber,
+                                            objectId,
+                                            exception is ChaoxingFaceSignException,
+                                        )
                                     }
                                 }
 
@@ -607,18 +629,33 @@ fun QRCodeSignScreen(
                                 isSelfForSign = isSelf
                                 signUserList = otherUserSessionList
 
-                                if (isFaceRequired && (
-                                            (isSelf && ChaoxingHttpClient.instance!!.userEntity.phoneNumber !in faceImageObjectIds.keys) ||
-                                                    otherUserSessionList.any { it != null && it.phoneNumber !in faceImageObjectIds.keys }
-                                            )
-                                ) {
-                                    isFaceImageCaptured = true
-                                } else if (isMapRequired && locationData == null) {
-                                    isMapGetting = true
-                                } else {
-                                    isQRCodeScanPause.value = false
-                                    isQRCodeParsing.value = false
-                                    isQRCodeScanning = true
+                                coroutineScope.launch {
+                                    if (isFaceRequired) {
+                                        val selectedPhoneNumbers = buildList {
+                                            if (isSelf) add(ChaoxingHttpClient.instance!!.userEntity.phoneNumber)
+                                            addAll(otherUserSessionList.filterNotNull().map { it.phoneNumber })
+                                        }
+                                        val storedImages = ChaoxingFaceHelper.storedFaceRecognitionImages.getValue(context)
+                                        selectedPhoneNumbers.forEach { phoneNumber ->
+                                            storedImages[phoneNumber].orEmpty().randomOrNull()?.let { image ->
+                                                faceImageObjectIds[phoneNumber] = image.objectId
+                                                storedFaceImageObjectIds[phoneNumber] = image.objectId
+                                            }
+                                        }
+                                    }
+                                    if (isFaceRequired && (
+                                                (isSelf && ChaoxingHttpClient.instance!!.userEntity.phoneNumber !in faceImageObjectIds.keys) ||
+                                                        otherUserSessionList.any { it != null && it.phoneNumber !in faceImageObjectIds.keys }
+                                                )
+                                    ) {
+                                        isFaceImageCaptured = true
+                                    } else if (isMapRequired && locationData == null) {
+                                        isMapGetting = true
+                                    } else {
+                                        isQRCodeScanPause.value = false
+                                        isQRCodeParsing.value = false
+                                        isQRCodeScanning = true
+                                    }
                                 }
                             }
                         }

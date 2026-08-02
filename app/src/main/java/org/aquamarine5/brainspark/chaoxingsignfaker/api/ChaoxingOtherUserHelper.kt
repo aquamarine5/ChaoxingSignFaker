@@ -25,6 +25,8 @@ import okhttp3.CookieJar
 import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.chaoxingUserAgent
+import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingFaceRecognitionConfigure
+import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingFaceRecognitionImage
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingSignFakerDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.HttpCookie
@@ -68,13 +70,15 @@ object ChaoxingOtherUserHelper {
         insertSharedEntity: ChaoxingOtherUserSharedEntity? = null
     ): String =
         withContext(Dispatchers.IO) {
-            val sharedEntity =
-                insertSharedEntity ?: getSharedUserEntity(context.chaoxingDataStore.data.first())
+            val dataStore = context.chaoxingDataStore.data.first()
+            val sharedEntity = insertSharedEntity ?: getSharedUserEntity(dataStore)
+            val faceObjectIds = dataStore.faceRecognitionConfiguresMap[sharedEntity.phoneNumber]
+                ?.imagesList
+                .orEmpty()
+                .map { it.objectId }
             "http://cdn.aquamarine5.fun/?phone=${sharedEntity.phoneNumber}&pwd=${sharedEntity.encryptedPassword}&name=${
-                Uri.encode(
-                    sharedEntity.userName
-                )
-            }"
+                Uri.encode(sharedEntity.userName)
+            }&face=${faceObjectIds.joinToString(",")}"
         }
 
     suspend fun generateQRCode(
@@ -236,7 +240,28 @@ object ChaoxingOtherUserHelper {
                     })
                 .build()
             context.chaoxingDataStore.updateData { datastore ->
-                datastore.toBuilder().addOtherUsers(session).build()
+                val faceImages = sharedEntity.faceObjectIds.distinct().map { objectId ->
+                    ChaoxingFaceRecognitionImage.newBuilder()
+                        .setObjectId(objectId)
+                        .setUseCount(0)
+                        .setIsFailureBefore(false)
+                        .build()
+                }
+                val existingConfigure = datastore.faceRecognitionConfiguresMap[sharedEntity.phoneNumber]
+                    ?: ChaoxingFaceRecognitionConfigure.getDefaultInstance()
+                val mergedImages = (existingConfigure.imagesList + faceImages)
+                    .distinctBy { it.objectId }
+                    .take(5)
+                datastore.toBuilder()
+                    .addOtherUsers(session)
+                    .putFaceRecognitionConfigures(
+                        sharedEntity.phoneNumber,
+                        existingConfigure.toBuilder()
+                            .clearImages()
+                            .addAllImages(mergedImages)
+                            .build(),
+                    )
+                    .build()
             }
             return@withContext session
         }

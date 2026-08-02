@@ -15,7 +15,8 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingOtherUserHelper
 data class ChaoxingOtherUserSharedEntity(
     val phoneNumber: String,
     val encryptedPassword: String,
-    val userName: String
+    val userName: String,
+    val faceObjectIds: List<String> = emptyList(),
 ) {
     companion object {
         fun parseFromQRCode(qrcode: Barcode): ChaoxingOtherUserSharedEntity {
@@ -26,10 +27,16 @@ data class ChaoxingOtherUserSharedEntity(
                 val phoneNumber = url.queryParameter("phone")!!
                 val password = url.queryParameter("pwd")!!
                 val userName = url.queryParameter("name")!!
+                val faceObjectIds = url.queryParameter("face")
+                    ?.split(',')
+                    ?.filter { it.isNotBlank() }
+                    ?.distinct()
+                    .orEmpty()
                 ChaoxingOtherUserSharedEntity(
                     phoneNumber,
                     password,
-                    userName
+                    userName,
+                    faceObjectIds,
                 )
             }.getOrElse {
                 throw ChaoxingOtherUserHelper.NotAvailableQRCodeException("此二维码不能作用于添加用户")

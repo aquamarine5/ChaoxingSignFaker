@@ -11,19 +11,28 @@ import android.graphics.Bitmap
 import com.alibaba.fastjson2.JSONObject
 import io.sentry.Sentry
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Request
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingFaceRecognitionConfigure
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingFaceRecognitionImage
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingParseDataException
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.StoredData
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.checkResponseThrowException
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.storedData
 import java.io.File
 import java.security.MessageDigest
 import java.util.TreeMap
 
 object ChaoxingFaceHelper {
+
+    val storedFaceRecognitionImages: StoredData<Context, Map<String, List<ChaoxingFaceRecognitionImage>>> =
+        storedData { context ->
+            context.chaoxingDataStore.data.first().faceRecognitionConfiguresMap
+                .mapValues { it.value.imagesList }
+        }
 
     const val URL_SHARED_IMAGE = "https://p.cldisk.com/star4/%s/origin.jpg"
     private val URL_CHECK_FACE_RESULT =
@@ -155,6 +164,11 @@ object ChaoxingFaceHelper {
                     )
                     .build()
             }
+            storedFaceRecognitionImages.setValue(
+                storedFaceRecognitionImages.getValue(context).toMutableMap().apply {
+                    put(targetPhoneNumber, this[targetPhoneNumber].orEmpty() + image)
+                }
+            )
             image
         }.onFailure {
             temporary.delete()
@@ -196,10 +210,55 @@ object ChaoxingFaceHelper {
                     )
                     .build()
             }
+            storedFaceRecognitionImages.setValue(
+                storedFaceRecognitionImages.getValue(context).toMutableMap().apply {
+                    put(targetPhoneNumber, this[targetPhoneNumber].orEmpty() + image)
+                }
+            )
             image
         }.onFailure {
             temporary.delete()
             destination.delete()
         }.getOrThrow()
+    }
+
+    suspend fun afterUsingFaceImage(
+        context: Context,
+        phoneNumber: String,
+        objectId: String,
+        isFailureBefore: Boolean,
+    ) {
+        context.chaoxingDataStore.updateData { dataStore ->
+            val configure = dataStore.faceRecognitionConfiguresMap[phoneNumber]
+                ?: return@updateData dataStore
+            val images = configure.imagesList.map { image ->
+                if (image.objectId == objectId) {
+                    image.toBuilder()
+                        .setUseCount(image.useCount + 1)
+                        .setIsFailureBefore(image.isFailureBefore || isFailureBefore)
+                        .build()
+                } else image
+            }
+            dataStore.toBuilder()
+                .putFaceRecognitionConfigures(
+                    phoneNumber,
+                    configure.toBuilder().clearImages().addAllImages(images).build(),
+                )
+                .build()
+        }
+        storedFaceRecognitionImages.peekValue()?.let { imagesByPhoneNumber ->
+            storedFaceRecognitionImages.setValue(
+                imagesByPhoneNumber.toMutableMap().apply {
+                    this[phoneNumber] = this[phoneNumber].orEmpty().map { image ->
+                        if (image.objectId == objectId) {
+                            image.toBuilder()
+                                .setUseCount(image.useCount + 1)
+                                .setIsFailureBefore(image.isFailureBefore || isFailureBefore)
+                                .build()
+                        } else image
+                    }
+                },
+            )
+        }
     }
 }
