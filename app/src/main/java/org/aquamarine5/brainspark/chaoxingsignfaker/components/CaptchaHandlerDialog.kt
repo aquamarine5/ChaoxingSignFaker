@@ -121,11 +121,10 @@ fun CaptchaHandlerDialog(
     var isDisplayCaptchaDialog by remember { mutableStateOf(false) }
     LaunchedEffect(signer) {
         runCatching {
-            data = signer.getCaptchaImageV2().also { captchaDataEntity ->
-                ChaoxingCaptchaHelper.storedCaptchaMemories.getValue(context)[captchaDataEntity.token].let {
-                    if (it == null || !check(it, null))
-                        isDisplayCaptchaDialog = true
-                }
+            data = signer.getCaptchaImageV2()
+            ChaoxingCaptchaHelper.storedCaptchaMemories.getValue(context)[data!!.token].let {
+                if (it == null || !check(it, null))
+                    isDisplayCaptchaDialog = true
             }
         }.onFailure {
             it.snackbarReport(

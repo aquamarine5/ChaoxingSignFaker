@@ -21,8 +21,12 @@ import java.security.MessageDigest
 import java.util.TreeMap
 
 object ChaoxingFaceHelper {
+
+    const val URL_SHARED_IMAGE="https://p.cldisk.com/star4/%s/origin.jpg"
     private val URL_CHECK_FACE_RESULT =
         "https://mobilelearn.chaoxing.com/pptSign/check-face-result?DB_STRATEGY=PRIMARY_KEY&STRATEGY_PARA=activeId".toHttpUrl()
+
+
 
     suspend fun checkFaceResultAndGetEnc(
         client: ChaoxingHttpClient,

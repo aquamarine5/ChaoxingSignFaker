@@ -87,12 +87,12 @@ fun GroupListScreen(
                             .getIMConfig()
                     )
             }.onFailure {
-//                it.snackbarReport(
-//                    snackbarHostState,
-//                    coroutineScope,
-//                    "获取群列表失败",
-//                    hapticFeedback
-//                )
+                it.snackbarReport(
+                    snackbarHostState,
+                    coroutineScope,
+                    "获取群列表失败",
+                    hapticFeedback
+                )
             }
         }
         Crossfade(isFetchedFailure) { v ->

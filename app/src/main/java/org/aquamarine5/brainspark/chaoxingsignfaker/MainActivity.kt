@@ -395,22 +395,6 @@ class MainActivity : ComponentActivity() {
                                         datastore.preferences.customizedUserAgent,
                                         datastore.preferences.customizedPackageName
                                     )
-                                    if (System.currentTimeMillis() - datastore.captchaMemories.lastCheckRemoteMemoriesTimestamp > 1.days.inWholeMilliseconds)
-                                        launch {
-                                            runCatching {
-                                                ChaoxingCaptchaHelper.updateRemoteCaptchaMemoriesData(
-                                                    applicationContext
-                                                )
-                                            }.onFailure {
-                                                it.snackbarReport(
-                                                    snackbarHostState,
-                                                    this,
-                                                    "更新验证码记忆数据失败",
-                                                    hapticFeedback,
-                                                    shouldDismiss = false
-                                                )
-                                            }
-                                        }
                                     isDevelopedMode = datastore.preferences.isDevelopedMode
                                     isAlwaysForceSign = datastore.preferences.alwaysForceSign
                                     destination =
@@ -425,6 +409,22 @@ class MainActivity : ComponentActivity() {
                                                     )
                                                     return@runCatching SignGraphDestination
                                                 }.onSuccess {
+                                                    if (System.currentTimeMillis() - datastore.captchaMemories.lastCheckRemoteMemoriesTimestamp > 1.days.inWholeMilliseconds)
+                                                        launch {
+                                                            runCatching {
+                                                                ChaoxingCaptchaHelper.updateRemoteCaptchaMemoriesData(
+                                                                    applicationContext
+                                                                )
+                                                            }.onFailure {
+                                                                it.snackbarReport(
+                                                                    snackbarHostState,
+                                                                    this,
+                                                                    "更新验证码记忆数据失败",
+                                                                    hapticFeedback,
+                                                                    shouldDismiss = false
+                                                                )
+                                                            }
+                                                        }
                                                     launch {
                                                         runCatching {
                                                             ChaoxingAnalyser.setupStateAnalyser(
