@@ -13,8 +13,6 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.BorderStroke
@@ -620,12 +618,8 @@ fun PhotoSignScreen(
                                                 isCamera, enter = slideInHorizontally(
                                                     initialOffsetX = { it },
                                                     animationSpec = tween(300)
-                                                ) + fadeIn(
-                                                    animationSpec = tween(300)
                                                 ), exit = slideOutHorizontally(
-                                                    targetOffsetX = { -it },
-                                                    animationSpec = tween(300)
-                                                ) + fadeOut(
+                                                    targetOffsetX = { it },
                                                     animationSpec = tween(300)
                                                 )
                                             ) {

@@ -51,6 +51,7 @@ message ChaoxingCaptchaResult{
 message ChaoxingFaceRecognitionImage{
   string objectId = 1;
   uint32 useCount = 2;
+  bool isFailureBefore = 3;
 }
 
 message ChaoxingFaceRecognitionConfigure{

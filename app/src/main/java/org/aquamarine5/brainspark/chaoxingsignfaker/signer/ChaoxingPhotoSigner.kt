@@ -6,7 +6,6 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.signer
 
-import android.util.Log
 import com.alibaba.fastjson2.JSONObject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -73,19 +72,7 @@ class ChaoxingPhotoSigner(
             ).get().build()
         ).execute().use {
             it.checkResponseThrowException()
-            val result = it.body.string()
-            if (result == "您已签到过了") {
-                throw AlreadySignedException()
-            }
-            if (result == "success2")
-                throw SignAlreadyEndedException()
-            if (result == "validate") {
-                return@use true
-            }
-            if (result != "success") {
-                Log.w(CLASSTAG, result)
-                throw ChaoxingPhotoSignException(result)
-            } else return@use false
+            return@use it.checkSignResult()
         }
     }
 
@@ -105,19 +92,7 @@ class ChaoxingPhotoSigner(
                 ).get().build()
             ).execute().use {
                 it.checkResponseThrowException()
-                val result = it.body.string()
-                if (result == "您已签到过了") {
-                    throw AlreadySignedException()
-                }
-                if (result == "success2")
-                    throw SignAlreadyEndedException()
-                if (result == "validate") {
-                    return@use true
-                }
-                if (result != "success") {
-                    Log.w(CLASSTAG, result)
-                    throw ChaoxingPhotoSignException(result)
-                } else return@use false
+                return@use it.checkSignResult()
             }
         }
 
@@ -135,16 +110,7 @@ class ChaoxingPhotoSigner(
             ).get().build()
         ).execute().use {
             it.checkResponseThrowException()
-            val result = it.body.string()
-            if (result == "success2")
-                throw SignAlreadyEndedException()
-            if (result == "您已签到过了") {
-                throw AlreadySignedException()
-            }
-            if (result != "success") {
-                Log.w(CLASSTAG, result)
-                throw ChaoxingPhotoSignException(result)
-            }
+            return@use it.checkSignResult()
         }
     }
 
@@ -164,16 +130,7 @@ class ChaoxingPhotoSigner(
                 ).get().build()
             ).execute().use {
                 it.checkResponseThrowException()
-                val result = it.body.string()
-                if (result == "success2")
-                    throw SignAlreadyEndedException()
-                if (result == "您已签到过了") {
-                    throw AlreadySignedException()
-                }
-                if (result != "success") {
-                    Log.w(CLASSTAG, result)
-                    throw ChaoxingPhotoSignException(result)
-                }
+                return@use it.checkSignResult()
             }
         }
 

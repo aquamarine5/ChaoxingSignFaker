@@ -449,20 +449,21 @@ fun CameraComponent(
                     .size(60.dp)
                     .align(Alignment.BottomCenter)
             ) {
-                Column(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Crossfade(needTakePictureCount) {
-                        Text(
-                            text = it.toString(),
-                            color = Color.Black, fontSize = 32.sp,
-                            textAlign = TextAlign.Center,
-                            fontFamily = FontFamily(Font(R.font.gilroy))
-                        )
+                if (pictureCount > 1)
+                    Column(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.Center,
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Crossfade(needTakePictureCount) {
+                            Text(
+                                text = it.toString(),
+                                color = Color.Black, fontSize = 32.sp,
+                                textAlign = TextAlign.Center,
+                                fontFamily = FontFamily(Font(R.font.gilroy))
+                            )
+                        }
                     }
-                }
             }
         } else {
             Column(

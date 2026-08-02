@@ -14,15 +14,18 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Request
+import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingFaceRecognitionConfigure
+import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingFaceRecognitionImage
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingParseDataException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.checkResponseThrowException
+import java.io.File
 import java.security.MessageDigest
 import java.util.TreeMap
 
 object ChaoxingFaceHelper {
 
-    const val URL_SHARED_IMAGE="https://p.cldisk.com/star4/%s/origin.jpg"
+    const val URL_SHARED_IMAGE = "https://p.cldisk.com/star4/%s/origin.jpg"
     private val URL_CHECK_FACE_RESULT =
         "https://mobilelearn.chaoxing.com/pptSign/check-face-result?DB_STRATEGY=PRIMARY_KEY&STRATEGY_PARA=activeId".toHttpUrl()
 
@@ -105,30 +108,98 @@ object ChaoxingFaceHelper {
         MessageDigest.getInstance("MD5").digest(value.toByteArray(Charsets.UTF_8))
             .joinToString("") { (it.toInt() and 0xff).toString(16).padStart(2, '0') }
 
-    suspend fun saveFaceImage(
-        context: Context,
-        objectId: String,
-        phoneNumber: String? = null
-    ) {
+    private const val MAX_FACE_IMAGES = 5
 
+    fun getFaceImageFile(context: Context, objectId: String): File {
+        require(objectId.isNotBlank()) { "人脸照片 ID 不能为空" }
+        return File(context.filesDir, "face_images").apply { mkdirs() }
+            .resolve("$objectId.jpg")
     }
 
     suspend fun saveFaceImage(
         client: ChaoxingHttpClient,
         context: Context,
-        bitmap: Bitmap
-    ) =
-        withContext(Dispatchers.IO) {
-            ChaoxingCloudDriveHelper.uploadImage(
-                client,
-                bitmap
-            ).let { objectId ->
-                context.chaoxingDataStore.updateData {
-                    it.toBuilder().apply {
-                        val phoneNumber = client.userEntity.phoneNumber
-                        containsFaceRecognitionConfigures(client.userEntity.phoneNumber)
-                    }.build()
+        objectId: String,
+        phoneNumber: String? = null,
+    ): ChaoxingFaceRecognitionImage = withContext(Dispatchers.IO) {
+        require(objectId.isNotBlank()) { "人脸照片 ID 不能为空" }
+        val targetPhoneNumber = phoneNumber ?: client.userEntity.phoneNumber
+        require(targetPhoneNumber.isNotBlank()) { "无法确定人脸照片所属用户" }
+        val image = ChaoxingFaceRecognitionImage.newBuilder()
+            .setObjectId(objectId)
+            .setUseCount(0)
+            .setIsFailureBefore(false)
+            .build()
+        val destination = getFaceImageFile(context, objectId)
+        val temporary = File(destination.parentFile, "${destination.name}.download")
+
+        runCatching {
+            client.newCall(Request.Builder().url(URL_SHARED_IMAGE.format(objectId)).build())
+                .execute().use { response ->
+                    response.checkResponseThrowException()
+                    response.body.byteStream().use { input ->
+                        temporary.outputStream().use(input::copyTo)
+                    }
                 }
+            check(temporary.length() > 0L) { "下载的人脸照片为空" }
+            check(temporary.renameTo(destination)) { "保存人脸照片失败" }
+            context.chaoxingDataStore.updateData { dataStore ->
+                val configure = dataStore.faceRecognitionConfiguresMap[targetPhoneNumber]
+                    ?: ChaoxingFaceRecognitionConfigure.getDefaultInstance()
+                check(configure.imagesCount < MAX_FACE_IMAGES) { "最多只能保存5张人脸照片" }
+                check(configure.imagesList.none { it.objectId == objectId }) { "该人脸照片已保存" }
+                dataStore.toBuilder()
+                    .putFaceRecognitionConfigures(
+                        targetPhoneNumber,
+                        configure.toBuilder().addImages(image).build(),
+                    )
+                    .build()
             }
-        }
+            image
+        }.onFailure {
+            temporary.delete()
+            destination.delete()
+        }.getOrThrow()
+    }
+
+    suspend fun saveFaceImage(
+        client: ChaoxingHttpClient,
+        context: Context,
+        bitmap: Bitmap,
+        phoneNumber: String? = null,
+    ): ChaoxingFaceRecognitionImage = withContext(Dispatchers.IO) {
+        val targetPhoneNumber = phoneNumber ?: client.userEntity.phoneNumber
+        require(targetPhoneNumber.isNotBlank()) { "无法确定人脸照片所属用户" }
+        val objectId = ChaoxingCloudDriveHelper.uploadImage(client, bitmap)
+        val image = ChaoxingFaceRecognitionImage.newBuilder()
+            .setObjectId(objectId)
+            .setUseCount(0)
+            .setIsFailureBefore(false)
+            .build()
+        val destination = getFaceImageFile(context, objectId)
+        val temporary = File(destination.parentFile, "${destination.name}.tmp")
+
+        runCatching {
+            temporary.outputStream().use { output ->
+                check(bitmap.compress(Bitmap.CompressFormat.JPEG, 90, output)) { "保存人脸照片失败" }
+            }
+            check(temporary.renameTo(destination)) { "保存人脸照片失败" }
+            context.chaoxingDataStore.updateData { dataStore ->
+                val configure = dataStore.faceRecognitionConfiguresMap[targetPhoneNumber]
+                    ?: ChaoxingFaceRecognitionConfigure.getDefaultInstance()
+                check(configure.imagesCount < MAX_FACE_IMAGES) { "最多只能保存5张人脸照片" }
+                check(configure.imagesList.none { it.objectId == objectId }) { "该人脸照片已保存" }
+                dataStore.toBuilder()
+                    .putFaceRecognitionConfigures(
+                        targetPhoneNumber,
+                        configure.toBuilder().addImages(image).build(),
+                    )
+                    .build()
+            }
+            image
+        }.onFailure {
+            temporary.delete()
+            destination.delete()
+        }.getOrThrow()
+    }
 }

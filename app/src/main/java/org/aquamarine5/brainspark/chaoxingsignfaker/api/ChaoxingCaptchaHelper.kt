@@ -92,7 +92,8 @@ object ChaoxingCaptchaHelper {
                                                             storedCaptchaMemories.setValue(
                                                                 memories.associateTo(
                                                                     HashMap()
-                                                                ) { it.token to it.xPosition })
+                                                                ) { it.token to it.xPosition }
+                                                            )
                                                         }
                                                     })
                                         }

@@ -25,11 +25,14 @@ import okhttp3.FormBody
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Request
+import okhttp3.Response
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCourseHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingFaceHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCaptchaDataEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityStatus
+import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingQRCodeSigner.QRCodeExpiredException
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingFaceSignException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingPredictableException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.checkResponseThrowException
@@ -194,6 +197,29 @@ abstract class ChaoxingSigner(
                 activeId
             )
         )
+    }
+
+    protected open fun Response.checkSignResult(): Boolean{
+        val result = body.string()
+        if(result.startsWith("[face]"))
+            throw ChaoxingFaceSignException(result.removePrefix("[face]"))
+        if (result == "success2")
+            throw SignAlreadyEndedException()
+        if (result == "签到失败，请重新扫描。")
+            throw QRCodeExpiredException()
+        if (result.startsWith("errorLocation2"))
+            throw WrongPositionException()
+        if (result == "您已签到过了") {
+            throw AlreadySignedException()
+        }
+        if (result.startsWith("validate")) {
+            return true
+        }
+        if (result != "success") {
+            throw ChaoxingPredictableException(result)
+        } else {
+            return false
+        }
     }
 
     open fun getCaptchaId(): String = "Qt9FIw9o4pwRjOyqM6yizZBh682qN2TU"

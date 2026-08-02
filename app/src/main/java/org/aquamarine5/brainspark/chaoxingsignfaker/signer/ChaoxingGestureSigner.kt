@@ -6,7 +6,6 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.signer
 
-import android.util.Log
 import com.alibaba.fastjson2.JSONObject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -15,8 +14,6 @@ import okhttp3.Request
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignOutEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.GestureSignDestination
-import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingLocationSigner.Companion.CLASSTAG
-import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingPredictableException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.checkResponseThrowException
 
 class ChaoxingGestureSigner(
@@ -81,21 +78,7 @@ class ChaoxingGestureSigner(
             ).build()
         ).execute().use {
             it.checkResponseThrowException()
-            val result = it.body.string()
-            if (result == "success2")
-                throw SignAlreadyEndedException()
-            if (result == "您已签到过了") {
-                throw AlreadySignedException()
-            }
-            if (result == "validate") {
-                return@use true
-            }
-            if (result != "success") {
-                Log.w(CLASSTAG, result)
-                throw ChaoxingPredictableException(result)
-            } else {
-                return@use false
-            }
+            return@use it.checkSignResult()
         }
     }
 
@@ -117,16 +100,7 @@ class ChaoxingGestureSigner(
                 ).build()
             ).execute().use {
                 it.checkResponseThrowException()
-                val result = it.body.string()
-                if (result == "success2")
-                    throw SignAlreadyEndedException()
-                if (result == "您已签到过了") {
-                    throw AlreadySignedException()
-                }
-                if (result != "success") {
-                    Log.w(CLASSTAG, result)
-                    throw ChaoxingPredictableException(result)
-                }
+                return@use it.checkSignResult()
             }
         }
 

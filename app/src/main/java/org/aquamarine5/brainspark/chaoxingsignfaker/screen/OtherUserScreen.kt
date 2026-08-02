@@ -125,6 +125,7 @@ import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingOtherUserHelper
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.FacePhotoDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NewFeatureTipsCard
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.QRCodeScanComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.RequireLoginAlertDialog
@@ -161,6 +162,7 @@ fun OtherUserScreen(
     var inputUrl by remember { mutableStateOf("") }
     var selectedUserSettingDialogIndex by remember { mutableStateOf<Int?>(null) }
     var isTagsSettingDialog by remember { mutableStateOf(false) }
+    var isFacePhotoDialog by remember { mutableStateOf(false) }
     var isInputDialog by remember { mutableStateOf(false) }
     var isURLSharedDialog by remember { mutableStateOf(false) }
     val isQRCodeScanPause = remember { mutableStateOf(false) }
@@ -1603,6 +1605,38 @@ fun OtherUserScreen(
                 }
             }
             Spacer(modifier = Modifier.height(3.dp))
+            Card(
+                onClick = {
+                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                    isFacePhotoDialog = true
+                },
+                shape = RoundedCornerShape(18.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(4.dp, 0.dp),
+                elevation = CardDefaults.cardElevation(4.dp),
+                colors = CardDefaults.cardColors(MaterialTheme.colorScheme.primary)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center,
+                    modifier = Modifier.fillMaxWidth().padding(10.dp)
+                ) {
+                    Icon(
+                        painterResource(R.drawable.ic_scan_face),
+                        null,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("管理人脸照片", fontSize = 16.sp, fontWeight = FontWeight.W500)
+                }
+            }
+            Spacer(modifier = Modifier.height(3.dp))
+            if (isFacePhotoDialog) {
+                FacePhotoDialog {
+                    isFacePhotoDialog = false
+                }
+            }
             SingleChoiceSegmentedButtonRow(
                 modifier = Modifier
                     .fillMaxWidth()
