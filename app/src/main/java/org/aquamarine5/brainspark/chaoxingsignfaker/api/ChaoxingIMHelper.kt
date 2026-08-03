@@ -58,51 +58,6 @@ object ChaoxingIMHelper {
 
     val IM_ENCRYPTED_KEY = BuildConfig.imEncryptedKey.toByteArray(Charsets.UTF_8)
 
-    //
-//    fun initializeEasemobClient(httpClient: ChaoxingHttpClient, context: Context) {
-//        EMClient.getInstance().init(context, EMOptions().apply {
-//            appKey = "cx-dev#cxstudy"
-//        })
-//        EMClient.getInstance()
-//            .login(httpClient.userEntity.uid.toString(), "kwe371", object : EMCallBack {
-//                override fun onSuccess() {
-//                    Log.i("ChaoxingIMHelper", "Success")
-//                }
-//
-//                override fun onError(p0: Int, p1: String?) {
-//                    Log.e("ChaoxingIMHelper", "$p0 $p1")
-//                }
-//            })
-//    }
-//
-//    fun getHistoryMessages() {
-////        EMClient.getInstance().chatManager().asyncFetchHistoryMessages()
-//    }
-//
-//    suspend fun getConversations(): List<EMConversation> =
-//        suspendCancellableCoroutine { continuation ->
-//            EMClient.getInstance().chatManager().asyncFetchConversationsFromServer(
-//                100,
-//                "",
-//                object : EMValueCallBack<EMCursorResult<EMConversation>> {
-//                    override fun onSuccess(p0: EMCursorResult<EMConversation>?) {
-//                        Log.i("ChaoxingIMHelper", p0!!.data.toString())
-//                        continuation.resume(p0!!.data)
-//                    }
-//
-//                    override fun onError(p0: Int, p1: String?) {
-//                        TODO("Not yet implemented")
-//                    }
-//                })
-//        }
-//
-//
-//    suspend fun getEasemobGroups(
-//        httpClient: ChaoxingHttpClient,
-//        config: ChaoxingEasemobIMConfig
-//    ): List<ChaoxingIMGroup> {
-//        return TODO()
-//    }
     fun desDecrypt(imEncryptedPassword: String): String {
         @Suppress("GetInstance")
         val cipher = Cipher.getInstance("DES/ECB/PKCS5Padding")

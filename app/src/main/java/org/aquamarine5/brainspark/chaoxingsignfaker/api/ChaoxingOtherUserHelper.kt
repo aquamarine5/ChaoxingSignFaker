@@ -67,15 +67,21 @@ object ChaoxingOtherUserHelper {
 
     suspend fun getSharedUrl(
         context: Context,
-        insertSharedEntity: ChaoxingOtherUserSharedEntity? = null
+        insertSharedEntity: ChaoxingOtherUserSharedEntity? = null,
+        selectedFaceObjectIds: List<String>? = null,
     ): String =
         withContext(Dispatchers.IO) {
             val dataStore = context.chaoxingDataStore.data.first()
             val sharedEntity = insertSharedEntity ?: getSharedUserEntity(dataStore)
-            val faceObjectIds = dataStore.faceRecognitionConfiguresMap[sharedEntity.phoneNumber]
-                ?.imagesList
-                .orEmpty()
-                .map { it.objectId }
+            val availableFaceObjectIds =
+                dataStore.faceRecognitionConfiguresMap[sharedEntity.phoneNumber]
+                    ?.imagesList
+                    .orEmpty()
+                    .map { it.objectId }
+            val faceObjectIds = (selectedFaceObjectIds
+                ?.distinct()
+                ?.filter { it in availableFaceObjectIds }
+                ?: availableFaceObjectIds).take(ChaoxingFaceHelper.MAX_FACE_IMAGES)
             "http://cdn.aquamarine5.fun/?phone=${sharedEntity.phoneNumber}&pwd=${sharedEntity.encryptedPassword}&name=${
                 Uri.encode(sharedEntity.userName)
             }&face=${faceObjectIds.joinToString(",")}"
@@ -83,11 +89,12 @@ object ChaoxingOtherUserHelper {
 
     suspend fun generateQRCode(
         context: Context,
-        insertSharedEntity: ChaoxingOtherUserSharedEntity? = null
+        insertSharedEntity: ChaoxingOtherUserSharedEntity? = null,
+        selectedFaceObjectIds: List<String>? = null,
     ): Bitmap = withContext(Dispatchers.Default) {
         val qrcodeSize = getQRCodeSize(context)
         val qrCode = QRCodeWriter().encode(
-            getSharedUrl(context, insertSharedEntity),
+            getSharedUrl(context, insertSharedEntity, selectedFaceObjectIds),
             BarcodeFormat.QR_CODE,
             qrcodeSize,
             qrcodeSize,
@@ -247,11 +254,12 @@ object ChaoxingOtherUserHelper {
                         .setIsFailureBefore(false)
                         .build()
                 }
-                val existingConfigure = datastore.faceRecognitionConfiguresMap[sharedEntity.phoneNumber]
-                    ?: ChaoxingFaceRecognitionConfigure.getDefaultInstance()
+                val existingConfigure =
+                    datastore.faceRecognitionConfiguresMap[sharedEntity.phoneNumber]
+                        ?: ChaoxingFaceRecognitionConfigure.getDefaultInstance()
                 val mergedImages = (existingConfigure.imagesList + faceImages)
                     .distinctBy { it.objectId }
-                    .take(5)
+                    .take(ChaoxingFaceHelper.MAX_FACE_IMAGES)
                 datastore.toBuilder()
                     .addOtherUsers(session)
                     .putFaceRecognitionConfigures(
@@ -263,6 +271,15 @@ object ChaoxingOtherUserHelper {
                     )
                     .build()
             }
+            ChaoxingFaceHelper.storedFaceRecognitionImages.setValue(
+                ChaoxingFaceHelper.storedFaceRecognitionImages.getValue(context).toMutableMap()
+                    .apply {
+                        this[sharedEntity.phoneNumber] = context.chaoxingDataStore.data.first()
+                            .faceRecognitionConfiguresMap[sharedEntity.phoneNumber]
+                            ?.imagesList
+                            .orEmpty()
+                    }
+            )
             return@withContext session
         }
 

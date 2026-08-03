@@ -24,12 +24,15 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
@@ -46,10 +49,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingFaceHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
@@ -73,15 +78,18 @@ fun FacePhotoDialog(onDismissRequest: () -> Unit) {
     suspend fun reload() {
         val records = context.chaoxingDataStore.data.first()
             .faceRecognitionConfiguresMap[ChaoxingHttpClient.instance!!.userEntity.phoneNumber]
-            ?.imagesList.orEmpty().take(5)
+            ?.imagesList.orEmpty().take(ChaoxingFaceHelper.MAX_FACE_IMAGES)
         files = records.map { record ->
             ChaoxingFaceHelper.getFaceImageFile(context, record.objectId)
         }
     }
 
     fun save(bitmap: Bitmap) {
-        if (files.size >= 5) {
-            snackbarHost.displaySnackbar("最多只能保存5张人脸照片", coroutineScope)
+        if (files.size >= 3) {
+            snackbarHost.displaySnackbar(
+                "最多只能保存 ${ChaoxingFaceHelper.MAX_FACE_IMAGES} 张人脸照片",
+                coroutineScope
+            )
             return
         }
         coroutineScope.launch {
@@ -151,10 +159,10 @@ fun FacePhotoDialog(onDismissRequest: () -> Unit) {
                     if (isLoading) {
                         CenterCircularProgressIndicator()
                     } else if (files.isEmpty()) {
-                        Text("暂无人脸照片，最多可保存5张")
+                        Text("暂无人脸照片，最多可保存 ${ChaoxingFaceHelper.MAX_FACE_IMAGES} 张")
                     } else {
                         LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            item { Text("已保存 ${files.size}/5 张") }
+                            item { Text("已保存 ${files.size}/${ChaoxingFaceHelper.MAX_FACE_IMAGES} 张") }
                             items(files) { file ->
                                 Card(
                                     shape = RoundedCornerShape(14.dp),
@@ -177,7 +185,7 @@ fun FacePhotoDialog(onDismissRequest: () -> Unit) {
                 SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
                     SegmentedButton(
                         selected = false,
-                        enabled = (!isLoading && files.size < 5),
+                        enabled = (!isLoading && files.size < ChaoxingFaceHelper.MAX_FACE_IMAGES),
                         onClick = {
                             picker.launch(
                                 PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
@@ -187,7 +195,7 @@ fun FacePhotoDialog(onDismissRequest: () -> Unit) {
                     ) { Text("上传照片") }
                     SegmentedButton(
                         selected = false,
-                        enabled = (!isLoading && files.size < 5),
+                        enabled = (!isLoading && files.size < ChaoxingFaceHelper.MAX_FACE_IMAGES),
                         onClick = { isCameraVisible = true },
                         shape = SegmentedButtonDefaults.itemShape(1, 2),
                     ) { Text("拍摄照片") }
@@ -198,6 +206,13 @@ fun FacePhotoDialog(onDismissRequest: () -> Unit) {
             OutlinedButton(onClick = onDismissRequest) {
                 Text("关闭")
             }
-        },
+        }, icon = {
+            Icon(
+                painterResource(R.drawable.ic_scan_face),
+                null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(40.dp)
+            )
+        }
     )
 }

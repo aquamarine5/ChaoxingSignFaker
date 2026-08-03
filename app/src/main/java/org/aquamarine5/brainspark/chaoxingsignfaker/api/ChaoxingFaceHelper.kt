@@ -27,7 +27,6 @@ import java.security.MessageDigest
 import java.util.TreeMap
 
 object ChaoxingFaceHelper {
-
     val storedFaceRecognitionImages: StoredData<Context, Map<String, List<ChaoxingFaceRecognitionImage>>> =
         storedData { context ->
             context.chaoxingDataStore.data.first().faceRecognitionConfiguresMap
@@ -38,7 +37,7 @@ object ChaoxingFaceHelper {
     private val URL_CHECK_FACE_RESULT =
         "https://mobilelearn.chaoxing.com/pptSign/check-face-result?DB_STRATEGY=PRIMARY_KEY&STRATEGY_PARA=activeId".toHttpUrl()
 
-
+    const val MAX_FACE_IMAGES = 3
 
     suspend fun checkFaceResultAndGetEnc(
         client: ChaoxingHttpClient,
@@ -117,7 +116,7 @@ object ChaoxingFaceHelper {
         MessageDigest.getInstance("MD5").digest(value.toByteArray(Charsets.UTF_8))
             .joinToString("") { (it.toInt() and 0xff).toString(16).padStart(2, '0') }
 
-    private const val MAX_FACE_IMAGES = 5
+
 
     fun getFaceImageFile(context: Context, objectId: String): File {
         require(objectId.isNotBlank()) { "人脸照片 ID 不能为空" }
@@ -155,7 +154,7 @@ object ChaoxingFaceHelper {
             context.chaoxingDataStore.updateData { dataStore ->
                 val configure = dataStore.faceRecognitionConfiguresMap[targetPhoneNumber]
                     ?: ChaoxingFaceRecognitionConfigure.getDefaultInstance()
-                check(configure.imagesCount < MAX_FACE_IMAGES) { "最多只能保存5张人脸照片" }
+                check(configure.imagesCount < MAX_FACE_IMAGES) { "最多只能保存$MAX_FACE_IMAGES 张人脸照片" }
                 check(configure.imagesList.none { it.objectId == objectId }) { "该人脸照片已保存" }
                 dataStore.toBuilder()
                     .putFaceRecognitionConfigures(
@@ -201,7 +200,7 @@ object ChaoxingFaceHelper {
             context.chaoxingDataStore.updateData { dataStore ->
                 val configure = dataStore.faceRecognitionConfiguresMap[targetPhoneNumber]
                     ?: ChaoxingFaceRecognitionConfigure.getDefaultInstance()
-                check(configure.imagesCount < MAX_FACE_IMAGES) { "最多只能保存5张人脸照片" }
+                check(configure.imagesCount < MAX_FACE_IMAGES) { "最多只能保存$MAX_FACE_IMAGES 张人脸照片" }
                 check(configure.imagesList.none { it.objectId == objectId }) { "该人脸照片已保存" }
                 dataStore.toBuilder()
                     .putFaceRecognitionConfigures(

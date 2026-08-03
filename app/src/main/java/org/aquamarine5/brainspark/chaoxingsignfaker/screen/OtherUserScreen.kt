@@ -13,9 +13,13 @@ import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.BorderStroke
@@ -77,6 +81,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -109,6 +114,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
+import coil3.compose.AsyncImage
 import com.github.skydoves.colorpicker.compose.HsvColorPicker
 import com.github.skydoves.colorpicker.compose.rememberColorPickerController
 import io.sentry.Sentry
@@ -123,12 +129,14 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingFaceHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingOtherUserHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.FacePhotoDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NewFeatureTipsCard
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.QRCodeScanComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.RequireLoginAlertDialog
+import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingFaceRecognitionImage
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.OtherUserTagType
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingOtherUserSharedEntity
@@ -174,6 +182,10 @@ fun OtherUserScreen(
     var currentImportData by remember { mutableStateOf("") }
     var qrcodeIllegalText by remember { mutableStateOf("") }
     var importSharedEntity by remember { mutableStateOf<ChaoxingOtherUserSharedEntity?>(null) }
+    val facePhotos = remember { mutableStateListOf<ChaoxingFaceRecognitionImage>() }
+    val selectedSharedFaceObjectIds = remember { mutableStateListOf<String>() }
+    var attachFacePhotos by remember { mutableStateOf(true) }
+    var inspectedFacePhotoObjectId by remember { mutableStateOf<String?>(null) }
     val otherUserSessions = remember { mutableStateListOf<ChaoxingOtherUserSession>() }
     var qrCode by remember { mutableStateOf<Bitmap?>(null) }
     val isTooltipShowed = remember { mutableStateOf(false) }
@@ -198,6 +210,13 @@ fun OtherUserScreen(
                 }
             })
             isTooltipShowed.value = !datastore.learntTooltips.supportCloneOtherUserSession
+            facePhotos.addAll(
+                datastore.faceRecognitionConfiguresMap[datastore.loginSession.phoneNumber]
+                    ?.imagesList
+                    .orEmpty()
+                    .take(ChaoxingFaceHelper.MAX_FACE_IMAGES)
+            )
+            selectedSharedFaceObjectIds.addAll(facePhotos.map { it.objectId })
             isLocalSharedEntityReady = ChaoxingOtherUserHelper.checkSharedEntity(datastore)
         }
     }
@@ -212,8 +231,45 @@ fun OtherUserScreen(
             isLocalSharedEntityReady = true
         }
     } else if (isLocalSharedEntityReady == true) {
-        LaunchedEffect(Unit) {
-            qrCode = ChaoxingOtherUserHelper.generateQRCode(context, importSharedEntity)
+        LaunchedEffect(importSharedEntity, attachFacePhotos, selectedSharedFaceObjectIds.toList()) {
+            qrCode = ChaoxingOtherUserHelper.generateQRCode(
+                context,
+                importSharedEntity,
+                if (attachFacePhotos) selectedSharedFaceObjectIds else emptyList(),
+            )
+        }
+    }
+
+    inspectedFacePhotoObjectId?.let { objectId ->
+        val photo = facePhotos.firstOrNull { it.objectId == objectId }
+        if (photo != null) {
+            AlertDialog(
+                onDismissRequest = { inspectedFacePhotoObjectId = null },
+                title = { Text("人脸识别照片") },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        AsyncImage(
+                            model = ChaoxingFaceHelper.getFaceImageFile(context, photo.objectId),
+                            contentDescription = "人脸识别照片",
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .aspectRatio(1f),
+                        )
+                        Text("使用次数: ${photo.useCount}")
+                        Text("图片ID: ${photo.objectId}")
+                        Text("此前是否人脸识别失败过: ${if (photo.isFailureBefore) "是" else "否"}")
+                    }
+                },
+                confirmButton = {
+                    Button(onClick = {
+                        selectedSharedFaceObjectIds.remove(photo.objectId)
+                        inspectedFacePhotoObjectId = null
+                    }) { Text("取消附带此张照片") }
+                },
+                dismissButton = {
+                    OutlinedButton(onClick = { inspectedFacePhotoObjectId = null }) { Text("关闭") }
+                },
+            )
         }
     }
 
@@ -1476,7 +1532,8 @@ fun OtherUserScreen(
                                 "${ChaoxingHttpClient.instance!!.userEntity.name} 的用户数据链接：${
                                     ChaoxingOtherUserHelper.getSharedUrl(
                                         context,
-                                        importSharedEntity
+                                        importSharedEntity,
+                                        if (attachFacePhotos) selectedSharedFaceObjectIds else emptyList(),
                                     )
                                 }，点击链接下载随地大小签或复制文本打开软件即可将此账号添加并为他代签。"
                             )
@@ -1550,6 +1607,77 @@ fun OtherUserScreen(
                 lineHeight = 17.sp,
                 textAlign = TextAlign.Center
             )
+            Spacer(modifier = Modifier.height(6.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.Top,
+            ) {
+                Checkbox(
+                    checked = attachFacePhotos,
+                    onCheckedChange = { attachFacePhotos = it },
+                )
+                Text(
+                    "同时附带你的人脸识别照片供其他人代签使用，对方会收到以下照片。",
+                    modifier = Modifier.padding(top = 12.dp),
+                    fontSize = 13.sp,
+                    lineHeight = 17.sp,
+                )
+            }
+            if (facePhotos.isNotEmpty()) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    facePhotos.forEach { photo ->
+                        val isAttached =
+                            attachFacePhotos && photo.objectId in selectedSharedFaceObjectIds
+                        Box(
+                            modifier = Modifier
+                                .size(64.dp)
+                                .border(
+                                    BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                                    RoundedCornerShape(8.dp),
+                                )
+                                .clickable { inspectedFacePhotoObjectId = photo.objectId },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            val blurRadius by animateDpAsState(
+                                if (isAttached) 6.dp else 0.dp,
+                                animationSpec = tween(200, easing = LinearOutSlowInEasing)
+                            )
+                            AsyncImage(
+                                model = ChaoxingFaceHelper.getFaceImageFile(
+                                    context,
+                                    photo.objectId
+                                ),
+                                contentDescription = "人脸识别照片",
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .blur(blurRadius),
+                            )
+                            this@Row.AnimatedVisibility(
+                                !isAttached,
+                                enter = scaleIn(tween(200, easing = LinearOutSlowInEasing)),
+                                exit = scaleOut(tween(200, easing = LinearOutSlowInEasing))
+                            ) {
+                                Text(
+                                    "×",
+                                    color = Color.White,
+                                    fontSize = 52.sp,
+                                    modifier = Modifier
+                                        .background(Color.Black.copy(alpha = 0.65f))
+                                        .border(
+                                            BorderStroke(1.dp, Color.White),
+                                            RoundedCornerShape(50)
+                                        ),
+                                )
+                            }
+                        }
+                    }
+                }
+            }
             Spacer(modifier = Modifier.height(8.dp))
             Card(
                 shape = RoundedCornerShape(18.dp),
@@ -1630,7 +1758,9 @@ fun OtherUserScreen(
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Center,
-                    modifier = Modifier.fillMaxWidth().padding(10.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(10.dp)
                 ) {
                     Icon(
                         painterResource(R.drawable.ic_scan_face),
