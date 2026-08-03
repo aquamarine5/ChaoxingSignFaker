@@ -156,8 +156,10 @@ fun CourseListScreen(
                     it.snackbarReport(snackbarHost, coroutineScope, "检查更新失败", hapticFeedback)
                 }
             }
-            recommendActivities =
-                ChaoxingRecommendHelper.checkRecommendedActivities(context)
+            disableCode {
+                recommendActivities =
+                    ChaoxingRecommendHelper.checkRecommendedActivities(context)
+            } //TODO: recommend
             if (activitiesData.isEmpty()) {
                 isFetchedFailure = runCatching {
                     val datastoreData = context.chaoxingDataStore.data.first()

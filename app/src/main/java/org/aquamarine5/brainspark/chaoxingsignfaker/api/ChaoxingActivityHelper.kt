@@ -49,7 +49,7 @@ object ChaoxingActivityHelper {
             it.checkResponseThrowException()
             val jsonResult = JSONObject.parseObject(it.body.string()).getJSONObject("data")
             val nowTimeMillis = System.currentTimeMillis()
-            jsonResult.getJSONArray("activeList").map { activity ->
+            jsonResult.getJSONArray("activeList").asSequence().map { activity ->
                 activity as JSONObject
             }.firstOrNull { activity ->
                 (activity.getInteger("type") == 2 || activity.getInteger("type") == 74) &&

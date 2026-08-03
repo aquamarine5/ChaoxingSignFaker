@@ -25,8 +25,6 @@ import okhttp3.CookieJar
 import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.chaoxingUserAgent
-import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingFaceRecognitionConfigure
-import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingFaceRecognitionImage
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingSignFakerDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.HttpCookie
@@ -247,39 +245,27 @@ object ChaoxingOtherUserHelper {
                     })
                 .build()
             context.chaoxingDataStore.updateData { datastore ->
-                val faceImages = sharedEntity.faceObjectIds.distinct().map { objectId ->
-                    ChaoxingFaceRecognitionImage.newBuilder()
-                        .setObjectId(objectId)
-                        .setUseCount(0)
-                        .setIsFailureBefore(false)
-                        .build()
-                }
-                val existingConfigure =
-                    datastore.faceRecognitionConfiguresMap[sharedEntity.phoneNumber]
-                        ?: ChaoxingFaceRecognitionConfigure.getDefaultInstance()
-                val mergedImages = (existingConfigure.imagesList + faceImages)
-                    .distinctBy { it.objectId }
-                    .take(ChaoxingFaceHelper.MAX_FACE_IMAGES)
-                datastore.toBuilder()
-                    .addOtherUsers(session)
-                    .putFaceRecognitionConfigures(
-                        sharedEntity.phoneNumber,
-                        existingConfigure.toBuilder()
-                            .clearImages()
-                            .addAllImages(mergedImages)
-                            .build(),
-                    )
-                    .build()
+                datastore.toBuilder().addOtherUsers(session).build()
             }
-            ChaoxingFaceHelper.storedFaceRecognitionImages.setValue(
-                ChaoxingFaceHelper.storedFaceRecognitionImages.getValue(context).toMutableMap()
-                    .apply {
-                        this[sharedEntity.phoneNumber] = context.chaoxingDataStore.data.first()
-                            .faceRecognitionConfiguresMap[sharedEntity.phoneNumber]
-                            ?.imagesList
-                            .orEmpty()
+            if (sharedEntity.faceObjectIds.isNotEmpty()) {
+                val faceClient = ChaoxingHttpClient.loadFromOtherUserSession(session, context)
+                val existingImageCount = context.chaoxingDataStore.data.first()
+                    .faceRecognitionConfiguresMap[sharedEntity.phoneNumber]
+                    ?.imagesCount ?: 0
+                sharedEntity.faceObjectIds
+                    .asSequence()
+                    .filter { it.isNotBlank() }
+                    .distinct()
+                    .take((ChaoxingFaceHelper.MAX_FACE_IMAGES - existingImageCount).coerceAtLeast(0))
+                    .forEach { objectId ->
+                        ChaoxingFaceHelper.saveFaceImage(
+                            client = faceClient,
+                            context = context,
+                            objectId = objectId,
+                            phoneNumber = sharedEntity.phoneNumber,
+                        )
                     }
-            )
+            }
             return@withContext session
         }
 

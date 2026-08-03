@@ -89,6 +89,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.components.NetworkExceptionC
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NotReadyToSignNoticeComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.OtherUserSelectorComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.QRCodeScanComponent
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.SaveFaceImagesDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SignOutRedirectTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SignPotentialWarningTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SponsorPopupDialog
@@ -101,11 +102,14 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignStatus
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingQRCodeSigner
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSignHandler
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingFaceSignException
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.FaceRecognitionImageIconState
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.FaceRecognitionImageStatus
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.displaySnackbar
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.isDevelopedMode
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.setStatus
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
 import kotlin.time.Duration.Companion.seconds
 
@@ -168,6 +172,8 @@ fun QRCodeSignScreen(
             null
         )
     }
+    val faceRecognitionImageIconList: FaceRecognitionImageIconState =
+        remember { mutableStateOf(emptyList()) }
     val hapticFeedback = LocalHapticFeedback.current
     var isFetchedFailure by remember { mutableStateOf<Result<*>?>(null) }
     val httpClientStorage = remember { mutableMapOf<String, ChaoxingHttpClient>() }
@@ -285,6 +291,56 @@ fun QRCodeSignScreen(
                     var isFaceImageCaptured by remember { mutableStateOf(false) }
 
                     val faceImageBitmaps = remember { mutableMapOf<String, Bitmap>() }
+                    val newFaceImagePhones = remember { mutableStateListOf<String>() }
+                    var showFaceSaveDialog by remember { mutableStateOf(false) }
+                    var sponsorPendingAfterFaceSave by remember { mutableStateOf(false) }
+                    if (showFaceSaveDialog) {
+                        SaveFaceImagesDialog(newFaceImagePhones.size, onSave = {
+                            showFaceSaveDialog = false
+                            coroutineScope.launch {
+                                newFaceImagePhones.toList().forEach { phone ->
+                                    faceImageBitmaps[phone]?.let { bitmap ->
+                                        runCatching {
+                                            val client =
+                                                if (phone == ChaoxingHttpClient.instance!!.userEntity.phoneNumber) ChaoxingHttpClient.instance!! else httpClientStorage[phone]!!
+                                            ChaoxingFaceHelper.saveFaceImage(
+                                                client,
+                                                context,
+                                                bitmap,
+                                                phone
+                                            )
+                                            faceRecognitionImageIconList.setStatus(
+                                                FaceRecognitionImageStatus.HaveImage,
+                                                phone,
+                                                signUserList
+                                            )
+                                        }.onFailure {
+                                            it.snackbarReport(
+                                                snackbarHost,
+                                                coroutineScope,
+                                                "保存人脸照片失败",
+                                                hapticFeedback
+                                            )
+                                        }
+                                    }
+                                }
+                                newFaceImagePhones.clear()
+                                if (sponsorPendingAfterFaceSave) {
+                                    delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED); isSponsor =
+                                        true; sponsorPendingAfterFaceSave = false
+                                }
+                            }
+                        }, onDismiss = {
+                            showFaceSaveDialog = false; newFaceImagePhones.clear()
+                            if (sponsorPendingAfterFaceSave) {
+                                sponsorPendingAfterFaceSave = false; coroutineScope.launch {
+                                    delay(
+                                        ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED
+                                    ); isSponsor = true
+                                }
+                            }
+                        })
+                    }
                     val faceImageObjectIds = remember { mutableMapOf<String, String>() }
                     val storedFaceImageObjectIds = remember { mutableMapOf<String, String>() }
 
@@ -336,6 +392,14 @@ fun QRCodeSignScreen(
                                         return@runCatching true
                                     } else return@runCatching false
                                 }.onFailure { exception ->
+                                    if (exception is ChaoxingFaceSignException) {
+                                        faceImageObjectIds.remove(ChaoxingHttpClient.instance!!.userEntity.phoneNumber)
+                                        faceRecognitionImageIconList.setStatus(
+                                            FaceRecognitionImageStatus.ImageCheckFailure,
+                                            ChaoxingHttpClient.instance!!.userEntity.phoneNumber,
+                                            signUserList,
+                                        )
+                                    }
                                     storedFaceImageObjectIds[ChaoxingHttpClient.instance!!.userEntity.phoneNumber]
                                         ?.let { objectId ->
                                             ChaoxingFaceHelper.afterUsingFaceImage(
@@ -345,6 +409,12 @@ fun QRCodeSignScreen(
                                                 exception is ChaoxingFaceSignException,
                                             )
                                         }
+                                }.onSuccess {
+                                    faceRecognitionImageIconList.setStatus(
+                                        FaceRecognitionImageStatus.ImageCheckSuccess,
+                                        ChaoxingHttpClient.instance!!.userEntity.phoneNumber,
+                                        signUserList,
+                                    )
                                 }
                             },
                             onSigningFinished = { _, name, isOtherUser ->
@@ -417,6 +487,14 @@ fun QRCodeSignScreen(
                                         }
                                     }
                                 }.onFailure { exception ->
+                                    if (exception is ChaoxingFaceSignException) {
+                                        faceImageObjectIds.remove(session.phoneNumber)
+                                        faceRecognitionImageIconList.setStatus(
+                                            FaceRecognitionImageStatus.ImageCheckFailure,
+                                            session.phoneNumber,
+                                            signUserList,
+                                        )
+                                    }
                                     storedFaceImageObjectIds[session.phoneNumber]?.let { objectId ->
                                         ChaoxingFaceHelper.afterUsingFaceImage(
                                             context,
@@ -425,13 +503,22 @@ fun QRCodeSignScreen(
                                             exception is ChaoxingFaceSignException,
                                         )
                                     }
+                                }.onSuccess {
+                                    faceRecognitionImageIconList.setStatus(
+                                        FaceRecognitionImageStatus.ImageCheckSuccess,
+                                        session.phoneNumber,
+                                        signUserList,
+                                    )
                                 }
 
                             },
                             onAllSigningFinished = { isSuccessful ->
                                 isSigning.value = false
                                 if (isSuccessful) {
-                                    coroutineScope.launch {
+                                    if (newFaceImagePhones.isNotEmpty()) {
+                                        sponsorPendingAfterFaceSave = true
+                                        showFaceSaveDialog = true
+                                    } else coroutineScope.launch {
                                         delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)
                                         isSponsor = true
                                     }
@@ -458,6 +545,7 @@ fun QRCodeSignScreen(
                                 signStatus = signStatus,
                                 isCurrentAlreadySigned = isCurrentAlreadySigned,
                                 userSelections = userSelections,
+                                faceRecognitionImageIconStatus = faceRecognitionImageIconList,
                                 prefixTipsContent = {
                                     if (signoffData != null)
                                         SignOutRedirectTips(
@@ -633,14 +721,21 @@ fun QRCodeSignScreen(
                                     if (isFaceRequired) {
                                         val selectedPhoneNumbers = buildList {
                                             if (isSelf) add(ChaoxingHttpClient.instance!!.userEntity.phoneNumber)
-                                            addAll(otherUserSessionList.filterNotNull().map { it.phoneNumber })
+                                            addAll(
+                                                otherUserSessionList.filterNotNull()
+                                                    .map { it.phoneNumber })
                                         }
-                                        val storedImages = ChaoxingFaceHelper.storedFaceRecognitionImages.getValue(context)
+                                        val storedImages =
+                                            ChaoxingFaceHelper.storedFaceRecognitionImages.getValue(
+                                                context
+                                            )
                                         selectedPhoneNumbers.forEach { phoneNumber ->
-                                            storedImages[phoneNumber].orEmpty().randomOrNull()?.let { image ->
-                                                faceImageObjectIds[phoneNumber] = image.objectId
-                                                storedFaceImageObjectIds[phoneNumber] = image.objectId
-                                            }
+                                            storedImages[phoneNumber].orEmpty().randomOrNull()
+                                                ?.let { image ->
+                                                    faceImageObjectIds[phoneNumber] = image.objectId
+                                                    storedFaceImageObjectIds[phoneNumber] =
+                                                        image.objectId
+                                                }
                                         }
                                     }
                                     if (isFaceRequired && (
@@ -694,7 +789,15 @@ fun QRCodeSignScreen(
                                 isSigning.value = false
                                 isFaceImageCaptured = false
                             }) {
-                                faceImageBitmaps.putAll(it)
+                                it.forEach { (string, bitmap) ->
+                                    faceRecognitionImageIconList.setStatus(
+                                        FaceRecognitionImageStatus.NewImageAdded,
+                                        string,
+                                        signUserList
+                                    )
+                                    faceImageBitmaps[string] = bitmap
+                                    newFaceImagePhones.add(string)
+                                }
                                 isFaceImageCaptured = false
                                 if (isMapRequired)
                                     isMapGetting = true

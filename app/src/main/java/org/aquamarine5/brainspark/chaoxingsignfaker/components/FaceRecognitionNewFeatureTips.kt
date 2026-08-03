@@ -28,8 +28,8 @@ import androidx.compose.ui.unit.sp
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 
 @Composable
-fun FaceRecognitionNewFeatureTips(){
-    Column{
+fun FaceRecognitionNewFeatureTips() {
+    Column {
         Card(
             shape = RoundedCornerShape(18.dp),
             colors = CardDefaults.cardColors(

@@ -211,7 +211,10 @@ class MainActivity : ComponentActivity() {
                 CompositionLocalProvider(LocalSnackbarHostState provides snackbarHostState) {
                     Scaffold(
                         snackbarHost = {
-                            SnackbarHost(hostState = snackbarHostState, modifier = Modifier.zIndex(9999f))
+                            SnackbarHost(
+                                hostState = snackbarHostState,
+                                modifier = Modifier.zIndex(9999f)
+                            )
                         },
                         bottomBar = {
                             val navBackStackEntry by navController.currentBackStackEntryAsState()

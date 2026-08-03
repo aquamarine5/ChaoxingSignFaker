@@ -19,7 +19,8 @@ enum class FaceRecognitionImageStatus(@DrawableRes val resId: Int, val color: Co
     HaveImage(R.drawable.ic_image_v, Color.Unspecified),
     NoImage(R.drawable.ic_image_slash, Color.Gray),
     ImageCheckSuccess(R.drawable.ic_image_check, Color(0xFF229453)),
-    ImageCheckFailure(R.drawable.ic_image_times, Color(0xFFF43E06))
+    ImageCheckFailure(R.drawable.ic_image_times, Color(0xFFF43E06)),
+    NewImageAdded(R.drawable.ic_image_plus, Color(0xFF00FF00))
 }
 
 fun FaceRecognitionImageIconState.setStatus(
@@ -28,8 +29,8 @@ fun FaceRecognitionImageIconState.setStatus(
     otherUserSessionList: List<ChaoxingOtherUserSession?>
 ) {
     val index = if (phoneNumber == ChaoxingHttpClient.instance!!.userEntity.phoneNumber) 0
-        else otherUserSessionList.filterNotNull()
-            .indexOfFirst { it.phoneNumber == phoneNumber }
-            .let { if (it < 0) return else it + 1 }
+    else otherUserSessionList.filterNotNull()
+        .indexOfFirst { it.phoneNumber == phoneNumber }
+        .let { if (it < 0) return else it + 1 }
     if (index in this.value.indices) this.value[index].value = status
 }

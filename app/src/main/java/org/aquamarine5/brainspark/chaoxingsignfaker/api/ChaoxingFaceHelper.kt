@@ -117,7 +117,6 @@ object ChaoxingFaceHelper {
             .joinToString("") { (it.toInt() and 0xff).toString(16).padStart(2, '0') }
 
 
-
     fun getFaceImageFile(context: Context, objectId: String): File {
         require(objectId.isNotBlank()) { "人脸照片 ID 不能为空" }
         return File(context.filesDir, "face_images").apply { mkdirs() }
@@ -194,7 +193,13 @@ object ChaoxingFaceHelper {
 
         runCatching {
             temporary.outputStream().use { output ->
-                check(bitmap.compress(Bitmap.CompressFormat.JPEG, 90, output)) { "保存人脸照片失败" }
+                check(
+                    bitmap.compress(
+                        Bitmap.CompressFormat.JPEG,
+                        90,
+                        output
+                    )
+                ) { "保存人脸照片失败" }
             }
             check(temporary.renameTo(destination)) { "保存人脸照片失败" }
             context.chaoxingDataStore.updateData { dataStore ->

@@ -54,6 +54,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.components.GetLocationCompon
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NetworkExceptionComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NotReadyToSignNoticeComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.OtherUserSelectorComponent
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.SaveFaceImagesDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SignOutRedirectTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SignPotentialWarningTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SponsorPopupDialog
@@ -239,6 +240,59 @@ fun LocationSignScreen(
                     val faceImageObjectIds = remember { mutableMapOf<String, String>() }
                     val storedFaceImageObjectIds = remember { mutableMapOf<String, String>() }
                     val faceImageBitmaps = remember { mutableMapOf<String, Bitmap>() }
+                    val newFaceImagePhones = remember { mutableStateListOf<String>() }
+                    var showFaceSaveDialog by remember { mutableStateOf(false) }
+                    var sponsorPendingAfterFaceSave by remember { mutableStateOf(false) }
+                    if (showFaceSaveDialog) {
+                        SaveFaceImagesDialog(newFaceImagePhones.size, onSave = {
+                            showFaceSaveDialog = false
+                            coroutineScope.launch {
+                                newFaceImagePhones.toList().forEach { phoneNumber ->
+                                    faceImageBitmaps[phoneNumber]?.let { bitmap ->
+                                        runCatching {
+                                            val client =
+                                                if (phoneNumber == ChaoxingHttpClient.instance!!.userEntity.phoneNumber) ChaoxingHttpClient.instance!! else httpClientStorage[phoneNumber]!!
+                                            ChaoxingFaceHelper.saveFaceImage(
+                                                client,
+                                                context,
+                                                bitmap,
+                                                phoneNumber
+                                            )
+                                            faceRecognitionImageIconList.setStatus(
+                                                FaceRecognitionImageStatus.HaveImage,
+                                                phoneNumber,
+                                                otherUserSessionForSignList
+                                            )
+                                            faceImageBitmaps.remove(phoneNumber)
+                                        }.onFailure {
+                                            it.snackbarReport(
+                                                snackbarHost,
+                                                coroutineScope,
+                                                "保存人脸照片失败",
+                                                hapticFeedback
+                                            )
+                                        }
+                                    }
+                                }
+                                newFaceImagePhones.clear()
+                                if (sponsorPendingAfterFaceSave) {
+                                    delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)
+                                    isSponsor = true
+                                    sponsorPendingAfterFaceSave = false
+                                }
+                            }
+                        }, onDismiss = {
+                            showFaceSaveDialog = false
+                            newFaceImagePhones.clear()
+                            if (sponsorPendingAfterFaceSave) {
+                                sponsorPendingAfterFaceSave = false
+                                coroutineScope.launch {
+                                    delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)
+                                    isSponsor = true
+                                }
+                            }
+                        })
+                    }
                     val signHandler = remember {
                         ChaoxingSignHandler<ChaoxingLocationSignEntity>(
                             context = context, userSelections = userSelections,
@@ -397,9 +451,14 @@ fun LocationSignScreen(
                             onAllSigningFinished = { isSuccessful ->
                                 isSigning.value = false
                                 if (isSuccessful) {
-                                    coroutineScope.launch {
-                                        delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)
-                                        isSponsor = true
+                                    if (newFaceImagePhones.isNotEmpty()) {
+                                        sponsorPendingAfterFaceSave = true
+                                        showFaceSaveDialog = true
+                                    } else {
+                                        coroutineScope.launch {
+                                            delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)
+                                            isSponsor = true
+                                        }
                                     }
                                 }
                             }
@@ -501,14 +560,15 @@ fun LocationSignScreen(
                             isSigning.value = false
                             isFaceImageCaptured = false
                         }) {
-                            it.forEach { (string, _) ->
+                            it.forEach { (string, bitmap) ->
                                 faceRecognitionImageIconList.setStatus(
-                                    FaceRecognitionImageStatus.HaveImage,
+                                    FaceRecognitionImageStatus.NewImageAdded,
                                     string,
                                     otherUserSessionForSignList
                                 )
+                                faceImageBitmaps[string] = bitmap
+                                newFaceImagePhones.add(string)
                             }
-                            faceImageBitmaps.putAll(it)
                             isGetLocation = true
                             isFaceImageCaptured = false
                         }
