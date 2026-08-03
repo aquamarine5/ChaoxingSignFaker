@@ -1903,16 +1903,14 @@ fun OtherUserScreen(
                         "现在可以克隆登录其他人的账号，来给其他人代签你没有的课程。",
                         modifier = Modifier.padding(8.dp, 4.dp)
                     ) {
-                        coroutineScope.launch(Dispatchers.IO) {
-                            context.chaoxingDataStore.updateData {
-                                it.toBuilder()
-                                    .setLearntTooltips(
-                                        it.learntTooltips.toBuilder()
-                                            .setSupportCloneOtherUserSession(
-                                                true
-                                            ).build()
-                                    ).build()
-                            }
+                        context.chaoxingDataStore.updateData {
+                            it.toBuilder()
+                                .setLearntTooltips(
+                                    it.learntTooltips.toBuilder()
+                                        .setSupportCloneOtherUserSession(
+                                            true
+                                        ).build()
+                                ).build()
                         }
                     }
 

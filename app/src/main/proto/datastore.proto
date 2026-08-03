@@ -83,6 +83,7 @@ message LearntTooltip{
   bool cameraSelectedMultipleImagesFromGallery = 7;
   bool supportCloneOtherUserSession = 8;
   bool sliderCaptchaAutoResolveByHashMap = 9;
+  bool saveFaceRecognitionImagesToLocal = 10;
 }
 
 message OtherUserTagType{

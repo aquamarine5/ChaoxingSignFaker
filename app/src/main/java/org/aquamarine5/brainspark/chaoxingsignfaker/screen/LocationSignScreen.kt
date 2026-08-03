@@ -36,6 +36,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.serialization.Serializable
@@ -72,6 +73,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.FaceRecognitionIma
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.FaceRecognitionImageStatus
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.UMengHelper
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.setStatus
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
 
@@ -149,8 +151,13 @@ fun LocationSignScreen(
     val faceRecognitionImageIconList: FaceRecognitionImageIconState =
         remember { mutableStateOf(emptyList()) }
     var isFaceRequired by remember { mutableStateOf(false) }
+    val isDisplayFaceRecognitionImageNewFeatureTips = remember { mutableStateOf(false) }
     val httpClientStorage = remember { mutableMapOf<String, ChaoxingHttpClient>() }
     LaunchedEffect(Unit) {
+        context.chaoxingDataStore.data.first().let {
+            isDisplayFaceRecognitionImageNewFeatureTips.value =
+                !it.learntTooltips.saveFaceRecognitionImagesToLocal
+        }
         isFetchedFailure = runCatching {
             val data = if (destination.isCloneSession) {
                 ChaoxingHttpClient.cloneInstance!!.let { client ->
@@ -488,7 +495,7 @@ fun LocationSignScreen(
                                     )
 
                                 if (isFaceRequired) {
-                                    FaceRecognitionNewFeatureTips()
+                                    FaceRecognitionNewFeatureTips(isDisplayFaceRecognitionImageNewFeatureTips)
                                 }
                             },
                             faceRecognitionImageIconStatus = faceRecognitionImageIconList,

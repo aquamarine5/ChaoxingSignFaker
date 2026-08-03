@@ -84,6 +84,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerDia
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerParams
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.FaceRecognitionComponent
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.FaceRecognitionNewFeatureTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.GetLocationComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NetworkExceptionComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NotReadyToSignNoticeComponent
@@ -177,6 +178,7 @@ fun QRCodeSignScreen(
     val hapticFeedback = LocalHapticFeedback.current
     var isFetchedFailure by remember { mutableStateOf<Result<*>?>(null) }
     val httpClientStorage = remember { mutableMapOf<String, ChaoxingHttpClient>() }
+    val isDisplayFaceRecognitionImageNewFeatureTips= remember { mutableStateOf(false) }
     if (captchaValidateParams != null) {
         CaptchaHandlerDialog(
             captchaValidateParams!!.first,
@@ -187,6 +189,10 @@ fun QRCodeSignScreen(
     }
     var isFaceRequired by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
+        context.chaoxingDataStore.data.first().let {
+            isDisplayFaceRecognitionImageNewFeatureTips.value =
+                !it.learntTooltips.saveFaceRecognitionImagesToLocal
+        }
         isFetchedFailure = runCatching {
             val data = if (destination.isCloneSession) {
                 ChaoxingHttpClient.cloneInstance!!.let { cloneHttpClient ->
@@ -590,39 +596,9 @@ fun QRCodeSignScreen(
                                             destination.endTime,
                                             destination.isLate
                                         )
-                                    if (isFaceRequired)
-                                        Card(
-                                            shape = RoundedCornerShape(18.dp),
-                                            colors = CardDefaults.cardColors(
-                                                containerColor = Color(0xFF12AA9C)
-                                            ),
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(2.dp, 6.dp)
-                                        ) {
-                                            Row(
-                                                modifier = Modifier
-                                                    .padding(10.dp, 12.dp)
-                                                    .fillMaxWidth(),
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                Spacer(modifier = Modifier.width(8.dp))
-                                                Icon(
-                                                    painterResource(R.drawable.ic_scan_face),
-                                                    contentDescription = "Help",
-                                                    tint = Color.White
-                                                )
-                                                Spacer(modifier = Modifier.width(9.dp))
-                                                Text(
-                                                    "已经临时破解人脸识别签到，以下人脸识别签到方法并不是最优解，仅供临时使用。\n感谢 @miloce 提供人脸识别技术支持。\n为自己签到时，调用前置摄像头为自己拍摄一张正脸照片（睁眼），随后正常设置位置以签到。\n为其他人代签时，可以提前保存一张他的正脸照，随后在拍摄页面点击右下角按钮选择图片上传，随后正常设置位置以签到。",
-                                                    color = Color.White,
-                                                    fontSize = 13.sp,
-                                                    lineHeight = 18.sp,
-                                                    fontWeight = FontWeight.W500,
-                                                    modifier = Modifier.fillMaxWidth()
-                                                )
-                                            }
-                                        }
+                                    if (isFaceRequired) {
+                                        FaceRecognitionNewFeatureTips(isDisplayFaceRecognitionImageNewFeatureTips)
+                                    }
                                 },
                                 isSigning = isSigning,
                                 onIgnoreExceptionSignAction = { index, session ->

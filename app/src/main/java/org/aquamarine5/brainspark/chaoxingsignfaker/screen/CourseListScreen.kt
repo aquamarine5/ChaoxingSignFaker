@@ -497,16 +497,14 @@ fun CourseListScreen(
                                         isCaptchaAutoResolveLearntTooltip,
                                         "现在部分的验证码会根据内置的数据表自动滑动完成了。"
                                     ) {
-                                        coroutineScope.launch(Dispatchers.IO) {
-                                            context.chaoxingDataStore.updateData {
-                                                it.toBuilder()
-                                                    .setLearntTooltips(
-                                                        it.learntTooltips.toBuilder()
-                                                            .setSliderCaptchaAutoResolveByHashMap(
-                                                                true
-                                                            ).build()
-                                                    ).build()
-                                            }
+                                        context.chaoxingDataStore.updateData {
+                                            it.toBuilder()
+                                                .setLearntTooltips(
+                                                    it.learntTooltips.toBuilder()
+                                                        .setSliderCaptchaAutoResolveByHashMap(
+                                                            true
+                                                        ).build()
+                                                ).build()
                                         }
                                     }
                                 }

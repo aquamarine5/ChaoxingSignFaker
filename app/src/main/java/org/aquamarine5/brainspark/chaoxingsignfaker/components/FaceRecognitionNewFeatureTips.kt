@@ -18,17 +18,21 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
 
 @Composable
-fun FaceRecognitionNewFeatureTips() {
+fun FaceRecognitionNewFeatureTips(isDisplayNewFeature: MutableState<Boolean>) {
     Column {
         Card(
             shape = RoundedCornerShape(18.dp),
@@ -38,6 +42,7 @@ fun FaceRecognitionNewFeatureTips() {
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(2.dp, 6.dp)
+                .zIndex(1f)
         ) {
             Row(
                 modifier = Modifier
@@ -60,6 +65,18 @@ fun FaceRecognitionNewFeatureTips() {
                     fontWeight = FontWeight.W500,
                     modifier = Modifier.fillMaxWidth()
                 )
+            }
+        }
+        val context = LocalContext.current
+        NewFeatureTipsCard(
+            isDisplayNewFeature,
+            "现在随地大小签可以保存用户的人脸照片，可以不需要手动上传了。"
+        ) {
+            context.chaoxingDataStore.updateData {
+                it.toBuilder().setLearntTooltips(
+                    it.learntTooltips.toBuilder().setSaveFaceRecognitionImagesToLocal(true)
+                        .build()
+                ).build()
             }
         }
     }
