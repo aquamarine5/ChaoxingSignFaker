@@ -20,6 +20,7 @@ import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -265,7 +266,7 @@ fun CameraComponent(
             var tooltipText by remember { mutableStateOf("") }
             LaunchedEffect(Unit) {
                 context.chaoxingDataStore.data.first().learntTooltips.let {
-                    if (!it.cameraSelectedMultipleImagesFromGallery) {
+                    if (!it.cameraSelectedMultipleImagesFromGallery && pictureCount > 1) {
                         tooltipText = "点击可以从图库选择多张图片，一次就可以上传完毕"
                         tooltipState.show()
                     } else if (!it.cameraSelectedFromGallery) {
@@ -286,7 +287,7 @@ fun CameraComponent(
                     TooltipBox(
                         onDismissRequest = {},
                         positionProvider = TooltipDefaults.rememberTooltipPositionProvider(
-                            TooltipAnchorPosition.Above,
+                            TooltipAnchorPosition.Right,
                             13.dp
                         ), modifier = Modifier.zIndex(2f), hasAction = true,
                         tooltip = {
@@ -314,9 +315,13 @@ fun CameraComponent(
                                                             .setCameraSelectedFromGallery(
                                                                 true
                                                             )
-                                                            .setCameraSelectedMultipleImagesFromGallery(
-                                                                true
-                                                            ).build()
+                                                            .apply {
+                                                                if (pictureCount > 1)
+                                                                    setCameraSelectedMultipleImagesFromGallery(
+                                                                        true
+                                                                    )
+                                                            }
+                                                            .build()
                                                     ).build()
                                                 }
                                             }
@@ -334,31 +339,28 @@ fun CameraComponent(
                         state = tooltipState
                     ) {
                         Column {
-                            FloatingActionButton(onClick = {
-                                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                                if (needTakePictureCount > 1) {
-                                    galleryMultiple.launch(
-                                        PickVisualMediaRequest(
-                                            ActivityResultContracts.PickVisualMedia.ImageOnly,
-                                            needTakePictureCount,
-                                            isOrderedSelection = true
-                                        )
-                                    )
-                                } else {
+                            AnimatedVisibility(
+                                needTakePictureCount > 1,
+                                enter = fadeIn(),
+                                exit = fadeOut()
+                            ) {
+                                FloatingActionButton(onClick = {
+                                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                                     gallerySingle.launch(
                                         PickVisualMediaRequest(
                                             ActivityResultContracts.PickVisualMedia.ImageOnly
                                         )
                                     )
+
+                                }) {
+                                    Icon(
+                                        painterResource(R.drawable.ic_images),
+                                        null,
+                                        modifier = Modifier.size(32.dp)
+                                    )
                                 }
-                            }) {
-                                Icon(
-                                    painterResource(R.drawable.ic_images),
-                                    null,
-                                    modifier = Modifier.size(32.dp)
-                                )
+                                Spacer(modifier = Modifier.height(12.dp))
                             }
-                            Spacer(modifier = Modifier.height(12.dp))
                             FloatingActionButton(onClick = {
                                 hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                                 gallerySingle.launch(

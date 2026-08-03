@@ -8,6 +8,7 @@ package org.aquamarine5.brainspark.chaoxingsignfaker.components
 
 import android.graphics.Bitmap
 import androidx.activity.compose.BackHandler
+import androidx.annotation.DrawableRes
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -26,6 +27,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import org.aquamarine5.brainspark.chaoxingsignfaker.R
 
 @Composable
 fun FaceRecognitionComponent(

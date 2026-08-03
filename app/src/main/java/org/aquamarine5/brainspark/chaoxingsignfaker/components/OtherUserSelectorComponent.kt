@@ -62,6 +62,7 @@ import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -88,6 +89,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.OtherUserTagType
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignStatus
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.TAG_COLOR_UNSPECIFIED
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingPredictableException
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.FaceRecognitionImageStatus
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.displaySnackbar
@@ -104,6 +106,7 @@ fun OtherUserSelectorComponent(
     userContent: @Composable ((index: Int) -> Unit)? = null,
     prefixTipsContent: @Composable (() -> Unit),
     suffixContent: @Composable (() -> Unit)? = null,
+    faceRecognitionImageIconStatus: MutableState<List<MutableState<FaceRecognitionImageStatus>>>? = null,
     onSignAction: (isSelf: Boolean, otherUserSessionList: List<ChaoxingOtherUserSession?>, indexList: List<Int>) -> Unit
 ) {
     LocalContext.current.let { context ->
@@ -402,6 +405,22 @@ fun OtherUserSelectorComponent(
                                     }
                                 }
                             }
+                            if (faceRecognitionImageIconStatus?.value?.isEmpty() == true) {
+                                faceRecognitionImageIconStatus.value = buildList {
+                                    add(
+                                        if (datastore.faceRecognitionConfiguresMap[datastore.loginSession.phoneNumber]?.imagesList?.isNotEmpty() == true)
+                                            mutableStateOf(FaceRecognitionImageStatus.HaveImage)
+                                        else mutableStateOf(FaceRecognitionImageStatus.NoImage)
+                                    )
+                                    datastore.otherUsersList.forEach {
+                                        add(
+                                            if (datastore.faceRecognitionConfiguresMap[it.phoneNumber]?.imagesList?.isNotEmpty() == true)
+                                                mutableStateOf(FaceRecognitionImageStatus.HaveImage)
+                                            else mutableStateOf(FaceRecognitionImageStatus.NoImage)
+                                        )
+                                    }
+                                }
+                            }
                             datastore.otherUsersList.filter {
                                 it.phoneNumber != datastore.loginSession.phoneNumber
                             }
@@ -613,6 +632,17 @@ fun OtherUserSelectorComponent(
                                                     .size(14.dp)
                                                     .visible(isCloneSession && index == 0)
                                             )
+                                            faceRecognitionImageIconStatus?.value?.getOrNull(i)
+                                                ?.let {
+                                                    Icon(
+                                                        painterResource(it.value.resId),
+                                                        null,
+                                                        modifier = Modifier
+                                                            .padding(start = 4.dp)
+                                                            .size(14.dp),
+                                                        tint = it.value.color.takeOrElse { MaterialTheme.colorScheme.primary }
+                                                    )
+                                                }
                                         }
                                         Text(
                                             session.phoneNumber,

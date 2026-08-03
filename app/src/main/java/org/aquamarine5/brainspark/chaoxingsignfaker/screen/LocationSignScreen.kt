@@ -17,16 +17,9 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
@@ -37,21 +30,15 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.serialization.Serializable
-import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCloudDriveHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCourseHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingFaceHelper
@@ -62,6 +49,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerDia
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerParams
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.FaceRecognitionComponent
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.FaceRecognitionNewFeatureTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.GetLocationComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NetworkExceptionComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NotReadyToSignNoticeComponent
@@ -79,8 +67,11 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignStatus
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingLocationSigner
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSignHandler
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingFaceSignException
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.FaceRecognitionImageIconState
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.FaceRecognitionImageStatus
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.UMengHelper
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.setStatus
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
 
 @Immutable
@@ -154,7 +145,8 @@ fun LocationSignScreen(
     val coroutineScope = rememberCoroutineScope()
     val hapticFeedback = LocalHapticFeedback.current
     var isFetchedFailure by remember { mutableStateOf<Result<*>?>(null) }
-
+    val faceRecognitionImageIconList: FaceRecognitionImageIconState =
+        remember { mutableStateOf(emptyList()) }
     var isFaceRequired by remember { mutableStateOf(false) }
     val httpClientStorage = remember { mutableMapOf<String, ChaoxingHttpClient>() }
     LaunchedEffect(Unit) {
@@ -229,7 +221,6 @@ fun LocationSignScreen(
                             )
                     }
                 } else if (c == ChaoxingSignActivityStatus.READY_TO_SIGN) {
-
                     var isGetLocation by remember { mutableStateOf(false) }
                     val signStatus = remember { mutableListOf(ChaoxingSignStatus(hapticFeedback)) }
                     var isSelfForSign by remember { mutableStateOf(false) }
@@ -288,6 +279,14 @@ fun LocationSignScreen(
                                         return@runCatching true
                                     } else return@runCatching false
                                 }.onFailure { exception ->
+                                    if (exception is ChaoxingFaceSignException) {
+                                        faceImageObjectIds.remove(ChaoxingHttpClient.instance!!.userEntity.phoneNumber)
+                                        faceRecognitionImageIconList.setStatus(
+                                            FaceRecognitionImageStatus.ImageCheckFailure,
+                                            ChaoxingHttpClient.instance!!.userEntity.phoneNumber,
+                                            otherUserSessionForSignList
+                                        )
+                                    }
                                     storedFaceImageObjectIds[ChaoxingHttpClient.instance!!.userEntity.phoneNumber]
                                         ?.let { objectId ->
                                             ChaoxingFaceHelper.afterUsingFaceImage(
@@ -297,6 +296,12 @@ fun LocationSignScreen(
                                                 exception is ChaoxingFaceSignException,
                                             )
                                         }
+                                }.onSuccess {
+                                    faceRecognitionImageIconList.setStatus(
+                                        FaceRecognitionImageStatus.ImageCheckSuccess,
+                                        ChaoxingHttpClient.instance!!.userEntity.phoneNumber,
+                                        otherUserSessionForSignList
+                                    )
                                 }
                             },
                             onOtherUserSigning = { value, session, bypassChecking, _ ->
@@ -354,6 +359,14 @@ fun LocationSignScreen(
                                         }
                                     }
                                 }.onFailure { exception ->
+                                    if (exception is ChaoxingFaceSignException) {
+                                        faceImageObjectIds.remove(session.phoneNumber)
+                                        faceRecognitionImageIconList.setStatus(
+                                            FaceRecognitionImageStatus.ImageCheckFailure,
+                                            ChaoxingHttpClient.instance!!.userEntity.phoneNumber,
+                                            otherUserSessionForSignList
+                                        )
+                                    }
                                     storedFaceImageObjectIds[session.phoneNumber]?.let { objectId ->
                                         ChaoxingFaceHelper.afterUsingFaceImage(
                                             context,
@@ -362,6 +375,12 @@ fun LocationSignScreen(
                                             exception is ChaoxingFaceSignException,
                                         )
                                     }
+                                }.onSuccess {
+                                    faceRecognitionImageIconList.setStatus(
+                                        FaceRecognitionImageStatus.ImageCheckSuccess,
+                                        session.phoneNumber,
+                                        otherUserSessionForSignList
+                                    )
                                 }
                             },
                             destination = destination,
@@ -409,40 +428,11 @@ fun LocationSignScreen(
                                         destination.isLate
                                     )
 
-                                if (isFaceRequired)
-                                    Card(
-                                        shape = RoundedCornerShape(18.dp),
-                                        colors = CardDefaults.cardColors(
-                                            containerColor = Color(0xFF12AA9C)
-                                        ),
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(2.dp, 6.dp)
-                                    ) {
-                                        Row(
-                                            modifier = Modifier
-                                                .padding(10.dp, 12.dp)
-                                                .fillMaxWidth(),
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Spacer(modifier = Modifier.width(8.dp))
-                                            Icon(
-                                                painterResource(R.drawable.ic_scan_face),
-                                                contentDescription = "Help",
-                                                tint = Color.White
-                                            )
-                                            Spacer(modifier = Modifier.width(9.dp))
-                                            Text(
-                                                "已经临时破解人脸识别签到，以下人脸识别签到方法并不是最优解，仅供临时使用。\n感谢 @miloce 提供人脸识别技术支持。\n为自己签到时，调用前置摄像头为自己拍摄一张正脸照片（睁眼），随后正常设置位置以签到。\n为其他人代签时，可以提前保存一张他的正脸照，随后在拍摄页面点击右下角按钮选择图片上传，随后正常设置位置以签到。",
-                                                color = Color.White,
-                                                fontSize = 13.sp,
-                                                lineHeight = 18.sp,
-                                                fontWeight = FontWeight.W500,
-                                                modifier = Modifier.fillMaxWidth()
-                                            )
-                                        }
-                                    }
+                                if (isFaceRequired) {
+                                    FaceRecognitionNewFeatureTips()
+                                }
                             },
+                            faceRecognitionImageIconStatus = faceRecognitionImageIconList,
                             isCloneSession = destination.isCloneSession,
                             onIgnoreExceptionSignAction = { index, session ->
                                 signHandler.ignoreExceptionOtherUserSigning(session, index)
@@ -455,14 +445,21 @@ fun LocationSignScreen(
                                 if (isFaceRequired) {
                                     val selectedPhoneNumbers = buildList {
                                         if (isSelf) add(ChaoxingHttpClient.instance!!.userEntity.phoneNumber)
-                                        addAll(otherUserSessionList.filterNotNull().map { it.phoneNumber })
+                                        addAll(
+                                            otherUserSessionList.filterNotNull()
+                                                .map { it.phoneNumber })
                                     }
-                                    val storedImages = ChaoxingFaceHelper.storedFaceRecognitionImages.getValue(context)
+                                    val storedImages =
+                                        ChaoxingFaceHelper.storedFaceRecognitionImages.getValue(
+                                            context
+                                        )
                                     selectedPhoneNumbers.forEach { phoneNumber ->
-                                        storedImages[phoneNumber].orEmpty().randomOrNull()?.let { image ->
-                                            faceImageObjectIds[phoneNumber] = image.objectId
-                                            storedFaceImageObjectIds[phoneNumber] = image.objectId
-                                        }
+                                        storedImages[phoneNumber].orEmpty().randomOrNull()
+                                            ?.let { image ->
+                                                faceImageObjectIds[phoneNumber] = image.objectId
+                                                storedFaceImageObjectIds[phoneNumber] =
+                                                    image.objectId
+                                            }
                                     }
                                 }
                                 if (isFaceRequired && (
@@ -504,6 +501,13 @@ fun LocationSignScreen(
                             isSigning.value = false
                             isFaceImageCaptured = false
                         }) {
+                            it.forEach { (string, _) ->
+                                faceRecognitionImageIconList.setStatus(
+                                    FaceRecognitionImageStatus.HaveImage,
+                                    string,
+                                    otherUserSessionForSignList
+                                )
+                            }
                             faceImageBitmaps.putAll(it)
                             isGetLocation = true
                             isFaceImageCaptured = false

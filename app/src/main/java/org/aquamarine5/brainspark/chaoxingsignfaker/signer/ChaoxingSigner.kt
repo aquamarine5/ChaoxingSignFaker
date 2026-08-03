@@ -85,8 +85,8 @@ abstract class ChaoxingSigner(
     class CaptchaCheckException(message: String) :
         ChaoxingPredictableException("$message, 验证码校验失败")
 
-    class WrongPositionException(distance: Int? = null) :
-        ChaoxingPredictableException("位置不在设置范围内")
+    class WrongPositionException(distance: Float? = null) :
+        ChaoxingPredictableException("位置不在设置范围内${if (distance != null) "，距离签到点${distance}米" else ""}")
 
     abstract suspend fun checkAlreadySign(response: String): Boolean
 
@@ -209,8 +209,8 @@ abstract class ChaoxingSigner(
             throw SignAlreadyEndedException()
         if (result == "签到失败，请重新扫描。")
             throw QRCodeExpiredException()
-        if (result.startsWith("errorLocation2"))
-            throw WrongPositionException()
+        if (result.startsWith("errorLocation"))
+            throw WrongPositionException(result.split("_").getOrNull(1)?.toFloatOrNull())
         if (result == "您已签到过了") {
             throw AlreadySignedException()
         }
