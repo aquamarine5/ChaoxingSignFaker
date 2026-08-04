@@ -287,7 +287,7 @@ fun CameraComponent(
                     TooltipBox(
                         onDismissRequest = {},
                         positionProvider = TooltipDefaults.rememberTooltipPositionProvider(
-                            TooltipAnchorPosition.Right,
+                            TooltipAnchorPosition.Start,
                             13.dp
                         ), modifier = Modifier.zIndex(2f), hasAction = true,
                         tooltip = {
@@ -447,8 +447,8 @@ fun CameraComponent(
                 }, color = Color.White,
                 shape = CircleShape,
                 modifier = Modifier
-                    .padding(18.dp)
-                    .size(60.dp)
+                    .padding(18.dp, 100.dp)
+                    .size(70.dp)
                     .align(Alignment.BottomCenter)
             ) {
                 if (pictureCount > 1)

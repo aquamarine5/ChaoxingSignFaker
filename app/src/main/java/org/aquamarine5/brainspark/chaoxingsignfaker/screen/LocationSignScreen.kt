@@ -495,7 +495,9 @@ fun LocationSignScreen(
                                     )
 
                                 if (isFaceRequired) {
-                                    FaceRecognitionNewFeatureTips(isDisplayFaceRecognitionImageNewFeatureTips)
+                                    FaceRecognitionNewFeatureTips(
+                                        isDisplayFaceRecognitionImageNewFeatureTips
+                                    )
                                 }
                             },
                             faceRecognitionImageIconStatus = faceRecognitionImageIconList,

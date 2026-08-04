@@ -8,14 +8,9 @@ package org.aquamarine5.brainspark.chaoxingsignfaker.components
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -66,14 +61,18 @@ import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun FacePhotoDialog(onDismissRequest: () -> Unit) {
+fun FacePhotoDialog(
+    onDismissRequest: () -> Unit,
+    onStartCamera: () -> Unit,
+    pendingCapturedBitmap: Bitmap? = null,
+    onPendingCapturedBitmapHandled: () -> Unit = {},
+) {
     val context = LocalContext.current
     val snackbarHost = LocalSnackbarHostState.current
     val coroutineScope = rememberCoroutineScope()
     val hapticFeedback = LocalHapticFeedback.current
     var files by remember { mutableStateOf<List<File>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
-    var isCameraVisible by remember { mutableStateOf(false) }
 
     suspend fun reload() {
         val records = context.chaoxingDataStore.data.first()
@@ -130,21 +129,13 @@ fun FacePhotoDialog(onDismissRequest: () -> Unit) {
         isLoading = false
     }
 
-    AnimatedVisibility(
-        isCameraVisible, enter = slideInHorizontally(
-            initialOffsetX = { it },
-            animationSpec = tween(300)
-        ), exit = slideOutHorizontally(
-            targetOffsetX = { it },
-            animationSpec = tween(300)
-        )
-    ) {
-        BackHandler { isCameraVisible = false }
-        CameraComponent(pictureCount = 1, isDefaultBackCamera = false) { pictures ->
-            isCameraVisible = false
-            pictures.firstOrNull()?.let(::save)
+    LaunchedEffect(pendingCapturedBitmap) {
+        if (pendingCapturedBitmap != null) {
+            save(pendingCapturedBitmap)
+            onPendingCapturedBitmapHandled()
         }
     }
+
 
     AlertDialog(
         onDismissRequest = onDismissRequest,
@@ -196,7 +187,7 @@ fun FacePhotoDialog(onDismissRequest: () -> Unit) {
                     SegmentedButton(
                         selected = false,
                         enabled = (!isLoading && files.size < ChaoxingFaceHelper.MAX_FACE_IMAGES),
-                        onClick = { isCameraVisible = true },
+                        onClick = onStartCamera,
                         shape = SegmentedButtonDefaults.itemShape(1, 2),
                     ) { Text("拍摄照片") }
                 }

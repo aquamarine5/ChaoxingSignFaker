@@ -178,7 +178,7 @@ fun QRCodeSignScreen(
     val hapticFeedback = LocalHapticFeedback.current
     var isFetchedFailure by remember { mutableStateOf<Result<*>?>(null) }
     val httpClientStorage = remember { mutableMapOf<String, ChaoxingHttpClient>() }
-    val isDisplayFaceRecognitionImageNewFeatureTips= remember { mutableStateOf(false) }
+    val isDisplayFaceRecognitionImageNewFeatureTips = remember { mutableStateOf(false) }
     if (captchaValidateParams != null) {
         CaptchaHandlerDialog(
             captchaValidateParams!!.first,
@@ -597,7 +597,9 @@ fun QRCodeSignScreen(
                                             destination.isLate
                                         )
                                     if (isFaceRequired) {
-                                        FaceRecognitionNewFeatureTips(isDisplayFaceRecognitionImageNewFeatureTips)
+                                        FaceRecognitionNewFeatureTips(
+                                            isDisplayFaceRecognitionImageNewFeatureTips
+                                        )
                                     }
                                 },
                                 isSigning = isSigning,

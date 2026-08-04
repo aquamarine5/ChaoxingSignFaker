@@ -49,6 +49,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -82,7 +83,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
@@ -92,11 +95,13 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -132,6 +137,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingFaceHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingOtherUserHelper
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.CameraComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.FacePhotoDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NewFeatureTipsCard
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.QRCodeScanComponent
@@ -171,6 +177,8 @@ fun OtherUserScreen(
     var selectedUserSettingDialogIndex by remember { mutableStateOf<Int?>(null) }
     var isTagsSettingDialog by remember { mutableStateOf(false) }
     var isFacePhotoDialog by remember { mutableStateOf(false) }
+    var isFacePhotoCameraVisible by remember { mutableStateOf(false) }
+    var pendingFacePhotoBitmap by remember { mutableStateOf<Bitmap?>(null) }
     var isInputDialog by remember { mutableStateOf(false) }
     var isURLSharedDialog by remember { mutableStateOf(false) }
     val isQRCodeScanPause = remember { mutableStateOf(false) }
@@ -261,13 +269,24 @@ fun OtherUserScreen(
                     }
                 },
                 confirmButton = {
+                    val isPhotoAttached =
+                        photo.objectId in selectedSharedFaceObjectIds
                     Button(onClick = {
-                        selectedSharedFaceObjectIds.remove(photo.objectId)
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                        if (isPhotoAttached)
+                            selectedSharedFaceObjectIds.remove(photo.objectId)
+                        else
+                            selectedSharedFaceObjectIds.add(photo.objectId)
                         inspectedFacePhotoObjectId = null
-                    }) { Text("取消附带此张照片") }
+                    }) {
+                        Text(if (isPhotoAttached) "取消附带此张照片" else "附带此张照片")
+                    }
                 },
                 dismissButton = {
-                    OutlinedButton(onClick = { inspectedFacePhotoObjectId = null }) { Text("关闭") }
+                    OutlinedButton(onClick = {
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                        inspectedFacePhotoObjectId = null
+                    }) { Text("关闭") }
                 },
             )
         }
@@ -1607,72 +1626,95 @@ fun OtherUserScreen(
                 lineHeight = 17.sp,
                 textAlign = TextAlign.Center
             )
-            Spacer(modifier = Modifier.height(6.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.Top,
-            ) {
-                Checkbox(
-                    checked = attachFacePhotos,
-                    onCheckedChange = { attachFacePhotos = it },
-                )
-                Text(
-                    "同时附带你的人脸识别照片供其他人代签使用，对方会收到以下照片。",
-                    modifier = Modifier.padding(top = 12.dp),
-                    fontSize = 13.sp,
-                    lineHeight = 17.sp,
-                )
-            }
             if (facePhotos.isNotEmpty()) {
-                Row(
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(start = 12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        .padding(end = 6.dp),
                 ) {
-                    facePhotos.forEach { photo ->
-                        val isAttached =
-                            attachFacePhotos && photo.objectId in selectedSharedFaceObjectIds
-                        Box(
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Checkbox(
+                            checked = attachFacePhotos,
+                            onCheckedChange = {
+                                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                                attachFacePhotos = it
+                                if (it) {
+                                    selectedSharedFaceObjectIds.clear()
+                                    selectedSharedFaceObjectIds.addAll(
+                                        facePhotos.map { photo -> photo.objectId }
+                                    )
+                                }
+                            },
+                        )
+                        Text(
+                            "同时附带你的人脸识别照片供其他人代签使用，对方会收到以下照片。",
                             modifier = Modifier
-                                .size(64.dp)
-                                .border(
-                                    BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-                                    RoundedCornerShape(8.dp),
-                                )
-                                .clickable { inspectedFacePhotoObjectId = photo.objectId },
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            val blurRadius by animateDpAsState(
-                                if (isAttached) 6.dp else 0.dp,
-                                animationSpec = tween(200, easing = LinearOutSlowInEasing)
-                            )
-                            AsyncImage(
-                                model = ChaoxingFaceHelper.getFaceImageFile(
-                                    context,
-                                    photo.objectId
-                                ),
-                                contentDescription = "人脸识别照片",
+                                .clickable(role = Role.Button) {
+                                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                                    attachFacePhotos = !attachFacePhotos
+                                    if (attachFacePhotos) {
+                                        selectedSharedFaceObjectIds.clear()
+                                        selectedSharedFaceObjectIds.addAll(
+                                            facePhotos.map { photo -> photo.objectId }
+                                        )
+                                    }
+                                },
+                            fontSize = 13.sp,
+                            lineHeight = 17.sp,
+                        )
+                    }
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 48.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        facePhotos.forEach { photo ->
+                            val isAttached =
+                                attachFacePhotos && photo.objectId in selectedSharedFaceObjectIds
+                            Box(
                                 modifier = Modifier
-                                    .fillMaxSize()
-                                    .blur(blurRadius),
-                            )
-                            this@Row.AnimatedVisibility(
-                                !isAttached,
-                                enter = scaleIn(tween(200, easing = LinearOutSlowInEasing)),
-                                exit = scaleOut(tween(200, easing = LinearOutSlowInEasing))
+                                    .size(64.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .border(
+                                        BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                                        RoundedCornerShape(8.dp),
+                                    )
+                                    .clickable {
+                                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                                        inspectedFacePhotoObjectId = photo.objectId
+                                               },
+                                contentAlignment = Alignment.Center,
                             ) {
-                                Text(
-                                    "×",
-                                    color = Color.White,
-                                    fontSize = 52.sp,
-                                    modifier = Modifier
-                                        .background(Color.Black.copy(alpha = 0.65f))
-                                        .border(
-                                            BorderStroke(1.dp, Color.White),
-                                            RoundedCornerShape(50)
-                                        ),
+                                val blurRadius by animateDpAsState(
+                                    if (!isAttached) 6.dp else 0.dp,
+                                    animationSpec = tween(200, easing = LinearOutSlowInEasing)
                                 )
+                                AsyncImage(
+                                    model = ChaoxingFaceHelper.getFaceImageFile(
+                                        context,
+                                        photo.objectId
+                                    ),
+                                    contentDescription = "人脸识别照片",
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .blur(blurRadius),
+                                    contentScale = ContentScale.Crop
+                                )
+                                this@Row.AnimatedVisibility(
+                                    !isAttached,
+                                    enter = scaleIn(tween(200, easing = LinearOutSlowInEasing)),
+                                    exit = scaleOut(tween(200, easing = LinearOutSlowInEasing))
+                                ) {
+                                    Icon(
+                                        painterResource(R.drawable.ic_x),
+                                        null,
+                                        modifier = Modifier.size(32.dp)
+                                    )
+                                }
                             }
                         }
                     }
@@ -1710,72 +1752,107 @@ fun OtherUserScreen(
                 }
             }
             Spacer(modifier = Modifier.height(8.dp))
-            Card(
-                onClick = {
-                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                    isTagsSettingDialog = true
-                },
-                shape = RoundedCornerShape(18.dp),
+            SingleChoiceSegmentedButtonRow(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(4.dp, 0.dp),
-                elevation = CardDefaults.cardElevation(4.dp),
-                colors = CardDefaults.cardColors(MaterialTheme.colorScheme.primary)
+                    .padding(4.dp, 0.dp)
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(10.dp),
+                SegmentedButton(
+                    onClick = {
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                        isTagsSettingDialog = true
+                    },
+                    shape = SegmentedButtonDefaults.itemShape(0, 2),
+                    selected = false,
+                    colors = SegmentedButtonDefaults.colors(
+                        activeContainerColor = MaterialTheme.colorScheme.primary,
+                        inactiveContainerColor = MaterialTheme.colorScheme.primary,
+                        activeContentColor = MaterialTheme.colorScheme.onPrimary,
+                        inactiveContentColor = MaterialTheme.colorScheme.onPrimary,
+                        activeBorderColor = MaterialTheme.colorScheme.primary,
+                        inactiveBorderColor = MaterialTheme.colorScheme.primary,
+                    ),
+                    modifier = Modifier.shadow(4.dp, SegmentedButtonDefaults.itemShape(0, 2))
                 ) {
-                    Icon(
-                        painterResource(R.drawable.ic_tags),
-                        null,
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        "管理用户标签",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.W500
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(4.dp),
+                    ) {
+                        Icon(
+                            painterResource(R.drawable.ic_tags),
+                            null,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            "管理用户标签",
+                            fontWeight = FontWeight.W500,
+                            autoSize = TextAutoSize.StepBased(
+                                minFontSize = 8.sp,
+                                maxFontSize = 16.sp,
+                                stepSize = 0.5.sp,
+                            ),
+                            maxLines = 1,
+                        )
+                    }
                 }
-            }
-            Spacer(modifier = Modifier.height(3.dp))
-            Card(
-                onClick = {
-                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                    isFacePhotoDialog = true
-                },
-                shape = RoundedCornerShape(18.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(4.dp, 0.dp),
-                elevation = CardDefaults.cardElevation(4.dp),
-                colors = CardDefaults.cardColors(MaterialTheme.colorScheme.primary)
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(10.dp)
+                SegmentedButton(
+                    onClick = {
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                        isFacePhotoDialog = true
+                    },
+                    shape = SegmentedButtonDefaults.itemShape(1, 2),
+                    selected = false,
+                    colors = SegmentedButtonDefaults.colors(
+                        activeContainerColor = MaterialTheme.colorScheme.primary,
+                        inactiveContainerColor = MaterialTheme.colorScheme.primary,
+                        activeContentColor = MaterialTheme.colorScheme.onPrimary,
+                        inactiveContentColor = MaterialTheme.colorScheme.onPrimary,
+                        activeBorderColor = MaterialTheme.colorScheme.primary,
+                        inactiveBorderColor = MaterialTheme.colorScheme.primary,
+                    ),
+                    modifier = Modifier.shadow(4.dp, SegmentedButtonDefaults.itemShape(1, 2))
                 ) {
-                    Icon(
-                        painterResource(R.drawable.ic_scan_face),
-                        null,
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("管理人脸照片", fontSize = 16.sp, fontWeight = FontWeight.W500)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(4.dp)
+                    ) {
+                        Icon(
+                            painterResource(R.drawable.ic_scan_face),
+                            null,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            "管理人脸照片",
+                            fontWeight = FontWeight.W500,
+                            autoSize = TextAutoSize.StepBased(
+                                minFontSize = 8.sp,
+                                maxFontSize = 16.sp,
+                                stepSize = 0.5.sp,
+                            ),
+                            maxLines = 1,
+                        )
+                    }
                 }
             }
             Spacer(modifier = Modifier.height(3.dp))
             if (isFacePhotoDialog) {
-                FacePhotoDialog {
-                    isFacePhotoDialog = false
-                }
+                FacePhotoDialog(
+                    onDismissRequest = { isFacePhotoDialog = false },
+                    onStartCamera = {
+                        isFacePhotoDialog = false
+                        isFacePhotoCameraVisible = true
+                    },
+                    pendingCapturedBitmap = pendingFacePhotoBitmap,
+                    onPendingCapturedBitmapHandled = { pendingFacePhotoBitmap = null },
+                )
             }
             SingleChoiceSegmentedButtonRow(
                 modifier = Modifier
@@ -1807,7 +1884,15 @@ fun OtherUserScreen(
                             tint = MaterialTheme.colorScheme.primary
                         )
                         Spacer(modifier = Modifier.width(2.dp))
-                        Text("扫码添加")
+                        Text(
+                            "扫码添加",
+                            autoSize = TextAutoSize.StepBased(
+                                minFontSize = 8.sp,
+                                maxFontSize = 14.sp,
+                                stepSize = 0.5.sp,
+                            ),
+                            maxLines = 1,
+                        )
                     }
                 }
                 SegmentedButton(
@@ -1832,7 +1917,15 @@ fun OtherUserScreen(
                             tint = MaterialTheme.colorScheme.primary
                         )
                         Spacer(modifier = Modifier.width(2.dp))
-                        Text("链接添加")
+                        Text(
+                            "链接添加",
+                            autoSize = TextAutoSize.StepBased(
+                                minFontSize = 8.sp,
+                                maxFontSize = 14.sp,
+                                stepSize = 0.5.sp,
+                            ),
+                            maxLines = 1,
+                        )
                     }
                 }
                 SegmentedButton(
@@ -1857,7 +1950,15 @@ fun OtherUserScreen(
                             tint = MaterialTheme.colorScheme.primary
                         )
                         Spacer(modifier = Modifier.width(2.dp))
-                        Text("账密添加")
+                        Text(
+                            "账密添加",
+                            autoSize = TextAutoSize.StepBased(
+                                minFontSize = 8.sp,
+                                maxFontSize = 14.sp,
+                                stepSize = 0.5.sp,
+                            ),
+                            maxLines = 1,
+                        )
                     }
                 }
             }
@@ -1901,7 +2002,7 @@ fun OtherUserScreen(
                     NewFeatureTipsCard(
                         isTooltipShowed,
                         "现在可以克隆登录其他人的账号，来给其他人代签你没有的课程。",
-                        modifier = Modifier.padding(8.dp, 4.dp)
+                        modifier = Modifier.padding(8.dp, 0.dp)
                     ) {
                         context.chaoxingDataStore.updateData {
                             it.toBuilder()
@@ -2279,6 +2380,35 @@ fun OtherUserScreen(
                         }
                     }
                 }
+            }
+        }
+    }
+    AnimatedVisibility(
+        isFacePhotoCameraVisible,
+        enter = slideInHorizontally(
+            initialOffsetX = { it },
+            animationSpec = tween(300)
+        ) + fadeIn(animationSpec = tween(300)),
+        exit = slideOutHorizontally(
+            animationSpec = tween(300),
+            targetOffsetX = { it }
+        ) + fadeOut(animationSpec = tween(300))
+    ) {
+        Column(
+            modifier = Modifier
+                .zIndex(1f)
+                .fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            BackHandler { isFacePhotoCameraVisible = false }
+            CameraComponent(
+                pictureCount = 1,
+                isDefaultBackCamera = false,
+            ) { pictures ->
+                isFacePhotoCameraVisible = false
+                pendingFacePhotoBitmap = pictures.firstOrNull()
+                isFacePhotoDialog = true
             }
         }
     }

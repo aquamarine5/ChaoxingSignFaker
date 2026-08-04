@@ -17,3 +17,4 @@ local.properties
 app/build
 /app/release
 /.kotlin
+.idea/copilotDiffState.xml

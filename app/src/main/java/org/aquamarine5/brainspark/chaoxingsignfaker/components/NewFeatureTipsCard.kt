@@ -47,7 +47,7 @@ fun NewFeatureTipsCard(
     onDismiss: suspend () -> Unit
 ) {
     val hapticFeedback = LocalHapticFeedback.current
-    val coroutineScope= rememberCoroutineScope()
+    val coroutineScope = rememberCoroutineScope()
     AnimatedVisibility(
         isDisplay.value,
         enter = slideInVertically(),
