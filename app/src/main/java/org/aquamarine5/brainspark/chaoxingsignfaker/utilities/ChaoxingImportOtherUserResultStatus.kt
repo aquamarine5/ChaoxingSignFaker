@@ -8,16 +8,13 @@ package org.aquamarine5.brainspark.chaoxingsignfaker.utilities
 
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
 
-typealias ImportOtherUserResult = Triple<ChaoxingImportOtherUserResultStatus,String, ChaoxingOtherUserSession?>
+typealias ImportOtherUserResult = Triple<ChaoxingImportOtherUserResultStatus,String, ChaoxingOtherUserSession>
 
 enum class ChaoxingImportOtherUserResultStatus {
     SUCCESS,
     EXISTED_BUT_UPDATE_PASSWORD,
     EXISTED_BUT_UPDATE_FACE_IMAGES
 }
-
-fun ChaoxingImportOtherUserResultStatus.ofNotSuccess(name: String): ImportOtherUserResult=
-    Triple(this,name,null)
 
 fun ImportOtherUserResult.getResultTips(): String=
     when(this.first){

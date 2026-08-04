@@ -451,18 +451,16 @@ fun OtherUserScreen(
                                     .show()
                                 when (result.first) {
                                     ChaoxingImportOtherUserResultStatus.SUCCESS -> {
-                                        UMengHelper.onAccountOtherUserAddEvent(context, result.third!!)
-                                        otherUserSessions.add(result.third!!)
+                                        UMengHelper.onAccountOtherUserAddEvent(context, result.third)
+                                        otherUserSessions.add(result.third)
                                         userTagList.add(mutableStateOf(emptyList()))
                                     }
                                     ChaoxingImportOtherUserResultStatus.EXISTED_BUT_UPDATE_PASSWORD -> {
                                         val updatedSession = result.third
-                                        if (updatedSession != null) {
-                                            val index = otherUserSessions.indexOfFirst {
-                                                it.phoneNumber == updatedSession.phoneNumber
-                                            }
-                                            if (index != -1) otherUserSessions[index] = updatedSession
+                                        val index = otherUserSessions.indexOfFirst {
+                                            it.phoneNumber == updatedSession.phoneNumber
                                         }
+                                        if (index != -1) otherUserSessions[index] = updatedSession
                                     }
                                     ChaoxingImportOtherUserResultStatus.EXISTED_BUT_UPDATE_FACE_IMAGES -> {
 
@@ -1529,18 +1527,18 @@ fun OtherUserScreen(
                                         .show()
                                     when (result.first) {
                                         ChaoxingImportOtherUserResultStatus.SUCCESS -> {
-                                            UMengHelper.onAccountOtherUserAddEvent(context, result.third!!)
-                                            otherUserSessions.add(result.third!!)
+                                            UMengHelper.onAccountOtherUserAddEvent(context,
+                                                result.third
+                                            )
+                                            otherUserSessions.add(result.third)
                                             userTagList.add(mutableStateOf(emptyList()))
                                         }
                                         ChaoxingImportOtherUserResultStatus.EXISTED_BUT_UPDATE_PASSWORD -> {
                                             val updatedSession = result.third
-                                            if (updatedSession != null) {
-                                                val index = otherUserSessions.indexOfFirst {
-                                                    it.phoneNumber == updatedSession.phoneNumber
-                                                }
-                                                if (index != -1) otherUserSessions[index] = updatedSession
+                                            val index = otherUserSessions.indexOfFirst {
+                                                it.phoneNumber == updatedSession.phoneNumber
                                             }
+                                            if (index != -1) otherUserSessions[index] = updatedSession
                                         }
                                         ChaoxingImportOtherUserResultStatus.EXISTED_BUT_UPDATE_FACE_IMAGES -> Unit
                                     }
@@ -2322,18 +2320,18 @@ fun OtherUserScreen(
                                     hapticFeedback.performHapticFeedback(HapticFeedbackType.Confirm)
                                     when (result.first) {
                                         ChaoxingImportOtherUserResultStatus.SUCCESS -> {
-                                            UMengHelper.onAccountOtherUserAddEvent(context, result.third!!)
-                                            otherUserSessions.add(result.third!!)
+                                            UMengHelper.onAccountOtherUserAddEvent(context,
+                                                result.third
+                                            )
+                                            otherUserSessions.add(result.third)
                                             userTagList.add(mutableStateOf(emptyList()))
                                         }
                                         ChaoxingImportOtherUserResultStatus.EXISTED_BUT_UPDATE_PASSWORD -> {
                                             val updatedSession = result.third
-                                            if (updatedSession != null) {
-                                                val index = otherUserSessions.indexOfFirst {
-                                                    it.phoneNumber == updatedSession.phoneNumber
-                                                }
-                                                if (index != -1) otherUserSessions[index] = updatedSession
+                                            val index = otherUserSessions.indexOfFirst {
+                                                it.phoneNumber == updatedSession.phoneNumber
                                             }
+                                            if (index != -1) otherUserSessions[index] = updatedSession
                                         }
                                         ChaoxingImportOtherUserResultStatus.EXISTED_BUT_UPDATE_FACE_IMAGES -> {
 

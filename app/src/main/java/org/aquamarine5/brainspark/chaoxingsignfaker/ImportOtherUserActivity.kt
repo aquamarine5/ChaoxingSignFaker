@@ -139,7 +139,7 @@ class ImportOtherUserActivity : ComponentActivity() {
                                                 isSuccess = true
                                                 isLoading = false
                                                 if (result.first == ChaoxingImportOtherUserResultStatus.SUCCESS) {
-                                                    result.third?.let {
+                                                    result.third.let {
                                                         UMengHelper.onAccountOtherUserAddEvent(
                                                             applicationContext,
                                                             it
