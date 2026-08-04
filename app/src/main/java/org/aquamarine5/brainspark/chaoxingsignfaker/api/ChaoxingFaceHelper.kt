@@ -14,9 +14,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import okhttp3.HttpUrl.Companion.toHttpUrl
+import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingFaceRecognitionConfigure
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingFaceRecognitionImage
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingUserEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingParseDataException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.StoredData
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
@@ -128,9 +130,17 @@ object ChaoxingFaceHelper {
         context: Context,
         objectId: String,
         phoneNumber: String? = null,
+    ): ChaoxingFaceRecognitionImage=saveFaceImage(client.okHttpClient, client.userEntity, context, objectId, phoneNumber)
+
+    suspend fun saveFaceImage(
+        okHttpClient: OkHttpClient,
+        userEntity: ChaoxingUserEntity,
+        context: Context,
+        objectId: String,
+        phoneNumber: String? = null,
     ): ChaoxingFaceRecognitionImage = withContext(Dispatchers.IO) {
         require(objectId.isNotBlank()) { "人脸照片 ID 不能为空" }
-        val targetPhoneNumber = phoneNumber ?: client.userEntity.phoneNumber
+        val targetPhoneNumber = phoneNumber ?: userEntity.phoneNumber
         require(targetPhoneNumber.isNotBlank()) { "无法确定人脸照片所属用户" }
         val image = ChaoxingFaceRecognitionImage.newBuilder()
             .setObjectId(objectId)
@@ -141,7 +151,7 @@ object ChaoxingFaceHelper {
         val temporary = File(destination.parentFile, "${destination.name}.download")
 
         runCatching {
-            client.newCall(Request.Builder().url(URL_SHARED_IMAGE.format(objectId)).build())
+            okHttpClient.newCall(Request.Builder().url(URL_SHARED_IMAGE.format(objectId)).build())
                 .execute().use { response ->
                     response.checkResponseThrowException()
                     response.body.byteStream().use { input ->
@@ -224,6 +234,35 @@ object ChaoxingFaceHelper {
             temporary.delete()
             destination.delete()
         }.getOrThrow()
+    }
+
+    suspend fun deleteFaceImage(
+        context: Context,
+        phoneNumber: String,
+        objectId: String,
+    ) {
+        context.chaoxingDataStore.updateData { dataStore ->
+            val configure = dataStore.faceRecognitionConfiguresMap[phoneNumber]
+                ?: return@updateData dataStore
+            dataStore.toBuilder()
+                .putFaceRecognitionConfigures(
+                    phoneNumber,
+                    configure.toBuilder()
+                        .clearImages()
+                        .addAllImages(configure.imagesList.filterNot { it.objectId == objectId })
+                        .build(),
+                )
+                .build()
+        }
+        getFaceImageFile(context, objectId).delete()
+        storedFaceRecognitionImages.peekValue()?.let { imagesByPhoneNumber ->
+            storedFaceRecognitionImages.setValue(
+                imagesByPhoneNumber.toMutableMap().apply {
+                    this[phoneNumber] = this[phoneNumber].orEmpty()
+                        .filterNot { it.objectId == objectId }
+                },
+            )
+        }
     }
 
     suspend fun afterUsingFaceImage(

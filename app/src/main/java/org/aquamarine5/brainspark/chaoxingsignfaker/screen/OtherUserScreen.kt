@@ -146,11 +146,13 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingFaceRecogn
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.OtherUserTagType
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingOtherUserSharedEntity
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingImportOtherUserResultStatus
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingPredictableException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.displaySnackbar
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.getResultTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
 import sh.calvin.reorderable.ReorderableColumn
 import kotlin.random.Random
@@ -443,15 +445,32 @@ fun OtherUserScreen(
                                     context,
                                     entity
                                 )
-                            }.onSuccess {
+                            }.onSuccess { result ->
                                 hapticFeedback.performHapticFeedback(HapticFeedbackType.Confirm)
-                                Toast.makeText(context, "导入成功", Toast.LENGTH_SHORT).show()
-                                UMengHelper.onAccountOtherUserAddEvent(context, it)
-                                otherUserSessions.add(it)
-                                userTagList.add(mutableStateOf(emptyList()))
+                                Toast.makeText(context, result.getResultTips(), Toast.LENGTH_SHORT)
+                                    .show()
+                                when (result.first) {
+                                    ChaoxingImportOtherUserResultStatus.SUCCESS -> {
+                                        UMengHelper.onAccountOtherUserAddEvent(context, result.third!!)
+                                        otherUserSessions.add(result.third!!)
+                                        userTagList.add(mutableStateOf(emptyList()))
+                                    }
+                                    ChaoxingImportOtherUserResultStatus.EXISTED_BUT_UPDATE_PASSWORD -> {
+                                        val updatedSession = result.third
+                                        if (updatedSession != null) {
+                                            val index = otherUserSessions.indexOfFirst {
+                                                it.phoneNumber == updatedSession.phoneNumber
+                                            }
+                                            if (index != -1) otherUserSessions[index] = updatedSession
+                                        }
+                                    }
+                                    ChaoxingImportOtherUserResultStatus.EXISTED_BUT_UPDATE_FACE_IMAGES -> {
+
+                                    }
+                                }
                                 isInputDialog = false
-                            }.onFailure {
-                                it.snackbarReport(
+                            }.onFailure { failure ->
+                                failure.snackbarReport(
                                     snackbarHost,
                                     coroutineScope,
                                     "保存用户失败",
@@ -606,7 +625,7 @@ fun OtherUserScreen(
                         Text("确认删除标签${tagsEntityList[delectTagIndexForSecondaryConfirm!!].name}？")
                     },
                     text = {
-                        Text("删除标签会同时将该标签从所有用户中移除，此操作不可撤销。")
+                        Text("删除标签会同��将该标签从所有用户中移除，此操作不可撤销。")
                     },
                     icon = {
                         Icon(
@@ -695,7 +714,7 @@ fun OtherUserScreen(
                             hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                             modifiedTagIndexForUserSelector = null
                         }) {
-                            Text("不保存")
+                            Text("不保存退出")
                         }
                     }, title = {
                         if (modifiedTagIndexForUserSelector != null)
@@ -1504,15 +1523,30 @@ fun OtherUserScreen(
                                             faceObjectIds,
                                         )
                                     )
-                                }.onSuccess {
+                                }.onSuccess { result ->
                                     hapticFeedback.performHapticFeedback(HapticFeedbackType.Confirm)
-                                    Toast.makeText(context, "导入成功", Toast.LENGTH_SHORT).show()
-                                    UMengHelper.onAccountOtherUserAddEvent(context, it)
-                                    otherUserSessions.add(it)
-                                    userTagList.add(mutableStateOf(emptyList()))
+                                    Toast.makeText(context, result.getResultTips(), Toast.LENGTH_SHORT)
+                                        .show()
+                                    when (result.first) {
+                                        ChaoxingImportOtherUserResultStatus.SUCCESS -> {
+                                            UMengHelper.onAccountOtherUserAddEvent(context, result.third!!)
+                                            otherUserSessions.add(result.third!!)
+                                            userTagList.add(mutableStateOf(emptyList()))
+                                        }
+                                        ChaoxingImportOtherUserResultStatus.EXISTED_BUT_UPDATE_PASSWORD -> {
+                                            val updatedSession = result.third
+                                            if (updatedSession != null) {
+                                                val index = otherUserSessions.indexOfFirst {
+                                                    it.phoneNumber == updatedSession.phoneNumber
+                                                }
+                                                if (index != -1) otherUserSessions[index] = updatedSession
+                                            }
+                                        }
+                                        ChaoxingImportOtherUserResultStatus.EXISTED_BUT_UPDATE_FACE_IMAGES -> Unit
+                                    }
                                     isURLSharedDialog = false
-                                }.onFailure {
-                                    it.snackbarReport(
+                                }.onFailure { failure ->
+                                    failure.snackbarReport(
                                         snackbarHost,
                                         coroutineScope,
                                         "导入失败",
@@ -1686,7 +1720,7 @@ fun OtherUserScreen(
                                     .clickable {
                                         hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                                         inspectedFacePhotoObjectId = photo.objectId
-                                               },
+                                    },
                                 contentAlignment = Alignment.Center,
                             ) {
                                 val blurRadius by animateDpAsState(
@@ -2279,21 +2313,37 @@ fun OtherUserScreen(
                             coroutineScope.launch {
                                 runCatching {
                                     ChaoxingOtherUserHelper.saveOtherUser(context, sharedEntity)
-                                }.onSuccess {
+                                }.onSuccess { result ->
                                     isQRCodeScanning = false
                                     isQRCodeParsing.value = false
                                     currentImportData =
                                         "${sharedEntity.userName}(手机号：${sharedEntity.phoneNumber})"
                                     isQRCodeImportSuccess = true
                                     hapticFeedback.performHapticFeedback(HapticFeedbackType.Confirm)
-                                    otherUserSessions.add(it)
-                                    userTagList.add(mutableStateOf(emptyList()))
-                                    UMengHelper.onAccountOtherUserAddEvent(context, it)
-                                }.onFailure {
+                                    when (result.first) {
+                                        ChaoxingImportOtherUserResultStatus.SUCCESS -> {
+                                            UMengHelper.onAccountOtherUserAddEvent(context, result.third!!)
+                                            otherUserSessions.add(result.third!!)
+                                            userTagList.add(mutableStateOf(emptyList()))
+                                        }
+                                        ChaoxingImportOtherUserResultStatus.EXISTED_BUT_UPDATE_PASSWORD -> {
+                                            val updatedSession = result.third
+                                            if (updatedSession != null) {
+                                                val index = otherUserSessions.indexOfFirst {
+                                                    it.phoneNumber == updatedSession.phoneNumber
+                                                }
+                                                if (index != -1) otherUserSessions[index] = updatedSession
+                                            }
+                                        }
+                                        ChaoxingImportOtherUserResultStatus.EXISTED_BUT_UPDATE_FACE_IMAGES -> {
+
+                                        }
+                                    }
+                                }.onFailure { failure ->
                                     isQRCodeIllegal = true
                                     isQRCodeParsing.value = false
                                     hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
-                                    qrcodeIllegalText = it.message ?: "二维码解析失败，登录失败。"
+                                    qrcodeIllegalText = failure.message ?: "二维码解析失败，登录失败。"
                                     job?.cancel()
                                     job = coroutineScope.launch {
                                         delay(1.seconds)
@@ -2302,17 +2352,6 @@ fun OtherUserScreen(
                                         isQRCodeIllegal = false
                                     }
                                 }
-                            }
-                        }.onFailure {
-                            isQRCodeIllegal = true
-                            isQRCodeScanPause.value = true
-                            hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
-                            qrcodeIllegalText = it.message ?: "二维码解析失败，不是正确码。"
-                            job?.cancel()
-                            job = coroutineScope.launch {
-                                delay(3.seconds)
-                                isQRCodeScanPause.value = false
-                                isQRCodeIllegal = false
                             }
                         }
                     }
