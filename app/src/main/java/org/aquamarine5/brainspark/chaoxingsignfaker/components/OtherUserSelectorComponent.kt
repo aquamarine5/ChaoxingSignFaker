@@ -27,7 +27,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.visible
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -566,11 +565,24 @@ fun OtherUserSelectorComponent(
                         }, verticalAlignment = Alignment.CenterVertically) {
                             Spacer(modifier = Modifier.width(8.dp))
                             Column {
-                                Text(
-                                    "给自己签到",
-                                    fontWeight = FontWeight.Bold,
-                                    textDecoration = if (success != true) TextDecoration.None else TextDecoration.LineThrough
-                                )
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        "给自己签到",
+                                        fontWeight = FontWeight.Bold,
+                                        textDecoration = if (success != true) TextDecoration.None else TextDecoration.LineThrough
+                                    )
+                                    faceRecognitionImageIconStatus?.value?.getOrNull(0)
+                                        ?.let {
+                                            Icon(
+                                                painterResource(it.value.resId),
+                                                null,
+                                                modifier = Modifier
+                                                    .padding(start = 4.dp)
+                                                    .size(14.dp),
+                                                tint = it.value.color.takeOrElse { MaterialTheme.colorScheme.primary }
+                                            )
+                                        }
+                                }
                                 Text(
                                     "${ChaoxingHttpClient.instance?.userEntity?.name} ($selfPhoneNumber)",
                                     color = Color.Gray,
@@ -623,15 +635,15 @@ fun OtherUserSelectorComponent(
                                                 ) else Color.Unspecified,
                                                 textDecoration = if (successForOtherUser != true) TextDecoration.None else TextDecoration.LineThrough
                                             )
-                                            Icon(
-                                                painterResource(R.drawable.ic_square_stack),
-                                                null,
-                                                tint = LocalContentColor.current,
-                                                modifier = Modifier
-                                                    .padding(start = 4.dp)
-                                                    .size(14.dp)
-                                                    .visible(isCloneSession && index == 0)
-                                            )
+                                            if (isCloneSession)
+                                                Icon(
+                                                    painterResource(R.drawable.ic_square_stack),
+                                                    null,
+                                                    tint = LocalContentColor.current,
+                                                    modifier = Modifier
+                                                        .padding(start = 4.dp)
+                                                        .size(14.dp)
+                                                )
                                             faceRecognitionImageIconStatus?.value?.getOrNull(i)
                                                 ?.let {
                                                     Icon(
