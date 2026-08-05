@@ -578,7 +578,7 @@ fun OtherUserSelectorComponent(
                                                 null,
                                                 modifier = Modifier
                                                     .padding(start = 4.dp)
-                                                    .size(14.dp),
+                                                    .size(16.dp),
                                                 tint = it.value.color.takeOrElse { MaterialTheme.colorScheme.primary }
                                             )
                                         }
@@ -642,7 +642,7 @@ fun OtherUserSelectorComponent(
                                                     tint = LocalContentColor.current,
                                                     modifier = Modifier
                                                         .padding(start = 4.dp)
-                                                        .size(14.dp)
+                                                        .size(16.dp)
                                                 )
                                             faceRecognitionImageIconStatus?.value?.getOrNull(i)
                                                 ?.let {

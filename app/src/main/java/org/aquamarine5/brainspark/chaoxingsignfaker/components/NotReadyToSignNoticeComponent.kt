@@ -31,7 +31,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.R
 
 @Composable
 fun NotReadyToSignNoticeComponent(
-    onSignForOtherUser: (() -> Unit),
+    onSignForOtherUser: () -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
     isExpiredSign: Boolean = false,
@@ -73,7 +73,10 @@ fun NotReadyToSignNoticeComponent(
         Spacer(modifier = Modifier.height(6.dp))
         Button(onClick = {
             hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-            onSignForOtherUser()
+            if (isExpiredSign)
+                onDismiss()
+            else
+                onSignForOtherUser()
         }, modifier = Modifier.fillMaxWidth()) {
             Text(
                 if (isExpiredSign) {

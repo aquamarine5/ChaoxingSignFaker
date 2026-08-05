@@ -217,7 +217,7 @@ fun FacePhotoDialog(
                         modifier = Modifier.size(40.dp),
                     )
                 },
-                title = { Text("删除照片") },
+                title = { Text("是否删除照片？") },
                 text = {
                     Card(
                         shape = RoundedCornerShape(18.dp),

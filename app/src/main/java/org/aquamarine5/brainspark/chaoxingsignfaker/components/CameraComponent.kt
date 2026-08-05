@@ -462,7 +462,7 @@ fun CameraComponent(
                                 text = it.toString(),
                                 color = Color.Black, fontSize = 32.sp,
                                 textAlign = TextAlign.Center,
-                                fontFamily = FontFamily(Font(R.font.gilroy))
+                                fontFamily = remember { FontFamily(Font(R.font.gilroy)) }
                             )
                         }
                     }

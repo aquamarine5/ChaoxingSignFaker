@@ -451,10 +451,14 @@ fun OtherUserScreen(
                                     .show()
                                 when (result.first) {
                                     ChaoxingImportOtherUserResultStatus.SUCCESS -> {
-                                        UMengHelper.onAccountOtherUserAddEvent(context, result.third)
+                                        UMengHelper.onAccountOtherUserAddEvent(
+                                            context,
+                                            result.third
+                                        )
                                         otherUserSessions.add(result.third)
                                         userTagList.add(mutableStateOf(emptyList()))
                                     }
+
                                     ChaoxingImportOtherUserResultStatus.EXISTED_BUT_UPDATE_PASSWORD -> {
                                         val updatedSession = result.third
                                         val index = otherUserSessions.indexOfFirst {
@@ -462,6 +466,7 @@ fun OtherUserScreen(
                                         }
                                         if (index != -1) otherUserSessions[index] = updatedSession
                                     }
+
                                     ChaoxingImportOtherUserResultStatus.EXISTED_BUT_UPDATE_FACE_IMAGES -> {
 
                                     }
@@ -1523,23 +1528,31 @@ fun OtherUserScreen(
                                     )
                                 }.onSuccess { result ->
                                     hapticFeedback.performHapticFeedback(HapticFeedbackType.Confirm)
-                                    Toast.makeText(context, result.getResultTips(), Toast.LENGTH_SHORT)
+                                    Toast.makeText(
+                                        context,
+                                        result.getResultTips(),
+                                        Toast.LENGTH_SHORT
+                                    )
                                         .show()
                                     when (result.first) {
                                         ChaoxingImportOtherUserResultStatus.SUCCESS -> {
-                                            UMengHelper.onAccountOtherUserAddEvent(context,
+                                            UMengHelper.onAccountOtherUserAddEvent(
+                                                context,
                                                 result.third
                                             )
                                             otherUserSessions.add(result.third)
                                             userTagList.add(mutableStateOf(emptyList()))
                                         }
+
                                         ChaoxingImportOtherUserResultStatus.EXISTED_BUT_UPDATE_PASSWORD -> {
                                             val updatedSession = result.third
                                             val index = otherUserSessions.indexOfFirst {
                                                 it.phoneNumber == updatedSession.phoneNumber
                                             }
-                                            if (index != -1) otherUserSessions[index] = updatedSession
+                                            if (index != -1) otherUserSessions[index] =
+                                                updatedSession
                                         }
+
                                         ChaoxingImportOtherUserResultStatus.EXISTED_BUT_UPDATE_FACE_IMAGES -> Unit
                                     }
                                     isURLSharedDialog = false
@@ -1726,10 +1739,12 @@ fun OtherUserScreen(
                                     animationSpec = tween(200, easing = LinearOutSlowInEasing)
                                 )
                                 AsyncImage(
-                                    model = ChaoxingFaceHelper.getFaceImageFile(
-                                        context,
-                                        photo.objectId
-                                    ),
+                                    model = remember(photo) {
+                                        ChaoxingFaceHelper.getFaceImageFile(
+                                            context,
+                                            photo.objectId
+                                        )
+                                    },
                                     contentDescription = "人脸识别照片",
                                     modifier = Modifier
                                         .fillMaxSize()
@@ -1738,8 +1753,14 @@ fun OtherUserScreen(
                                 )
                                 this@Row.AnimatedVisibility(
                                     !isAttached,
-                                    enter = scaleIn(tween(200, easing = LinearOutSlowInEasing)),
-                                    exit = scaleOut(tween(200, easing = LinearOutSlowInEasing))
+                                    enter = scaleIn(
+                                        tween(200, easing = LinearOutSlowInEasing),
+                                        initialScale = 0.5f
+                                    ) + fadeIn(tween(200)),
+                                    exit = scaleOut(
+                                        tween(200, easing = LinearOutSlowInEasing),
+                                        targetScale = 0.5f
+                                    ) + fadeOut(tween(200))
                                 ) {
                                     Icon(
                                         painterResource(R.drawable.ic_x),
@@ -2320,19 +2341,23 @@ fun OtherUserScreen(
                                     hapticFeedback.performHapticFeedback(HapticFeedbackType.Confirm)
                                     when (result.first) {
                                         ChaoxingImportOtherUserResultStatus.SUCCESS -> {
-                                            UMengHelper.onAccountOtherUserAddEvent(context,
+                                            UMengHelper.onAccountOtherUserAddEvent(
+                                                context,
                                                 result.third
                                             )
                                             otherUserSessions.add(result.third)
                                             userTagList.add(mutableStateOf(emptyList()))
                                         }
+
                                         ChaoxingImportOtherUserResultStatus.EXISTED_BUT_UPDATE_PASSWORD -> {
                                             val updatedSession = result.third
                                             val index = otherUserSessions.indexOfFirst {
                                                 it.phoneNumber == updatedSession.phoneNumber
                                             }
-                                            if (index != -1) otherUserSessions[index] = updatedSession
+                                            if (index != -1) otherUserSessions[index] =
+                                                updatedSession
                                         }
+
                                         ChaoxingImportOtherUserResultStatus.EXISTED_BUT_UPDATE_FACE_IMAGES -> {
 
                                         }
@@ -2341,7 +2366,8 @@ fun OtherUserScreen(
                                     isQRCodeIllegal = true
                                     isQRCodeParsing.value = false
                                     hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
-                                    qrcodeIllegalText = failure.message ?: "二维码解析失败，登录失败。"
+                                    qrcodeIllegalText =
+                                        failure.message ?: "二维码解析失败，登录失败。"
                                     job?.cancel()
                                     job = coroutineScope.launch {
                                         delay(1.seconds)

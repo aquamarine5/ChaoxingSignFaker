@@ -23,6 +23,7 @@ sentry {
 
 stackbricksConfig {
     possibleConfigurationPaths = [
+            new PossibleConfigurationPath("cdn.aquamarine5.fun", "chaoxingsignfaker_stackbricks_manifest.json"),
             new PossibleConfigurationPath("cdn.aquamarine5.fun", "chaoxingsignfaker_stackbricks_v2_manifest.json")
     ]
     changelog =
