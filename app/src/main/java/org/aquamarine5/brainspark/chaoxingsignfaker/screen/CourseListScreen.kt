@@ -138,7 +138,7 @@ fun CourseListScreen(
     var recommendActivities by remember { mutableStateOf<List<RecommendActivityEntity>?>(null) }
     var isFetchedFailure by remember { mutableStateOf<Result<*>?>(null) }
     val coroutineScope = rememberCoroutineScope()
-    val isCaptchaAutoResolveLearntTooltip = remember { mutableStateOf(false) }
+    val isCaptchaAutoResolveLearntTooltip = rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
             launch {

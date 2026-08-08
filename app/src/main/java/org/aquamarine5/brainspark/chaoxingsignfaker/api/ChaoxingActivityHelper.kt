@@ -17,6 +17,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityE
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.RecommendActivityEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingParseDataException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.checkResponseThrowException
+import kotlin.time.Duration.Companion.minutes
 
 object ChaoxingActivityHelper {
     enum class SignRedirectStatus {
@@ -31,7 +32,7 @@ object ChaoxingActivityHelper {
 
     const val NO_SIGN_OFF_EVENT = 4999L
 
-    const val AVAILABLE_INTERVAL = 20 * 60 * 1000L // 15 minutes
+    val AVAILABLE_INTERVAL = 20.minutes.inWholeMilliseconds
 
     suspend fun checkCourseHaveAvailableActivity(
         client: ChaoxingHttpClient,

@@ -145,6 +145,9 @@ fun SettingScreen(
                 isRecommendEnabled = disableRecommend.not()
                 allRecommendHabits.addAll(recommendHabitsList)
             }
+            launch(Dispatchers.IO) {
+                stackbricksService.deleteTemp()
+            }
         }
         if (isUnblockDialog) {
             var inputPassword by remember { mutableStateOf("") }

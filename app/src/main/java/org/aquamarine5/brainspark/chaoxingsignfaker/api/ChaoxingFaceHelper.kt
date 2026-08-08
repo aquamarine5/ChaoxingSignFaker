@@ -130,7 +130,8 @@ object ChaoxingFaceHelper {
         context: Context,
         objectId: String,
         phoneNumber: String? = null,
-    ): ChaoxingFaceRecognitionImage=saveFaceImage(client.okHttpClient, client.userEntity, context, objectId, phoneNumber)
+    ): ChaoxingFaceRecognitionImage =
+        saveFaceImage(client.okHttpClient, client.userEntity, context, objectId, phoneNumber)
 
     suspend fun saveFaceImage(
         okHttpClient: OkHttpClient,

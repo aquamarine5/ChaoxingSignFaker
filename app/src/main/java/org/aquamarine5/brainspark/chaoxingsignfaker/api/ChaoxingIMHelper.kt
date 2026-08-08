@@ -40,12 +40,12 @@ object ChaoxingIMHelper {
     )
 
     @Deprecated(
-        message = "`im.chaoxing.com` is deprecated",
+        message = "The service of im.chaoxing.com is no longer available. Please use the new interface based on easecdn.com. For more information, please refer to: https://github.com/aquamarine5/ChaoxingSignFaker/issues/188",
         replaceWith = ReplaceWith("URL_EASEMOB_IM_TOKEN")
     )
     val URL_IM_ME = "https://im.chaoxing.com/webim/me".toHttpUrl()
 
-    @Deprecated(message = "`im.chaoxing.com` is deprecated")
+    @Deprecated(message = "The service of im.chaoxing.com is no longer available. Please use the new interface based on easecdn.com. For more information, please refer to: https://github.com/aquamarine5/ChaoxingSignFaker/issues/188")
     val URL_IM_GROUPS = "https://im.chaoxing.com/webim/message/list/getMessageList".toHttpUrl()
 
     val URL_EASEMOB_IM_TOKEN = "https://a1-vip6.easemob.com/cx-dev/cxstudy/token".toHttpUrl()
@@ -127,7 +127,7 @@ object ChaoxingIMHelper {
     }
 
     @Suppress("Deprecation")
-    @Deprecated(message = "`im.chaoxing.com` is deprecated", level = DeprecationLevel.ERROR)
+    @Deprecated(message = "The service of im.chaoxing.com is no longer available. Please use the new interface based on easecdn.com. For more information, please refer to: https://github.com/aquamarine5/ChaoxingSignFaker/issues/188", level = DeprecationLevel.ERROR)
     suspend fun getIMGroups(
         httpClient: ChaoxingHttpClient,
         config: ChaoxingIMConfig
@@ -155,7 +155,7 @@ object ChaoxingIMHelper {
 
 
     @Suppress("Deprecation")
-    @Deprecated(message = "`im.chaoxing.com` is deprecated", level = DeprecationLevel.ERROR)
+    @Deprecated(message = "The service of im.chaoxing.com is no longer available. Please use the new interface based on easecdn.com. For more information, please refer to: https://github.com/aquamarine5/ChaoxingSignFaker/issues/188", level = DeprecationLevel.ERROR)
     suspend fun getIMConfig(httpClient: ChaoxingHttpClient): ChaoxingIMConfig {
         return withContext(Dispatchers.IO) {
             httpClient.newCall(Request.Builder().url(URL_IM_ME).build()).execute().use { response ->
@@ -269,7 +269,7 @@ object ChaoxingIMHelper {
     }
 
     @Suppress("Deprecation")
-    @Deprecated(message = "`im.chaoxing.com` is deprecated", level = DeprecationLevel.ERROR)
+    @Deprecated(message = "The service of im.chaoxing.com is no longer available. Please use the new interface based on easecdn.com. For more information, please refer to: https://github.com/aquamarine5/ChaoxingSignFaker/issues/188", level = DeprecationLevel.ERROR)
     suspend fun fetchIMHistoryMessages(
         imGroup: ChaoxingIMGroup,
         httpClient: ChaoxingHttpClient,
