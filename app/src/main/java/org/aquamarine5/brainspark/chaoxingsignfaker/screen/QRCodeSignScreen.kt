@@ -202,7 +202,7 @@ fun QRCodeSignScreen(
                     )
                     ChaoxingQRCodeSigner(cloneHttpClient, destination).let {
                         isFaceRequired = it.isFaceRequired()
-                        signActivityStatus = signer.preSign()
+                        signActivityStatus = it.preSign()
                         it.getQRCodeSignInfo()
                     }
                 }

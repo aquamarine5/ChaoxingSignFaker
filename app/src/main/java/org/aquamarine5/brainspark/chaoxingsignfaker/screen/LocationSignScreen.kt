@@ -166,11 +166,13 @@ fun LocationSignScreen(
                         client,
                         destination
                     ).let {
+                        isFaceRequired = it.isFaceRequired()
                         signActivityStatus = it.preSign()
                         it.getLocationSignInfo()
                     }
                 }
             } else {
+                isFaceRequired = signer.isFaceRequired()
                 signActivityStatus = signer.preSign()
                 signer.getLocationSignInfo()
             }
@@ -548,7 +550,7 @@ fun LocationSignScreen(
                         ) + fadeIn(
                             animationSpec = tween(300)
                         ), exit = slideOutHorizontally(
-                            targetOffsetX = { -it },
+                            targetOffsetX = { it },
                             animationSpec = tween(300)
                         ) + fadeOut(
                             animationSpec = tween(300)

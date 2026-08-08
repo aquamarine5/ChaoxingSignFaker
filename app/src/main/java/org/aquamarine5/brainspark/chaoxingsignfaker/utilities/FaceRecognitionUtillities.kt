@@ -17,7 +17,7 @@ typealias FaceRecognitionImageIconState = MutableState<List<MutableState<FaceRec
 
 enum class FaceRecognitionImageStatus(@DrawableRes val resId: Int, val color: Color) {
     HaveImage(R.drawable.ic_image_v, Color.Unspecified),
-    NoImage(R.drawable.ic_image_slash, Color.Gray),
+    NoImage(R.drawable.ic_image_slash, Color(0xFF888888)),
     ImageCheckSuccess(R.drawable.ic_image_check, Color(0xFF229453)),
     ImageCheckFailure(R.drawable.ic_image_times, Color(0xFFF43E06)),
     NewImageAdded(R.drawable.ic_image_plus, Color(0xFF00FF00))

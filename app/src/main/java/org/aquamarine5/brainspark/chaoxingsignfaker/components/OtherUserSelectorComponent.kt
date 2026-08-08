@@ -67,11 +67,14 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
@@ -88,6 +91,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.OtherUserTagType
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignStatus
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.TAG_COLOR_UNSPECIFIED
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingPredictableException
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.FaceRecognitionImageIconState
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.FaceRecognitionImageStatus
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
@@ -105,7 +109,7 @@ fun OtherUserSelectorComponent(
     userContent: @Composable ((index: Int) -> Unit)? = null,
     prefixTipsContent: @Composable (() -> Unit),
     suffixContent: @Composable (() -> Unit)? = null,
-    faceRecognitionImageIconStatus: MutableState<List<MutableState<FaceRecognitionImageStatus>>>? = null,
+    faceRecognitionImageIconStatus: FaceRecognitionImageIconState? = null,
     onSignAction: (isSelf: Boolean, otherUserSessionList: List<ChaoxingOtherUserSession?>, indexList: List<Int>) -> Unit
 ) {
     LocalContext.current.let { context ->
@@ -177,8 +181,7 @@ fun OtherUserSelectorComponent(
                                             context,
                                             "读取剪切板失败",
                                             Toast.LENGTH_SHORT
-                                        )
-                                            .show()
+                                        ).show()
                                     } else {
                                         hapticFeedback.performHapticFeedback(HapticFeedbackType.Confirm)
                                         password = result.toString()
@@ -257,7 +260,13 @@ fun OtherUserSelectorComponent(
                     modifier = Modifier.size(40.dp)
                 )
             }, text = {
-                Text("随地大小签会自动检测并拒绝为用户不在班级的情况进行签到，因为强制签到会导致老师的已签名单中出现未选此课不在班的学生。\n如果你认为随地大小签的判断存在问题，请点击【强制重试签到】按钮。")
+                Text(buildAnnotatedString {
+                    append("随地大小签会自动检测并拒绝为不在签到班级的学生进行签到操作，")
+                    withStyle(SpanStyle(color = Color.Red)) {
+                        append("因为强制签到会导致老师的已签名单中出现不在这个班级的学生")
+                    }
+                    append("。\n同时，如果随地大小签判断此用户已经签到，那么也不会进行签到操作。\n如果你认为随地大小签的判断存在问题，请点击【强制重试签到】按钮，随地大小签会忽略所有应用内的判断条件，直接进行签到。")
+                })
             }, confirmButton = {
                 OutlinedButton(onClick = {
                     hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
