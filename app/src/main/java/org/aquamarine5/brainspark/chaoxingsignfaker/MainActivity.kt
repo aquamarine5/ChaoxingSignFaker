@@ -526,6 +526,10 @@ class MainActivity : ComponentActivity() {
                                                         }
                                                         restoreState = true
                                                     }
+                                                }, navToCourseList = {
+                                                    navController.navigate(CourseListDestination(false)){
+                                                        popUpTo<CourseListDestination>()
+                                                    }
                                                 }, navToGroupDestination = {
                                                     navController.navigate(GroupListDestination(it))
                                                 })
@@ -548,10 +552,16 @@ class MainActivity : ComponentActivity() {
                                         composable<GroupListDestination> {
                                             GroupListScreen(
                                                 it.toRoute(),
-                                                imageLoader
-                                            ) { destination ->
-                                                navController.navigate(destination)
-                                            }
+                                                imageLoader,
+                                                navToGroupDetail = { destination ->
+                                                    navController.navigate(destination)
+                                                },
+                                                navToCourseList = {
+                                                    navController.navigate(CourseListDestination(false)) {
+                                                        popUpTo<CourseListDestination>()
+                                                    }
+                                                }
+                                            )
                                         }
 
                                         composable<QRCodeSignDestination> { entry ->
@@ -585,6 +595,11 @@ class MainActivity : ComponentActivity() {
                                                 it.toRoute(),
                                                 navToSignerDestination = { destination ->
                                                     navController.navigate(destination)
+                                                },
+                                                navToNonCloningListDestination = {
+                                                    navController.navigate(CourseListDestination(false)) {
+                                                        popUpTo<CourseListDestination>()
+                                                    }
                                                 }) {
                                                 navController.navigateUp()
                                             }
@@ -604,6 +619,11 @@ class MainActivity : ComponentActivity() {
                                             GestureSignScreen(
                                                 route.toRoute(), navToOtherSign = {
                                                     navController.navigate(it)
+                                                },
+                                                navToCourseList = {
+                                                    navController.navigate(CourseListDestination(false)){
+                                                        popUpTo<CourseListDestination>()
+                                                    }
                                                 },
                                                 navToCourseDetailDestination = {
                                                     navController.navigateUp()

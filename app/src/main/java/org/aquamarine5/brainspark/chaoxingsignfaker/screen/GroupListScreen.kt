@@ -64,7 +64,8 @@ data class GroupListDestination(
 fun GroupListScreen(
     destination: GroupListDestination,
     imageLoader: ImageLoader,
-    navToGroupDetail: (GroupDetailDestination) -> Unit
+    navToGroupDetail: (GroupDetailDestination) -> Unit,
+    navToCourseList: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -126,7 +127,10 @@ fun GroupListScreen(
 
                 imGroupsInfo!!.isEmpty() -> {
                     if (destination.isCloneSession) {
-                        CloneSessionTips()
+                        CloneSessionTips {
+                            ChaoxingHttpClient.exitCloning(coroutineScope, snackbarHostState)
+                            navToCourseList()
+                        }
                     }
                     Box(modifier = Modifier.fillMaxSize()) {
                         Column(modifier = Modifier.align(Alignment.Center)) {
@@ -138,7 +142,10 @@ fun GroupListScreen(
 
                 else -> {
                     if (destination.isCloneSession) {
-                        CloneSessionTips()
+                        CloneSessionTips {
+                            ChaoxingHttpClient.exitCloning(coroutineScope, snackbarHostState)
+                            navToCourseList()
+                        }
                     }
                     LazyColumn {
                         items(imGroupsInfo!!, key = {

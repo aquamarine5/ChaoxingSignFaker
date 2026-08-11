@@ -9,10 +9,13 @@ package org.aquamarine5.brainspark.chaoxingsignfaker.api
 import android.content.Context
 import android.content.pm.PackageManager
 import android.widget.Toast
+import androidx.compose.material3.SnackbarHostState
 import com.alibaba.fastjson2.JSONObject
 import io.sentry.Sentry
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.Call
 import okhttp3.Cookie
@@ -34,6 +37,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingPredictabl
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.checkResponseThrowException
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.displaySnackbar
 import java.security.MessageDigest
 import java.util.Base64
 import java.util.UUID
@@ -98,6 +102,13 @@ class ChaoxingHttpClient private constructor(
                 context.chaoxingDataStore.updateData {
                     it.toBuilder().setDeviceCode(this).build()
                 }
+            }
+        }
+
+        fun exitCloning(coroutineScope: CoroutineScope,snackbarHostState: SnackbarHostState) {
+            cloneInstance = null
+            coroutineScope.launch {
+                snackbarHostState.displaySnackbar("已退出克隆登录",coroutineScope)
             }
         }
 

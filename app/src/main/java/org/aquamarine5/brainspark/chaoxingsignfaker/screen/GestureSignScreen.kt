@@ -117,6 +117,7 @@ fun GestureSignScreen(
     destination: GestureSignDestination,
     navToCourseDetailDestination: () -> Unit,
     navToOtherSign: (SignDestination) -> Unit,
+    navToCourseList: () -> Unit,
     navToOtherUserDestination: () -> Unit
 ) {
     var signActivityStatus by remember { mutableStateOf<ChaoxingSignActivityStatus?>(null) }
@@ -428,7 +429,10 @@ fun GestureSignScreen(
                     }
                     Column(modifier = Modifier.padding(8.dp, 4.dp, 8.dp, 0.dp)) {
                         if (destination.isCloneSession)
-                            CloneSessionTips()
+                            CloneSessionTips {
+                                ChaoxingHttpClient.exitCloning(coroutineScope, snackbarHost)
+                                navToCourseList()
+                            }
                         OtherUserSelectorComponent(
                             navToOtherUser = { navToOtherUserDestination() },
                             signStatus = signStatus,

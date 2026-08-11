@@ -68,6 +68,7 @@ typealias CourseDetailDestination = ChaoxingCourseEntity
 fun CourseDetailScreen(
     courseEntity: ChaoxingCourseEntity,
     navToSignerDestination: (Any) -> Unit,
+    navToNonCloningListDestination: () -> Unit,
     navToListDestination: () -> Unit
 ) {
     var activitiesData by remember { mutableStateOf<ChaoxingCourseActivitiesEntity?>(null) }
@@ -153,7 +154,10 @@ fun CourseDetailScreen(
                         )
                     }
                     if (courseEntity.isCloneSession) {
-                        CloneSessionTips()
+                        CloneSessionTips {
+                            ChaoxingHttpClient.exitCloning(coroutineScope, snackbarHost)
+                            navToNonCloningListDestination()
+                        }
                     }
                     Spacer(modifier = Modifier.height(12.dp))
                     var pullToRefreshState by remember { mutableStateOf(false) }

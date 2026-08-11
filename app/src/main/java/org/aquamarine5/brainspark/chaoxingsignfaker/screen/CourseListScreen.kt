@@ -122,7 +122,8 @@ fun CourseListScreen(
     navToSettingDestination: () -> Unit,
     navToSignActivityDestination: (SignDestination) -> Unit,
     navToLoginDestination: () -> Unit,
-    navToGroupDestination: (isCloneSession: Boolean) -> Unit
+    navToCourseList: () -> Unit,
+    navToGroupDestination: (isCloneSession: Boolean) -> Unit,
 ) {
     val activitiesData =
         rememberSaveable(saver = ChaoxingCourseEntity.Saver) { mutableStateListOf() }
@@ -421,7 +422,10 @@ fun CourseListScreen(
                             } //TODO: Recommend
 
                             if (destination.isCloneSession && ChaoxingHttpClient.cloneInstance != null)
-                                CloneSessionTips()
+                                CloneSessionTips {
+                                    ChaoxingHttpClient.exitCloning(coroutineScope, snackbarHost)
+                                    navToCourseList()
+                                }
                             var debouncePreviousTime = 0L
                             LazyColumn {
                                 item {
