@@ -32,6 +32,7 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
@@ -70,6 +71,7 @@ import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
@@ -195,6 +197,7 @@ fun OtherUserScreen(
     val facePhotos = remember { mutableStateListOf<ChaoxingFaceRecognitionImage>() }
     val selectedSharedFaceObjectIds = remember { mutableStateListOf<String>() }
     var attachFacePhotos by remember { mutableStateOf(true) }
+    var facePhotosExpanded by remember { mutableStateOf(false) }
     var inspectedFacePhotoObjectId by remember { mutableStateOf<String?>(null) }
     val otherUserSessions = remember { mutableStateListOf<ChaoxingOtherUserSession>() }
     var qrCode by remember { mutableStateOf<Bitmap?>(null) }
@@ -1695,7 +1698,13 @@ fun OtherUserScreen(
                             },
                         )
                         Text(
-                            "同时附带你的人脸识别照片供其他人代签使用，对方会收到以下照片。",
+                            buildAnnotatedString {
+                                append("同时附带你的人脸识别照片供其他人代签使用，")
+                                withStyle(SpanStyle(textDecoration = TextDecoration.Underline)) {
+                                    append("对方会收到以下照片")
+                                }
+                                append("。")
+                            },
                             modifier = Modifier
                                 .clickable(role = Role.Button) {
                                     hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
@@ -1711,62 +1720,80 @@ fun OtherUserScreen(
                             lineHeight = 17.sp,
                         )
                     }
-                    Row(
+                    TextButton(
+                        onClick = {
+                            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                            facePhotosExpanded = !facePhotosExpanded
+                        },
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(start = 48.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            .padding(start = 36.dp)
+                            .height(20.dp),
+                        contentPadding = PaddingValues(horizontal = 12.dp),
                     ) {
-                        facePhotos.forEach { photo ->
-                            val isAttached =
-                                attachFacePhotos && photo.objectId in selectedSharedFaceObjectIds
-                            Box(
-                                modifier = Modifier
-                                    .size(64.dp)
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .border(
-                                        BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-                                        RoundedCornerShape(8.dp),
-                                    )
-                                    .clickable {
-                                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                                        inspectedFacePhotoObjectId = photo.objectId
-                                    },
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                val blurRadius by animateDpAsState(
-                                    if (!isAttached) 6.dp else 0.dp,
-                                    animationSpec = tween(200, easing = LinearOutSlowInEasing)
-                                )
-                                AsyncImage(
-                                    model = remember(photo) {
-                                        ChaoxingFaceHelper.getFaceImageFile(
-                                            context,
-                                            photo.objectId
-                                        )
-                                    },
-                                    contentDescription = "人脸识别照片",
+                        Text(
+                            if (facePhotosExpanded) "收起人脸识别照片" else "展开人脸识别照片",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    AnimatedVisibility(visible = facePhotosExpanded) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = 48.dp, top = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            facePhotos.forEach { photo ->
+                                val isAttached =
+                                    attachFacePhotos && photo.objectId in selectedSharedFaceObjectIds
+                                Box(
                                     modifier = Modifier
-                                        .fillMaxSize()
-                                        .blur(blurRadius),
-                                    contentScale = ContentScale.Crop
-                                )
-                                this@Row.AnimatedVisibility(
-                                    !isAttached,
-                                    enter = scaleIn(
-                                        tween(200, easing = LinearOutSlowInEasing),
-                                        initialScale = 0.5f
-                                    ) + fadeIn(tween(200)),
-                                    exit = scaleOut(
-                                        tween(200, easing = LinearOutSlowInEasing),
-                                        targetScale = 0.5f
-                                    ) + fadeOut(tween(200))
+                                        .size(64.dp)
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .border(
+                                            BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                                            RoundedCornerShape(8.dp),
+                                        )
+                                        .clickable {
+                                            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                                            inspectedFacePhotoObjectId = photo.objectId
+                                        },
+                                    contentAlignment = Alignment.Center,
                                 ) {
-                                    Icon(
-                                        painterResource(R.drawable.ic_x),
-                                        null,
-                                        modifier = Modifier.size(32.dp)
+                                    val blurRadius by animateDpAsState(
+                                        if (!isAttached) 6.dp else 0.dp,
+                                        animationSpec = tween(200, easing = LinearOutSlowInEasing)
                                     )
+                                    AsyncImage(
+                                        model = remember(photo) {
+                                            ChaoxingFaceHelper.getFaceImageFile(
+                                                context,
+                                                photo.objectId
+                                            )
+                                        },
+                                        contentDescription = "人脸识别照片",
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .blur(blurRadius),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                    this@Row.AnimatedVisibility(
+                                        !isAttached,
+                                        enter = scaleIn(
+                                            tween(200, easing = LinearOutSlowInEasing),
+                                            initialScale = 0.5f
+                                        ) + fadeIn(tween(200)),
+                                        exit = scaleOut(
+                                            tween(200, easing = LinearOutSlowInEasing),
+                                            targetScale = 0.5f
+                                        ) + fadeOut(tween(200))
+                                    ) {
+                                        Icon(
+                                            painterResource(R.drawable.ic_x),
+                                            null,
+                                            modifier = Modifier.size(32.dp)
+                                        )
+                                    }
                                 }
                             }
                         }

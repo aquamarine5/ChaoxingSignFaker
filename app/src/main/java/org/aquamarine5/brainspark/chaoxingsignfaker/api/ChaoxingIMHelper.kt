@@ -127,7 +127,10 @@ object ChaoxingIMHelper {
     }
 
     @Suppress("Deprecation")
-    @Deprecated(message = "The service of im.chaoxing.com is no longer available. Please use the new interface based on easecdn.com. For more information, please refer to: https://github.com/aquamarine5/ChaoxingSignFaker/issues/188", level = DeprecationLevel.ERROR)
+    @Deprecated(
+        message = "The service of im.chaoxing.com is no longer available. Please use the new interface based on easecdn.com. For more information, please refer to: https://github.com/aquamarine5/ChaoxingSignFaker/issues/188",
+        level = DeprecationLevel.ERROR
+    )
     suspend fun getIMGroups(
         httpClient: ChaoxingHttpClient,
         config: ChaoxingIMConfig
@@ -155,7 +158,10 @@ object ChaoxingIMHelper {
 
 
     @Suppress("Deprecation")
-    @Deprecated(message = "The service of im.chaoxing.com is no longer available. Please use the new interface based on easecdn.com. For more information, please refer to: https://github.com/aquamarine5/ChaoxingSignFaker/issues/188", level = DeprecationLevel.ERROR)
+    @Deprecated(
+        message = "The service of im.chaoxing.com is no longer available. Please use the new interface based on easecdn.com. For more information, please refer to: https://github.com/aquamarine5/ChaoxingSignFaker/issues/188",
+        level = DeprecationLevel.ERROR
+    )
     suspend fun getIMConfig(httpClient: ChaoxingHttpClient): ChaoxingIMConfig {
         return withContext(Dispatchers.IO) {
             httpClient.newCall(Request.Builder().url(URL_IM_ME).build()).execute().use { response ->
@@ -269,7 +275,10 @@ object ChaoxingIMHelper {
     }
 
     @Suppress("Deprecation")
-    @Deprecated(message = "The service of im.chaoxing.com is no longer available. Please use the new interface based on easecdn.com. For more information, please refer to: https://github.com/aquamarine5/ChaoxingSignFaker/issues/188", level = DeprecationLevel.ERROR)
+    @Deprecated(
+        message = "The service of im.chaoxing.com is no longer available. Please use the new interface based on easecdn.com. For more information, please refer to: https://github.com/aquamarine5/ChaoxingSignFaker/issues/188",
+        level = DeprecationLevel.ERROR
+    )
     suspend fun fetchIMHistoryMessages(
         imGroup: ChaoxingIMGroup,
         httpClient: ChaoxingHttpClient,

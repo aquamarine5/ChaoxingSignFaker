@@ -17,7 +17,10 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingParseDataE
 
 @Immutable
 @Suppress("DEPRECATION")
-@Deprecated("The service of im.chaoxing.com is no longer available. Please use the new interface based on easecdn.com. For more information, please refer to: https://github.com/aquamarine5/ChaoxingSignFaker/issues/188", replaceWith = ReplaceWith("ChaoxingEasemobIMGroup"))
+@Deprecated(
+    "The service of im.chaoxing.com is no longer available. Please use the new interface based on easecdn.com. For more information, please refer to: https://github.com/aquamarine5/ChaoxingSignFaker/issues/188",
+    replaceWith = ReplaceWith("ChaoxingEasemobIMGroup")
+)
 @Serializable
 data class ChaoxingIMGroup(
     val picArray: List<String>,

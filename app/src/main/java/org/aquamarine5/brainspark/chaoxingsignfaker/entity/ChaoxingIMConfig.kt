@@ -8,7 +8,10 @@ package org.aquamarine5.brainspark.chaoxingsignfaker.entity
 
 import androidx.compose.runtime.Immutable
 
-@Deprecated("The service of im.chaoxing.com is no longer available. Please use the new interface based on easecdn.com. For more information, please refer to: https://github.com/aquamarine5/ChaoxingSignFaker/issues/188", replaceWith = ReplaceWith("ChaoxingEasemobIMConfig"))
+@Deprecated(
+    "The service of im.chaoxing.com is no longer available. Please use the new interface based on easecdn.com. For more information, please refer to: https://github.com/aquamarine5/ChaoxingSignFaker/issues/188",
+    replaceWith = ReplaceWith("ChaoxingEasemobIMConfig")
+)
 @Immutable
 data class ChaoxingIMConfig(
     val imImgUrl: String,

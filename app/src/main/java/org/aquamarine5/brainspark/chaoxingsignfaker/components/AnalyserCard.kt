@@ -316,19 +316,54 @@ fun AnalyserCard() {
                                     isExpanded = false
                                 }) {
                                     schoolNames.forEach { name ->
+                                        val isDigitLeading = name[0].isDigit()
+                                        val isDuplicateLibrary = name.endsWith("图书馆") &&
+                                                schoolNames.contains(name.removeSuffix("图书馆"))
+                                        val hasUsableSchoolName = schoolNames.any {
+                                            it[0].isDigit().not() &&
+                                                    (it.endsWith("图书馆") &&
+                                                            schoolNames.contains(it.removeSuffix("图书馆"))).not()
+                                        }
+                                        val isDisabled = when {
+                                            isDigitLeading -> hasUsableSchoolName
+                                            isDuplicateLibrary -> true
+                                            else -> false
+                                        }
                                         DropdownMenuItem(
                                             text = {
-                                                Text(
-                                                    name,
-                                                    style = MaterialTheme.typography.bodyLarge
-                                                )
+                                                Column {
+                                                    Text(
+                                                        name,
+                                                        style = MaterialTheme.typography.bodyLarge
+                                                    )
+                                                    if (isDisabled) {
+                                                        Row(
+                                                            verticalAlignment = Alignment.CenterVertically
+                                                        ) {
+                                                            Icon(
+                                                                painterResource(R.drawable.ic_info),
+                                                                contentDescription = null,
+                                                                tint = Color.Gray,
+                                                                modifier = Modifier.size(14.dp)
+                                                            )
+                                                            Spacer(modifier = Modifier.width(4.dp))
+                                                            Text(
+                                                                if (isDigitLeading) "意义不明的学校名称"
+                                                                else "对于重复的学校名称，推荐使用不带\"图书馆\"的名称",
+                                                                fontSize = 11.sp,
+                                                                lineHeight = 13.sp,
+                                                                color = Color.Gray
+                                                            )
+                                                        }
+                                                    }
+                                                }
                                             },
                                             onClick = {
                                                 displaySchoolName = name
                                                 isExpanded = false
                                             },
                                             contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding,
-                                            enabled = !name[0].isDigit()
+                                            enabled = !isDisabled
                                         )
                                     }
                                 }
