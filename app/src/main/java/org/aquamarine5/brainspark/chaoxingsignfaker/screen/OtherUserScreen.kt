@@ -44,6 +44,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -1278,6 +1280,24 @@ fun OtherUserScreen(
                 })
             }
         }
+        val otherUserFaceImages = remember(selectedUserSettingDialogIndex) {
+            mutableStateListOf<ChaoxingFaceRecognitionImage>()
+        }
+        var isOtherUserFaceImagesLoading by remember(selectedUserSettingDialogIndex) {
+            mutableStateOf(true)
+        }
+        var inspectedOtherUserFaceObjectId by remember { mutableStateOf<String?>(null) }
+        var requestedDeleteOtherUserFaceObjectId by remember { mutableStateOf<String?>(null) }
+        LaunchedEffect(selectedUserSettingDialogIndex) {
+            val selectedUser = otherUserSessions[selectedUserSettingDialogIndex!!]
+            otherUserFaceImages.clear()
+            otherUserFaceImages.addAll(
+                context.chaoxingDataStore.data.first()
+                    .faceRecognitionConfiguresMap[selectedUser.phoneNumber]
+                    ?.imagesList.orEmpty()
+            )
+            isOtherUserFaceImagesLoading = false
+        }
         var requestedDeleteUserIndex by remember { mutableStateOf<Int?>(null) }
         if (requestedDeleteUserIndex != null) {
             AlertDialog(
@@ -1338,6 +1358,132 @@ fun OtherUserScreen(
                     }
                 }
             )
+        }
+        inspectedOtherUserFaceObjectId?.let { objectId ->
+            val record = otherUserFaceImages.firstOrNull { it.objectId == objectId }
+            if (record != null) {
+                AlertDialog(
+                    onDismissRequest = {
+                        inspectedOtherUserFaceObjectId = null
+                    },
+                    title = {
+                        Text("人脸照片详情")
+                    },
+                    text = {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            AsyncImage(
+                                model = ChaoxingFaceHelper.getFaceImageFile(
+                                    context,
+                                    record.objectId
+                                ),
+                                contentDescription = "人脸识别照片",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .aspectRatio(3f / 4f),
+                            )
+                            Text("图片ID: ${record.objectId}")
+                            Text("使用次数: ${record.useCount}")
+                            Text(
+                                "此前是否人脸识别失败过: ${if (record.isFailureBefore) "是" else "否"}"
+                            )
+                        }
+                    },
+                    confirmButton = {
+                        Button(onClick = {
+                            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                            inspectedOtherUserFaceObjectId = null
+                            requestedDeleteOtherUserFaceObjectId = record.objectId
+                        }) {
+                            Text("删除此照片")
+                        }
+                    },
+                    dismissButton = {
+                        OutlinedButton(onClick = {
+                            hapticFeedback.performHapticFeedback(
+                                HapticFeedbackType.ContextClick
+                            )
+                            inspectedOtherUserFaceObjectId = null
+                        }) {
+                            Text("关闭")
+                        }
+                    }
+                )
+            }
+        }
+        requestedDeleteOtherUserFaceObjectId?.let { objectId ->
+            val record = otherUserFaceImages.firstOrNull { it.objectId == objectId }
+            if (record != null) {
+                val selectedUser = otherUserSessions[selectedUserSettingDialogIndex!!]
+                AlertDialog(
+                    onDismissRequest = {
+                        requestedDeleteOtherUserFaceObjectId = null
+                    },
+                    icon = {
+                        Icon(
+                            painterResource(R.drawable.ic_delete),
+                            null,
+                            tint = Color.Red,
+                            modifier = Modifier.size(40.dp)
+                        )
+                    },
+                    title = {
+                        Text("是否删除照片？")
+                    },
+                    text = {
+                        Text(
+                            "删除${selectedUser.name}的这张人脸识别照片并不会影响" +
+                                    "${selectedUser.name}以及其他设备上存储的照片。"
+                        )
+                    },
+                    confirmButton = {
+                        Button(onClick = {
+                            hapticFeedback.performHapticFeedback(
+                                HapticFeedbackType.ContextClick
+                            )
+                            coroutineScope.launch {
+                                runCatching {
+                                    withContext(Dispatchers.IO) {
+                                        ChaoxingFaceHelper.deleteFaceImage(
+                                            context,
+                                            selectedUser.phoneNumber,
+                                            record.objectId,
+                                        )
+                                    }
+                                }.onSuccess {
+                                    otherUserFaceImages.removeAll {
+                                        it.objectId == record.objectId
+                                    }
+                                    snackbarHost.displaySnackbar(
+                                        "人脸照片删除成功",
+                                        coroutineScope
+                                    )
+                                }.onFailure {
+                                    it.snackbarReport(
+                                        snackbarHost,
+                                        coroutineScope,
+                                        "删除人脸照片失败",
+                                        hapticFeedback
+                                    )
+                                }
+                                requestedDeleteOtherUserFaceObjectId = null
+                            }
+                        }) {
+                            Text("删除")
+                        }
+                    },
+                    dismissButton = {
+                        OutlinedButton(onClick = {
+                            hapticFeedback.performHapticFeedback(
+                                HapticFeedbackType.ContextClick
+                            )
+                            requestedDeleteOtherUserFaceObjectId = null
+                        }) {
+                            Text("取消")
+                        }
+                    }
+                )
+            }
         }
         var isSavingDatastore by remember { mutableStateOf(false) }
         AlertDialog(
@@ -1442,6 +1588,61 @@ fun OtherUserScreen(
                                 }
                             }
                         }
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        "人脸识别照片",
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(0.dp, 0.dp, 0.dp, 4.dp)
+                    )
+                    if (isOtherUserFaceImagesLoading) {
+                        Text(
+                            "正在加载人脸识别照片...",
+                            fontStyle = FontStyle.Italic,
+                            color = Color.Gray,
+                            modifier = Modifier.padding(6.dp)
+                        )
+                    } else if (otherUserFaceImages.isEmpty()) {
+                        Text(
+                            "暂未保存人脸识别照片",
+                            fontStyle = FontStyle.Italic,
+                            color = Color.Gray,
+                            modifier = Modifier.padding(6.dp)
+                        )
+                    } else {
+                        LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            items(otherUserFaceImages, key = { it.objectId }) { record ->
+                                Card(
+                                    shape = RoundedCornerShape(14.dp),
+                                    modifier = Modifier.clickable {
+                                        hapticFeedback.performHapticFeedback(
+                                            HapticFeedbackType.ContextClick
+                                        )
+                                        inspectedOtherUserFaceObjectId = record.objectId
+                                    }
+                                ) {
+                                    AsyncImage(
+                                        model = remember(record.objectId) {
+                                            ChaoxingFaceHelper.getFaceImageFile(
+                                                context,
+                                                record.objectId
+                                            )
+                                        },
+                                        contentDescription = "已保存的人脸识别照片",
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier
+                                            .width(110.dp)
+                                            .aspectRatio(3f / 4f)
+                                    )
+                                }
+                            }
+                        }
+                        Text(
+                            "已保存 ${otherUserFaceImages.size} 张照片",
+                            color = Color.Gray,
+                            fontSize = 13.sp,
+                            modifier = Modifier.padding(0.dp, 4.dp, 0.dp, 8.dp)
+                        )
+                    }
                     Button(
                         onClick = {
                             requestedDeleteUserIndex = selectedUserSettingDialogIndex

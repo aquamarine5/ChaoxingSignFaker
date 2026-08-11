@@ -301,7 +301,7 @@ object ChaoxingFaceHelper {
                                 .build()
                         } else image
                     }
-                },
+                }
             )
         }
     }
