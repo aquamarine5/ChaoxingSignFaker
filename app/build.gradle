@@ -9,7 +9,7 @@ import org.aquamarine5.brainspark.stackbricks.gradleplugin.PossibleConfiguration
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
-    id("org.aquamarine5.brainspark.stackbricks-gradle-plugin") version "2.2.8"
+    id("org.aquamarine5.brainspark.stackbricks-gradle-plugin") version "2.2.9"
     id("com.google.protobuf") version "0.9.6"
     id "io.sentry.android.gradle" version "6.17.0"
     id("org.jetbrains.kotlin.plugin.serialization") version "2.4.10"
@@ -55,7 +55,7 @@ android {
         applicationId = "org.aquamarine5.brainspark.chaoxingsignfaker"
         minSdk = 26
         targetSdk = 37
-        versionCode = 1_1700_0666
+        versionCode = 1_1700_0699
         versionName = "1.17.0-alpha2-260808"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"

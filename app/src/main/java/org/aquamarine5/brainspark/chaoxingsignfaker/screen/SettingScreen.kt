@@ -62,8 +62,6 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.Font
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
@@ -89,6 +87,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.components.CustomizeClientCa
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SponsorCard
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.RecommendHabit
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSigner
+import org.aquamarine5.brainspark.chaoxingsignfaker.ui.theme.FontGilroy
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.OnlyAppDevelopedMode
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.UMengHelper
@@ -130,7 +129,6 @@ fun SettingScreen(
     ) {
         var isRecommendEnabled by remember { mutableStateOf(true) }
         val context = LocalContext.current
-        val fontGilroy = remember { FontFamily(Font(R.font.gilroy)) }
         val hapticFeedback = LocalHapticFeedback.current
         val coroutineScope = rememberCoroutineScope()
         val snackbarHostState = LocalSnackbarHostState.current
@@ -414,7 +412,7 @@ fun SettingScreen(
                                                 Row {
                                                     Text(buildAnnotatedString {
                                                         append("星期${ChaoxingRecommendHelper.dayOfWeekTextList[item.dayOfWeek]}的 ")
-                                                        withStyle(SpanStyle(fontFamily = fontGilroy)) {
+                                                        withStyle(SpanStyle(fontFamily = FontGilroy)) {
                                                             append(
                                                                 "${item.minuteOfDay.div(60)}:${
                                                                     (item.minuteOfDay % 60).toString()
@@ -494,7 +492,7 @@ fun SettingScreen(
                     append("前往Github给作者点一个Star吧\n前往：")
                     withStyle(
                         SpanStyle(
-                            fontFamily = fontGilroy,
+                            fontFamily = FontGilroy,
                             fontSize = 14.sp
                         )
                     ) {
@@ -505,7 +503,7 @@ fun SettingScreen(
                     }
                     withStyle(
                         SpanStyle(
-                            fontFamily = fontGilroy,
+                            fontFamily = FontGilroy,
                             fontSize = 14.sp
                         )
                     ) {
@@ -546,7 +544,7 @@ fun SettingScreen(
                     append("想要联系作者？\n发送邮件到：")
                     withStyle(
                         SpanStyle(
-                            fontFamily = fontGilroy,
+                            fontFamily = FontGilroy,
                             fontSize = 14.sp
                         )
                     ) {
@@ -557,7 +555,7 @@ fun SettingScreen(
                     }
                     withStyle(
                         SpanStyle(
-                            fontFamily = fontGilroy,
+                            fontFamily = FontGilroy,
                             fontSize = 14.sp
                         )
                     ) {

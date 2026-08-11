@@ -56,8 +56,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.Font
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.LineBreak
 import androidx.compose.ui.text.withStyle
@@ -88,6 +86,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.components.NewFeatureTipsCar
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingCourseClass
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCourseEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.RecommendActivityEntity
+import org.aquamarine5.brainspark.chaoxingsignfaker.ui.theme.FontGilroy
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.disableCode
@@ -249,7 +248,9 @@ fun CourseListScreen(
         })
     }
     if (newestVersionData != null) {
-        onNewVersionAvailable()
+        LaunchedEffect(newestVersionData) {
+            onNewVersionAvailable()
+        }
         AlertDialog(onDismissRequest = {
             if (isForceInstall) {
                 Toast.makeText(context, "必须更新应用", Toast.LENGTH_SHORT).show()
@@ -276,9 +277,7 @@ fun CourseListScreen(
                 append("检测到新版本：")
                 withStyle(
                     SpanStyle(
-                        fontWeight = FontWeight.Bold, fontFamily = FontFamily(
-                            Font(R.font.gilroy)
-                        )
+                        fontWeight = FontWeight.Bold, fontFamily = FontGilroy
                     )
                 ) {
                     append(
@@ -289,21 +288,20 @@ fun CourseListScreen(
                 append("\n当前版本：")
                 withStyle(
                     SpanStyle(
-                        fontWeight = FontWeight.Bold, fontFamily = FontFamily(
-                            Font(R.font.gilroy)
-                        )
+                        fontWeight = FontWeight.Bold, fontFamily = FontGilroy
                     )
                 ) {
                     append(stackbricksService.getCurrentVersionName())
                 }
                 append("\n更新日志：\n")
-                withStyle(SpanStyle(fontSize = 11.sp)) {
-                    append(
-                        newestVersionData?.changelog
-                            ?: stackbricksService.internalVersionData?.changelog
-                    )
-                }
-            })
+            }
+            )
+            Text(
+                newestVersionData?.changelog
+                    ?: stackbricksService.internalVersionData?.changelog ?: "暂无更新日志",
+                fontSize = 11.sp,
+                lineHeight = 12.sp
+            )
         }, title = {
             Text("有新版本可用！")
         }, icon = {
@@ -395,11 +393,7 @@ fun CourseListScreen(
                                                         append(" 在 ")
                                                         withStyle(
                                                             SpanStyle(
-                                                                fontFamily = FontFamily(
-                                                                    Font(
-                                                                        R.font.gilroy
-                                                                    )
-                                                                )
+                                                                fontFamily = FontGilroy
                                                             )
                                                         ) {
                                                             append(

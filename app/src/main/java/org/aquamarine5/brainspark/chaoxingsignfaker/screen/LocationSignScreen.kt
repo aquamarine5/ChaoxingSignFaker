@@ -556,21 +556,22 @@ fun LocationSignScreen(
                             animationSpec = tween(300)
                         )
                     ) {
-                        FaceRecognitionComponent(mutableListOf<Pair<String, String>>().apply {
-                            if (isSelfForSign && !faceImageObjectIds.containsKey(
-                                    ChaoxingHttpClient.instance!!.userEntity.phoneNumber
-                                )
-                            ) add(ChaoxingHttpClient.instance!!.userEntity.phoneNumber to ChaoxingHttpClient.instance!!.userEntity.name)
-                            otherUserSessionForSignList.forEach {
-                                if (it != null && !faceImageObjectIds.containsKey(
-                                        it.phoneNumber
+                        FaceRecognitionComponent(
+                            mutableListOf<Pair<String, String>>().apply {
+                                if (isSelfForSign && !faceImageObjectIds.containsKey(
+                                        ChaoxingHttpClient.instance!!.userEntity.phoneNumber
                                     )
-                                ) add(it.phoneNumber to it.name)
-                            }
-                        }, onCancel = {
-                            isSigning.value = false
-                            isFaceImageCaptured = false
-                        }) {
+                                ) add(ChaoxingHttpClient.instance!!.userEntity.phoneNumber to ChaoxingHttpClient.instance!!.userEntity.name)
+                                otherUserSessionForSignList.forEach {
+                                    if (it != null && !faceImageObjectIds.containsKey(
+                                            it.phoneNumber
+                                        )
+                                    ) add(it.phoneNumber to it.name)
+                                }
+                            }, onCancel = {
+                                isSigning.value = false
+                                isFaceImageCaptured = false
+                            }) {
                             it.forEach { (string, bitmap) ->
                                 faceRecognitionImageIconList.setStatus(
                                     FaceRecognitionImageStatus.NewImageAdded,

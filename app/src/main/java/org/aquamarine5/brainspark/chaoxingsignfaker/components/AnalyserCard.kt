@@ -70,8 +70,6 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.Font
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -86,6 +84,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingAnalyserRankAnalysis
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingAnalyserRankRecord
+import org.aquamarine5.brainspark.chaoxingsignfaker.ui.theme.FontGilroy
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingAnalyser
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
@@ -146,9 +145,6 @@ fun AnalyserCard() {
                     if (it == 0) 50 else it
                 }
             }
-        }
-        val fontGilroy = remember {
-            FontFamily(Font(R.font.gilroy))
         }
         var clickToDisplayRankDetail by remember { mutableStateOf<ChaoxingAnalyserRankRecord?>(null) }
         var isAnalyserRankDialog by remember { mutableStateOf(false) }
@@ -461,7 +457,7 @@ fun AnalyserCard() {
                                 SpanStyle(
                                     fontWeight = FontWeight.Bold,
                                     color = primaryColor,
-                                    fontFamily = fontGilroy,
+                                    fontFamily = FontGilroy,
                                     fontSize = 17.sp,
                                 )
                             }
@@ -491,7 +487,7 @@ fun AnalyserCard() {
                                                 .width(36.dp)
                                                 .padding(end = 6.dp),
                                             textAlign = TextAlign.Center,
-                                            fontFamily = fontGilroy,
+                                            fontFamily = FontGilroy,
                                             fontWeight = FontWeight.Bold,
                                             fontSize = 18.sp,
                                             color = MaterialTheme.colorScheme.primary,
@@ -585,7 +581,7 @@ fun AnalyserCard() {
                                             .padding(end = 6.dp),
                                         textAlign = TextAlign.Center,
                                         fontWeight = FontWeight.Bold,
-                                        fontFamily = fontGilroy,
+                                        fontFamily = FontGilroy,
                                         fontSize = 18.sp,
                                         maxLines = 1,
                                         color = MaterialTheme.colorScheme.primary,
@@ -783,7 +779,7 @@ fun AnalyserCard() {
                                             Spacer(modifier = Modifier.width(3.dp))
                                             Text(
                                                 it.first.value.toString(),
-                                                fontFamily = fontGilroy,
+                                                fontFamily = FontGilroy,
                                                 fontSize = 16.sp
                                             )
                                         }
