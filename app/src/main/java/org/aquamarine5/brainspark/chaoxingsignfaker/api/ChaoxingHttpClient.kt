@@ -105,10 +105,10 @@ class ChaoxingHttpClient private constructor(
             }
         }
 
-        fun exitCloning(coroutineScope: CoroutineScope,snackbarHostState: SnackbarHostState) {
+        fun exitCloning(coroutineScope: CoroutineScope, snackbarHostState: SnackbarHostState) {
             cloneInstance = null
             coroutineScope.launch {
-                snackbarHostState.displaySnackbar("已退出克隆登录",coroutineScope)
+                snackbarHostState.displaySnackbar("已退出克隆登录", coroutineScope)
             }
         }
 

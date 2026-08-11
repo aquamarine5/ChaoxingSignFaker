@@ -527,7 +527,11 @@ class MainActivity : ComponentActivity() {
                                                         restoreState = true
                                                     }
                                                 }, navToCourseList = {
-                                                    navController.navigate(CourseListDestination(false)){
+                                                    navController.navigate(
+                                                        CourseListDestination(
+                                                            false
+                                                        )
+                                                    ) {
                                                         popUpTo<CourseListDestination>()
                                                     }
                                                 }, navToGroupDestination = {
@@ -557,7 +561,11 @@ class MainActivity : ComponentActivity() {
                                                     navController.navigate(destination)
                                                 },
                                                 navToCourseList = {
-                                                    navController.navigate(CourseListDestination(false)) {
+                                                    navController.navigate(
+                                                        CourseListDestination(
+                                                            false
+                                                        )
+                                                    ) {
                                                         popUpTo<CourseListDestination>()
                                                     }
                                                 }
@@ -597,7 +605,11 @@ class MainActivity : ComponentActivity() {
                                                     navController.navigate(destination)
                                                 },
                                                 navToNonCloningListDestination = {
-                                                    navController.navigate(CourseListDestination(false)) {
+                                                    navController.navigate(
+                                                        CourseListDestination(
+                                                            false
+                                                        )
+                                                    ) {
                                                         popUpTo<CourseListDestination>()
                                                     }
                                                 }) {
@@ -621,7 +633,11 @@ class MainActivity : ComponentActivity() {
                                                     navController.navigate(it)
                                                 },
                                                 navToCourseList = {
-                                                    navController.navigate(CourseListDestination(false)){
+                                                    navController.navigate(
+                                                        CourseListDestination(
+                                                            false
+                                                        )
+                                                    ) {
                                                         popUpTo<CourseListDestination>()
                                                     }
                                                 },

@@ -22,7 +22,7 @@
     <queries>
         <package android:name="com.netease.cloudmusic" />
         <package android:name="com.chaoxing.mobile" />
-        <package android:name="com.chaoxing.mobile.xuezaixidian"/>
+        <package android:name="com.chaoxing.mobile.xuezaixidian" />
     </queries>
 
     <application

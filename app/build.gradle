@@ -32,7 +32,7 @@ stackbricksConfig {
                     "# 1.16.1 更新：\n1. 低估了上一个版本的群聊列表更新技术难度，但现已成功攻克，可以正常使用了。\n\n" +
                     "# 1.16.0 更新：\n1. 由于学习通更新导致原接口失效，修复了获取群聊列表失败的问题。\n\n" +
                     "# 1.15.0 更新：\n1. 支持登录代签用户的账号以给他有你没有的课程签到\n\n" +
-            "lovely but not lonely, 20260731 life need dimoo, @aquamarine5 Brainspark."
+                    "lovely but not lonely, 20260731 life need dimoo, @aquamarine5 Brainspark."
     requiredManifestVersion2MigrateForceInstall = true
     forceInstallLessVersion = 1_1407_2000
     qiniuConfig {
@@ -55,8 +55,8 @@ android {
         applicationId = "org.aquamarine5.brainspark.chaoxingsignfaker"
         minSdk = 26
         targetSdk = 37
-        versionCode = 1_1700_0699
-        versionName = "1.17.0-alpha2-260808"
+        versionCode = 1_1700_0777
+        versionName = "1.17.0-beta1-260808"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -86,13 +86,13 @@ android {
             signingConfig signingConfigs.chaoxingsignfaker
             buildConfigField("String", "releaseDate", "\"${new Date().format('yyyy-MM-dd HH:mm:ss')}\"")
             buildConfigField("String", "umengChannel", "\"${System.getenv("UMENG_CHANNEL")}\"" ?: '"Stackbricks"')
-            buildConfigField("String", "imEncryptedKey", "\"${project.findProperty("imEncryptedKey")?: System.getenv("imEncryptedKey") ?: ""}\"")
+            buildConfigField("String", "imEncryptedKey", "\"${project.findProperty("imEncryptedKey") ?: System.getenv("imEncryptedKey") ?: ""}\"")
         }
         debug {
             signingConfig signingConfigs.chaoxingsignfaker
             buildConfigField("String", "releaseDate", "\"${new Date().format('yyyy-MM-dd HH:mm:ss')}\"")
             buildConfigField("String", "umengChannel", "\"${System.getenv("UMENG_CHANNEL")}\"" ?: '"Stackbricks"')
-            buildConfigField("String", "imEncryptedKey", "\"${project.findProperty("imEncryptedKey")?: System.getenv("imEncryptedKey") ?: ""}\"")
+            buildConfigField("String", "imEncryptedKey", "\"${project.findProperty("imEncryptedKey") ?: System.getenv("imEncryptedKey") ?: ""}\"")
         }
     }
 
