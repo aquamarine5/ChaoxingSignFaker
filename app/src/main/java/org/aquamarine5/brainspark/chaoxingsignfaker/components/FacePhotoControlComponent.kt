@@ -19,12 +19,11 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
@@ -33,7 +32,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
@@ -54,6 +52,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -72,9 +71,10 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun FacePhotoDialog(
-    onDismissRequest: () -> Unit,
+fun FacePhotoControlComponent(
+    phoneNumber: String,
     onStartCamera: () -> Unit,
+    modifier: Modifier = Modifier,
     pendingCapturedBitmap: Bitmap? = null,
     onPendingCapturedBitmapHandled: () -> Unit = {},
 ) {
@@ -82,14 +82,16 @@ fun FacePhotoDialog(
     val snackbarHost = LocalSnackbarHostState.current
     val coroutineScope = rememberCoroutineScope()
     val hapticFeedback = LocalHapticFeedback.current
-    var records by remember { mutableStateOf<List<ChaoxingFaceRecognitionImage>>(emptyList()) }
-    var isLoading by remember { mutableStateOf(true) }
+    var records by remember(phoneNumber) {
+        mutableStateOf<List<ChaoxingFaceRecognitionImage>>(emptyList())
+    }
+    var isLoading by remember(phoneNumber) { mutableStateOf(true) }
     var inspectedObjectId by remember { mutableStateOf<String?>(null) }
     var requestedDeleteObjectId by remember { mutableStateOf<String?>(null) }
 
     suspend fun reload() {
         records = context.chaoxingDataStore.data.first()
-            .faceRecognitionConfiguresMap[ChaoxingHttpClient.instance!!.userEntity.phoneNumber]
+            .faceRecognitionConfiguresMap[phoneNumber]
             ?.imagesList.orEmpty().take(ChaoxingFaceHelper.MAX_FACE_IMAGES)
     }
 
@@ -99,7 +101,7 @@ fun FacePhotoDialog(
             runCatching {
                 ChaoxingFaceHelper.deleteFaceImage(
                     context,
-                    ChaoxingHttpClient.instance!!.userEntity.phoneNumber,
+                    phoneNumber,
                     record.objectId,
                 )
                 reload()
@@ -128,6 +130,7 @@ fun FacePhotoDialog(
                     ChaoxingHttpClient.instance!!,
                     context,
                     bitmap,
+                    phoneNumber = phoneNumber,
                 )
                 reload()
             }.onSuccess {
@@ -152,7 +155,7 @@ fun FacePhotoDialog(
             }
         }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(phoneNumber) {
         runCatching { reload() }.onFailure {
             it.snackbarReport(snackbarHost, coroutineScope, "加载人脸照片失败", hapticFeedback)
         }
@@ -265,83 +268,65 @@ fun FacePhotoDialog(
         }
     }
 
-    AlertDialog(
-        onDismissRequest = onDismissRequest,
-        title = { Text("管理人脸照片") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = 160.dp, max = 440.dp),
-                ) {
-                    if (isLoading) {
-                        CenterCircularProgressIndicator()
-                    } else if (records.isEmpty()) {
-                        Text("暂无人脸照片，最多可保存 ${ChaoxingFaceHelper.MAX_FACE_IMAGES} 张")
-                    } else {
-                        LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            item { Text("已保存 ${records.size}/${ChaoxingFaceHelper.MAX_FACE_IMAGES} 张") }
-                            items(records) { record ->
-                                Card(
-                                    shape = RoundedCornerShape(14.dp),
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clickable {
-                                            hapticFeedback.performHapticFeedback(
-                                                HapticFeedbackType.ContextClick
-                                            )
-                                            inspectedObjectId = record.objectId
-                                        },
-                                ) {
-                                    AsyncImage(
-                                        model = ChaoxingFaceHelper.getFaceImageFile(
-                                            context,
-                                            record.objectId
-                                        ),
-                                        contentDescription = "已上传的人脸照片",
-                                        contentScale = ContentScale.Crop,
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .aspectRatio(3f / 4f),
-                                    )
-                                }
-                            }
-                        }
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = modifier) {
+        if (isLoading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 100.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                CenterCircularProgressIndicator()
+            }
+        } else if (records.isEmpty()) {
+            Text(
+                "暂无人脸照片，最多可保存 ${ChaoxingFaceHelper.MAX_FACE_IMAGES} 张",
+                fontStyle = FontStyle.Italic,
+                color = Color.Gray,
+                modifier = Modifier.padding(6.dp),
+            )
+        } else {
+            Text("已保存 ${records.size}/${ChaoxingFaceHelper.MAX_FACE_IMAGES} 张")
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                items(records, key = { it.objectId }) { record ->
+                    Card(
+                        shape = RoundedCornerShape(14.dp),
+                        modifier = Modifier.clickable {
+                            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                            inspectedObjectId = record.objectId
+                        },
+                    ) {
+                        AsyncImage(
+                            model = remember(record.objectId) {
+                                ChaoxingFaceHelper.getFaceImageFile(context, record.objectId)
+                            },
+                            contentDescription = "已保存的人脸照片",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .width(110.dp)
+                                .aspectRatio(3f / 4f),
+                        )
                     }
                 }
-                Spacer(Modifier.height(2.dp))
-                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-                    SegmentedButton(
-                        selected = false,
-                        enabled = (!isLoading && records.size < ChaoxingFaceHelper.MAX_FACE_IMAGES),
-                        onClick = {
-                            picker.launch(
-                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
-                            )
-                        },
-                        shape = SegmentedButtonDefaults.itemShape(0, 2),
-                    ) { Text("上传照片") }
-                    SegmentedButton(
-                        selected = false,
-                        enabled = (!isLoading && records.size < ChaoxingFaceHelper.MAX_FACE_IMAGES),
-                        onClick = onStartCamera,
-                        shape = SegmentedButtonDefaults.itemShape(1, 2),
-                    ) { Text("拍摄照片") }
-                }
             }
-        },
-        confirmButton = {
-            OutlinedButton(onClick = onDismissRequest) {
-                Text("关闭")
-            }
-        }, icon = {
-            Icon(
-                painterResource(R.drawable.ic_scan_face),
-                null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(40.dp)
-            )
         }
-    )
+        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+            SegmentedButton(
+                selected = false,
+                enabled = (!isLoading && records.size < ChaoxingFaceHelper.MAX_FACE_IMAGES),
+                onClick = {
+                    picker.launch(
+                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
+                    )
+                },
+                shape = SegmentedButtonDefaults.itemShape(0, 2),
+            ) { Text("上传照片") }
+            SegmentedButton(
+                selected = false,
+                enabled = (!isLoading && records.size < ChaoxingFaceHelper.MAX_FACE_IMAGES),
+                onClick = onStartCamera,
+                shape = SegmentedButtonDefaults.itemShape(1, 2),
+            ) { Text("拍摄照片") }
+        }
+    }
 }

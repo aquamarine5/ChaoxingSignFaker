@@ -7,6 +7,8 @@
 package org.aquamarine5.brainspark.chaoxingsignfaker.components
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Arrangement
@@ -50,8 +52,8 @@ fun NewFeatureTipsCard(
     val coroutineScope = rememberCoroutineScope()
     AnimatedVisibility(
         isDisplay.value,
-        enter = slideInVertically(),
-        exit = slideOutVertically(targetOffsetY = { -it })
+        enter = slideInVertically() + fadeIn(),
+        exit = slideOutVertically() + fadeOut()
     ) {
         Column {
             Card(
