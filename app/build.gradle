@@ -11,7 +11,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     id("org.aquamarine5.brainspark.stackbricks-gradle-plugin") version "2.2.9"
     id("com.google.protobuf") version "0.9.6"
-    id "io.sentry.android.gradle" version "6.17.0"
+    id "io.sentry.android.gradle" version "6.18.0"
     id("org.jetbrains.kotlin.plugin.serialization") version "2.4.10"
 }
 
@@ -27,11 +27,10 @@ stackbricksConfig {
             new PossibleConfigurationPath("cdn.aquamarine5.fun", "chaoxingsignfaker_stackbricks_v2_manifest.json")
     ]
     changelog =
-            "**随地大小签是开源软件，但这不意味着你可以随意修改代码并二次分发。**\n" +
-                    "# 1.16.2 更新：\n1. 修复了在某些情况下无法正确显示群聊列表的问题。\n\n" +
-                    "# 1.16.1 更新：\n1. 低估了上一个版本的群聊列表更新技术难度，但现已成功攻克，可以正常使用了。\n\n" +
-                    "# 1.16.0 更新：\n1. 由于学习通更新导致原接口失效，修复了获取群聊列表失败的问题。\n\n" +
-                    "# 1.15.0 更新：\n1. 支持登录代签用户的账号以给他有你没有的课程签到\n\n" +
+            "暑假的时候作者还在积极更新！带来一个更好的随地大小签\n以下是暑假期间的新版本更新内容：" +
+                    "# 1.17.0 更新：\n1. 支持存储自己和代签用户的人脸识别照片，就不用每次自己找了。\n2. 现在自己的代签二维码会附带自己的人脸识别照片，重新扫描其他人的新版本二维码时会把你的照片下载到他的设备上存储。\n\n"+
+                    "# 1.16.* 更新：\n1. 由于学习通更新导致原接口失效，修复了获取群聊列表失败的问题。\n\n" +
+                    "# 1.15.* 更新：\n1. 支持克隆登录代签用户的账号以给他有你没有的课程签到\n\n" +
                     "lovely but not lonely, 20260731 life need dimoo, @aquamarine5 Brainspark."
     requiredManifestVersion2MigrateForceInstall = true
     forceInstallLessVersion = 1_1407_2000
