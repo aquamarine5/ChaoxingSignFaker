@@ -106,19 +106,27 @@ object ChaoxingIMHelper {
                     .addHeader("Authorization", "Bearer ${imConfig.accessToken}")
                     .header("User-Agent", USER_AGENT_EASEMOB)
                     .build()
-            ).execute().use {
-                it.checkResponseThrowException()
-                val jsonObject = JSONObject.parseObject(it.body.string()).getJSONArray("data")
-                return@withContext List(jsonObject.size) { index ->
-                    jsonObject.getJSONObject(index).run {
-                        val jsonDescription = JSONObject.parseObject(getString("description"))
-                        ChaoxingEasemobIMGroup(
-                            getString("name").takeUnless { it.isNullOrBlank() }
-                                ?: jsonDescription.getJSONObject("courseInfo")
-                                    .getString("coursename"),
-                            getString("id"),
-                            jsonDescription.getJSONObject("courseInfo")?.getString("imageUrl")
-                        )
+            ).execute().use { response ->
+                response.checkResponseThrowException()
+                val jsonObject = JSONObject.parseObject(response.body.string()).getJSONArray("data")
+                return@withContext buildList {
+                    for (index in jsonObject.indices) {
+                        runCatching {
+                            jsonObject.getJSONObject(index).run {
+                                val jsonDescription =
+                                    JSONObject.parseObject(getString("description"))
+                                ChaoxingEasemobIMGroup(
+                                    getString("name").takeUnless { it.isNullOrBlank() }
+                                        ?: jsonDescription.getJSONObject("courseInfo")
+                                            .getString("coursename"),
+                                    getString("id"),
+                                    jsonDescription.getJSONObject("courseInfo")
+                                        ?.getString("imageUrl")
+                                )
+                            }
+                        }.onSuccess {
+                            add(it)
+                        }
                     }
                 }
 

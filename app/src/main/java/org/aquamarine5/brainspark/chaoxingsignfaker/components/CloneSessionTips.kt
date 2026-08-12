@@ -21,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
@@ -42,11 +43,14 @@ fun CloneSessionTips(onExitCloning: () -> Unit) {
                     Row(verticalAlignment = Alignment.Bottom) {
                         Text(
                             ChaoxingHttpClient.cloneInstance?.userEntity?.name ?: "未知用户",
-                            color = MaterialTheme.colorScheme.primary
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp,
+                            lineHeight = 14.sp
                         )
                         Text(
                             " (${ChaoxingHttpClient.cloneInstance?.userEntity?.schoolName[0]})",
-                            color = Color.Gray, fontSize = 10.sp, lineHeight = 11.sp
+                            color = Color.Gray, fontSize = 10.sp, lineHeight = 10.sp
                         )
                     }
                 }
