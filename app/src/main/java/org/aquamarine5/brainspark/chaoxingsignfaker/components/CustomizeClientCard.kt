@@ -252,7 +252,7 @@ fun CustomizeClientCard() {
                             tint = Color(0xffffa500)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("如果你不知道具体的UserAgent是什么，或者不知道什么是UserAgent时，请勿进行自定义操作，否则将无法正常签到。")
+                        Text("如果你不知道具体的UserAgent是什么，或者不知道什么是UserAgent时，请勿进行自定义操作，否则将无法正常签到。", fontSize = 11.sp, lineHeight = 13.sp)
                     }
                 }
             }

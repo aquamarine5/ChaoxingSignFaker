@@ -39,6 +39,7 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -310,10 +311,11 @@ fun FacePhotoControlComponent(
                 }
             }
         }
+        val isPhotoReachLimited by remember { derivedStateOf { !isLoading && records.size >= ChaoxingFaceHelper.MAX_FACE_IMAGES } }
         SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
             SegmentedButton(
                 selected = false,
-                enabled = (!isLoading && records.size < ChaoxingFaceHelper.MAX_FACE_IMAGES),
+                enabled = isPhotoReachLimited,
                 onClick = {
                     picker.launch(
                         PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
@@ -323,10 +325,28 @@ fun FacePhotoControlComponent(
             ) { Text("上传照片") }
             SegmentedButton(
                 selected = false,
-                enabled = (!isLoading && records.size < ChaoxingFaceHelper.MAX_FACE_IMAGES),
+                enabled = isPhotoReachLimited,
                 onClick = onStartCamera,
                 shape = SegmentedButtonDefaults.itemShape(1, 2),
             ) { Text("拍摄照片") }
+        }
+        if (!isPhotoReachLimited) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    painterResource(R.drawable.ic_info),
+                    null,
+                    tint = Color.Gray,
+                    modifier = Modifier
+                        .size(14.dp)
+                        .padding(end = 5.dp)
+                )
+                Text(
+                    "目前存储的人脸识别照片最多为${ChaoxingFaceHelper.MAX_FACE_IMAGES}张，无法继续添加。",
+                    color = Color.Gray,
+                    fontSize = 12.sp,
+                    lineHeight = 13.sp
+                )
+            }
         }
     }
 }

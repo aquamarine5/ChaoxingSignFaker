@@ -75,6 +75,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateListOf
@@ -1089,19 +1090,24 @@ fun OtherUserScreen(
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Column(modifier = Modifier.weight(1f)) {
                                         Text(tagEntity.name)
-                                        Text(
-                                            buildAnnotatedString {
-                                                tagUsageList.getOrNull(index)?.value?.let {
-                                                    if (it.isEmpty()) withStyle(SpanStyle(fontStyle = FontStyle.Italic)) {
-                                                        append("未被使用")
-                                                    }
-                                                    else
-                                                        it.forEachIndexed { index, userIndex ->
-                                                            append(otherUserSessions[userIndex].name)
-                                                            if (index != it.size - 1) append(", ")
+                                        val usageText by remember(index) {
+                                            derivedStateOf {
+                                                buildAnnotatedString {
+                                                    tagUsageList.getOrNull(index)?.value?.let {
+                                                        if (it.isEmpty()) withStyle(SpanStyle(fontStyle = FontStyle.Italic)) {
+                                                            append("未被使用")
                                                         }
+                                                        else
+                                                            it.forEachIndexed { index, userIndex ->
+                                                                append(otherUserSessions[userIndex].name)
+                                                                if (index != it.size - 1) append(", ")
+                                                            }
+                                                    }
                                                 }
-                                            },
+                                            }
+                                        }
+                                        Text(
+                                            usageText,
                                             fontSize = 12.sp,
                                             lineHeight = 14.sp,
                                             color = if (isSystemInDarkTheme()) Color.Gray else Color.DarkGray
@@ -1755,9 +1761,12 @@ fun OtherUserScreen(
                                 .padding(start = 48.dp, top = 8.dp),
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
+                            val selectedSharedFaceObjectIdSet by remember {
+                                derivedStateOf { selectedSharedFaceObjectIds.toSet() }
+                            }
                             facePhotos.forEach { photo ->
                                 val isAttached =
-                                    attachFacePhotos && photo.objectId in selectedSharedFaceObjectIds
+                                    attachFacePhotos && photo.objectId in selectedSharedFaceObjectIdSet
                                 Box(
                                     modifier = Modifier
                                         .size(64.dp)
@@ -2218,28 +2227,34 @@ fun OtherUserScreen(
                                                         Spacer(modifier = Modifier.width(4.dp))
                                                         val fontSize10spStyle =
                                                             remember { SpanStyle(fontSize = 10.sp) }
-                                                        Text(
-                                                            buildAnnotatedString {
-                                                                userTagList[index].value.forEachIndexed { tagIndex, tagEntity ->
-                                                                    withStyle(
-                                                                        SpanStyle(
-                                                                            color = if (tagEntity.color == TAG_COLOR_UNSPECIFIED) {
-                                                                                if (isSystemInDarkTheme()) Color.LightGray else Color.DarkGray
-                                                                            } else Color(
-                                                                                tagEntity.color
-                                                                            ), fontSize = 10.sp
-                                                                        )
-                                                                    ) {
-                                                                        append(tagEntity.name)
-                                                                    }
-                                                                    if (tagIndex != userTagList[index].value.size - 1)
+                                                        val isDarkTheme = isSystemInDarkTheme()
+                                                        val userTagText by remember(index, isDarkTheme) {
+                                                            derivedStateOf {
+                                                                buildAnnotatedString {
+                                                                    userTagList[index].value.forEachIndexed { tagIndex, tagEntity ->
                                                                         withStyle(
-                                                                            fontSize10spStyle
+                                                                            SpanStyle(
+                                                                                color = if (tagEntity.color == TAG_COLOR_UNSPECIFIED) {
+                                                                                    if (isDarkTheme) Color.LightGray else Color.DarkGray
+                                                                                } else Color(
+                                                                                    tagEntity.color
+                                                                                ), fontSize = 10.sp
+                                                                            )
                                                                         ) {
-                                                                            append(", ")
+                                                                            append(tagEntity.name)
                                                                         }
+                                                                        if (tagIndex != userTagList[index].value.size - 1)
+                                                                            withStyle(
+                                                                                fontSize10spStyle
+                                                                            ) {
+                                                                                append(", ")
+                                                                            }
+                                                                    }
                                                                 }
-                                                            },
+                                                            }
+                                                        }
+                                                        Text(
+                                                            userTagText,
                                                             lineHeight = 12.sp,
                                                             style = TextStyle.Default.copy(
                                                                 lineBreak = LineBreak.Paragraph

@@ -128,6 +128,12 @@ fun OtherUserSelectorComponent(
             )
         }
         var repairSessionIndex by remember { mutableStateOf<Int?>(null) }
+        val allSelected by remember(isCurrentAlreadySigned) {
+            derivedStateOf {
+                userSelections.subList(1, userSelections.size)
+                    .all { it } && (isCurrentAlreadySigned || userSelections[0])
+            }
+        }
         if (repairSessionIndex != null) {
             AlertDialog(onDismissRequest = {
                 repairSessionIndex = null
@@ -470,15 +476,11 @@ fun OtherUserSelectorComponent(
                                 verticalArrangement = Arrangement.spacedBy((-8).dp)
                             ) {
                                 FilterChip(
-                                    selected = userSelections.subList(1, userSelections.size)
-                                        .all { it } && (isCurrentAlreadySigned || userSelections[0]),
+                                    selected = allSelected,
                                     onClick = {
                                         hapticFeedback.performHapticFeedback(
                                             HapticFeedbackType.ContextClick
                                         )
-                                        val allSelected =
-                                            userSelections.subList(1, userSelections.size)
-                                                .all { it } && (isCurrentAlreadySigned || userSelections[0])
                                         val target = !allSelected
                                         if (!isCurrentAlreadySigned) {
                                             userSelections[0] = target

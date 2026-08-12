@@ -24,6 +24,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -61,7 +62,7 @@ fun CourseInfoColumnCard(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 AsyncImage(
-                    course.imageUrl.replace("http://", "https://"),
+                    remember(course) { course.imageUrl.replace("http://", "https://") },
                     imageLoader = imageLoader,
                     contentScale = ContentScale.FillHeight,
                     contentDescription = null,
@@ -77,15 +78,15 @@ fun CourseInfoColumnCard(
                 Spacer(modifier = Modifier.width(14.dp))
                 Column(horizontalAlignment = Alignment.Start, modifier = Modifier.weight(1f)) {
                     Text(
-                        course.courseName.replace("\n", ""),
+                        remember(course) { course.courseName.replace("\n", "") },
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold
                     )
                     if (!course.teacherName.isNullOrBlank()) {
-                        Text(course.teacherName.replace("\n", ""))
+                        Text(remember(course) { course.teacherName.replace("\n", "") })
                     }
                     if (!course.schools.isNullOrBlank()) {
-                        Text(course.schools.replace("\n", ""), fontSize = 12.sp)
+                        Text(remember(course) { course.schools.replace("\n", "") }, fontSize = 12.sp)
                     }
                 }
                 val animTint by animateColorAsState(

@@ -38,6 +38,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
@@ -555,7 +556,10 @@ fun PhotoSignScreen(
                                                             false
                                                         )
                                                     }
-                                                    bitmapIndexList.indexOf(index).let {
+                                                    val bitmapIndex by remember(index) {
+                                                        derivedStateOf { bitmapIndexList.indexOf(index) }
+                                                    }
+                                                    bitmapIndex.let {
                                                         if (it != -1 && bitmapList.size > it) {
                                                             IconButton(onClick = {
                                                                 hapticFeedback.performHapticFeedback(
@@ -627,16 +631,19 @@ fun PhotoSignScreen(
                                                     isSigning.value = false
                                                     isCamera = false
                                                 }
-                                                val combinedUserList =
-                                                    if (isSelfForSign) {
-                                                        listOf(
-                                                            ChaoxingHttpClient.instance!!.userEntity.name,
-                                                        ) + otherUserSessionForSignList.filterNotNull()
-                                                            .map { it.name }
-                                                    } else {
-                                                        otherUserSessionForSignList.filterNotNull()
-                                                            .map { it.name }
+                                                val combinedUserList by remember {
+                                                    derivedStateOf {
+                                                        if (isSelfForSign) {
+                                                            listOf(
+                                                                ChaoxingHttpClient.instance!!.userEntity.name,
+                                                            ) + otherUserSessionForSignList.filterNotNull()
+                                                                .map { it.name }
+                                                        } else {
+                                                            otherUserSessionForSignList.filterNotNull()
+                                                                .map { it.name }
+                                                        }
                                                     }
+                                                }
                                                 var imageIndex by remember {
                                                     mutableIntStateOf(
                                                         0
