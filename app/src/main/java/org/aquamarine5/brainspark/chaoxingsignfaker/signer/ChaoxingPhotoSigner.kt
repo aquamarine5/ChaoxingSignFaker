@@ -36,7 +36,6 @@ class ChaoxingPhotoSigner(
         ChaoxingPredictableException("签到类型不匹配，应是图片签到")
 
     companion object {
-        const val CLASSTAG = "ChaoxingPhotoSigner"
         const val URL_CLOUD_UPLOAD = "https://pan-yz.chaoxing.com/upload?_from=mobilelearn&_token="
     }
 

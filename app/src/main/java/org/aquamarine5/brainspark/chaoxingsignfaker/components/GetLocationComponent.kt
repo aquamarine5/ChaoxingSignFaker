@@ -106,6 +106,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.MARKER_BUNDLE_LABE
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.MARKER_BUNDLE_TYPE
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.MarkerBundleType
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.disableComposableCode
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.displaySnackbar
 
 
@@ -596,7 +597,7 @@ fun GetLocationComponent(
                                 favoriteLocationTooltipState.show()
                         }
                     }
-                    if (false)
+                    disableComposableCode {
                         TooltipBox(
                             onDismissRequest = {},
                             positionProvider = TooltipDefaults.rememberTooltipPositionProvider(
@@ -658,6 +659,7 @@ fun GetLocationComponent(
                                 )
                             }
                         }
+                    }
                     Spacer(modifier = Modifier.height(8.dp))
                     TooltipBox(
                         onDismissRequest = {},

@@ -326,7 +326,7 @@ fun FavoriteLocationSettingComponent() {
                 )
             }
         }
-        Column() {
+        Column {
             var isShowFavoriteLocationDialog by remember { mutableStateOf(false) }
             Row(
                 horizontalArrangement = Arrangement.SpaceBetween,

@@ -345,9 +345,11 @@ fun CameraComponent(
                             ) {
                                 FloatingActionButton(onClick = {
                                     hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                                    gallerySingle.launch(
+                                    galleryMultiple.launch(
                                         PickVisualMediaRequest(
-                                            ActivityResultContracts.PickVisualMedia.ImageOnly
+                                            ActivityResultContracts.PickVisualMedia.ImageOnly,
+                                            isOrderedSelection = true,
+                                            maxItems = needTakePictureCount
                                         )
                                     )
 

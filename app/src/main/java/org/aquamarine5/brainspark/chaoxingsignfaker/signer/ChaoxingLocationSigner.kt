@@ -30,11 +30,6 @@ class ChaoxingLocationSigner(
     destination.extContent,
     baseSignInfo
 ) {
-
-    companion object {
-        const val CLASSTAG = "ChaoxingLocationSigner"
-    }
-
     suspend fun getLocationSignInfo(): Pair<ChaoxingLocationDetailEntity, ChaoxingSignOutEntity> {
         getSignInfo().let { jsonResult ->
             return ChaoxingLocationDetailEntity(

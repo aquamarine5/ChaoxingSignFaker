@@ -28,6 +28,7 @@ data class ChaoxingIMGroup(
     val chatName: String,
     val isGroup: Boolean
 ) {
+    @Suppress("unused")
     object ChaoxingIMGroupNavType : NavType<ChaoxingIMGroup>(false) {
         override fun get(bundle: Bundle, key: String): ChaoxingIMGroup? {
             return Json.decodeFromString(bundle.getString(key) ?: return null)

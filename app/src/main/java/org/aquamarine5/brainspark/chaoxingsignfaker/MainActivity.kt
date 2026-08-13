@@ -143,7 +143,6 @@ import kotlin.time.Duration.Companion.days
 class MainActivity : ComponentActivity() {
     companion object {
         const val INTENT_EXTRA_EXIT_FLAG = "intent_extra_exit_flag"
-        const val CLASS_TAG = "MainActivity"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -335,21 +334,23 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                     ) { innerPadding ->
-                        val stackbricksService = QiniuConfiguration(
-                            possibleConfigurations = listOf(
-                                "cdn.aquamarine5.fun" to "chaoxingsignfaker_stackbricks_manifest.json",
-                                "cdn.aquamarine5.fun" to "chaoxingsignfaker_stackbricks_v2_manifest.json",
-                                "cdn.aquamarine5.top" to "chaoxingsignfaker_stackbricks_manifest.json",
-                                "cdn.aquamarine5.vip" to "chaoxingsignfaker_stackbricks_manifest.json",
-                            ),
-                            referer = "http://cdn.aquamarine5.fun/",
-                            okHttpClient = OkHttpClient.Builder()
-                                .callTimeout(20, TimeUnit.MINUTES)
-                                .readTimeout(20, TimeUnit.MINUTES)
-                                .writeTimeout(20, TimeUnit.MINUTES)
-                                .retryOnConnectionFailure(true)
-                                .build()
-                        ).let {
+                        val stackbricksService = remember {
+                            QiniuConfiguration(
+                                possibleConfigurations = listOf(
+                                    "cdn.aquamarine5.fun" to "chaoxingsignfaker_stackbricks_manifest.json",
+                                    "cdn.aquamarine5.fun" to "chaoxingsignfaker_stackbricks_v2_manifest.json",
+                                    "cdn.aquamarine5.top" to "chaoxingsignfaker_stackbricks_manifest.json",
+                                    "cdn.aquamarine5.vip" to "chaoxingsignfaker_stackbricks_manifest.json",
+                                ),
+                                referer = "http://cdn.aquamarine5.fun/",
+                                okHttpClient = OkHttpClient.Builder()
+                                    .callTimeout(20, TimeUnit.MINUTES)
+                                    .readTimeout(20, TimeUnit.MINUTES)
+                                    .writeTimeout(20, TimeUnit.MINUTES)
+                                    .retryOnConnectionFailure(true)
+                                    .build()
+                            )
+                        }.let {
                             val state = rememberStackbricksStatus()
                             remember {
                                 StackbricksService(

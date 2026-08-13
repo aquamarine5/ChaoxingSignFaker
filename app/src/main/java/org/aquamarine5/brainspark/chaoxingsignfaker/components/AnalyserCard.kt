@@ -251,7 +251,7 @@ fun AnalyserCard() {
             }, title = {
                 Text("排行榜说明")
             }, text = {
-                Column() {
+                Column {
                     Column(
                         modifier = Modifier
                             .background(

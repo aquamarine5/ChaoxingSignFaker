@@ -34,8 +34,6 @@ class ChaoxingQRCodeSigner(
     baseSignInfo
 ) {
     companion object {
-        const val CLASSTAG = "ChaoxingQRCodeSigner"
-
         fun parseQRCode(qrcode: Barcode): String {
             return (qrcode.rawValue ?: qrcode.url?.url)?.toHttpUrlOrNull()?.queryParameter("enc")
                 ?: throw QRCodeParseException(qrcode.rawValue ?: "null")

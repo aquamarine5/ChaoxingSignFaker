@@ -36,6 +36,8 @@ object ChaoxingFaceHelper {
         }
 
     const val URL_SHARED_IMAGE = "https://p.cldisk.com/star4/%s/origin.jpg"
+    private val URL_GET_PROFILE_FACE_IMAGE =
+        "https://mobilelearn.chaoxing.com/v2/apis/sign/collectionfilephotoEnc?DB_STRATEGY=DEFAULT".toHttpUrl()
     private val URL_CHECK_FACE_RESULT =
         "https://mobilelearn.chaoxing.com/pptSign/check-face-result?DB_STRATEGY=PRIMARY_KEY&STRATEGY_PARA=activeId".toHttpUrl()
 
@@ -65,6 +67,22 @@ object ChaoxingFaceHelper {
                     data = jsonObject.toJSONString()
                 )
             }
+        }
+
+    suspend fun getUserProfileFaceImageUrl(client: ChaoxingHttpClient): String =
+        withContext(Dispatchers.IO) {
+            client.newCall(Request.Builder().url(URL_GET_PROFILE_FACE_IMAGE).get().build())
+                .execute().use { response ->
+                    response.checkResponseThrowException()
+                    val jsonObject = JSONObject.parseObject(response.body.string())
+                    return@use URL_SHARED_IMAGE.format(
+                        jsonObject.getJSONObject("data").getString("oldObjectId")
+                            ?: throw ChaoxingParseDataException(
+                                "获取人脸照片ID失败",
+                                data = jsonObject.toJSONString()
+                            )
+                    )
+                }
         }
 
     private fun buildFaceResult(client: ChaoxingHttpClient, objectId: String): JSONObject {

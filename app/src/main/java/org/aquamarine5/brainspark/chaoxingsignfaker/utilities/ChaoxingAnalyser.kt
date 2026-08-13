@@ -118,12 +118,12 @@ object ChaoxingAnalyser {
             val currentDate =
                 LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")).toInt()
             val stringDate = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
-            context.chaoxingDataStore.updateData {
-                if (it.disableAnalysisRank) return@updateData it
-                val analysisName = it.analysisRankName.ifEmpty {
+            context.chaoxingDataStore.updateData { dataStore ->
+                if (dataStore.disableAnalysisRank) return@updateData dataStore
+                val analysisName = dataStore.analysisRankName.ifEmpty {
                     "****${ChaoxingHttpClient.instance!!.userEntity.phoneNumber.takeLast(2)} 用户"
                 }
-                it.toBuilder().apply {
+                dataStore.toBuilder().apply {
                     val analysisDatabaseUUID = analysisUUID.ifEmpty {
                         rankUUID.also {
                             setAnalysisUUID(it)
@@ -173,11 +173,11 @@ object ChaoxingAnalyser {
                                             .addEncoded(
                                                 "schoolName",
                                                 ChaoxingHttpClient.instance!!.userEntity.schoolName.let { rawList ->
-                                                    if (it.selectedAnalysisRankSchoolName.isNotEmpty() && rawList.contains(
-                                                            it.selectedAnalysisRankSchoolName
+                                                    if (dataStore.selectedAnalysisRankSchoolName.isNotEmpty() && rawList.contains(
+                                                            dataStore.selectedAnalysisRankSchoolName
                                                         )
                                                     )
-                                                        return@let it.selectedAnalysisRankSchoolName
+                                                        return@let dataStore.selectedAnalysisRankSchoolName
                                                     rawList.toMutableList().run {
                                                         removeAll { it[0].isDigit() }
                                                         removeAll { it.endsWith("图书馆") }
@@ -187,7 +187,7 @@ object ChaoxingAnalyser {
                                                         return@let get(0)
                                                     }
                                                 }.let { str ->
-                                                    if (it.hideAnalysisRankSchoolName) str.plus("HIDE") else str
+                                                    if (dataStore.hideAnalysisRankSchoolName) str.plus("HIDE") else str
                                                 }
                                             )
                                             .addEncoded("uuid", analysisDatabaseUUID)

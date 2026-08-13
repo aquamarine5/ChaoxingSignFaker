@@ -85,9 +85,9 @@ object ChaoxingActivityHelper {
                         .addQueryParameter("classId", course.classId.toString())
                         .build()
                 ).build()
-            ).execute().use {
-                it.checkResponseThrowException()
-                val responseBody = it.body.string()
+            ).execute().use { response ->
+                response.checkResponseThrowException()
+                val responseBody = response.body.string()
                 val jsonResult = JSONObject.parseObject(responseBody)?.getJSONObject("data")
                     ?: throw ChaoxingParseDataException(
                         "解析课程数据失败",

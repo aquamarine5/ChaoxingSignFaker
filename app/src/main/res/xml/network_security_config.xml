@@ -6,6 +6,14 @@
 
 <network-security-config>
     <domain-config cleartextTrafficPermitted="true">
-        <domain includeSubdomains="true">cdn.aquamarine5.fun</domain>
+        <domain includeSubdomains="true">aquamarine5.fun</domain>
+        <domain includeSubdomains="true">aquamarine5.top</domain>
+        <domain includeSubdomains="true">aquamarine5.vip</domain>
     </domain-config>
+    <debug-overrides>
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
+    </debug-overrides>
 </network-security-config>
