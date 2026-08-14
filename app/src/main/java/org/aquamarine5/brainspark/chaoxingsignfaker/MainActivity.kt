@@ -30,11 +30,11 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.BadgedBox
 import androidx.compose.material.BottomNavigation
 import androidx.compose.material.BottomNavigationItem
 import androidx.compose.material.ContentAlpha
 import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
@@ -235,24 +235,25 @@ class MainActivity : ComponentActivity() {
                                     backgroundColor = MaterialTheme.colorScheme.primaryContainer,
                                     elevation = 14.dp
                                 ) {
-                                    val bottomBarItem = listOf(
-                                        NavigationBarItemData(
-                                            SignGraphDestination,
-                                            "签到",
-                                            painterResource(R.drawable.ic_clipboard_pen_line)
-                                        ),
-                                        NavigationBarItemData(
-                                            OtherUserGraphDestination,
-                                            "代签",
-                                            painterResource(R.drawable.ic_users_round)
-                                        ),
-                                        NavigationBarItemData(
-                                            SettingGraphDestination,
-                                            "设置",
-                                            painterResource(R.drawable.ic_settings)
+                                    remember {
+                                        listOf(
+                                            NavigationBarItemData(
+                                                SignGraphDestination,
+                                                "签到",
+                                                R.drawable.ic_clipboard_pen_line
+                                            ),
+                                            NavigationBarItemData(
+                                                OtherUserGraphDestination,
+                                                "代签",
+                                                R.drawable.ic_users_round
+                                            ),
+                                            NavigationBarItemData(
+                                                SettingGraphDestination,
+                                                "设置",
+                                                R.drawable.ic_settings
+                                            )
                                         )
-                                    )
-                                    bottomBarItem.forEach { item ->
+                                    }.forEach { item ->
                                         val isSelected =
                                             currentDestination?.hierarchy?.any { it.hasRoute(item.destination::class) } == true
                                         BottomNavigationItem(
@@ -313,7 +314,7 @@ class MainActivity : ComponentActivity() {
                                                             }
                                                         }) {
                                                             Icon(
-                                                                item.icon,
+                                                                painterResource(item.iconRes),
                                                                 contentDescription = item.name,
                                                                 modifier = Modifier.size(26.dp)
                                                             )
@@ -460,6 +461,7 @@ class MainActivity : ComponentActivity() {
                                                             MobclickAgent.onKillProcess(this@MainActivity)
                                                             Process.killProcess(Process.myPid())
                                                             exitProcess(0)
+                                                            @Suppress("KotlinUnreachableCode")
                                                             throw ChaoxingPredictableException.ApplicationIllegalChannelException()
                                                         }
                                                     }
@@ -497,9 +499,9 @@ class MainActivity : ComponentActivity() {
                                     },
                                 ) {
                                     navigation<SignGraphDestination>(startDestination = CourseListDestination()) {
-                                        composable<CourseListDestination> {
+                                        composable<CourseListDestination> { entry ->
                                             CourseListScreen(
-                                                it.toRoute(),
+                                                entry.toRoute(),
                                                 stackbricksService,
                                                 imageLoader,
                                                 navToDetailDestination = {

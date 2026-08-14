@@ -18,7 +18,7 @@ enum class ChaoxingImportOtherUserResultStatus {
 
 fun ImportOtherUserResult.getResultTips(): String =
     when (this.first) {
-        ChaoxingImportOtherUserResultStatus.SUCCESS -> "$second 用户成功导入"
-        ChaoxingImportOtherUserResultStatus.EXISTED_BUT_UPDATE_PASSWORD -> "已更新 $second 密码"
-        ChaoxingImportOtherUserResultStatus.EXISTED_BUT_UPDATE_FACE_IMAGES -> "已添加 $second 的人脸照片信息"
+        ChaoxingImportOtherUserResultStatus.SUCCESS -> "$second(手机号:${third.phoneNumber}) 用户成功导入"
+        ChaoxingImportOtherUserResultStatus.EXISTED_BUT_UPDATE_PASSWORD -> "已更新 $second(手机号:${third.phoneNumber}) 密码"
+        ChaoxingImportOtherUserResultStatus.EXISTED_BUT_UPDATE_FACE_IMAGES -> "已添加 $second(手机号:${third.phoneNumber}) 的人脸照片信息"
     }

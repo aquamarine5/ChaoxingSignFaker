@@ -152,6 +152,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.OtherUserTagType
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingOtherUserSharedEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingImportOtherUserResultStatus
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingPredictableException
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ImportOtherUserResult
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
@@ -192,9 +193,8 @@ fun OtherUserScreen(
     var isQRCodeScanning by remember { mutableStateOf(false) }
     var isQRCodeIllegal by remember { mutableStateOf(false) }
     val isQRCodeParsing = remember { mutableStateOf(false) }
-    var isQRCodeImportSuccess by remember { mutableStateOf(false) }
+    var importQRCodeOtherUserResult by remember { mutableStateOf<ImportOtherUserResult?>(null) }
     var isLocalSharedEntityReady by remember { mutableStateOf<Boolean?>(null) }
-    var currentImportData by remember { mutableStateOf("") }
     var qrcodeIllegalText by remember { mutableStateOf("") }
     var importSharedEntity by remember { mutableStateOf<ChaoxingOtherUserSharedEntity?>(null) }
     val facePhotos = remember { mutableStateListOf<ChaoxingFaceRecognitionImage>() }
@@ -1098,7 +1098,11 @@ fun OtherUserScreen(
                                             derivedStateOf {
                                                 buildAnnotatedString {
                                                     tagUsageList.getOrNull(index)?.value?.let {
-                                                        if (it.isEmpty()) withStyle(SpanStyle(fontStyle = FontStyle.Italic)) {
+                                                        if (it.isEmpty()) withStyle(
+                                                            SpanStyle(
+                                                                fontStyle = FontStyle.Italic
+                                                            )
+                                                        ) {
                                                             append("未被使用")
                                                         }
                                                         else
@@ -1409,15 +1413,17 @@ fun OtherUserScreen(
                     Text("设置 ${otherUserSessions[selectedUserSettingDialogIndex!!].name} 用户")
             }, text = {
                 Column {
-                    if (tagsEntityList.isEmpty()) {
-                        Text(
-                            "暂无可用标签，设置用户标签前请先创建标签。",
-                            fontStyle = FontStyle.Italic,
-                            color = Color.Gray,
-                            modifier = Modifier.padding(6.dp)
-                        )
-                    } else
-                        LazyColumn {
+                    LazyColumn {
+                        if (tagsEntityList.isEmpty()) {
+                            item {
+                                Text(
+                                    "暂无可用标签，设置用户标签前请先创建标签。",
+                                    fontStyle = FontStyle.Italic,
+                                    color = Color.Gray,
+                                    modifier = Modifier.padding(6.dp)
+                                )
+                            }
+                        } else
                             itemsIndexed(tagsEntityList) { index, tagEntity ->
                                 key(tagEntity.id) {
                                     Row(
@@ -1456,23 +1462,25 @@ fun OtherUserScreen(
                                     }
                                 }
                             }
+                        item {
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Text(
+                                "人脸识别照片",
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(0.dp, 0.dp, 0.dp, 4.dp)
+                            )
+                            FacePhotoControlComponent(
+                                phoneNumber = otherUserSessions[selectedUserSettingDialogIndex!!].phoneNumber,
+                                onStartCamera = {
+                                    facePhotoReturnToUserIndex = selectedUserSettingDialogIndex
+                                    selectedUserSettingDialogIndex = null
+                                    isFacePhotoCameraVisible = true
+                                },
+                                pendingCapturedBitmap = pendingFacePhotoBitmap,
+                                onPendingCapturedBitmapHandled = { pendingFacePhotoBitmap = null },
+                            )
                         }
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text(
-                        "人脸识别照片",
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(0.dp, 0.dp, 0.dp, 4.dp)
-                    )
-                    FacePhotoControlComponent(
-                        phoneNumber = otherUserSessions[selectedUserSettingDialogIndex!!].phoneNumber,
-                        onStartCamera = {
-                            facePhotoReturnToUserIndex = selectedUserSettingDialogIndex
-                            selectedUserSettingDialogIndex = null
-                            isFacePhotoCameraVisible = true
-                        },
-                        pendingCapturedBitmap = pendingFacePhotoBitmap,
-                        onPendingCapturedBitmapHandled = { pendingFacePhotoBitmap = null },
-                    )
+                    }
                 }
             })
     }
@@ -2232,7 +2240,10 @@ fun OtherUserScreen(
                                                         val fontSize10spStyle =
                                                             remember { SpanStyle(fontSize = 10.sp) }
                                                         val isDarkTheme = isSystemInDarkTheme()
-                                                        val userTagText by remember(index, isDarkTheme) {
+                                                        val userTagText by remember(
+                                                            index,
+                                                            isDarkTheme
+                                                        ) {
                                                             derivedStateOf {
                                                                 buildAnnotatedString {
                                                                     userTagList[index].value.forEachIndexed { tagIndex, tagEntity ->
@@ -2356,21 +2367,21 @@ fun OtherUserScreen(
             }
         }
     }
-    if (isQRCodeImportSuccess) {
+    if (importQRCodeOtherUserResult != null) {
         AlertDialog(
             onDismissRequest = {
-                isQRCodeImportSuccess = false
+                importQRCodeOtherUserResult = null
             },
             title = {
                 Text("导入成功")
             },
             text = {
-                Text("$currentImportData 用户已经成功导入")
+                Text(importQRCodeOtherUserResult!!.getResultTips())
             },
             confirmButton = {
                 Button(
                     onClick = {
-                        isQRCodeImportSuccess = false
+                        importQRCodeOtherUserResult = null
                     }
                 ) {
                     Text("确定")
@@ -2415,9 +2426,7 @@ fun OtherUserScreen(
                                 }.onSuccess { result ->
                                     isQRCodeScanning = false
                                     isQRCodeParsing.value = false
-                                    currentImportData =
-                                        "${sharedEntity.userName}(手机号：${sharedEntity.phoneNumber})"
-                                    isQRCodeImportSuccess = true
+                                    importQRCodeOtherUserResult = result
                                     hapticFeedback.performHapticFeedback(HapticFeedbackType.Confirm)
                                     when (result.first) {
                                         ChaoxingImportOtherUserResultStatus.SUCCESS -> {
@@ -2527,13 +2536,13 @@ fun OtherUserScreen(
         }
     }
     AnimatedVisibility(
-        isFacePhotoCameraVisible,enter = slideInHorizontally(
+        isFacePhotoCameraVisible, enter = slideInHorizontally(
             initialOffsetX = { it },
             animationSpec = tween(300)
         ),
         exit = slideOutHorizontally(
             animationSpec = tween(400),
-            targetOffsetX = { (it*1.5).toInt() }
+            targetOffsetX = { (it * 1.5).toInt() }
         )
     ) {
         Column(
@@ -2543,23 +2552,27 @@ fun OtherUserScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            BackHandler {
+            fun closeFacePhotoCamera() {
                 isFacePhotoCameraVisible = false
-                facePhotoReturnToUserIndex = null
-            }
-            CameraComponent(
-                pictureCount = 1,
-                isDefaultBackCamera = false,
-            ) { pictures ->
-                isFacePhotoCameraVisible = false
-                pendingFacePhotoBitmap = pictures.firstOrNull()
+
                 val returnToUserIndex = facePhotoReturnToUserIndex
                 if (returnToUserIndex == null) {
                     isFacePhotoDialog = true
                 } else {
                     selectedUserSettingDialogIndex = returnToUserIndex
-                    facePhotoReturnToUserIndex = null
                 }
+
+                facePhotoReturnToUserIndex = null
+            }
+            BackHandler {
+                closeFacePhotoCamera()
+            }
+            CameraComponent(
+                pictureCount = 1,
+                isDefaultBackCamera = false,
+            ) { pictures ->
+                pendingFacePhotoBitmap = pictures.firstOrNull()
+                closeFacePhotoCamera()
             }
         }
     }

@@ -194,14 +194,34 @@ object ChaoxingOtherUserHelper {
 
             suspend fun saveFaceImages(okHttpClient: OkHttpClient, userEntity: ChaoxingUserEntity) {
                 if (sharedEntity.faceObjectIds.isEmpty()) return
-                val existingImageCount = context.chaoxingDataStore.data.first()
+                val configure = context.chaoxingDataStore.data.first()
                     .faceRecognitionConfiguresMap[sharedEntity.phoneNumber]
-                    ?.imagesCount ?: 0
+                val existingObjectIds = configure?.imagesList.orEmpty().mapTo(mutableSetOf()) {
+                    it.objectId
+                }
+                val availableNewImageCount =
+                    (ChaoxingFaceHelper.MAX_FACE_IMAGES - (configure?.imagesCount ?: 0))
+                        .coerceAtLeast(0)
+                var newImageCount = 0
+
                 sharedEntity.faceObjectIds
                     .asSequence()
                     .filter { it.isNotBlank() }
                     .distinct()
-                    .take((ChaoxingFaceHelper.MAX_FACE_IMAGES - existingImageCount).coerceAtLeast(0))
+                    .filter { objectId ->
+                        val imageFile = ChaoxingFaceHelper.getFaceImageFile(context, objectId)
+                        val hasUsableLocalImage =
+                            objectId in existingObjectIds && imageFile.isFile && imageFile.length() > 0L
+                        when {
+                            hasUsableLocalImage -> false
+                            objectId in existingObjectIds -> true
+                            newImageCount < availableNewImageCount -> {
+                                newImageCount++
+                                true
+                            }
+                            else -> false
+                        }
+                    }
                     .forEach { objectId ->
                         ChaoxingFaceHelper.saveFaceImage(
                             okHttpClient,
@@ -218,10 +238,15 @@ object ChaoxingOtherUserHelper {
                     throw AlreadyExistedOtherUserException(
                         "${sharedEntity.userName}(${sharedEntity.phoneNumber}) 用户已经存在！"
                     )
-                if (sharedEntity.faceObjectIds.all { localObjectId->
-                        dataStore.faceRecognitionConfiguresMap[sharedEntity.phoneNumber]?.imagesList?.any { it.objectId == localObjectId }
-                            ?: false
-                    }){
+                if (sharedEntity.faceObjectIds.all { localObjectId ->
+                        val existsInDataStore =
+                            dataStore.faceRecognitionConfiguresMap[sharedEntity.phoneNumber]
+                                ?.imagesList
+                                ?.any { it.objectId == localObjectId }
+                                ?: false
+                        val imageFile = ChaoxingFaceHelper.getFaceImageFile(context, localObjectId)
+                        existsInDataStore && imageFile.isFile && imageFile.length() > 0L
+                    }) {
                     throw AlreadyExistedOtherUserException(
                         "${sharedEntity.userName}(${sharedEntity.phoneNumber}) 用户已经存在！"
                     )

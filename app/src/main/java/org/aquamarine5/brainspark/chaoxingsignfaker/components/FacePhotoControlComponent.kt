@@ -8,6 +8,7 @@ package org.aquamarine5.brainspark.chaoxingsignfaker.components
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -32,12 +33,14 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -48,6 +51,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asAndroidBitmap
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -58,6 +63,19 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
+import com.attafitamim.krop.core.crop.AspectRatio
+import com.attafitamim.krop.core.crop.CropResult
+import com.attafitamim.krop.core.crop.crop
+import com.attafitamim.krop.core.crop.cropperStyle
+import com.attafitamim.krop.core.crop.flipHorizontal
+import com.attafitamim.krop.core.crop.flipVertical
+import com.attafitamim.krop.core.crop.rememberImageCropper
+import com.attafitamim.krop.core.crop.rotLeft
+import com.attafitamim.krop.core.crop.rotRight
+import com.attafitamim.krop.ui.ButtonsBar
+import com.attafitamim.krop.ui.ImageCropperDialog
+import com.attafitamim.krop.ui.LocalVerticalControls
+import com.attafitamim.krop.ui.isVerticalPickerControls
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
@@ -143,6 +161,21 @@ fun FacePhotoControlComponent(
         }
     }
 
+    val imageCropper = rememberImageCropper()
+    val facePhotoCropperStyle = remember {
+        cropperStyle(aspects = listOf(AspectRatio(3, 4)))
+    }
+
+    fun cropAndSave(bitmap: Bitmap) {
+        coroutineScope.launch {
+            when (val result = imageCropper.crop(bitmap.asImageBitmap())) {
+                is CropResult.Success -> save(result.bitmap.asAndroidBitmap())
+                CropResult.Cancelled -> Unit
+                else -> snackbarHost.displaySnackbar("裁剪人脸照片失败", coroutineScope)
+            }
+        }
+    }
+
     val picker =
         rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
             if (uri != null) {
@@ -150,7 +183,7 @@ fun FacePhotoControlComponent(
                     context.contentResolver.openInputStream(uri)
                         .use { BitmapFactory.decodeStream(it) }
                         ?: error("无法读取照片")
-                }.onSuccess(::save).onFailure {
+                }.onSuccess(::cropAndSave).onFailure {
                     it.snackbarReport(snackbarHost, coroutineScope, "读取照片失败", hapticFeedback)
                 }
             }
@@ -165,9 +198,38 @@ fun FacePhotoControlComponent(
 
     LaunchedEffect(pendingCapturedBitmap) {
         if (pendingCapturedBitmap != null) {
-            save(pendingCapturedBitmap)
+            cropAndSave(pendingCapturedBitmap)
             onPendingCapturedBitmapHandled()
         }
+    }
+
+    imageCropper.cropState?.let { cropState ->
+        BackHandler {
+            cropState.done(accept = false)
+        }
+        ImageCropperDialog(
+            state = cropState,
+            style = facePhotoCropperStyle,
+            cropControls = { state ->
+                val verticalControls = isVerticalPickerControls()
+                CompositionLocalProvider(LocalVerticalControls provides verticalControls) {
+                    ButtonsBar(modifier = modifier) {
+                        IconButton(onClick = { state.rotLeft() }) {
+                            Icon(painterResource(R.drawable.ic_rotate_ccw), null)
+                        }
+                        IconButton(onClick = { state.rotRight() }) {
+                            Icon(painterResource(R.drawable.ic_rotate_cw), null)
+                        }
+                        IconButton(onClick = { state.flipHorizontal() }) {
+                            Icon(painterResource(R.drawable.ic_flip_horizontal), null)
+                        }
+                        IconButton(onClick = { state.flipVertical() }) {
+                            Icon(painterResource(R.drawable.ic_flip_vertical), null)
+                        }
+                    }
+                }
+
+            })
     }
 
     inspectedObjectId?.let { objectId ->
@@ -179,7 +241,10 @@ fun FacePhotoControlComponent(
                 text = {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         AsyncImage(
-                            model = ChaoxingFaceHelper.getFaceImageFile(context, record.objectId),
+                            model = ChaoxingFaceHelper.getFaceImageFile(
+                                context,
+                                record.objectId
+                            ),
                             contentDescription = "人脸识别照片",
                             contentScale = ContentScale.Crop,
                             modifier = Modifier
@@ -194,7 +259,6 @@ fun FacePhotoControlComponent(
                 confirmButton = {
                     Button(onClick = {
                         hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                        inspectedObjectId = null
                         requestedDeleteObjectId = record.objectId
                     }) { Text("删除此照片") }
                 },
@@ -225,7 +289,11 @@ fun FacePhotoControlComponent(
                 text = {
                     Card(
                         shape = RoundedCornerShape(18.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFFFCC307)),
+                        colors = CardDefaults.cardColors(
+                            containerColor = Color(
+                                0xFFFCC307
+                            )
+                        ),
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(0.dp, 6.dp),
@@ -299,7 +367,10 @@ fun FacePhotoControlComponent(
                     ) {
                         AsyncImage(
                             model = remember(record.objectId) {
-                                ChaoxingFaceHelper.getFaceImageFile(context, record.objectId)
+                                ChaoxingFaceHelper.getFaceImageFile(
+                                    context,
+                                    record.objectId
+                                )
                             },
                             contentDescription = "已保存的人脸照片",
                             contentScale = ContentScale.Crop,
@@ -307,7 +378,12 @@ fun FacePhotoControlComponent(
                                 .width(110.dp)
                                 .aspectRatio(3f / 4f),
                             onError = {
-                                print(it)
+                                it.result.throwable.snackbarReport(
+                                    snackbarHost,
+                                    coroutineScope,
+                                    "加载人脸照片失败",
+                                    hapticFeedback
+                                )
                             }
                         )
                     }

@@ -167,23 +167,35 @@ object ChaoxingFaceHelper {
             .setIsFailureBefore(false)
             .build()
         val destination = getFaceImageFile(context, objectId)
+        val destinationExisted = destination.exists()
         val temporary = File(destination.parentFile, "${destination.name}.download")
 
         runCatching {
-            okHttpClient.newCall(Request.Builder().url(URL_SHARED_IMAGE.format(objectId)).build())
+            temporary.delete()
+            okHttpClient.newCall(Request.Builder().get().url(URL_SHARED_IMAGE.format(objectId)).build())
                 .execute().use { response ->
                     response.checkResponseThrowException()
                     response.body.byteStream().use { input ->
-                        temporary.outputStream().use(input::copyTo)
+                        temporary.outputStream().use { output ->
+                            input.copyTo(output)
+                        }
                     }
                 }
-            check(temporary.length() > 0L) { "下载的人脸照片为空" }
-            check(temporary.renameTo(destination)) { "保存人脸照片失败" }
+            check(temporary.isFile && temporary.length() > 0L) { "下载的人脸照片为空" }
+
+            temporary.copyTo(destination, overwrite = true)
+            check(destination.isFile && destination.length() == temporary.length()) {
+                "保存人脸照片失败"
+            }
+            temporary.delete()
+
             context.chaoxingDataStore.updateData { dataStore ->
                 val configure = dataStore.faceRecognitionConfiguresMap[targetPhoneNumber]
                     ?: ChaoxingFaceRecognitionConfigure.getDefaultInstance()
+                if (configure.imagesList.any { it.objectId == objectId }) {
+                    return@updateData dataStore
+                }
                 check(configure.imagesCount < MAX_FACE_IMAGES) { "最多只能保存$MAX_FACE_IMAGES 张人脸照片" }
-                check(configure.imagesList.none { it.objectId == objectId }) { "该人脸照片已保存" }
                 dataStore.toBuilder()
                     .putFaceRecognitionConfigures(
                         targetPhoneNumber,
@@ -193,13 +205,18 @@ object ChaoxingFaceHelper {
             }
             storedFaceRecognitionImages.setValue(
                 storedFaceRecognitionImages.getValue(context).toMutableMap().apply {
-                    put(targetPhoneNumber, this[targetPhoneNumber].orEmpty() + image)
+                    put(
+                        targetPhoneNumber,
+                        this[targetPhoneNumber].orEmpty()
+                            .filterNot { it.objectId == objectId } + image,
+                    )
                 }
             )
             image
         }.onFailure {
+            it.printStackTrace()
             temporary.delete()
-            destination.delete()
+            if (!destinationExisted) destination.delete()
         }.getOrThrow()
     }
 

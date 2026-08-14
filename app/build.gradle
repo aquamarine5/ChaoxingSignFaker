@@ -54,8 +54,8 @@ android {
         applicationId = "org.aquamarine5.brainspark.chaoxingsignfaker"
         minSdk = 26
         targetSdk = 37
-        versionCode = 1_1700_0886
-        versionName = "1.17.0-beta2-260812"
+        versionCode = 1_1700_0899
+        versionName = "1.17.0-beta3-260814"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -132,6 +132,7 @@ dependencies {
     implementation libs.patternlocker
     implementation libs.androidx.material
     implementation(libs.colorpicker.compose)
+    implementation libs.ui
     implementation libs.core
     implementation libs.camera.mlkit.vision
     implementation libs.barcode.scanning
