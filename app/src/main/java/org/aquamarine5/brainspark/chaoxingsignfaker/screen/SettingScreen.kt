@@ -619,6 +619,7 @@ fun SettingScreen(
             Switch(isUiDevelopedMode, onCheckedChange = { value ->
                 isUiDevelopedMode = value
                 isDevelopedMode = value
+                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                 coroutineScope.launch(Dispatchers.IO) {
                     context.chaoxingDataStore.updateData {
                         it.toBuilder().setPreferences(
@@ -627,7 +628,18 @@ fun SettingScreen(
                     }
                 }
             })
-            Text("启用开发模式")
+            Text("启用开发模式", modifier = Modifier.clickable {
+                isUiDevelopedMode = !isUiDevelopedMode
+                isDevelopedMode = !isDevelopedMode
+                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                coroutineScope.launch(Dispatchers.IO) {
+                    context.chaoxingDataStore.updateData {
+                        it.toBuilder().setPreferences(
+                            it.preferences.toBuilder().setIsDevelopedMode(isDevelopedMode).build()
+                        ).build()
+                    }
+                }
+            })
         }
 
         @OnlyAppDevelopedMode AnimatedVisibility(
@@ -640,6 +652,7 @@ fun SettingScreen(
             var signer: ChaoxingSigner? by remember { mutableStateOf(null) }
             FlowColumn() {
                 Button(onClick = {
+                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                     coroutineScope.launch(Dispatchers.IO) {
                         context.chaoxingDataStore.updateData {
                             it.toBuilder().clearLearntTooltips().build()
@@ -649,12 +662,14 @@ fun SettingScreen(
                     Text("ResetAllStoredLearntTooltips")
                 }
                 Button(onClick = {
+                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                     isShowCaptchaMemoriesDialog = true
                 }) {
                     Text("DisplayMatchCaptchaHashMapDialog")
                 }
                 if (Debug.isDebuggerConnected())
                     Button(onClick = {
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                         coroutineScope.launch {
                             ChaoxingCaptchaHelper.updateRemoteCaptchaMemoriesData(context)
                         }

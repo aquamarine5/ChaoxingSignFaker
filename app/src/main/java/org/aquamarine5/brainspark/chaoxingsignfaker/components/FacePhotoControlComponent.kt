@@ -306,6 +306,9 @@ fun FacePhotoControlComponent(
                             modifier = Modifier
                                 .width(110.dp)
                                 .aspectRatio(3f / 4f),
+                            onError = {
+                                print(it)
+                            }
                         )
                     }
                 }
@@ -315,7 +318,7 @@ fun FacePhotoControlComponent(
         SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
             SegmentedButton(
                 selected = false,
-                enabled = isPhotoReachLimited,
+                enabled = !isPhotoReachLimited,
                 onClick = {
                     picker.launch(
                         PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
@@ -325,19 +328,19 @@ fun FacePhotoControlComponent(
             ) { Text("上传照片") }
             SegmentedButton(
                 selected = false,
-                enabled = isPhotoReachLimited,
+                enabled = !isPhotoReachLimited,
                 onClick = onStartCamera,
                 shape = SegmentedButtonDefaults.itemShape(1, 2),
             ) { Text("拍摄照片") }
         }
-        if (!isPhotoReachLimited) {
+        if (isPhotoReachLimited) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     painterResource(R.drawable.ic_info),
                     null,
                     tint = Color.Gray,
                     modifier = Modifier
-                        .size(14.dp)
+                        .size(22.dp)
                         .padding(end = 5.dp)
                 )
                 Text(

@@ -547,13 +547,10 @@ fun LocationSignScreen(
                         isFaceImageCaptured, enter = slideInHorizontally(
                             initialOffsetX = { it },
                             animationSpec = tween(300)
-                        ) + fadeIn(
-                            animationSpec = tween(300)
-                        ), exit = slideOutHorizontally(
-                            targetOffsetX = { it },
-                            animationSpec = tween(300)
-                        ) + fadeOut(
-                            animationSpec = tween(300)
+                        ),
+                        exit = slideOutHorizontally(
+                            animationSpec = tween(400),
+                            targetOffsetX = { (it * 1.5).toInt() }
                         )
                     ) {
                         FaceRecognitionComponent(

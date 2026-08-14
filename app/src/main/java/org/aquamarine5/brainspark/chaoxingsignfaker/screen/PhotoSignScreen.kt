@@ -619,12 +619,13 @@ fun PhotoSignScreen(
                                             verticalArrangement = Arrangement.Center
                                         ) {
                                             AnimatedVisibility(
-                                                isCamera, enter = slideInHorizontally(
+                                                isCamera,enter = slideInHorizontally(
                                                     initialOffsetX = { it },
                                                     animationSpec = tween(300)
-                                                ), exit = slideOutHorizontally(
-                                                    targetOffsetX = { it },
-                                                    animationSpec = tween(300)
+                                                ),
+                                                exit = slideOutHorizontally(
+                                                    animationSpec = tween(400),
+                                                    targetOffsetX = { (it*1.5).toInt() }
                                                 )
                                             ) {
                                                 BackHandler(isCamera) {

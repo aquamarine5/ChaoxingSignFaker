@@ -218,6 +218,14 @@ object ChaoxingOtherUserHelper {
                     throw AlreadyExistedOtherUserException(
                         "${sharedEntity.userName}(${sharedEntity.phoneNumber}) 用户已经存在！"
                     )
+                if (sharedEntity.faceObjectIds.all { localObjectId->
+                        dataStore.faceRecognitionConfiguresMap[sharedEntity.phoneNumber]?.imagesList?.any { it.objectId == localObjectId }
+                            ?: false
+                    }){
+                    throw AlreadyExistedOtherUserException(
+                        "${sharedEntity.userName}(${sharedEntity.phoneNumber}) 用户已经存在！"
+                    )
+                }
                 val faceClient =
                     ChaoxingHttpClient.loadFromOtherUserSession(existedSession, context)
                 saveFaceImages(faceClient.okHttpClient, faceClient.userEntity)

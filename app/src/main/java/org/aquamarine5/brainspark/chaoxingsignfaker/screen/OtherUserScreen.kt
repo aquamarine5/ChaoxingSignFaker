@@ -121,6 +121,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.zIndex
 import coil3.compose.AsyncImage
 import com.github.skydoves.colorpicker.compose.HsvColorPicker
@@ -633,7 +634,7 @@ fun OtherUserScreen(
                         Text("确认删除标签${tagsEntityList[delectTagIndexForSecondaryConfirm!!].name}？")
                     },
                     text = {
-                        Text("删除标签会同��将该标签从所有用户中移除，此操作不可撤销。")
+                        Text("删除标签会同样将该标签从所有用户中移除，此操作不可撤销。")
                     },
                     icon = {
                         Icon(
@@ -657,6 +658,9 @@ fun OtherUserScreen(
                 var isSavingDatastore by remember { mutableStateOf(false) }
                 AlertDialog(
                     onDismissRequest = {},
+                    properties = DialogProperties(
+                        dismissOnBackPress = false
+                    ),
                     confirmButton = {
                         Button(onClick = {
                             hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
@@ -2523,15 +2527,14 @@ fun OtherUserScreen(
         }
     }
     AnimatedVisibility(
-        isFacePhotoCameraVisible,
-        enter = slideInHorizontally(
+        isFacePhotoCameraVisible,enter = slideInHorizontally(
             initialOffsetX = { it },
             animationSpec = tween(300)
-        ) + fadeIn(animationSpec = tween(300)),
+        ),
         exit = slideOutHorizontally(
-            animationSpec = tween(300),
-            targetOffsetX = { it }
-        ) + fadeOut(animationSpec = tween(300))
+            animationSpec = tween(400),
+            targetOffsetX = { (it*1.5).toInt() }
+        )
     ) {
         Column(
             modifier = Modifier

@@ -734,18 +734,14 @@ fun QRCodeSignScreen(
                         }
                         AnimatedVisibility(
                             isFaceImageCaptured,
-                            enter =
-                                slideInHorizontally(
-                                    initialOffsetX = { it },
-                                    animationSpec = tween(300)
-                                ) + fadeIn(
-                                    animationSpec = tween(300)
-                                ),
-                            exit =
-                                slideOutHorizontally(
-                                    animationSpec = tween(300),
-                                    targetOffsetX = { it }) +
-                                        fadeOut(animationSpec = tween(300)),
+                            enter = slideInHorizontally(
+                                initialOffsetX = { it },
+                                animationSpec = tween(300)
+                            ),
+                            exit = slideOutHorizontally(
+                                animationSpec = tween(400),
+                                targetOffsetX = { (it*1.5).toInt() }
+                            ),
                             modifier = Modifier.zIndex(1f)
                         ) {
                             BackHandler {
@@ -822,18 +818,14 @@ fun QRCodeSignScreen(
                                 }
                             }
                             AnimatedVisibility(
-                                isQRCodeScanning, enter =
-                                    slideInHorizontally(
-                                        initialOffsetX = { it },
-                                        animationSpec = tween(300)
-                                    ) + fadeIn(
-                                        animationSpec = tween(300)
-                                    ),
-                                exit =
-                                    slideOutHorizontally(
-                                        animationSpec = tween(300),
-                                        targetOffsetX = { it }) +
-                                            fadeOut(animationSpec = tween(300))
+                                isQRCodeScanning,enter = slideInHorizontally(
+                                    initialOffsetX = { it },
+                                    animationSpec = tween(300)
+                                ),
+                                exit = slideOutHorizontally(
+                                    animationSpec = tween(400),
+                                    targetOffsetX = { (it*1.5).toInt() }
+                                )
                             ) {
                                 BackHandler(isQRCodeScanning) {
                                     isSigning.value = false
