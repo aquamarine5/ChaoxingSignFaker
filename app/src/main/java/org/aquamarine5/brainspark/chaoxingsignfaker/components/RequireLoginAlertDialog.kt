@@ -10,7 +10,6 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.OutlinedButton
@@ -30,6 +29,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.SnackbarAlertDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingOtherUserSharedEntity
 
 @Composable
@@ -44,12 +44,12 @@ fun RequireLoginAlertDialog(
     val context = LocalContext.current
     val coroutineContext = rememberCoroutineScope()
     if (isShowDialog) {
-        AlertDialog(
+        SnackbarAlertDialog(
             onDismissRequest = { },
-            title = {
+            title = { _ ->
                 Text("重新登录")
             },
-            text = {
+            text = { _ ->
                 Column {
                     Text("如果需要使用登录其他用户、帮助签到的功能，需要升级程序数据库，重新登录学习通账号。")
                     OutlinedTextField(

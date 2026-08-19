@@ -6,6 +6,8 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.components
 
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.SnackbarAlertDialog
+
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -16,7 +18,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -146,11 +147,11 @@ fun CustomizeClientCard() {
     }
     Spacer(modifier = Modifier.height(8.dp))
     if (isShowDialog) {
-        AlertDialog(onDismissRequest = {
+        SnackbarAlertDialog(onDismissRequest = {
             isShowDialog = false
-        }, title = {
+        }, title = { _ ->
             Text("定制专属客户端")
-        }, text = {
+        }, text = { _ ->
             Column {
                 Text("如果你的学校使用了定制版的学习通，可以在这里选择对应的选项来模拟此客户端，或者输入完整的 UserAgent 来模拟其他版本的客户端。")
                 Spacer(modifier = Modifier.height(16.dp))

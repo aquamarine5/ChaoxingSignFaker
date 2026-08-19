@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.OutlinedButton
@@ -49,6 +48,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCaptchaHelper
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.SnackbarAlertDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCaptchaDataEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSigner
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
@@ -137,10 +137,10 @@ fun CaptchaHandlerDialog(
     }
 
     if (isDisplayCaptchaDialog)
-        AlertDialog(
+        SnackbarAlertDialog(
             onDismissRequest = onDismiss,
-            title = { Text("请完成滑动验证") },
-            text = {
+            title = { _ -> Text("请完成滑动验证") },
+            text = { _ ->
                 if (data != null) {
                     Column(modifier = Modifier.fillMaxWidth()) {
                         Box(

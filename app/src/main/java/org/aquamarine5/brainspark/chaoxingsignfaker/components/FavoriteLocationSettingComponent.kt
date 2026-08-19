@@ -302,8 +302,8 @@ fun FavoriteLocationSettingComponent() {
                 })
             }
         }
-        locationClient.start()
         LaunchedEffect(Unit) {
+            locationClient.start()
             favoriteLocations.addAll(context.chaoxingDataStore.data.first().locationsList)
             favoriteLocations.forEach {
                 favoriteLocationMarkers.add(

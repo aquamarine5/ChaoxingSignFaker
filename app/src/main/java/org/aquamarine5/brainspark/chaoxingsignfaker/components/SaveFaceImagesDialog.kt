@@ -6,8 +6,9 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.components
 
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.SnackbarAlertDialog
+
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -25,10 +26,10 @@ fun SaveFaceImagesDialog(
     onSave: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    AlertDialog(
+    SnackbarAlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("保存人脸照片？") },
-        text = { Text("是否保存刚才拍摄的 $count 张人脸照片，以便下次签到使用？") },
+        title = { _ -> Text("保存人脸照片？") },
+        text = { _ -> Text("是否保存刚才拍摄的 $count 张人脸照片，以便下次签到使用？") },
         confirmButton = { Button(onClick = onSave) { Text("保存") } },
         dismissButton = { OutlinedButton(onClick = onDismiss) { Text("不保存") } },
         icon = {

@@ -20,7 +20,6 @@ import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -333,18 +332,16 @@ fun CameraComponent(
                                         )
                                     }
                                 }
+
                             }
                         },
                         state = tooltipState
                     ) {
+                        val isMultipleImageButton by remember { derivedStateOf { pictureCount > 1 && needTakePictureCount > 1 } }
                         Column {
-                            AnimatedVisibility(
-                                needTakePictureCount > 1,
-                                enter = fadeIn(),
-                                exit = fadeOut()
-                            ) {
-                                FloatingActionButton(onClick = {
-                                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                            FloatingActionButton(onClick = {
+                                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                                if (isMultipleImageButton)
                                     galleryMultiple.launch(
                                         PickVisualMediaRequest(
                                             ActivityResultContracts.PickVisualMedia.ImageOnly,
@@ -352,32 +349,34 @@ fun CameraComponent(
                                             maxItems = needTakePictureCount
                                         )
                                     )
-
-                                }) {
-                                    Icon(
-                                        painterResource(R.drawable.ic_images),
-                                        null,
-                                        modifier = Modifier.size(32.dp)
+                                else
+                                    gallerySingle.launch(
+                                        PickVisualMediaRequest(
+                                            ActivityResultContracts.PickVisualMedia.ImageOnly
+                                        )
                                     )
-                                }
-                                Spacer(modifier = Modifier.height(12.dp))
-                            }
-                            FloatingActionButton(onClick = {
-                                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                                gallerySingle.launch(
-                                    PickVisualMediaRequest(
-                                        ActivityResultContracts.PickVisualMedia.ImageOnly
-                                    )
-                                )
                             }) {
-                                Icon(
-                                    painterResource(R.drawable.ic_image),
-                                    null,
-                                    modifier = Modifier.size(32.dp)
-                                )
+
+                                Crossfade(isMultipleImageButton) {
+                                    if (it) {
+                                        Icon(
+                                            painterResource(R.drawable.ic_images),
+                                            null,
+                                            modifier = Modifier.size(32.dp)
+                                        )
+                                    } else {
+                                        Icon(
+                                            painterResource(R.drawable.ic_image),
+                                            null,
+                                            modifier = Modifier.size(32.dp)
+                                        )
+                                    }
+                                }
+
                             }
                         }
                     }
+
 
                 }
             }

@@ -52,7 +52,6 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -146,6 +145,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.components.FacePhotoControlC
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NewFeatureTipsCard
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.QRCodeScanComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.RequireLoginAlertDialog
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.SnackbarAlertDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingFaceRecognitionImage
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.OtherUserTagType
@@ -259,10 +259,10 @@ fun OtherUserScreen(
     inspectedFacePhotoObjectId?.let { objectId ->
         val photo = facePhotos.firstOrNull { it.objectId == objectId }
         if (photo != null) {
-            AlertDialog(
+            SnackbarAlertDialog(
                 onDismissRequest = { inspectedFacePhotoObjectId = null },
-                title = { Text("人脸识别照片") },
-                text = {
+                title = { _ -> Text("人脸识别照片") },
+                text = { _ ->
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         AsyncImage(
                             model = ChaoxingFaceHelper.getFaceImageFile(context, photo.objectId),
@@ -301,7 +301,7 @@ fun OtherUserScreen(
     }
 
     if (isInputDialog) {
-        AlertDialog(onDismissRequest = {
+        SnackbarAlertDialog(onDismissRequest = {
             isInputDialog = false
         }, confirmButton = {
             OutlinedButton(onClick = {
@@ -316,9 +316,9 @@ fun OtherUserScreen(
                 null,
                 tint = MaterialTheme.colorScheme.primary
             )
-        }, title = {
+        }, title = { _ ->
             Text("通过账号密码的形式添加他人的用户数据")
-        }, text = {
+        }, text = { _ ->
             var phoneNumber by remember { mutableStateOf("") }
             var password by remember { mutableStateOf("") }
             Column {
@@ -494,7 +494,7 @@ fun OtherUserScreen(
         })
     }
     if (isTagsSettingDialog) {
-        AlertDialog(onDismissRequest = {
+        SnackbarAlertDialog(onDismissRequest = {
             isTagsSettingDialog = false
         }, confirmButton = {
             OutlinedButton(onClick = {
@@ -508,9 +508,9 @@ fun OtherUserScreen(
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(40.dp)
             )
-        }, title = {
+        }, title = { _ ->
             Text("管理标签")
-        }, text = {
+        }, text = { _ ->
             val mutex = remember { Mutex() }
             val tagUsageList = remember(isTagsSettingDialog) {
                 if (isTagsSettingDialog) {
@@ -583,7 +583,7 @@ fun OtherUserScreen(
                 }
             }
             if (delectTagIndexForSecondaryConfirm != null) {
-                AlertDialog(
+                SnackbarAlertDialog(
                     onDismissRequest = {
                         delectTagIndexForSecondaryConfirm = null
                     },
@@ -630,10 +630,10 @@ fun OtherUserScreen(
                             Text("取消")
                         }
                     },
-                    title = {
+                    title = { _ ->
                         Text("确认删除标签${tagsEntityList[delectTagIndexForSecondaryConfirm!!].name}？")
                     },
-                    text = {
+                    text = { _ ->
                         Text("删除标签会同样将该标签从所有用户中移除，此操作不可撤销。")
                     },
                     icon = {
@@ -656,7 +656,7 @@ fun OtherUserScreen(
                         }
                     }
                 var isSavingDatastore by remember { mutableStateOf(false) }
-                AlertDialog(
+                SnackbarAlertDialog(
                     onDismissRequest = {},
                     properties = DialogProperties(
                         dismissOnBackPress = false
@@ -728,7 +728,7 @@ fun OtherUserScreen(
                         }) {
                             Text("不保存退出")
                         }
-                    }, title = {
+                    }, title = { _ ->
                         if (modifiedTagIndexForUserSelector != null)
                             Text(buildAnnotatedString {
                                 append("修改 ")
@@ -740,7 +740,7 @@ fun OtherUserScreen(
                                 }
                                 append(" 标签的用户")
                             })
-                    }, text = {
+                    }, text = { _ ->
                         LazyColumn {
                             otherUserSessions.forEachIndexed { index, session ->
                                 item {
@@ -805,7 +805,7 @@ fun OtherUserScreen(
             }
             if (isSelectNewTagColorDialog) {
                 var color by remember(newTagColor) { mutableStateOf(newTagColor) }
-                AlertDialog(onDismissRequest = {
+                SnackbarAlertDialog(onDismissRequest = {
                     isSelectNewTagColorDialog = false
                 }, confirmButton = {
                     Button(onClick = {
@@ -830,9 +830,9 @@ fun OtherUserScreen(
                         modifier = Modifier.size(40.dp),
                         tint = MaterialTheme.colorScheme.primary
                     )
-                }, title = {
+                }, title = { _ ->
                     Text("设置标签颜色")
-                }, text = {
+                }, text = { _ ->
                     val controller = rememberColorPickerController()
                     Column(
                         verticalArrangement = Arrangement.Center,
@@ -865,7 +865,7 @@ fun OtherUserScreen(
                 })
             }
             if (isSelectNewTagUserDialog) {
-                AlertDialog(onDismissRequest = {
+                SnackbarAlertDialog(onDismissRequest = {
                     isSelectNewTagUserDialog = false
                 }, confirmButton = {
                     Button(onClick = {
@@ -874,7 +874,7 @@ fun OtherUserScreen(
                     }) {
                         Text("关闭")
                     }
-                }, title = {
+                }, title = { _ ->
                     Text("为新标签选择用户")
                 }, icon = {
                     Icon(
@@ -883,7 +883,7 @@ fun OtherUserScreen(
                         modifier = Modifier.size(40.dp),
                         tint = MaterialTheme.colorScheme.primary
                     )
-                }, text = {
+                }, text = { _ ->
                     LazyColumn(
                         modifier = Modifier.border(
                             1.dp, MaterialTheme.colorScheme.primary,
@@ -1169,9 +1169,9 @@ fun OtherUserScreen(
     }
     var repairSessionIndex by remember { mutableStateOf<Int?>(null) }
     if (repairSessionIndex != null) {
-        AlertDialog(onDismissRequest = {
+        SnackbarAlertDialog(onDismissRequest = {
             repairSessionIndex = null
-        }, title = {
+        }, title = { _ ->
             Text("修复用户 ${otherUserSessions[repairSessionIndex!!].name} 的登录状态")
         }, icon = {
             Icon(
@@ -1180,7 +1180,7 @@ fun OtherUserScreen(
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(40.dp)
             )
-        }, text = {
+        }, text = { _ ->
             Column {
                 Text("在最近一次的签到过程中检测到用户 ${otherUserSessions[repairSessionIndex!!].name} 的登录状态异常，重新登录后可修复此问题。")
                 var password by remember { mutableStateOf("") }
@@ -1295,7 +1295,7 @@ fun OtherUserScreen(
         }
         var requestedDeleteUserIndex by remember { mutableStateOf<Int?>(null) }
         if (requestedDeleteUserIndex != null) {
-            AlertDialog(
+            SnackbarAlertDialog(
                 onDismissRequest = {
                     requestedDeleteUserIndex = null
                 },
@@ -1307,10 +1307,10 @@ fun OtherUserScreen(
                         modifier = Modifier.size(40.dp)
                     )
                 },
-                title = {
+                title = { _ ->
                     Text("删除用户")
                 },
-                text = {
+                text = { _ ->
                     Text("确定要删除此用户吗？此操作不可撤销。")
                 },
                 confirmButton = {
@@ -1355,7 +1355,7 @@ fun OtherUserScreen(
             )
         }
         var isSavingDatastore by remember { mutableStateOf(false) }
-        AlertDialog(
+        SnackbarAlertDialog(
             onDismissRequest = {
                 selectedUserSettingDialogIndex = null
             },
@@ -1408,10 +1408,10 @@ fun OtherUserScreen(
                 ) {
                     Text("删除用户", color = Color.White)
                 }
-            }, title = {
+            }, title = { _ ->
                 if (selectedUserSettingDialogIndex != null)
                     Text("设置 ${otherUserSessions[selectedUserSettingDialogIndex!!].name} 用户")
-            }, text = {
+            }, text = { _ ->
                 Column {
                     LazyColumn {
                         if (tagsEntityList.isEmpty()) {
@@ -1485,13 +1485,13 @@ fun OtherUserScreen(
             })
     }
     if (isURLSharedDialog) {
-        AlertDialog(onDismissRequest = {
+        SnackbarAlertDialog(onDismissRequest = {
             isURLSharedDialog = false
         }, confirmButton = {
             OutlinedButton(onClick = {
                 isURLSharedDialog = false
             }) { Text("关闭") }
-        }, title = {
+        }, title = { _ ->
             Text("通过文本链接的形式分享自己的用户数据")
         }, icon = {
             Icon(
@@ -1500,7 +1500,7 @@ fun OtherUserScreen(
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(40.dp)
             )
-        }, text = {
+        }, text = { _ ->
             Column {
                 Text("对方将链接从浏览器打开即可导入你的用户数据（对方需更新到1.5版本及以上），或将链接粘贴到以下输入框中：")
                 Spacer(modifier = Modifier.height(6.dp))
@@ -1957,10 +1957,10 @@ fun OtherUserScreen(
             }
             Spacer(modifier = Modifier.height(3.dp))
             if (isFacePhotoDialog) {
-                AlertDialog(
+                SnackbarAlertDialog(
                     onDismissRequest = { isFacePhotoDialog = false },
-                    title = { Text("管理人脸照片") },
-                    text = {
+                    title = { _ -> Text("管理人脸照片") },
+                    text = { _ ->
                         FacePhotoControlComponent(
                             phoneNumber = ChaoxingHttpClient.instance!!.userEntity.phoneNumber,
                             onStartCamera = {
@@ -2368,14 +2368,14 @@ fun OtherUserScreen(
         }
     }
     if (importQRCodeOtherUserResult != null) {
-        AlertDialog(
+        SnackbarAlertDialog(
             onDismissRequest = {
                 importQRCodeOtherUserResult = null
             },
-            title = {
+            title = { _ ->
                 Text("导入成功")
             },
-            text = {
+            text = { _ ->
                 Text(importQRCodeOtherUserResult!!.getResultTips())
             },
             confirmButton = {

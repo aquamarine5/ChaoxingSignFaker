@@ -28,7 +28,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
@@ -83,6 +82,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.components.CloneSessionTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CourseInfoColumnCard
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NetworkExceptionComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NewFeatureTipsCard
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.SnackbarAlertDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingCourseClass
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCourseEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.RecommendActivityEntity
@@ -223,7 +223,7 @@ fun CourseListScreen(
     }
     var isEmergencyToSkipUpdate by remember { mutableStateOf(false) }
     if (isEmergencyToSkipUpdate) {
-        AlertDialog(onDismissRequest = {
+        SnackbarAlertDialog(onDismissRequest = {
             isEmergencyToSkipUpdate = false
         }, dismissButton = {
             TextButton(onClick = {
@@ -244,7 +244,7 @@ fun CourseListScreen(
                 null,
                 tint = MaterialTheme.colorScheme.primary
             )
-        }, text = {
+        }, text = { _ ->
             Text("此版本设置了强制更新，强烈建议进行更新，忽略更新可能导致签到失败或其他意外的BUG。")
         })
     }
@@ -252,7 +252,7 @@ fun CourseListScreen(
         LaunchedEffect(newestVersionData) {
             onNewVersionAvailable()
         }
-        AlertDialog(onDismissRequest = {
+        SnackbarAlertDialog(onDismissRequest = {
             if (isForceInstall) {
                 Toast.makeText(context, "必须更新应用", Toast.LENGTH_SHORT).show()
             } else {
@@ -273,7 +273,7 @@ fun CourseListScreen(
             }) {
                 Text("去更新")
             }
-        }, text = {
+        }, text = { _ ->
             Text(buildAnnotatedString {
                 append("检测到新版本：")
                 withStyle(
@@ -303,7 +303,7 @@ fun CourseListScreen(
                 fontSize = 11.sp,
                 lineHeight = 12.sp
             )
-        }, title = {
+        }, title = { _ ->
             Text("有新版本可用！")
         }, icon = {
             Icon(painterResource(R.drawable.ic_circle_arrow_up), null)

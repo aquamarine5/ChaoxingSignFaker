@@ -12,22 +12,24 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -70,14 +72,14 @@ import com.attafitamim.krop.core.crop.cropperStyle
 import com.attafitamim.krop.core.crop.flipHorizontal
 import com.attafitamim.krop.core.crop.flipVertical
 import com.attafitamim.krop.core.crop.rememberImageCropper
-import com.attafitamim.krop.core.crop.rotLeft
-import com.attafitamim.krop.core.crop.rotRight
 import com.attafitamim.krop.ui.ButtonsBar
 import com.attafitamim.krop.ui.ImageCropperDialog
 import com.attafitamim.krop.ui.LocalVerticalControls
 import com.attafitamim.krop.ui.isVerticalPickerControls
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingFaceHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
@@ -105,8 +107,10 @@ fun FacePhotoControlComponent(
         mutableStateOf<List<ChaoxingFaceRecognitionImage>>(emptyList())
     }
     var isLoading by remember(phoneNumber) { mutableStateOf(true) }
+    var removingObjectIds by remember(phoneNumber) { mutableStateOf(emptySet<String>()) }
     var inspectedObjectId by remember { mutableStateOf<String?>(null) }
     var requestedDeleteObjectId by remember { mutableStateOf<String?>(null) }
+    val deleteMutex = remember(phoneNumber) { Mutex() }
 
     suspend fun reload() {
         records = context.chaoxingDataStore.data.first()
@@ -114,23 +118,31 @@ fun FacePhotoControlComponent(
             ?.imagesList.orEmpty().take(ChaoxingFaceHelper.MAX_FACE_IMAGES)
     }
 
-    fun delete(record: ChaoxingFaceRecognitionImage) {
+    fun delete(record: ChaoxingFaceRecognitionImage, dialogSnackbarHost: androidx.compose.material3.SnackbarHostState) {
+        if (record.objectId in removingObjectIds) return
+        removingObjectIds = removingObjectIds + record.objectId
+        requestedDeleteObjectId = null
         coroutineScope.launch {
-            isLoading = true
-            runCatching {
-                ChaoxingFaceHelper.deleteFaceImage(
-                    context,
-                    phoneNumber,
-                    record.objectId,
-                )
-                reload()
-            }.onSuccess {
-                snackbarHost.displaySnackbar("人脸照片删除成功", coroutineScope)
-            }.onFailure {
-                it.snackbarReport(snackbarHost, coroutineScope, "删除人脸照片失败", hapticFeedback)
+            deleteMutex.withLock {
+                runCatching {
+                    ChaoxingFaceHelper.deleteFaceImage(
+                        context,
+                        phoneNumber,
+                        record.objectId,
+                    )
+                    reload()
+                }.onSuccess {
+                    dialogSnackbarHost.displaySnackbar("人脸照片删除成功", coroutineScope)
+                }.onFailure {
+                    it.snackbarReport(
+                        dialogSnackbarHost,
+                        coroutineScope,
+                        "删除人脸照片失败",
+                        hapticFeedback,
+                    )
+                }
             }
-            isLoading = false
-            requestedDeleteObjectId = null
+            removingObjectIds = removingObjectIds - record.objectId
         }
     }
 
@@ -143,7 +155,6 @@ fun FacePhotoControlComponent(
             return
         }
         coroutineScope.launch {
-            isLoading = true
             runCatching {
                 ChaoxingFaceHelper.saveFaceImage(
                     ChaoxingHttpClient.instance!!,
@@ -157,7 +168,6 @@ fun FacePhotoControlComponent(
             }.onFailure {
                 it.snackbarReport(snackbarHost, coroutineScope, "上传人脸照片失败", hapticFeedback)
             }
-            isLoading = false
         }
     }
 
@@ -213,13 +223,11 @@ fun FacePhotoControlComponent(
             cropControls = { state ->
                 val verticalControls = isVerticalPickerControls()
                 CompositionLocalProvider(LocalVerticalControls provides verticalControls) {
-                    ButtonsBar(modifier = modifier) {
-                        IconButton(onClick = { state.rotLeft() }) {
-                            Icon(painterResource(R.drawable.ic_rotate_ccw), null)
-                        }
-                        IconButton(onClick = { state.rotRight() }) {
-                            Icon(painterResource(R.drawable.ic_rotate_cw), null)
-                        }
+                    ButtonsBar(
+                        modifier = Modifier
+                            .align(if (!verticalControls) Alignment.BottomCenter else Alignment.CenterEnd)
+                            .padding(12.dp)
+                    ) {
                         IconButton(onClick = { state.flipHorizontal() }) {
                             Icon(painterResource(R.drawable.ic_flip_horizontal), null)
                         }
@@ -228,28 +236,38 @@ fun FacePhotoControlComponent(
                         }
                     }
                 }
-
             })
     }
 
     inspectedObjectId?.let { objectId ->
         val record = records.firstOrNull { it.objectId == objectId }
         if (record != null) {
-            AlertDialog(
+            SnackbarAlertDialog(
                 onDismissRequest = { inspectedObjectId = null },
-                title = { Text("人脸照片详情") },
-                text = {
+                title = { _ -> Text("人脸照片详情") },
+                text = { dialogSnackbarHost ->
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         AsyncImage(
-                            model = ChaoxingFaceHelper.getFaceImageFile(
-                                context,
-                                record.objectId
-                            ),
+                            model = remember(record) {
+                                ChaoxingFaceHelper.getFaceImageFile(
+                                    context,
+                                    record.objectId
+                                )
+                            },
                             contentDescription = "人脸识别照片",
                             contentScale = ContentScale.Crop,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .aspectRatio(3f / 4f),
+                            onError = {
+                                it.result.throwable.snackbarReport(
+                                    dialogSnackbarHost,
+                                    coroutineScope,
+                                    "图片加载失败",
+                                    hapticFeedback
+                                )
+                                it.result.throwable.printStackTrace()
+                            }
                         )
                         Text("图片ID: ${record.objectId}")
                         Text("使用次数: ${record.useCount}")
@@ -275,7 +293,7 @@ fun FacePhotoControlComponent(
     requestedDeleteObjectId?.let { objectId ->
         val record = records.firstOrNull { it.objectId == objectId }
         if (record != null) {
-            AlertDialog(
+            SnackbarAlertDialog(
                 onDismissRequest = { requestedDeleteObjectId = null },
                 icon = {
                     Icon(
@@ -285,8 +303,8 @@ fun FacePhotoControlComponent(
                         modifier = Modifier.size(40.dp),
                     )
                 },
-                title = { Text("是否删除照片？") },
-                text = {
+                title = { _ -> Text("是否删除照片？") },
+                text = { _ ->
                     Card(
                         shape = RoundedCornerShape(18.dp),
                         colors = CardDefaults.cardColors(
@@ -322,9 +340,10 @@ fun FacePhotoControlComponent(
                     }
                 },
                 confirmButton = {
+                    val dialogSnackbarHost = LocalSnackbarHostState.current
                     Button(onClick = {
                         hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                        delete(record)
+                        delete(record, dialogSnackbarHost)
                     }) { Text("删除") }
                 },
                 dismissButton = {
@@ -339,14 +358,7 @@ fun FacePhotoControlComponent(
 
     Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = modifier) {
         if (isLoading) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 100.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                CenterCircularProgressIndicator()
-            }
+            CenterCircularProgressIndicator()
         } else if (records.isEmpty()) {
             Text(
                 "暂无人脸照片，最多可保存 ${ChaoxingFaceHelper.MAX_FACE_IMAGES} 张",
@@ -355,42 +367,63 @@ fun FacePhotoControlComponent(
                 modifier = Modifier.padding(6.dp),
             )
         } else {
-            Text("已保存 ${records.size}/${ChaoxingFaceHelper.MAX_FACE_IMAGES} 张")
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                items(records, key = { it.objectId }) { record ->
-                    Card(
-                        shape = RoundedCornerShape(14.dp),
-                        modifier = Modifier.clickable {
-                            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                            inspectedObjectId = record.objectId
-                        },
-                    ) {
-                        AsyncImage(
-                            model = remember(record.objectId) {
-                                ChaoxingFaceHelper.getFaceImageFile(
-                                    context,
-                                    record.objectId
-                                )
-                            },
-                            contentDescription = "已保存的人脸照片",
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier
-                                .width(110.dp)
-                                .aspectRatio(3f / 4f),
-                            onError = {
-                                it.result.throwable.snackbarReport(
-                                    snackbarHost,
-                                    coroutineScope,
-                                    "加载人脸照片失败",
-                                    hapticFeedback
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("已保存 ${records.size}/${ChaoxingFaceHelper.MAX_FACE_IMAGES} 张")
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    items(
+                        items = records,
+                        key = { it.objectId },
+                    ) { displayedRecord ->
+                        AnimatedVisibility(
+                            visible = displayedRecord.objectId !in removingObjectIds,
+                            enter = fadeIn(
+                                animationSpec = tween(
+                                    500,
+                                    easing = LinearOutSlowInEasing,
+                                ),
+                            ),
+                            exit = fadeOut(
+                                animationSpec = tween(
+                                    500,
+                                    easing = LinearOutSlowInEasing,
+                                ),
+                            ),
+                        ) {
+                            Card(
+                                shape = RoundedCornerShape(14.dp),
+                                modifier = Modifier.clickable {
+                                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                                    inspectedObjectId = displayedRecord.objectId
+                                },
+                            ) {
+                                AsyncImage(
+                                    model = remember(displayedRecord.objectId) {
+                                        ChaoxingFaceHelper.getFaceImageFile(
+                                            context,
+                                            displayedRecord.objectId
+                                        )
+                                    },
+                                    contentDescription = "已保存的人脸照片",
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier
+                                        .width(110.dp)
+                                        .aspectRatio(3f / 4f),
+                                    onError = {
+                                        it.result.throwable.snackbarReport(
+                                            snackbarHost,
+                                            coroutineScope,
+                                            "加载人脸照片失败",
+                                            hapticFeedback
+                                        )
+                                    }
                                 )
                             }
-                        )
+                        }
                     }
                 }
             }
         }
-        val isPhotoReachLimited by remember { derivedStateOf { !isLoading && records.size >= ChaoxingFaceHelper.MAX_FACE_IMAGES } }
+        val isPhotoReachLimited by remember { derivedStateOf { records.size >= ChaoxingFaceHelper.MAX_FACE_IMAGES } }
         SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
             SegmentedButton(
                 selected = false,

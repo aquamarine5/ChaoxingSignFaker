@@ -28,7 +28,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.TextAutoSize
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -155,7 +154,7 @@ fun AnalyserCard() {
         var userRank by remember { mutableStateOf<Int?>(null) }
         val focusRequester = remember { FocusRequester() }
         if (isChangeDisplayedNameDialog) {
-            AlertDialog(onDismissRequest = {
+            SnackbarAlertDialog(onDismissRequest = {
                 isChangeDisplayedNameDialog = false
             }, icon = {
                 Icon(
@@ -164,9 +163,9 @@ fun AnalyserCard() {
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(40.dp)
                 )
-            }, title = {
+            }, title = { _ ->
                 Text("修改排行榜显示名称")
-            }, text = {
+            }, text = { _ ->
                 Column {
                     Text("排行榜显示名称是指在排行榜中展示的用户名，修改排行榜显示名称不会影响学习通账号昵称的修改，填写名称时请注意遵守相关法律法规。\n请注意，任何操作都会在第二天打开应用时提交至服务器进行修改。")
                     TextField(
@@ -239,7 +238,7 @@ fun AnalyserCard() {
                     }
                 isAnalyserRankHelpDialog = false
             }
-            AlertDialog(onDismissRequest = {
+            SnackbarAlertDialog(onDismissRequest = {
                 dismissDialogAction()
             }, icon = {
                 Icon(
@@ -248,9 +247,9 @@ fun AnalyserCard() {
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(40.dp)
                 )
-            }, title = {
+            }, title = { _ ->
                 Text("排行榜说明")
-            }, text = {
+            }, text = { _ ->
                 Column {
                     Column(
                         modifier = Modifier
@@ -379,11 +378,11 @@ fun AnalyserCard() {
             })
         }
         clickToDisplayRankDetail?.let { detail ->
-            AlertDialog(onDismissRequest = {
+            SnackbarAlertDialog(onDismissRequest = {
                 clickToDisplayRankDetail = null
-            }, title = {
+            }, title = { _ ->
                 Text(detail.name)
-            }, text = {
+            }, text = { _ ->
                 Column {
                     Text(
                         "学校: ${
@@ -433,9 +432,9 @@ fun AnalyserCard() {
                     else ChaoxingAnalyser.getUserTopRank(ChaoxingAnalyser.rankUUID).getOrNull()
                 }
             }
-            AlertDialog(onDismissRequest = {
+            SnackbarAlertDialog(onDismissRequest = {
                 isAnalyserRankDialog = false
-            }, title = {
+            }, title = { _ ->
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("签到排行榜")
                     IconButton(onClick = {
@@ -471,7 +470,7 @@ fun AnalyserCard() {
                 }) {
                     Text("关闭")
                 }
-            }, text = {
+            }, text = { _ ->
                 Column(modifier = Modifier.fillMaxWidth()) {
                     when {
                         rankData == null -> {

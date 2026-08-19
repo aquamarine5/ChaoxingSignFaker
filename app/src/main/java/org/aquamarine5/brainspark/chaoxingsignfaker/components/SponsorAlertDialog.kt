@@ -6,6 +6,8 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.components
 
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.SnackbarAlertDialog
+
 import android.annotation.SuppressLint
 import android.content.ContentValues
 import android.content.Intent
@@ -27,7 +29,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -114,7 +115,7 @@ fun SponsorAlertDialog(onDismissRequest: () -> Unit) {
             android.Manifest.permission.WRITE_EXTERNAL_STORAGE
         ) else null
 
-    AlertDialog(onDismissRequest = {
+    SnackbarAlertDialog(onDismissRequest = {
         onDismissRequest()
     }, confirmButton = {
         Row {
@@ -234,7 +235,7 @@ fun SponsorAlertDialog(onDismissRequest: () -> Unit) {
                 Text("现在就去")
             }
         }
-    }, text = {
+    }, text = { _ ->
         Column(
             modifier = Modifier.verticalScroll(rememberScrollState())
         ) {

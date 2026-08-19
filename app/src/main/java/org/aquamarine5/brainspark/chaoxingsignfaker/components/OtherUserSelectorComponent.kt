@@ -6,6 +6,8 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.components
 
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.SnackbarAlertDialog
+
 import android.content.ClipboardManager
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
@@ -32,7 +34,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -135,9 +136,9 @@ fun OtherUserSelectorComponent(
             }
         }
         if (repairSessionIndex != null) {
-            AlertDialog(onDismissRequest = {
+            SnackbarAlertDialog(onDismissRequest = {
                 repairSessionIndex = null
-            }, title = {
+            }, title = { _ ->
                 Text("修复用户 ${signUserList[repairSessionIndex!!].name} 的登录状态")
             }, icon = {
                 Icon(
@@ -146,7 +147,7 @@ fun OtherUserSelectorComponent(
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(40.dp)
                 )
-            }, text = {
+            }, text = { _ ->
                 Column {
                     Text("在最近一次的签到过程中检测到用户 ${signUserList[repairSessionIndex!!].name} 的登录状态异常，重新登录后可修复此问题。")
                     var password by remember { mutableStateOf("") }
@@ -256,7 +257,7 @@ fun OtherUserSelectorComponent(
         }
 
         if (ignoreExceptionUserIndex != null) {
-            AlertDialog(onDismissRequest = {
+            SnackbarAlertDialog(onDismissRequest = {
                 ignoreExceptionUserIndex = null
             }, icon = {
                 Icon(
@@ -265,7 +266,7 @@ fun OtherUserSelectorComponent(
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(40.dp)
                 )
-            }, text = {
+            }, text = { _ ->
                 Text(buildAnnotatedString {
                     append("随地大小签会自动检测并拒绝为不在签到班级的学生进行签到操作，")
                     withStyle(SpanStyle(color = Color.Red)) {

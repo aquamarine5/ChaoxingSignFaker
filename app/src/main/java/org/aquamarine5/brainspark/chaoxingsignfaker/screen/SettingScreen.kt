@@ -6,6 +6,8 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.screen
 
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.SnackbarAlertDialog
+
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Intent
@@ -29,7 +31,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
+
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -149,11 +151,11 @@ fun SettingScreen(
         }
         if (isUnblockDialog) {
             var inputPassword by remember { mutableStateOf("") }
-            AlertDialog(onDismissRequest = {
+            SnackbarAlertDialog(onDismissRequest = {
                 isUnblockDialog = false
-            }, title = {
+            }, title = { _ ->
                 Text("输入密码：")
-            }, text = {
+            }, text = { _ ->
                 TextField(inputPassword, onValueChange = {
                     inputPassword = it
                 }, label = {
@@ -271,10 +273,10 @@ fun SettingScreen(
         )
         Spacer(modifier = Modifier.height(8.dp))
         if (isShowSignoffDialog) {
-            AlertDialog(
+            SnackbarAlertDialog(
                 onDismissRequest = { isShowSignoffDialog = false },
-                title = { Text("确定要登出吗？") },
-                text = {
+                title = { _ -> Text("确定要登出吗？") },
+                text = { _ ->
                     Text("当你登出时，你的签到统计数据和代签用户不会丢失。")
                 },
                 dismissButton = {
@@ -714,7 +716,7 @@ fun SettingScreen(
                 LaunchedEffect(Unit) {
                     jsonText = ChaoxingCaptchaHelper.buildCaptchaMemoriesDataToJson(context)
                 }
-                AlertDialog(
+                SnackbarAlertDialog(
                     onDismissRequest = {
                         isCaptchaMemoriesResultDialog = false
                     },
@@ -724,7 +726,7 @@ fun SettingScreen(
                         }) {
                             Text("关闭")
                         }
-                    }, text = {
+                    }, text = { _ ->
                         TextField(
                             jsonText,
                             {

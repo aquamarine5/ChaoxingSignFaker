@@ -6,6 +6,8 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.screen
 
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.SnackbarAlertDialog
+
 import android.graphics.Bitmap
 import android.os.Build
 import androidx.activity.compose.BackHandler
@@ -30,7 +32,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialog
+
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -572,7 +574,7 @@ fun PhotoSignScreen(
                                                                     null
                                                                 )
                                                             }
-                                                            if (isShowDialog) AlertDialog(
+                                                            if (isShowDialog) SnackbarAlertDialog(
                                                                 onDismissRequest = {
                                                                     isShowDialog = false
                                                                 },
@@ -584,7 +586,7 @@ fun PhotoSignScreen(
                                                                         Text("关闭")
                                                                     }
                                                                 },
-                                                                text = {
+                                                                text = { _ ->
                                                                     Image(
                                                                         bitmapList[it].asImageBitmap(),
                                                                         null,

@@ -6,10 +6,11 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.components
 
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.SnackbarAlertDialog
+
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -41,7 +42,7 @@ fun SponsorPopupDialog() {
     val isShowSponsor = remember { mutableStateOf(false) }
     val hapticFeedback = LocalHapticFeedback.current
     if (isShowDialog)
-        AlertDialog(onDismissRequest = {
+        SnackbarAlertDialog(onDismissRequest = {
             isShowDialog = false
         }, icon = {
             Icon(
@@ -50,9 +51,9 @@ fun SponsorPopupDialog() {
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(40.dp)
             )
-        }, title = {
+        }, title = { _ ->
             Text("应用还好用嘛？")
-        }, text = {
+        }, text = { _ ->
             Column {
                 Text(buildAnnotatedString {
                     append("随地大小签最近一直在连续更新！虽然可能更新版本烦到你了，但是都是在让你的使用体验更好！虽然每次使用不需要付费，但是用于更新的服务器资源还是需要")
