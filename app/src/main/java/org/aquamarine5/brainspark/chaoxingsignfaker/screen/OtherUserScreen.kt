@@ -2016,7 +2016,7 @@ fun OtherUserScreen(
                             modifier = Modifier.size(22.dp),
                             tint = MaterialTheme.colorScheme.primary
                         )
-                        Spacer(modifier = Modifier.width(2.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
                         Text(
                             "扫码添加",
                             autoSize = TextAutoSize.StepBased(
@@ -2049,7 +2049,7 @@ fun OtherUserScreen(
                             modifier = Modifier.size(22.dp),
                             tint = MaterialTheme.colorScheme.primary
                         )
-                        Spacer(modifier = Modifier.width(2.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
                         Text(
                             "链接添加",
                             autoSize = TextAutoSize.StepBased(
@@ -2082,7 +2082,7 @@ fun OtherUserScreen(
                             modifier = Modifier.size(22.dp),
                             tint = MaterialTheme.colorScheme.primary
                         )
-                        Spacer(modifier = Modifier.width(2.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
                         Text(
                             "账密添加",
                             autoSize = TextAutoSize.StepBased(

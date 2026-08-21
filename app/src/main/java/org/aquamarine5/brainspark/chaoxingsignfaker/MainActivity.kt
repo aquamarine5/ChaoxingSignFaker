@@ -36,7 +36,6 @@ import androidx.compose.material.ContentAlpha
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -126,6 +125,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingPredictabl
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.displaySnackbar
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.isDevelopedMode
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
 import org.aquamarine5.brainspark.stackbricks.StackbricksPolicy
@@ -288,44 +288,51 @@ class MainActivity : ComponentActivity() {
                                             },
                                             icon = {
                                                 val iconColor by animateColorAsState(
-                                                    if (isSelected) LocalContentColor.current else
-                                                        LocalContentColor.current.copy(ContentAlpha.medium),
+                                                    if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else
+                                                        MaterialTheme.colorScheme.onPrimaryContainer.copy(
+                                                            alpha = ContentAlpha.medium
+                                                        ),
                                                     tween(300)
                                                 )
-                                                CompositionLocalProvider(LocalContentColor provides iconColor) {
-                                                    Column {
-                                                        Spacer(modifier = Modifier.size(1.5.dp))
-                                                        BadgedBox(badge = {
-                                                            if (item.name == "设置" && isNewVersionAvailable) {
-                                                                Box(contentAlignment = Alignment.Center) {
-                                                                    Badge(
-                                                                        containerColor = MaterialTheme.colorScheme.primaryContainer,
-                                                                        modifier = Modifier
-                                                                            .size(16.dp)
-                                                                            .zIndex(0f)
-                                                                    )
-                                                                    Badge(
-                                                                        containerColor = Orange,
-                                                                        modifier = Modifier
-                                                                            .size(10.dp)
-                                                                            .zIndex(10f)
-                                                                    )
-                                                                }
+
+                                                Column {
+                                                    Spacer(modifier = Modifier.size(1.5.dp))
+                                                    BadgedBox(badge = {
+                                                        if (item.name == "设置" && isNewVersionAvailable) {
+                                                            Box(contentAlignment = Alignment.Center) {
+                                                                Badge(
+                                                                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                                                    modifier = Modifier
+                                                                        .size(16.dp)
+                                                                        .zIndex(0f)
+                                                                )
+                                                                Badge(
+                                                                    containerColor = Orange,
+                                                                    modifier = Modifier
+                                                                        .size(10.dp)
+                                                                        .zIndex(10f)
+                                                                )
                                                             }
-                                                        }) {
-                                                            Icon(
-                                                                painterResource(item.iconRes),
-                                                                contentDescription = item.name,
-                                                                modifier = Modifier.size(26.dp)
-                                                            )
                                                         }
+                                                    }) {
+                                                        Icon(
+                                                            painterResource(item.iconRes),
+                                                            contentDescription = item.name,
+                                                            modifier = Modifier.size(26.dp),
+                                                            tint = iconColor
+                                                        )
                                                     }
+
                                                 }
                                             },
                                             label = {
                                                 Column {
                                                     Spacer(modifier = Modifier.size(1.5.dp))
-                                                    Text(item.name, fontSize = 12.sp)
+                                                    Text(
+                                                        item.name,
+                                                        fontSize = 12.sp,
+                                                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                                                    )
                                                 }
                                             },
                                             alwaysShowLabel = false
@@ -421,15 +428,18 @@ class MainActivity : ComponentActivity() {
                                                 }.onSuccess {
                                                     if (System.currentTimeMillis() - datastore.captchaMemories.lastCheckRemoteMemoriesTimestamp > 1.days.inWholeMilliseconds)
                                                         launch {
-                                                            runCatching {
-                                                                ChaoxingCaptchaHelper.updateRemoteCaptchaMemoriesData(
-                                                                    applicationContext
+                                                            ChaoxingCaptchaHelper.updateRemoteCaptchaMemoriesData(
+                                                                this@MainActivity
+                                                            ) { currentVersion, supportVersion ->
+                                                                snackbarHostState.displaySnackbar(
+                                                                    "服务器上的验证码数值记忆版本 $currentVersion 高于当前程序支持的版本 $supportVersion ，请更新程序版本",
+                                                                    this
                                                                 )
                                                             }.onFailure {
                                                                 it.snackbarReport(
                                                                     snackbarHostState,
                                                                     this,
-                                                                    "更新验证码记忆数据失败",
+                                                                    "更新验证码数值记忆数据失败",
                                                                     hapticFeedback,
                                                                     shouldDismiss = false
                                                                 )

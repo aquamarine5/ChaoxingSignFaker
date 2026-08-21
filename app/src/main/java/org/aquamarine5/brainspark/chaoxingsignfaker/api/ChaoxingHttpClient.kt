@@ -120,6 +120,11 @@ class ChaoxingHttpClient private constructor(
             return Base64.getEncoder().encodeToString(rawData + rawData)
         }
 
+        private fun checkPasswordNotEmptyThrowException(password: String) {
+            if (password.isEmpty())
+                throw ChaoxingLoginException("密码不能为空")
+        }
+
         suspend fun loadFromOtherUserSession(
             session: ChaoxingOtherUserSession,
             context: Context
@@ -182,6 +187,7 @@ class ChaoxingHttpClient private constructor(
             password: String,
             context: Context
         ): ChaoxingHttpClient = withContext(Dispatchers.IO) {
+            checkPasswordNotEmptyThrowException(password)
             val cookieJar: CookieJar = object : CookieJar {
                 private val cookieStore: MutableMap<String, List<Cookie>> = mutableMapOf()
                 private var chaoxingCookieSession: List<Cookie> = listOf()
@@ -439,6 +445,7 @@ class ChaoxingHttpClient private constructor(
             context: Context
         ): ChaoxingOtherUserSharedEntity =
             withContext(Dispatchers.IO) {
+                checkPasswordNotEmptyThrowException(password)
                 val uname = encryptByAES(phoneNumber)
                 val encryptedPassword = encryptByAES(password)
                 val request = Request.Builder()
@@ -516,6 +523,7 @@ class ChaoxingHttpClient private constructor(
             isEncryptedPassword: Boolean = false
         ): Unit =
             withContext(Dispatchers.IO) {
+                checkPasswordNotEmptyThrowException(password)
                 val uname = encryptByAES(phoneNumber)
                 val encryptedPassword =
                     if (isEncryptedPassword) password else encryptByAES(password)
@@ -544,13 +552,7 @@ class ChaoxingHttpClient private constructor(
                     val jsonResult = JSONObject.parseObject(it.body.string())
                     if (!jsonResult.getBoolean("status")) {
                         throw ChaoxingLoginException(
-                            if (jsonResult.containsKey("msg2")) {
-                                jsonResult.getString("msg2").ifEmpty {
-                                    "登录错误"
-                                }
-                            } else {
-                                "登录错误"
-                            })
+                            jsonResult.getString("msg2")?.takeIf { it.isNotEmpty() } ?: "登录错误")
                     }
 
                     client.cookieJar.saveFromResponse(

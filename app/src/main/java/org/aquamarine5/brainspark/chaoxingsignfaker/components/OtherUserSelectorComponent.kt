@@ -6,8 +6,6 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.components
 
-import org.aquamarine5.brainspark.chaoxingsignfaker.components.SnackbarAlertDialog
-
 import android.content.ClipboardManager
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
@@ -590,7 +588,7 @@ fun OtherUserSelectorComponent(
                                                 null,
                                                 modifier = Modifier
                                                     .padding(start = 4.dp)
-                                                    .size(16.dp),
+                                                    .size(14.dp),
                                                 tint = it.value.color.takeOrElse { MaterialTheme.colorScheme.primary }
                                             )
                                         }

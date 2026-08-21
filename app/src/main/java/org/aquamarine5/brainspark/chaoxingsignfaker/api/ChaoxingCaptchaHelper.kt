@@ -21,6 +21,8 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.StoredData
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.checkResponseThrowException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.storedData
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
 object ChaoxingCaptchaHelper {
     val URL_REMOTE_CAPTCHA_MEMORIES =
@@ -58,7 +60,10 @@ object ChaoxingCaptchaHelper {
         }
     }
 
-    suspend fun updateRemoteCaptchaMemoriesData(context: Context) {
+    suspend fun updateRemoteCaptchaMemoriesData(
+        context: Context,
+        onHigherManifestVersionWarning: (currentVersion: Int, supportVersion: Int) -> Unit
+    ): Result<Unit> =
         runCatching {
             ChaoxingHttpClient.instance!!.newCall(
                 Request.Builder()
@@ -69,6 +74,14 @@ object ChaoxingCaptchaHelper {
                 response.checkResponseThrowException()
                 withContext(Dispatchers.IO) {
                     val jsonObject = JSONObject.parseObject(response.body.string())
+                    jsonObject.getInteger("manifestVersion")?.let { currentVersion ->
+                        if (currentVersion > SUPPORT_CAPTCHA_MEMORIES_MANIFEST_VERSION) {
+                            onHigherManifestVersionWarning(
+                                currentVersion,
+                                SUPPORT_CAPTCHA_MEMORIES_MANIFEST_VERSION
+                            )
+                        }
+                    }
                     context.chaoxingDataStore.updateData { dataStore ->
                         dataStore.toBuilder()
                             .setCaptchaMemories(
@@ -105,12 +118,16 @@ object ChaoxingCaptchaHelper {
                 }
             }
         }
-    }
+
 
     @OnlyAppDevelopedMode
     suspend fun buildCaptchaMemoriesDataToJson(context: Context): String {
         return JSONObject().apply {
-            put("memoriesVersion", SUPPORT_CAPTCHA_MEMORIES_MANIFEST_VERSION)
+            put("manifestVersion", SUPPORT_CAPTCHA_MEMORIES_MANIFEST_VERSION)
+            put(
+                "memoriesVersion",
+                LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")).toInt()
+            )
             put(
                 "captchaMemories",
                 storedCaptchaMemories.getValue(context).mapTo(JSONArray()) { memory ->

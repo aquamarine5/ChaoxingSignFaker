@@ -6,8 +6,6 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.screen
 
-import org.aquamarine5.brainspark.chaoxingsignfaker.components.SnackbarAlertDialog
-
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Intent
@@ -31,7 +29,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -86,6 +83,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingSignHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.AnalyserCard
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CustomizeClientCard
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.SnackbarAlertDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SponsorCard
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.RecommendHabit
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSigner
@@ -97,6 +95,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.disableComposableCode
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.displaySnackbar
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.isDevelopedMode
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
 import org.aquamarine5.brainspark.stackbricks.StackbricksComponent
 import org.aquamarine5.brainspark.stackbricks.StackbricksEventTrigger
 import org.aquamarine5.brainspark.stackbricks.StackbricksService
@@ -153,9 +152,9 @@ fun SettingScreen(
             var inputPassword by remember { mutableStateOf("") }
             SnackbarAlertDialog(onDismissRequest = {
                 isUnblockDialog = false
-            }, title = { _ ->
+            }, title = {
                 Text("输入密码：")
-            }, text = { _ ->
+            }, text = {
                 TextField(inputPassword, onValueChange = {
                     inputPassword = it
                 }, label = {
@@ -275,8 +274,8 @@ fun SettingScreen(
         if (isShowSignoffDialog) {
             SnackbarAlertDialog(
                 onDismissRequest = { isShowSignoffDialog = false },
-                title = { _ -> Text("确定要登出吗？") },
-                text = { _ ->
+                title = { Text("确定要登出吗？") },
+                text = {
                     Text("当你登出时，你的签到统计数据和代签用户不会丢失。")
                 },
                 dismissButton = {
@@ -673,7 +672,20 @@ fun SettingScreen(
                     Button(onClick = {
                         hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                         coroutineScope.launch {
-                            ChaoxingCaptchaHelper.updateRemoteCaptchaMemoriesData(context)
+                            ChaoxingCaptchaHelper.updateRemoteCaptchaMemoriesData(context) { currentVersion, supportVersion ->
+                                snackbarHostState.displaySnackbar(
+                                    "服务器上的验证码数值记忆版本 $currentVersion 高于当前程序支持的版本 $supportVersion ，请更新程序版本",
+                                    coroutineScope
+                                )
+                            }.onFailure {
+                                it.snackbarReport(
+                                    snackbarHostState,
+                                    coroutineScope,
+                                    "更新验证码数值记忆数据失败",
+                                    hapticFeedback,
+                                    shouldDismiss = false
+                                )
+                            }
                         }
                     }) { Text("ForceUpdateRemoteCaptchaMemoriesData") }
             }

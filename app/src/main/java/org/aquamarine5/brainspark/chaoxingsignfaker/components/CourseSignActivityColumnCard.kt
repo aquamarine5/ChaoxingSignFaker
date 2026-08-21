@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -39,6 +38,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingSignHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.SignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.ui.theme.Orange
+import org.aquamarine5.brainspark.chaoxingsignfaker.ui.theme.getLightOrDarkGray
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.isDevelopedMode
 
@@ -93,7 +93,7 @@ fun CourseSignActivityColumnCard(
                 Icon(
                     painter = ChaoxingSignHelper.getSignIcon(activity),
                     contentDescription = null,
-                    tint = if (isAvailable) LocalContentColor.current else Color.Gray
+                    tint = if (isAvailable) MaterialTheme.colorScheme.primary else getLightOrDarkGray()
                 )
             }
             Spacer(modifier = Modifier.width(4.dp))
@@ -119,7 +119,7 @@ fun CourseSignActivityColumnCard(
                 fontSize = 10.sp,
                 lineHeight = 12.sp,
                 color = Color.Gray,
-                modifier = Modifier.padding(start = 28.dp)
+                modifier = Modifier.padding(start = 52.dp)
             )
         Spacer(modifier = Modifier.height(16.dp))
     }

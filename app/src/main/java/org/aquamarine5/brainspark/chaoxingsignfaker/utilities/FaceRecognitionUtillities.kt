@@ -32,5 +32,12 @@ fun FaceRecognitionImageIconState.setStatus(
     else otherUserSessionList.filterNotNull()
         .indexOfFirst { it.phoneNumber == phoneNumber }
         .let { if (it < 0) return else it + 1 }
-    if (index in this.value.indices) this.value[index].value = status
+    if (index in this.value.indices) setStatus(status, index)
+}
+
+fun FaceRecognitionImageIconState.setStatus(
+    status: FaceRecognitionImageStatus,
+    index: Int
+) {
+    this.value[index].value = status
 }

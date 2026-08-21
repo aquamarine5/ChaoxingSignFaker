@@ -29,16 +29,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.zIndex
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
 
-/**
- * An AlertDialog whose title and text content share a SnackbarHostState that is hosted in the
- * Dialog window. This keeps Snackbar feedback visible above the dialog instead of behind it.
- */
+
 @Composable
 fun SnackbarAlertDialog(
     onDismissRequest: () -> Unit,
@@ -53,7 +51,7 @@ fun SnackbarAlertDialog(
     iconContentColor: Color = AlertDialogDefaults.iconContentColor,
     titleContentColor: Color = AlertDialogDefaults.titleContentColor,
     textContentColor: Color = AlertDialogDefaults.textContentColor,
-    tonalElevation: androidx.compose.ui.unit.Dp = AlertDialogDefaults.TonalElevation,
+    tonalElevation: Dp = AlertDialogDefaults.TonalElevation,
     properties: DialogProperties = DialogProperties(),
 ) {
     val dialogSnackbarHost = remember { SnackbarHostState() }

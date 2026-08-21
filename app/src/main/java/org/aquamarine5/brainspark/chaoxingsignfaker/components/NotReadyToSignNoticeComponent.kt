@@ -60,7 +60,7 @@ fun NotReadyToSignNoticeComponent(
             } else {
                 "已签到"
             },
-            tint = MaterialTheme.colorScheme.onBackground
+            tint = MaterialTheme.colorScheme.primary
         )
         Spacer(modifier = Modifier.height(6.dp))
         Text(
