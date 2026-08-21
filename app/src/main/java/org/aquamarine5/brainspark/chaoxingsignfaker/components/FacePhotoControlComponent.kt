@@ -118,7 +118,10 @@ fun FacePhotoControlComponent(
             ?.imagesList.orEmpty().take(ChaoxingFaceHelper.MAX_FACE_IMAGES)
     }
 
-    fun delete(record: ChaoxingFaceRecognitionImage, dialogSnackbarHost: androidx.compose.material3.SnackbarHostState) {
+    fun delete(
+        record: ChaoxingFaceRecognitionImage,
+        dialogSnackbarHost: androidx.compose.material3.SnackbarHostState
+    ) {
         if (record.objectId in removingObjectIds) return
         removingObjectIds = removingObjectIds + record.objectId
         requestedDeleteObjectId = null

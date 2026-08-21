@@ -172,7 +172,9 @@ object ChaoxingFaceHelper {
 
         runCatching {
             temporary.delete()
-            okHttpClient.newCall(Request.Builder().get().url(URL_SHARED_IMAGE.format(objectId)).build())
+            okHttpClient.newCall(
+                Request.Builder().get().url(URL_SHARED_IMAGE.format(objectId)).build()
+            )
                 .execute().use { response ->
                     response.checkResponseThrowException()
                     response.body.byteStream().use { input ->

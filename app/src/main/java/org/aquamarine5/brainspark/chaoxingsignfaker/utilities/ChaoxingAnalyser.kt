@@ -187,7 +187,9 @@ object ChaoxingAnalyser {
                                                         return@let get(0)
                                                     }
                                                 }.let { str ->
-                                                    if (dataStore.hideAnalysisRankSchoolName) str.plus("HIDE") else str
+                                                    if (dataStore.hideAnalysisRankSchoolName) str.plus(
+                                                        "HIDE"
+                                                    ) else str
                                                 }
                                             )
                                             .addEncoded("uuid", analysisDatabaseUUID)

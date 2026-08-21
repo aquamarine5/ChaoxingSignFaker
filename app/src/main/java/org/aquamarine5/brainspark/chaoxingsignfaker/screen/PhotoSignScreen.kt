@@ -6,8 +6,6 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.screen
 
-import org.aquamarine5.brainspark.chaoxingsignfaker.components.SnackbarAlertDialog
-
 import android.graphics.Bitmap
 import android.os.Build
 import androidx.activity.compose.BackHandler
@@ -32,7 +30,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -80,6 +77,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.components.NotReadyToSignNot
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.OtherUserSelectorComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SignOutRedirectTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SignPotentialWarningTips
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.SnackbarAlertDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SponsorPopupDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
@@ -559,7 +557,11 @@ fun PhotoSignScreen(
                                                         )
                                                     }
                                                     val bitmapIndex by remember(index) {
-                                                        derivedStateOf { bitmapIndexList.indexOf(index) }
+                                                        derivedStateOf {
+                                                            bitmapIndexList.indexOf(
+                                                                index
+                                                            )
+                                                        }
                                                     }
                                                     bitmapIndex.let {
                                                         if (it != -1 && bitmapList.size > it) {
@@ -621,13 +623,13 @@ fun PhotoSignScreen(
                                             verticalArrangement = Arrangement.Center
                                         ) {
                                             AnimatedVisibility(
-                                                isCamera,enter = slideInHorizontally(
+                                                isCamera, enter = slideInHorizontally(
                                                     initialOffsetX = { it },
                                                     animationSpec = tween(300)
                                                 ),
                                                 exit = slideOutHorizontally(
                                                     animationSpec = tween(400),
-                                                    targetOffsetX = { (it*1.5).toInt() }
+                                                    targetOffsetX = { (it * 1.5).toInt() }
                                                 )
                                             ) {
                                                 BackHandler(isCamera) {

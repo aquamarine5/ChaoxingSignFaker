@@ -6,8 +6,6 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.components
 
-import org.aquamarine5.brainspark.chaoxingsignfaker.components.SnackbarAlertDialog
-
 import android.Manifest
 import android.os.Bundle
 import android.util.Log

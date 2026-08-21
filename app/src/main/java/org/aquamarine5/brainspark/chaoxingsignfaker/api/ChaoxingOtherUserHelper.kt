@@ -219,6 +219,7 @@ object ChaoxingOtherUserHelper {
                                 newImageCount++
                                 true
                             }
+
                             else -> false
                         }
                     }

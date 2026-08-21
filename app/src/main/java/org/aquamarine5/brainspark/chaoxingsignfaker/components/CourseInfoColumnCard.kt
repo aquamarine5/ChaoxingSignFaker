@@ -86,7 +86,10 @@ fun CourseInfoColumnCard(
                         Text(remember(course) { course.teacherName.replace("\n", "") })
                     }
                     if (!course.schools.isNullOrBlank()) {
-                        Text(remember(course) { course.schools.replace("\n", "") }, fontSize = 12.sp)
+                        Text(
+                            remember(course) { course.schools.replace("\n", "") },
+                            fontSize = 12.sp
+                        )
                     }
                 }
                 val animTint by animateColorAsState(

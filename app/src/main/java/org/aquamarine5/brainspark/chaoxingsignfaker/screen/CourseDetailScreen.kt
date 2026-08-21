@@ -8,7 +8,6 @@ package org.aquamarine5.brainspark.chaoxingsignfaker.screen
 
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -36,12 +35,10 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -49,7 +46,6 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingActivityHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
-import org.aquamarine5.brainspark.chaoxingsignfaker.components.CloneSessionTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CourseSignActivityColumnCard
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NetworkExceptionComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCourseActivitiesEntity
@@ -156,7 +152,12 @@ fun CourseDetailScreen(
                 var pullToRefreshState by remember { mutableStateOf(false) }
                 val nowYear = remember { LocalDate.now().year }
                 val yearDateFormatter =
-                    remember { DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm", Locale.getDefault()) }
+                    remember {
+                        DateTimeFormatter.ofPattern(
+                            "yyyy-MM-dd HH:mm",
+                            Locale.getDefault()
+                        )
+                    }
                 val normalDateFormatter =
                     remember { DateTimeFormatter.ofPattern("MM-dd HH:mm", Locale.getDefault()) }
                 PullToRefreshBox(

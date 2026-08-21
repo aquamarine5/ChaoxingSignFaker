@@ -738,7 +738,7 @@ fun QRCodeSignScreen(
                             ),
                             exit = slideOutHorizontally(
                                 animationSpec = tween(400),
-                                targetOffsetX = { (it*1.5).toInt() }
+                                targetOffsetX = { (it * 1.5).toInt() }
                             ),
                             modifier = Modifier.zIndex(1f)
                         ) {
@@ -816,13 +816,13 @@ fun QRCodeSignScreen(
                                 }
                             }
                             AnimatedVisibility(
-                                isQRCodeScanning,enter = slideInHorizontally(
+                                isQRCodeScanning, enter = slideInHorizontally(
                                     initialOffsetX = { it },
                                     animationSpec = tween(300)
                                 ),
                                 exit = slideOutHorizontally(
                                     animationSpec = tween(400),
-                                    targetOffsetX = { (it*1.5).toInt() }
+                                    targetOffsetX = { (it * 1.5).toInt() }
                                 )
                             ) {
                                 BackHandler(isQRCodeScanning) {

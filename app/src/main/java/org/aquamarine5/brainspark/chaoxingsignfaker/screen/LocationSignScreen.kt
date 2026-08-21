@@ -309,24 +309,24 @@ fun LocationSignScreen(
                             signStatus = signStatus,
                             onSelfSigning = { value ->
                                 runCatching {
-                        val faceImageUploadedObjectId =
-                                                if (isFaceRequired) {
-                                                    faceImageObjectIds.getOrPut(
-                                                        ChaoxingHttpClient.instance!!.userEntity.phoneNumber
-                                                    ) {
-                                                        ChaoxingCloudDriveHelper.uploadImage(
-                                                            ChaoxingHttpClient.instance!!,
-                                                            faceImageBitmaps[
-                                                                ChaoxingHttpClient.instance!!.userEntity.phoneNumber
-                                                            ]!!
-                                                        )
-                                                    }
-                                                } else null
-                                            if (signer.sign(
-                                                    value,
-                                                    faceImageUploadedObjectId
-                                                )
+                                    val faceImageUploadedObjectId =
+                                        if (isFaceRequired) {
+                                            faceImageObjectIds.getOrPut(
+                                                ChaoxingHttpClient.instance!!.userEntity.phoneNumber
                                             ) {
+                                                ChaoxingCloudDriveHelper.uploadImage(
+                                                    ChaoxingHttpClient.instance!!,
+                                                    faceImageBitmaps[
+                                                        ChaoxingHttpClient.instance!!.userEntity.phoneNumber
+                                                    ]!!
+                                                )
+                                            }
+                                        } else null
+                                    if (signer.sign(
+                                            value,
+                                            faceImageUploadedObjectId
+                                        )
+                                    ) {
                                         suspendCancellableCoroutine { continuation ->
                                             captchaValidateParams =
                                                 signer to { captchaValidate ->
@@ -385,7 +385,7 @@ fun LocationSignScreen(
                                             signer.getSignInfo()
                                         ).run {
                                             if (!(isAlwaysForceSign || bypassChecking)) checkSignStatusThrowException()
-                                                val faceImageUploadedObjectId =
+                                            val faceImageUploadedObjectId =
                                                 if (isFaceRequired) {
                                                     faceImageObjectIds.getOrPut(
                                                         session.phoneNumber
@@ -425,7 +425,7 @@ fun LocationSignScreen(
                                         faceImageObjectIds.remove(session.phoneNumber)
                                         faceRecognitionImageIconList.setStatus(
                                             FaceRecognitionImageStatus.ImageCheckFailure,
-                                            index+1
+                                            index + 1
                                         )
                                     }
                                     storedFaceImageObjectIds[session.phoneNumber]?.let { objectId ->
@@ -439,7 +439,7 @@ fun LocationSignScreen(
                                 }.onSuccess {
                                     faceRecognitionImageIconList.setStatus(
                                         FaceRecognitionImageStatus.ImageCheckSuccess,
-                                        index+1
+                                        index + 1
                                     )
                                 }
                             },

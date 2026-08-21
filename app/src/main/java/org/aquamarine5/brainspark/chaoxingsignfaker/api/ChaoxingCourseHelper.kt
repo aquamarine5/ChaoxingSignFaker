@@ -86,7 +86,10 @@ object ChaoxingCourseHelper {
         }
     }
 
-    private fun MutableList<ChaoxingCourseEntity>.parseCourseListData(channelList: JSONArray,isCloneSession: Boolean) {
+    private fun MutableList<ChaoxingCourseEntity>.parseCourseListData(
+        channelList: JSONArray,
+        isCloneSession: Boolean
+    ) {
         for (i in channelList.indices) {
             val course = channelList.getJSONObject(i)
             val content = course.getJSONObject("content")
@@ -187,7 +190,7 @@ object ChaoxingCourseHelper {
                                     }
                             }
                         }
-                        parseCourseListData(channelList,isCloneSession)
+                        parseCourseListData(channelList, isCloneSession)
                     }
             }
         }

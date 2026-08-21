@@ -48,7 +48,6 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCaptchaHelper
-import org.aquamarine5.brainspark.chaoxingsignfaker.components.SnackbarAlertDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCaptchaDataEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSigner
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState

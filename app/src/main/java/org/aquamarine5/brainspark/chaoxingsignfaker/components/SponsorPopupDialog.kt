@@ -6,8 +6,6 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.components
 
-import org.aquamarine5.brainspark.chaoxingsignfaker.components.SnackbarAlertDialog
-
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
