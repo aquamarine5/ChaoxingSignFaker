@@ -120,9 +120,11 @@ class ChaoxingHttpClient private constructor(
             return Base64.getEncoder().encodeToString(rawData + rawData)
         }
 
-        private fun checkPasswordNotEmptyThrowException(password: String) {
+        private fun checkPasswordIllegalThrowException(password: String) {
             if (password.isEmpty())
                 throw ChaoxingLoginException("密码不能为空")
+            if (password.length !in 8..16)
+                throw ChaoxingLoginException("密码位数应该在8-16位")
         }
 
         suspend fun loadFromOtherUserSession(
@@ -187,7 +189,7 @@ class ChaoxingHttpClient private constructor(
             password: String,
             context: Context
         ): ChaoxingHttpClient = withContext(Dispatchers.IO) {
-            checkPasswordNotEmptyThrowException(password)
+            checkPasswordIllegalThrowException(password)
             val cookieJar: CookieJar = object : CookieJar {
                 private val cookieStore: MutableMap<String, List<Cookie>> = mutableMapOf()
                 private var chaoxingCookieSession: List<Cookie> = listOf()
@@ -445,7 +447,7 @@ class ChaoxingHttpClient private constructor(
             context: Context
         ): ChaoxingOtherUserSharedEntity =
             withContext(Dispatchers.IO) {
-                checkPasswordNotEmptyThrowException(password)
+                checkPasswordIllegalThrowException(password)
                 val uname = encryptByAES(phoneNumber)
                 val encryptedPassword = encryptByAES(password)
                 val request = Request.Builder()
@@ -523,7 +525,7 @@ class ChaoxingHttpClient private constructor(
             isEncryptedPassword: Boolean = false
         ): Unit =
             withContext(Dispatchers.IO) {
-                checkPasswordNotEmptyThrowException(password)
+                checkPasswordIllegalThrowException(password)
                 val uname = encryptByAES(phoneNumber)
                 val encryptedPassword =
                     if (isEncryptedPassword) password else encryptByAES(password)

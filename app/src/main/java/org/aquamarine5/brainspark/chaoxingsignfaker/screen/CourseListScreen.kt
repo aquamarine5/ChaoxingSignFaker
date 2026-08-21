@@ -426,7 +426,7 @@ fun CourseListScreen(
                                     ChaoxingHttpClient.exitCloning(coroutineScope, snackbarHost)
                                     navToCourseList()
                                 }
-                            var debouncePreviousTime = 0L
+                            var debouncePreviousTime = remember { 0L }
                             LazyColumn {
                                 item {
                                     Card(modifier = Modifier.zIndex(1f)) {
