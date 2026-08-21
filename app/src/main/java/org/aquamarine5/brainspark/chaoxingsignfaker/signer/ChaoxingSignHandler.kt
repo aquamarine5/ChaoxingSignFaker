@@ -104,6 +104,7 @@ class ChaoxingSignHandler<in T>(
                         )
                         hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
                         onAllSigningFinished(false)
+                        return@launch
                     } else {
                         it.snackbarReport(
                             snackbarHost,

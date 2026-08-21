@@ -48,6 +48,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableStateSetOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -297,12 +298,11 @@ fun QRCodeSignScreen(
                     var isFaceImageCaptured by remember { mutableStateOf(false) }
 
                     val faceImageBitmaps = remember { mutableMapOf<String, Bitmap>() }
-                    val newFaceImagePhones = remember { mutableStateListOf<String>() }
+                    val newFaceImagePhones = remember { mutableStateSetOf<String>() }
                     var showFaceSaveDialog by remember { mutableStateOf(false) }
                     var sponsorPendingAfterFaceSave by remember { mutableStateOf(false) }
                     if (showFaceSaveDialog) {
                         SaveFaceImagesDialog(newFaceImagePhones.size, onSave = {
-                            showFaceSaveDialog = false
                             coroutineScope.launch {
                                 newFaceImagePhones.toList().forEach { phone ->
                                     faceImageBitmaps[phone]?.let { bitmap ->
@@ -335,9 +335,10 @@ fun QRCodeSignScreen(
                                     delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED); isSponsor =
                                         true; sponsorPendingAfterFaceSave = false
                                 }
+                                showFaceSaveDialog = false
                             }
                         }, onDismiss = {
-                            showFaceSaveDialog = false; newFaceImagePhones.clear()
+                            newFaceImagePhones.clear()
                             if (sponsorPendingAfterFaceSave) {
                                 sponsorPendingAfterFaceSave = false; coroutineScope.launch {
                                     delay(
@@ -345,6 +346,7 @@ fun QRCodeSignScreen(
                                     ); isSponsor = true
                                 }
                             }
+                            showFaceSaveDialog = false
                         })
                     }
                     val faceImageObjectIds = remember { mutableMapOf<String, String>() }
@@ -402,8 +404,7 @@ fun QRCodeSignScreen(
                                         faceImageObjectIds.remove(ChaoxingHttpClient.instance!!.userEntity.phoneNumber)
                                         faceRecognitionImageIconList.setStatus(
                                             FaceRecognitionImageStatus.ImageCheckFailure,
-                                            ChaoxingHttpClient.instance!!.userEntity.phoneNumber,
-                                            signUserList,
+                                            0
                                         )
                                     }
                                     storedFaceImageObjectIds[ChaoxingHttpClient.instance!!.userEntity.phoneNumber]
@@ -418,8 +419,7 @@ fun QRCodeSignScreen(
                                 }.onSuccess {
                                     faceRecognitionImageIconList.setStatus(
                                         FaceRecognitionImageStatus.ImageCheckSuccess,
-                                        ChaoxingHttpClient.instance!!.userEntity.phoneNumber,
-                                        signUserList,
+                                        0
                                     )
                                 }
                             },
@@ -432,7 +432,7 @@ fun QRCodeSignScreen(
                                     )
                                 }
                             },
-                            onOtherUserSigning = { value, session, bypassChecking, _ ->
+                            onOtherUserSigning = { value, session, bypassChecking, index ->
                                 runCatching {
                                     httpClientStorage.getOrPut(session.phoneNumber) {
                                         ChaoxingHttpClient.loadFromOtherUserSession(
@@ -497,8 +497,7 @@ fun QRCodeSignScreen(
                                         faceImageObjectIds.remove(session.phoneNumber)
                                         faceRecognitionImageIconList.setStatus(
                                             FaceRecognitionImageStatus.ImageCheckFailure,
-                                            session.phoneNumber,
-                                            signUserList,
+                                            index + 1
                                         )
                                     }
                                     storedFaceImageObjectIds[session.phoneNumber]?.let { objectId ->
@@ -512,8 +511,7 @@ fun QRCodeSignScreen(
                                 }.onSuccess {
                                     faceRecognitionImageIconList.setStatus(
                                         FaceRecognitionImageStatus.ImageCheckSuccess,
-                                        session.phoneNumber,
-                                        signUserList,
+                                        index + 1
                                     )
                                 }
 
