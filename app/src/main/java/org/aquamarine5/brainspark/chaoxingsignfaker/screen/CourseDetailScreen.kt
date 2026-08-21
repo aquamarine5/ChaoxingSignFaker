@@ -179,16 +179,13 @@ fun CourseDetailScreen(
                             pullToRefreshState = true
                             coroutineScope.launch {
                                 isFetchedFailure = runCatching {
-                                    if (activitiesData == null) {
-                                        ChaoxingHttpClient.getHttpInstanceOrClone(courseEntity.isCloneSession)
-                                            ?.let {
-                                                activitiesData =
-                                                    ChaoxingActivityHelper.getActivitiesEntity(
-                                                        it,
-                                                        courseEntity
-                                                    )
-                                            }
-                                    }
+                                    ChaoxingHttpClient.getHttpInstanceOrClone(courseEntity.isCloneSession)
+                                        ?.let {
+                                            activitiesData = ChaoxingActivityHelper.getActivitiesEntity(
+                                                it,
+                                                courseEntity
+                                            )
+                                        }
                                 }.onFailure {
                                     it.snackbarReport(
                                         snackbarHost,

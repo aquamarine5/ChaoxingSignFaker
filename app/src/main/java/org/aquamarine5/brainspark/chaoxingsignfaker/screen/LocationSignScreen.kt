@@ -27,6 +27,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableStateSetOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -249,12 +250,11 @@ fun LocationSignScreen(
                     val faceImageObjectIds = remember { mutableMapOf<String, String>() }
                     val storedFaceImageObjectIds = remember { mutableMapOf<String, String>() }
                     val faceImageBitmaps = remember { mutableMapOf<String, Bitmap>() }
-                    val newFaceImagePhones = remember { mutableStateListOf<String>() }
+                    val newFaceImagePhones = remember { mutableStateSetOf<String>() }
                     var showFaceSaveDialog by remember { mutableStateOf(false) }
                     var sponsorPendingAfterFaceSave by remember { mutableStateOf(false) }
                     if (showFaceSaveDialog) {
                         SaveFaceImagesDialog(newFaceImagePhones.size, onSave = {
-                            showFaceSaveDialog = false
                             coroutineScope.launch {
                                 newFaceImagePhones.toList().forEach { phoneNumber ->
                                     faceImageBitmaps[phoneNumber]?.let { bitmap ->
@@ -289,9 +289,9 @@ fun LocationSignScreen(
                                     isSponsor = true
                                     sponsorPendingAfterFaceSave = false
                                 }
+                                showFaceSaveDialog = false
                             }
                         }, onDismiss = {
-                            showFaceSaveDialog = false
                             newFaceImagePhones.clear()
                             if (sponsorPendingAfterFaceSave) {
                                 sponsorPendingAfterFaceSave = false
@@ -300,6 +300,7 @@ fun LocationSignScreen(
                                     isSponsor = true
                                 }
                             }
+                            showFaceSaveDialog = false
                         })
                     }
                     val signHandler = remember {
@@ -308,24 +309,24 @@ fun LocationSignScreen(
                             signStatus = signStatus,
                             onSelfSigning = { value ->
                                 runCatching {
-                                    val faceImageUploadedObjectId =
-                                        if (isFaceRequired) {
-                                            faceImageObjectIds.getOrPut(
-                                                ChaoxingHttpClient.instance!!.userEntity.phoneNumber
-                                            ) {
-                                                ChaoxingCloudDriveHelper.uploadImage(
-                                                    ChaoxingHttpClient.instance!!,
-                                                    faceImageBitmaps.remove(
+                        val faceImageUploadedObjectId =
+                                                if (isFaceRequired) {
+                                                    faceImageObjectIds.getOrPut(
                                                         ChaoxingHttpClient.instance!!.userEntity.phoneNumber
-                                                    )!!
+                                                    ) {
+                                                        ChaoxingCloudDriveHelper.uploadImage(
+                                                            ChaoxingHttpClient.instance!!,
+                                                            faceImageBitmaps[
+                                                                ChaoxingHttpClient.instance!!.userEntity.phoneNumber
+                                                            ]!!
+                                                        )
+                                                    }
+                                                } else null
+                                            if (signer.sign(
+                                                    value,
+                                                    faceImageUploadedObjectId
                                                 )
-                                            }
-                                        } else null
-                                    if (signer.sign(
-                                            value,
-                                            faceImageUploadedObjectId
-                                        )
-                                    ) {
+                                            ) {
                                         suspendCancellableCoroutine { continuation ->
                                             captchaValidateParams =
                                                 signer to { captchaValidate ->
@@ -346,8 +347,7 @@ fun LocationSignScreen(
                                         faceImageObjectIds.remove(ChaoxingHttpClient.instance!!.userEntity.phoneNumber)
                                         faceRecognitionImageIconList.setStatus(
                                             FaceRecognitionImageStatus.ImageCheckFailure,
-                                            ChaoxingHttpClient.instance!!.userEntity.phoneNumber,
-                                            otherUserSessionForSignList
+                                            0
                                         )
                                     }
                                     storedFaceImageObjectIds[ChaoxingHttpClient.instance!!.userEntity.phoneNumber]
@@ -362,12 +362,11 @@ fun LocationSignScreen(
                                 }.onSuccess {
                                     faceRecognitionImageIconList.setStatus(
                                         FaceRecognitionImageStatus.ImageCheckSuccess,
-                                        ChaoxingHttpClient.instance!!.userEntity.phoneNumber,
-                                        otherUserSessionForSignList
+                                        0
                                     )
                                 }
                             },
-                            onOtherUserSigning = { value, session, bypassChecking, _ ->
+                            onOtherUserSigning = { value, session, bypassChecking, index ->
                                 runCatching {
                                     httpClientStorage.getOrPut(session.phoneNumber) {
                                         ChaoxingHttpClient.loadFromOtherUserSession(
@@ -386,16 +385,16 @@ fun LocationSignScreen(
                                             signer.getSignInfo()
                                         ).run {
                                             if (!(isAlwaysForceSign || bypassChecking)) checkSignStatusThrowException()
-                                            val faceImageUploadedObjectId =
+                                                val faceImageUploadedObjectId =
                                                 if (isFaceRequired) {
                                                     faceImageObjectIds.getOrPut(
                                                         session.phoneNumber
                                                     ) {
                                                         ChaoxingCloudDriveHelper.uploadImage(
                                                             client,
-                                                            faceImageBitmaps.remove(
+                                                            faceImageBitmaps[
                                                                 session.phoneNumber
-                                                            )!!
+                                                            ]!!
                                                         )
                                                     }
                                                 } else null
@@ -426,8 +425,7 @@ fun LocationSignScreen(
                                         faceImageObjectIds.remove(session.phoneNumber)
                                         faceRecognitionImageIconList.setStatus(
                                             FaceRecognitionImageStatus.ImageCheckFailure,
-                                            ChaoxingHttpClient.instance!!.userEntity.phoneNumber,
-                                            otherUserSessionForSignList
+                                            index+1
                                         )
                                     }
                                     storedFaceImageObjectIds[session.phoneNumber]?.let { objectId ->
@@ -441,8 +439,7 @@ fun LocationSignScreen(
                                 }.onSuccess {
                                     faceRecognitionImageIconList.setStatus(
                                         FaceRecognitionImageStatus.ImageCheckSuccess,
-                                        session.phoneNumber,
-                                        otherUserSessionForSignList
+                                        index+1
                                     )
                                 }
                             },

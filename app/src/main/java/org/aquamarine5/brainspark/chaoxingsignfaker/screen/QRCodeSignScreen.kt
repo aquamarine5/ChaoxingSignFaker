@@ -369,9 +369,9 @@ fun QRCodeSignScreen(
                                             ) {
                                                 ChaoxingCloudDriveHelper.uploadImage(
                                                     ChaoxingHttpClient.instance!!,
-                                                    faceImageBitmaps.remove(
+                                                    faceImageBitmaps[
                                                         ChaoxingHttpClient.instance!!.userEntity.phoneNumber
-                                                    )!!
+                                                    ]!!
                                                 )
                                             }
                                         } else null
@@ -447,9 +447,9 @@ fun QRCodeSignScreen(
                                                 ) {
                                                     ChaoxingCloudDriveHelper.uploadImage(
                                                         client,
-                                                        faceImageBitmaps.remove(
+                                                        faceImageBitmaps[
                                                             session.phoneNumber
-                                                        )!!
+                                                        ]!!
                                                     )
                                                 }
                                             } else null
