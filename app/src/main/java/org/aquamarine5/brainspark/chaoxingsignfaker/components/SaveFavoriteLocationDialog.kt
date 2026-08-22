@@ -32,7 +32,7 @@ fun SaveFavoriteLocationDialog(
             hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
             onDismiss()
         },
-        text = { _ ->
+        text = {
 
         },
         confirmButton = {
@@ -43,7 +43,7 @@ fun SaveFavoriteLocationDialog(
                 Text("关闭")
             }
         },
-        title = { _ ->
+        title = {
             Text("是否收藏刚才的签到位置？")
         },
         dismissButton = {

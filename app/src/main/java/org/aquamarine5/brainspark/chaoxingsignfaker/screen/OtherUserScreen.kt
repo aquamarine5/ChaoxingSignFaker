@@ -261,8 +261,8 @@ fun OtherUserScreen(
         if (photo != null) {
             SnackbarAlertDialog(
                 onDismissRequest = { inspectedFacePhotoObjectId = null },
-                title = { _ -> Text("人脸识别照片") },
-                text = { _ ->
+                title = { Text("人脸识别照片") },
+                text = {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         AsyncImage(
                             model = ChaoxingFaceHelper.getFaceImageFile(context, photo.objectId),
@@ -316,9 +316,9 @@ fun OtherUserScreen(
                 null,
                 tint = MaterialTheme.colorScheme.primary
             )
-        }, title = { _ ->
+        }, title = {
             Text("通过账号密码的形式添加他人的用户数据")
-        }, text = { _ ->
+        }, text = {
             var phoneNumber by remember { mutableStateOf("") }
             var password by remember { mutableStateOf("") }
             Column {
@@ -508,9 +508,9 @@ fun OtherUserScreen(
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(40.dp)
             )
-        }, title = { _ ->
+        }, title = {
             Text("管理标签")
-        }, text = { _ ->
+        }, text = {
             val mutex = remember { Mutex() }
             val tagUsageList = remember(isTagsSettingDialog) {
                 if (isTagsSettingDialog) {
@@ -630,10 +630,10 @@ fun OtherUserScreen(
                             Text("取消")
                         }
                     },
-                    title = { _ ->
+                    title = {
                         Text("确认删除标签${tagsEntityList[delectTagIndexForSecondaryConfirm!!].name}？")
                     },
-                    text = { _ ->
+                    text = {
                         Text("删除标签会同样将该标签从所有用户中移除，此操作不可撤销。")
                     },
                     icon = {
@@ -728,7 +728,7 @@ fun OtherUserScreen(
                         }) {
                             Text("不保存退出")
                         }
-                    }, title = { _ ->
+                    }, title = {
                         if (modifiedTagIndexForUserSelector != null)
                             Text(buildAnnotatedString {
                                 append("修改 ")
@@ -740,7 +740,7 @@ fun OtherUserScreen(
                                 }
                                 append(" 标签的用户")
                             })
-                    }, text = { _ ->
+                    }, text = {
                         LazyColumn {
                             otherUserSessions.forEachIndexed { index, session ->
                                 item {
@@ -830,9 +830,9 @@ fun OtherUserScreen(
                         modifier = Modifier.size(40.dp),
                         tint = MaterialTheme.colorScheme.primary
                     )
-                }, title = { _ ->
+                }, title = {
                     Text("设置标签颜色")
-                }, text = { _ ->
+                }, text = {
                     val controller = rememberColorPickerController()
                     Column(
                         verticalArrangement = Arrangement.Center,
@@ -874,7 +874,7 @@ fun OtherUserScreen(
                     }) {
                         Text("关闭")
                     }
-                }, title = { _ ->
+                }, title = {
                     Text("为新标签选择用户")
                 }, icon = {
                     Icon(
@@ -883,7 +883,7 @@ fun OtherUserScreen(
                         modifier = Modifier.size(40.dp),
                         tint = MaterialTheme.colorScheme.primary
                     )
-                }, text = { _ ->
+                }, text = {
                     LazyColumn(
                         modifier = Modifier.border(
                             1.dp, MaterialTheme.colorScheme.primary,
@@ -1171,7 +1171,7 @@ fun OtherUserScreen(
     if (repairSessionIndex != null) {
         SnackbarAlertDialog(onDismissRequest = {
             repairSessionIndex = null
-        }, title = { _ ->
+        }, title = {
             Text("修复用户 ${otherUserSessions[repairSessionIndex!!].name} 的登录状态")
         }, icon = {
             Icon(
@@ -1180,7 +1180,7 @@ fun OtherUserScreen(
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(40.dp)
             )
-        }, text = { _ ->
+        }, text = {
             Column {
                 Text("在最近一次的签到过程中检测到用户 ${otherUserSessions[repairSessionIndex!!].name} 的登录状态异常，重新登录后可修复此问题。")
                 var password by remember { mutableStateOf("") }
@@ -1307,10 +1307,10 @@ fun OtherUserScreen(
                         modifier = Modifier.size(40.dp)
                     )
                 },
-                title = { _ ->
+                title = {
                     Text("删除用户")
                 },
-                text = { _ ->
+                text = {
                     Text("确定要删除此用户吗？此操作不可撤销。")
                 },
                 confirmButton = {
@@ -1408,10 +1408,10 @@ fun OtherUserScreen(
                 ) {
                     Text("删除用户", color = Color.White)
                 }
-            }, title = { _ ->
+            }, title = {
                 if (selectedUserSettingDialogIndex != null)
                     Text("设置 ${otherUserSessions[selectedUserSettingDialogIndex!!].name} 用户")
-            }, text = { _ ->
+            }, text = {
                 Column {
                     LazyColumn {
                         if (tagsEntityList.isEmpty()) {
@@ -1491,7 +1491,7 @@ fun OtherUserScreen(
             OutlinedButton(onClick = {
                 isURLSharedDialog = false
             }) { Text("关闭") }
-        }, title = { _ ->
+        }, title = {
             Text("通过文本链接的形式分享自己的用户数据")
         }, icon = {
             Icon(
@@ -1500,7 +1500,7 @@ fun OtherUserScreen(
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(40.dp)
             )
-        }, text = { _ ->
+        }, text = {
             Column {
                 Text("对方将链接从浏览器打开即可导入你的用户数据（对方需更新到1.5版本及以上），或将链接粘贴到以下输入框中：")
                 Spacer(modifier = Modifier.height(6.dp))
@@ -1959,8 +1959,8 @@ fun OtherUserScreen(
             if (isFacePhotoDialog) {
                 SnackbarAlertDialog(
                     onDismissRequest = { isFacePhotoDialog = false },
-                    title = { _ -> Text("管理人脸照片") },
-                    text = { _ ->
+                    title = { Text("管理人脸照片") },
+                    text = {
                         FacePhotoControlComponent(
                             phoneNumber = ChaoxingHttpClient.instance!!.userEntity.phoneNumber,
                             onStartCamera = {
@@ -2372,10 +2372,10 @@ fun OtherUserScreen(
             onDismissRequest = {
                 importQRCodeOtherUserResult = null
             },
-            title = { _ ->
+            title = {
                 Text("导入成功")
             },
-            text = { _ ->
+            text = {
                 Text(importQRCodeOtherUserResult!!.getResultTips())
             },
             confirmButton = {

@@ -7,6 +7,7 @@
 package org.aquamarine5.brainspark.chaoxingsignfaker.components
 
 import android.Manifest
+import android.graphics.Color.argb
 import android.os.Bundle
 import android.util.Log
 import androidx.compose.foundation.background
@@ -549,7 +550,7 @@ fun GetLocationComponent(
                                 CircleOptions()
                                     .center(locationPosition)
                                     .radius(locationInfo.locationRange!!)
-                                    .fillColor(android.graphics.Color.argb(128, 255, 0, 0))
+                                    .fillColor(argb(128, 255, 0, 0))
                             )
                         }
                         locationClient.start()
@@ -738,7 +739,7 @@ fun GetLocationComponent(
                     Spacer(modifier = Modifier.height(8.dp))
                     FloatingActionButton(onClick = {
                         hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                        locationClient.start()
+                        locationClient.requestLocation()
                     }) {
                         Icon(
                             painterResource(R.drawable.ic_locate_fixed),

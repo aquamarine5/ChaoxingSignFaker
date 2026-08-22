@@ -738,7 +738,7 @@ fun SettingScreen(
                         }) {
                             Text("关闭")
                         }
-                    }, text = { _ ->
+                    }, text = {
                         TextField(
                             jsonText,
                             {

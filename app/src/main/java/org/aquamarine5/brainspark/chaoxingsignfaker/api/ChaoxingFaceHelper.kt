@@ -19,6 +19,7 @@ import okhttp3.Request
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingFaceRecognitionConfigure
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingFaceRecognitionImage
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingUserEntity
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingFaceImageException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingParseDataException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.StoredData
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
@@ -27,6 +28,8 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.storedData
 import java.io.File
 import java.security.MessageDigest
 import java.util.TreeMap
+import kotlin.contracts.ExperimentalContracts
+import kotlin.contracts.contract
 
 object ChaoxingFaceHelper {
     val storedFaceRecognitionImages: StoredData<Context, Map<String, List<ChaoxingFaceRecognitionImage>>> =
@@ -138,7 +141,7 @@ object ChaoxingFaceHelper {
 
 
     fun getFaceImageFile(context: Context, objectId: String): File {
-        require(objectId.isNotBlank()) { "人脸照片 ID 不能为空" }
+        checkThrowFaceException(objectId.isNotBlank()) { "人脸照片 ID 不能为空" }
         return File(context.filesDir, "face_images").apply { mkdirs() }
             .resolve("$objectId.jpg")
     }
@@ -158,9 +161,9 @@ object ChaoxingFaceHelper {
         objectId: String,
         phoneNumber: String? = null,
     ): ChaoxingFaceRecognitionImage = withContext(Dispatchers.IO) {
-        require(objectId.isNotBlank()) { "人脸照片 ID 不能为空" }
+        checkThrowFaceException(objectId.isNotBlank()) { "人脸照片 ID 不能为空" }
         val targetPhoneNumber = phoneNumber ?: userEntity.phoneNumber
-        require(targetPhoneNumber.isNotBlank()) { "无法确定人脸照片所属用户" }
+        checkThrowFaceException(targetPhoneNumber.isNotBlank()) { "无法确定人脸照片所属用户" }
         val image = ChaoxingFaceRecognitionImage.newBuilder()
             .setObjectId(objectId)
             .setUseCount(0)
@@ -183,10 +186,10 @@ object ChaoxingFaceHelper {
                         }
                     }
                 }
-            check(temporary.isFile && temporary.length() > 0L) { "下载的人脸照片为空" }
+            checkThrowFaceException(temporary.isFile && temporary.length() > 0L) { "下载的人脸照片为空" }
 
             temporary.copyTo(destination, overwrite = true)
-            check(destination.isFile && destination.length() == temporary.length()) {
+            checkThrowFaceException(destination.isFile && destination.length() == temporary.length()) {
                 "保存人脸照片失败"
             }
             temporary.delete()
@@ -197,7 +200,7 @@ object ChaoxingFaceHelper {
                 if (configure.imagesList.any { it.objectId == objectId }) {
                     return@updateData dataStore
                 }
-                check(configure.imagesCount < MAX_FACE_IMAGES) { "最多只能保存$MAX_FACE_IMAGES 张人脸照片" }
+                checkThrowFaceException(configure.imagesCount < MAX_FACE_IMAGES) { "最多只能保存$MAX_FACE_IMAGES 张人脸照片" }
                 dataStore.toBuilder()
                     .putFaceRecognitionConfigures(
                         targetPhoneNumber,
@@ -229,7 +232,7 @@ object ChaoxingFaceHelper {
         phoneNumber: String? = null,
     ): ChaoxingFaceRecognitionImage = withContext(Dispatchers.IO) {
         val targetPhoneNumber = phoneNumber ?: client.userEntity.phoneNumber
-        require(targetPhoneNumber.isNotBlank()) { "无法确定人脸照片所属用户" }
+        checkThrowFaceException(targetPhoneNumber.isNotBlank()) { "无法确定人脸照片所属用户" }
         val objectId = ChaoxingCloudDriveHelper.uploadImage(client, bitmap)
         val image = ChaoxingFaceRecognitionImage.newBuilder()
             .setObjectId(objectId)
@@ -241,7 +244,7 @@ object ChaoxingFaceHelper {
 
         runCatching {
             temporary.outputStream().use { output ->
-                check(
+                checkThrowFaceException(
                     bitmap.compress(
                         Bitmap.CompressFormat.JPEG,
                         90,
@@ -249,12 +252,12 @@ object ChaoxingFaceHelper {
                     )
                 ) { "保存人脸照片失败" }
             }
-            check(temporary.renameTo(destination)) { "保存人脸照片失败" }
+            checkThrowFaceException(temporary.renameTo(destination)) { "保存人脸照片失败" }
             context.chaoxingDataStore.updateData { dataStore ->
                 val configure = dataStore.faceRecognitionConfiguresMap[targetPhoneNumber]
                     ?: ChaoxingFaceRecognitionConfigure.getDefaultInstance()
-                check(configure.imagesCount < MAX_FACE_IMAGES) { "最多只能保存$MAX_FACE_IMAGES 张人脸照片" }
-                check(configure.imagesList.none { it.objectId == objectId }) { "该人脸照片已保存" }
+                checkThrowFaceException(configure.imagesCount < MAX_FACE_IMAGES) { "最多只能保存$MAX_FACE_IMAGES 张人脸照片" }
+                checkThrowFaceException(configure.imagesList.none { it.objectId == objectId }) { "该人脸照片已保存" }
                 dataStore.toBuilder()
                     .putFaceRecognitionConfigures(
                         targetPhoneNumber,
@@ -340,6 +343,17 @@ object ChaoxingFaceHelper {
                     }
                 }
             )
+        }
+    }
+
+    @OptIn(ExperimentalContracts::class)
+    private fun checkThrowFaceException(value: Boolean, lazyMessage: () -> String){
+        contract {
+            returns() implies value
+        }
+        if (!value) {
+            val message = lazyMessage()
+            throw ChaoxingFaceImageException(message)
         }
     }
 }

@@ -163,9 +163,9 @@ fun AnalyserCard() {
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(40.dp)
                 )
-            }, title = { _ ->
+            }, title = {
                 Text("修改排行榜显示名称")
-            }, text = { _ ->
+            }, text = {
                 Column {
                     Text("排行榜显示名称是指在排行榜中展示的用户名，修改排行榜显示名称不会影响学习通账号昵称的修改，填写名称时请注意遵守相关法律法规。\n请注意，任何操作都会在第二天打开应用时提交至服务器进行修改。")
                     TextField(
@@ -247,9 +247,9 @@ fun AnalyserCard() {
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(40.dp)
                 )
-            }, title = { _ ->
+            }, title = {
                 Text("排行榜说明")
-            }, text = { _ ->
+            }, text = {
                 Column {
                     Column(
                         modifier = Modifier
@@ -380,9 +380,9 @@ fun AnalyserCard() {
         clickToDisplayRankDetail?.let { detail ->
             SnackbarAlertDialog(onDismissRequest = {
                 clickToDisplayRankDetail = null
-            }, title = { _ ->
+            }, title = {
                 Text(detail.name)
-            }, text = { _ ->
+            }, text = {
                 Column {
                     Text(
                         "学校: ${
@@ -434,7 +434,7 @@ fun AnalyserCard() {
             }
             SnackbarAlertDialog(onDismissRequest = {
                 isAnalyserRankDialog = false
-            }, title = { _ ->
+            }, title = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("签到排行榜")
                     IconButton(onClick = {
@@ -470,7 +470,7 @@ fun AnalyserCard() {
                 }) {
                     Text("关闭")
                 }
-            }, text = { _ ->
+            }, text = {
                 Column(modifier = Modifier.fillMaxWidth()) {
                     when {
                         rankData == null -> {

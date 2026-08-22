@@ -454,7 +454,7 @@ fun FavoriteLocationSettingComponent() {
                     }
                 }
                 AndroidView(
-                    factory = { _ ->
+                    factory = {
                         baiduMap
                     }, modifier = Modifier.zIndex(0f), onRelease = {
                         runCatching {

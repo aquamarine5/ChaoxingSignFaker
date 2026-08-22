@@ -154,7 +154,7 @@ fun CourseDetailScreen(
                 val yearDateFormatter =
                     remember {
                         DateTimeFormatter.ofPattern(
-                            "yyyy-MM-dd HH:mm",
+                            "yyyy-MM-dd HH:mm:ss",
                             Locale.getDefault()
                         )
                     }

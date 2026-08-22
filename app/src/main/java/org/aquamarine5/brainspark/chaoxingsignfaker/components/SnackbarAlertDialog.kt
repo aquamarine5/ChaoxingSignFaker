@@ -29,6 +29,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -46,7 +47,7 @@ fun SnackbarAlertDialog(
     icon: @Composable (() -> Unit)? = null,
     title: @Composable ((SnackbarHostState) -> Unit)? = null,
     text: @Composable ((SnackbarHostState) -> Unit)? = null,
-    shape: androidx.compose.ui.graphics.Shape = AlertDialogDefaults.shape,
+    shape: Shape = AlertDialogDefaults.shape,
     containerColor: Color = AlertDialogDefaults.containerColor,
     iconContentColor: Color = AlertDialogDefaults.iconContentColor,
     titleContentColor: Color = AlertDialogDefaults.titleContentColor,

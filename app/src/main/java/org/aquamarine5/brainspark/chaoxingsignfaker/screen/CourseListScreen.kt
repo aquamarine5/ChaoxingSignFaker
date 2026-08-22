@@ -244,7 +244,7 @@ fun CourseListScreen(
                 null,
                 tint = MaterialTheme.colorScheme.primary
             )
-        }, text = { _ ->
+        }, text = {
             Text("此版本设置了强制更新，强烈建议进行更新，忽略更新可能导致签到失败或其他意外的BUG。")
         })
     }
@@ -273,7 +273,7 @@ fun CourseListScreen(
             }) {
                 Text("去更新")
             }
-        }, text = { _ ->
+        }, text = {
             Text(buildAnnotatedString {
                 append("检测到新版本：")
                 withStyle(
@@ -303,7 +303,7 @@ fun CourseListScreen(
                 fontSize = 11.sp,
                 lineHeight = 12.sp
             )
-        }, title = { _ ->
+        }, title = {
             Text("有新版本可用！")
         }, icon = {
             Icon(painterResource(R.drawable.ic_circle_arrow_up), null)

@@ -233,7 +233,7 @@ fun SponsorAlertDialog(onDismissRequest: () -> Unit) {
                 Text("现在就去")
             }
         }
-    }, text = { _ ->
+    }, text = {
         Column(
             modifier = Modifier.verticalScroll(rememberScrollState())
         ) {

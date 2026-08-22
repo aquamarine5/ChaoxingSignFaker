@@ -247,7 +247,7 @@ fun FacePhotoControlComponent(
         if (record != null) {
             SnackbarAlertDialog(
                 onDismissRequest = { inspectedObjectId = null },
-                title = { _ -> Text("人脸照片详情") },
+                title = { Text("人脸照片详情") },
                 text = { dialogSnackbarHost ->
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         AsyncImage(
@@ -306,8 +306,8 @@ fun FacePhotoControlComponent(
                         modifier = Modifier.size(40.dp),
                     )
                 },
-                title = { _ -> Text("是否删除照片？") },
-                text = { _ ->
+                title = { Text("是否删除照片？") },
+                text = {
                     Card(
                         shape = RoundedCornerShape(18.dp),
                         colors = CardDefaults.cardColors(

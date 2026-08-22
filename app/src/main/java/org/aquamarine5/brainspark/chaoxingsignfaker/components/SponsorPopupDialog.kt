@@ -49,9 +49,9 @@ fun SponsorPopupDialog() {
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(40.dp)
             )
-        }, title = { _ ->
+        }, title = {
             Text("应用还好用嘛？")
-        }, text = { _ ->
+        }, text = {
             Column {
                 Text(buildAnnotatedString {
                     append("随地大小签最近一直在连续更新！虽然可能更新版本烦到你了，但是都是在让你的使用体验更好！虽然每次使用不需要付费，但是用于更新的服务器资源还是需要")

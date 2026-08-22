@@ -136,7 +136,7 @@ fun OtherUserSelectorComponent(
         if (repairSessionIndex != null) {
             SnackbarAlertDialog(onDismissRequest = {
                 repairSessionIndex = null
-            }, title = { _ ->
+            }, title = {
                 Text("修复用户 ${signUserList[repairSessionIndex!!].name} 的登录状态")
             }, icon = {
                 Icon(
@@ -145,7 +145,7 @@ fun OtherUserSelectorComponent(
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(40.dp)
                 )
-            }, text = { _ ->
+            }, text = {
                 Column {
                     Text("在最近一次的签到过程中检测到用户 ${signUserList[repairSessionIndex!!].name} 的登录状态异常，重新登录后可修复此问题。")
                     var password by remember { mutableStateOf("") }
@@ -264,7 +264,7 @@ fun OtherUserSelectorComponent(
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(40.dp)
                 )
-            }, text = { _ ->
+            }, text = {
                 Text(buildAnnotatedString {
                     append("随地大小签会自动检测并拒绝为不在签到班级的学生进行签到操作，")
                     withStyle(SpanStyle(color = Color.Red)) {

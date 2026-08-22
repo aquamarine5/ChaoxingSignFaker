@@ -45,10 +45,10 @@ fun RequireLoginAlertDialog(
     if (isShowDialog) {
         SnackbarAlertDialog(
             onDismissRequest = { },
-            title = { _ ->
+            title = {
                 Text("重新登录")
             },
-            text = { _ ->
+            text = {
                 Column {
                     Text("如果需要使用登录其他用户、帮助签到的功能，需要升级程序数据库，重新登录学习通账号。")
                     OutlinedTextField(
