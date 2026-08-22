@@ -28,6 +28,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -38,13 +39,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
@@ -75,7 +77,7 @@ private const val SPONSOR_IMAGE_FILENAME_BASE = "ChaoxingSignFaker_sponsor"
 @Composable
 fun SponsorAlertDialog(onDismissRequest: () -> Unit) {
     val context = LocalActivity.current!!.applicationContext
-    var sponsorList by remember { mutableStateOf<List<Pair<String, String>>>(listOf()) }
+    var sponsorList by remember { mutableStateOf<List<Pair<String, String>>?>(null) }
     var updateDate by remember { mutableStateOf("2006/12/15") }
     val snackbarState = LocalSnackbarHostState.current
     val coroutineScope = rememberCoroutineScope()
@@ -249,45 +251,52 @@ fun SponsorAlertDialog(onDismissRequest: () -> Unit) {
             }
             Spacer(modifier = Modifier.height(4.dp))
             Text(
+                "如需在列表内显示自定义名称，请添加备注。捐赠列表并非实时更新，上次更新时间：$updateDate",
+                color = Color.Gray,
+                lineHeight = 12.sp,
+                fontSize = 11.sp
+            )
+            Text(
                 "捐赠列表：",
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary
             )
-            Text(
-                "如需在列表内显示自定义名称，请添加备注。捐赠列表并非实时更新，上次更新时间：$updateDate",
-                fontStyle = FontStyle.Italic,
-                lineHeight = 14.sp,
-                fontSize = 12.sp
-            )
             Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                buildAnnotatedString {
-                    sponsorList.forEachIndexed { index, it ->
-                        withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
-                            append(it.first)
+            if (sponsorList == null)
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    CircularProgressIndicator()
+                }
+            else
+                Text(
+                    buildAnnotatedString {
+                        sponsorList!!.forEachIndexed { index, it ->
+                            withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+                                append(it.first)
+                            }
+                            append(" 赞赏了 ")
+                            withStyle(
+                                SpanStyle(
+                                    fontWeight = FontWeight.Bold, fontFamily = FontGilroy
+                                )
+                            ) {
+                                append(it.second)
+                            }
+                            append(" 元")
+                            if (index != sponsorList!!.size - 1)
+                                append("\n")
                         }
-                        append(" 赞赏了 ")
-                        withStyle(
-                            SpanStyle(
-                                fontWeight = FontWeight.Bold, fontFamily = FontGilroy
-                            )
-                        ) {
-                            append(it.second)
-                        }
-                        append(" 元")
-                        if (index != sponsorList.size - 1)
-                            append("\n")
-                    }
-                }, modifier = Modifier
-                    .border(
-                        1.dp, MaterialTheme.colorScheme.primary,
-                        RoundedCornerShape(4.dp)
-                    )
-                    .padding(8.dp)
-                    .fillMaxWidth()
-            )
+                    }, modifier = Modifier
+                        .border(
+                            1.dp, MaterialTheme.colorScheme.primary,
+                            RoundedCornerShape(4.dp)
+                        )
+                        .padding(8.dp)
+                        .fillMaxWidth()
+                )
         }
     })
-
 }

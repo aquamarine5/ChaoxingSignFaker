@@ -94,7 +94,7 @@ fun initializeClientInfo(userAgent: String, packageName: String) {
 }
 
 @Composable
-fun CustomizeClientCard() {
+fun CustomizeClientCard(onClose: (() -> Unit)? = null) {
     var isShowDialog by remember { mutableStateOf(false) }
     val hapticFeedback = LocalHapticFeedback.current
     val context = LocalContext.current
@@ -146,6 +146,7 @@ fun CustomizeClientCard() {
     Spacer(modifier = Modifier.height(8.dp))
     if (isShowDialog) {
         SnackbarAlertDialog(onDismissRequest = {
+            onClose?.invoke()
             isShowDialog = false
         }, title = {
             Text("定制专属客户端")
@@ -173,9 +174,9 @@ fun CustomizeClientCard() {
                         Text("学习通")
                         Text(
                             ChaoxingClientInfo.DEFAULT.packageName,
-                            fontSize = 10.sp,
+                            fontSize = 11.sp,
                             color = Color.Gray,
-                            lineHeight = 11.sp
+                            lineHeight = 12.sp
                         )
                     }
                 }
@@ -199,9 +200,9 @@ fun CustomizeClientCard() {
                         Text("学在西电")
                         Text(
                             ChaoxingClientInfo.XUEZAIXIDIAN.packageName,
-                            fontSize = 10.sp,
+                            fontSize = 11.sp,
                             color = Color.Gray,
-                            lineHeight = 11.sp
+                            lineHeight = 12.sp
                         )
                     }
                 }
@@ -282,6 +283,7 @@ fun CustomizeClientCard() {
                         }.build()
                     }
                 }
+                onClose?.invoke()
                 isShowDialog = false
             }) {
                 Text("确定")

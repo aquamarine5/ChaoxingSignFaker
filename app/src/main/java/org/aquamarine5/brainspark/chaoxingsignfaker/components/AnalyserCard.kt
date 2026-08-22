@@ -336,6 +336,7 @@ fun AnalyserCard() {
                                                         style = MaterialTheme.typography.bodyLarge
                                                     )
                                                     if (isDisabled) {
+                                                        Spacer(modifier = Modifier.height(2.dp))
                                                         Row(
                                                             verticalAlignment = Alignment.CenterVertically
                                                         ) {
@@ -349,9 +350,10 @@ fun AnalyserCard() {
                                                             Text(
                                                                 if (isDigitLeading) "意义不明的学校名称"
                                                                 else "对于重复的学校名称，推荐使用不带\"图书馆\"的名称",
-                                                                fontSize = 11.sp,
-                                                                lineHeight = 13.sp,
-                                                                color = Color.Gray
+                                                                fontSize = 10.sp,
+                                                                lineHeight = 11.sp,
+                                                                color = Color.Gray,
+                                                                fontWeight = FontWeight.W400
                                                             )
                                                         }
                                                     }
