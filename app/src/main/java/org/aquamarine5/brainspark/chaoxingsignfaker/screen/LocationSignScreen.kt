@@ -250,6 +250,7 @@ fun LocationSignScreen(
 
                     val faceImageObjectIds = remember { mutableMapOf<String, String>() }
                     val storedFaceImageObjectIds = remember { mutableMapOf<String, String>() }
+                    val faceRecognitionFailedPhoneNumbers = remember { mutableStateListOf<String>() }
                     val faceImageBitmaps = remember { mutableMapOf<String, Bitmap>() }
                     val newFaceImagePhones = remember { mutableStateSetOf<String>() }
                     var showFaceSaveDialog by remember { mutableStateOf(false) }
@@ -358,6 +359,7 @@ fun LocationSignScreen(
                                 }.onFailure { exception ->
                                     if (exception is ChaoxingFaceSignException) {
                                         faceImageObjectIds.remove(selfPhoneNumber)
+                                        faceRecognitionFailedPhoneNumbers.add(selfPhoneNumber)
                                         faceRecognitionImageIconList.setStatus(
                                             FaceRecognitionImageStatus.ImageCheckFailure,
                                             0
@@ -377,6 +379,7 @@ fun LocationSignScreen(
                                         FaceRecognitionImageStatus.ImageCheckSuccess,
                                         0
                                     )
+                                    faceRecognitionFailedPhoneNumbers.remove(selfPhoneNumber)
                                     storedFaceImageObjectIds[selfPhoneNumber]?.let { objectId ->
                                         runCatching {
                                             ChaoxingFaceHelper.afterUsingFaceImage(
@@ -449,6 +452,7 @@ fun LocationSignScreen(
                                 }.onFailure { exception ->
                                     if (exception is ChaoxingFaceSignException) {
                                         faceImageObjectIds.remove(session.phoneNumber)
+                                        faceRecognitionFailedPhoneNumbers.add(session.phoneNumber)
                                         faceRecognitionImageIconList.setStatus(
                                             FaceRecognitionImageStatus.ImageCheckFailure,
                                             index + 1
@@ -467,6 +471,7 @@ fun LocationSignScreen(
                                         FaceRecognitionImageStatus.ImageCheckSuccess,
                                         index + 1
                                     )
+                                    faceRecognitionFailedPhoneNumbers.remove(session.phoneNumber)
                                     storedFaceImageObjectIds[session.phoneNumber]?.let { objectId ->
                                         runCatching {
                                             ChaoxingFaceHelper.afterUsingFaceImage(
@@ -536,6 +541,12 @@ fun LocationSignScreen(
                                 }
                             },
                             faceRecognitionImageIconStatus = faceRecognitionImageIconList,
+                            getFaceImage = { phoneNumber ->
+                                ChaoxingFaceHelper.storedFaceRecognitionImages.peekValue()
+                                    ?.get(phoneNumber)
+                                    .orEmpty()
+                                    .map { ChaoxingFaceHelper.getFaceImageFile(context, it.objectId) }
+                            },
                             isCloneSession = destination.isCloneSession,
                             onIgnoreExceptionSignAction = { index, session ->
                                 signHandler.ignoreExceptionOtherUserSigning(session, index)
@@ -557,12 +568,18 @@ fun LocationSignScreen(
                                             context
                                         )
                                     selectedPhoneNumbers.forEach { phoneNumber ->
-                                        storedImages[phoneNumber].orEmpty().randomOrNull()
-                                            ?.let { image ->
-                                                faceImageObjectIds[phoneNumber] = image.objectId
-                                                storedFaceImageObjectIds[phoneNumber] =
-                                                    image.objectId
-                                            }
+                                        val images = storedImages[phoneNumber].orEmpty()
+                                        val candidate =
+                                            if (phoneNumber in faceRecognitionFailedPhoneNumbers)
+                                                images.filter {
+                                                    !it.isFailureBefore && it.useCount > 0
+                                                }.randomOrNull()
+                                            else images.randomOrNull()
+                                        candidate?.let { image ->
+                                            faceImageObjectIds[phoneNumber] = image.objectId
+                                            storedFaceImageObjectIds[phoneNumber] =
+                                                image.objectId
+                                        }
                                     }
                                 }
                                 if (isFaceRequired && (
@@ -598,19 +615,29 @@ fun LocationSignScreen(
                                         )
                                     ) add(it.phoneNumber to it.name)
                                 }
+                            }, getSessionClient = { phoneNumber ->
+                                if (phoneNumber == ChaoxingHttpClient.instance!!.userEntity.phoneNumber)
+                                    ChaoxingHttpClient.instance!!
+                                else httpClientStorage.getOrPut(phoneNumber) {
+                                    ChaoxingHttpClient.loadFromOtherUserSession(
+                                        otherUserSessionForSignList.first { it?.phoneNumber == phoneNumber }!!,
+                                        context
+                                    )
+                                }
                             }, onCancel = {
                                 isSigning.value = false
                                 isFaceImageCaptured = false
-                            }) {
-                            it.forEach { (string, bitmap) ->
-                                faceRecognitionImageIconList.setStatus(
-                                    FaceRecognitionImageStatus.NewImageAdded,
-                                    string,
-                                    otherUserSessionForSignList
-                                )
-                                faceImageBitmaps[string] = bitmap
-                                newFaceImagePhones.add(string)
-                            }
+                            }) { bitmaps, isUseProfileImage ->
+                                bitmaps.forEach { (string, bitmap) ->
+                                    faceRecognitionImageIconList.setStatus(
+                                        if (isUseProfileImage) FaceRecognitionImageStatus.UseProfileImage
+                                        else FaceRecognitionImageStatus.NewImageAdded,
+                                        string,
+                                        otherUserSessionForSignList
+                                    )
+                                    faceImageBitmaps[string] = bitmap
+                                    newFaceImagePhones.add(string)
+                                }
                             isGetLocation = true
                             isFaceImageCaptured = false
                         }

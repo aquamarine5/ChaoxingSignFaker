@@ -19,17 +19,15 @@ import okhttp3.Request
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingFaceRecognitionConfigure
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingFaceRecognitionImage
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingUserEntity
-import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingFaceImageException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingParseDataException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.StoredData
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.checkResponseThrowException
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.checkThrowFaceException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.storedData
 import java.io.File
 import java.security.MessageDigest
 import java.util.TreeMap
-import kotlin.contracts.ExperimentalContracts
-import kotlin.contracts.contract
 
 object ChaoxingFaceHelper {
     val storedFaceRecognitionImages: StoredData<Context, Map<String, List<ChaoxingFaceRecognitionImage>>> =

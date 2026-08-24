@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2025-2026, @aquamarine5 (@海蓝色的咕咕鸽). All Rights Reserved.
  * Author: aquamarine5@163.com (Github: https://github.com/aquamarine5) and Brainspark (previously RenegadeCreation)
  * Repository: https://github.com/aquamarine5/ChaoxingSignFaker
@@ -66,7 +66,6 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
-import coil3.ImageLoader
 import coil3.compose.AsyncImage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -88,6 +87,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.components.SponsorCard
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.RecommendHabit
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSigner
 import org.aquamarine5.brainspark.chaoxingsignfaker.ui.theme.FontGilroy
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalImageLoader
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.OnlyAppDevelopedMode
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.UMengHelper
@@ -120,9 +120,9 @@ var isAlwaysForceSign by mutableStateOf(false)
 @Composable
 fun SettingScreen(
     stackbricksService: StackbricksService,
-    imageLoader: ImageLoader,
     naviToLoginScreen: () -> Unit,
 ) {
+    val imageLoader = LocalImageLoader.current
     Column(
         modifier = Modifier
             .padding(16.dp, 4.dp, 16.dp, 0.dp)

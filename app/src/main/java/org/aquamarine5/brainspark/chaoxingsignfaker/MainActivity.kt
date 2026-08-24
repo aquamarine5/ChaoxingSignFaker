@@ -122,6 +122,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.ui.theme.Orange
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingAnalyser
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingParseDataException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingPredictableException
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalImageLoader
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
@@ -396,7 +397,8 @@ class MainActivity : ComponentActivity() {
                                         .build()
                                 }.crossfade(true).build()
                             }
-                            LaunchedEffect(Unit) {
+                            CompositionLocalProvider(LocalImageLoader provides imageLoader) {
+                                LaunchedEffect(Unit) {
                                 withContext(Dispatchers.IO) {
                                     val datastore =
                                         applicationContext.chaoxingDataStore.data.first()
@@ -513,7 +515,6 @@ class MainActivity : ComponentActivity() {
                                             CourseListScreen(
                                                 entry.toRoute(),
                                                 stackbricksService,
-                                                imageLoader,
                                                 navToDetailDestination = {
                                                     navController.navigate(it)
                                                 },
@@ -569,7 +570,6 @@ class MainActivity : ComponentActivity() {
                                         composable<GroupListDestination> {
                                             GroupListScreen(
                                                 it.toRoute(),
-                                                imageLoader,
                                                 navToGroupDetail = { destination ->
                                                     navController.navigate(destination)
                                                 },
@@ -686,7 +686,7 @@ class MainActivity : ComponentActivity() {
 
                                     navigation<SettingGraphDestination>(startDestination = SettingDestination) {
                                         composable<SettingDestination> {
-                                            SettingScreen(stackbricksService, imageLoader) {
+                                            SettingScreen(stackbricksService) {
                                                 navController.navigate(LoginDestination()) {
                                                     popUpTo<SettingDestination> { inclusive = true }
                                                 }
@@ -712,6 +712,7 @@ class MainActivity : ComponentActivity() {
                                     }
                                 }
                         }
+                            }
                     }
                 }
             }

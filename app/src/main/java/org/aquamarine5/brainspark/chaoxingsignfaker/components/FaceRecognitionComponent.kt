@@ -7,6 +7,8 @@
 package org.aquamarine5.brainspark.chaoxingsignfaker.components
 
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Matrix
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.BorderStroke
@@ -16,26 +18,128 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingFaceHelper
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
+import java.io.ByteArrayOutputStream
+import java.net.URL
+import kotlin.random.Random
+
+private const val PROFILE_IMAGE_COMPRESS_QUALITY = 90
+
+private suspend fun randomizeProfileFaceImage(bitmap: Bitmap): Bitmap =
+    withContext(Dispatchers.IO) {
+        val cropRatio = 0.90f + Random.nextFloat() * 0.09f
+        val cropWidth = (bitmap.width * cropRatio).toInt().coerceAtLeast(1)
+        val cropHeight = (bitmap.height * cropRatio).toInt().coerceAtLeast(1)
+        val cropped = Bitmap.createBitmap(
+            bitmap,
+            Random.nextInt(bitmap.width - cropWidth + 1),
+            Random.nextInt(bitmap.height - cropHeight + 1),
+            cropWidth,
+            cropHeight
+        )
+        val rotated = Bitmap.createBitmap(
+            cropped, 0, 0, cropped.width, cropped.height,
+            Matrix().apply { postRotate(Random.nextFloat() * 10f - 5f) }, true
+        )
+        ByteArrayOutputStream().use { out ->
+            rotated.compress(Bitmap.CompressFormat.JPEG, PROFILE_IMAGE_COMPRESS_QUALITY, out)
+            BitmapFactory.decodeByteArray(out.toByteArray(), 0, out.size())
+                ?: rotated
+        }
+    }
 
 @Composable
 fun FaceRecognitionComponent(
     signUserName: List<Pair<String, String>>,
+    getSessionClient: suspend (phoneNumber: String) -> ChaoxingHttpClient,
     onCancel: () -> Unit,
-    onFinish: (Map<String, Bitmap>) -> Unit
+    onFinish: (Map<String, Bitmap>, isUseProfileImage: Boolean) -> Unit
 ) {
+    val snackbarHost = LocalSnackbarHostState.current
+    val coroutineScope = rememberCoroutineScope()
+    val hapticFeedback = LocalHapticFeedback.current
     var faceImageCapturedIndex by remember { mutableIntStateOf(0) }
-    BackHandler {
+    var useProfileImage by remember { mutableStateOf<Boolean?>(null) }
+    var isProcessingProfileImage by remember { mutableStateOf(false) }
+    BackHandler(enabled = !isProcessingProfileImage) {
         onCancel()
+    }
+
+    if (useProfileImage == null) {
+        AlertDialog(
+            onDismissRequest = onCancel,
+            title = { Text("使用默认人脸识别照片？") },
+            text = {
+                Text("是否使用代签用户的学习通默认人脸识别照片代替拍摄？" +
+                        "此方式存在风险：使用账号原有照片可能被学习通风控校验识别，导致代签失败甚至影响账号安全。")
+            },
+            confirmButton = {
+                Button(onClick = { useProfileImage = true }) { Text("是") }
+            },
+            dismissButton = {
+                OutlinedButton(onClick = { useProfileImage = false }) { Text("否") }
+            }
+        )
+        return
+    }
+
+    if (useProfileImage == true) {
+        LaunchedEffect(Unit) {
+            isProcessingProfileImage = true
+            runCatching {
+                buildMap {
+                    signUserName.forEach { (phoneNumber, _) ->
+                        val url = ChaoxingFaceHelper.getUserProfileFaceImageUrl(
+                            getSessionClient(phoneNumber)
+                        )
+                        val bitmap = withContext(Dispatchers.IO) {
+                            URL(url).openStream().use { stream ->
+                                BitmapFactory.decodeStream(stream)
+                                    ?: throw IllegalStateException("默认人脸识别照片下载失败")
+                            }
+                        }
+                        put(phoneNumber, randomizeProfileFaceImage(bitmap))
+                    }
+                }
+            }.onSuccess {
+                isProcessingProfileImage = false
+                onFinish(it, true)
+            }.onFailure {
+                it.snackbarReport(
+                    snackbarHost,
+                    coroutineScope,
+                    "获取默认人脸识别照片失败",
+                    hapticFeedback
+                )
+                useProfileImage = false
+                isProcessingProfileImage = false
+            }
+        }
+        CenterCircularProgressIndicator()
+        return
     }
 
     CameraComponent(signUserName.size, isDefaultBackCamera = false, onNextPhoto = {
@@ -60,7 +164,10 @@ fun FaceRecognitionComponent(
             Text("拍摄给 ${signUserName[faceImageCapturedIndex].second} 人脸识别的图片")
         }
     }) {
-        onFinish(it.mapIndexed { index, bitmap -> signUserName[index].first to bitmap }
-            .associate { it })
+        onFinish(
+            it.mapIndexed { index, bitmap -> signUserName[index].first to bitmap }
+                .associate { it },
+            false
+        )
     }
 }

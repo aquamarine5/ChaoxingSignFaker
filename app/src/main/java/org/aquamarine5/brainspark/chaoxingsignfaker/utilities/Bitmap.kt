@@ -12,9 +12,13 @@ import android.graphics.BitmapFactory
 import android.graphics.ImageDecoder
 import android.net.Uri
 import android.os.Build
+import androidx.compose.runtime.staticCompositionLocalOf
+import coil3.ImageLoader
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
 import kotlin.math.ceil
+
+val LocalImageLoader = staticCompositionLocalOf<ImageLoader> { error("ImageLoader not provided") }
 
 const val MAX_DECODE_DIMENSION = 3072
 

@@ -362,6 +362,7 @@ fun QRCodeSignScreen(
                     }
                     val faceImageObjectIds = remember { mutableMapOf<String, String>() }
                     val storedFaceImageObjectIds = remember { mutableMapOf<String, String>() }
+                    val faceRecognitionFailedPhoneNumbers = remember { mutableStateListOf<String>() }
 
                     val signHandler = remember {
                         ChaoxingSignHandler(
@@ -416,6 +417,7 @@ fun QRCodeSignScreen(
                                 }.onFailure { exception ->
                                     if (exception is ChaoxingFaceSignException) {
                                         faceImageObjectIds.remove(selfPhoneNumber)
+                                        faceRecognitionFailedPhoneNumbers.add(selfPhoneNumber)
                                         faceRecognitionImageIconList.setStatus(
                                             FaceRecognitionImageStatus.ImageCheckFailure,
                                             0
@@ -435,6 +437,7 @@ fun QRCodeSignScreen(
                                         FaceRecognitionImageStatus.ImageCheckSuccess,
                                         0
                                     )
+                                    faceRecognitionFailedPhoneNumbers.remove(selfPhoneNumber)
                                     storedFaceImageObjectIds[selfPhoneNumber]?.let { objectId ->
                                         runCatching {
                                             ChaoxingFaceHelper.afterUsingFaceImage(
@@ -522,6 +525,7 @@ fun QRCodeSignScreen(
                                 }.onFailure { exception ->
                                     if (exception is ChaoxingFaceSignException) {
                                         faceImageObjectIds.remove(session.phoneNumber)
+                                        faceRecognitionFailedPhoneNumbers.add(session.phoneNumber)
                                         faceRecognitionImageIconList.setStatus(
                                             FaceRecognitionImageStatus.ImageCheckFailure,
                                             index + 1
@@ -540,6 +544,7 @@ fun QRCodeSignScreen(
                                         FaceRecognitionImageStatus.ImageCheckSuccess,
                                         index + 1
                                     )
+                                    faceRecognitionFailedPhoneNumbers.remove(session.phoneNumber)
                                     storedFaceImageObjectIds[session.phoneNumber]?.let { objectId ->
                                         runCatching {
                                             ChaoxingFaceHelper.afterUsingFaceImage(
@@ -587,6 +592,12 @@ fun QRCodeSignScreen(
                                 isCurrentAlreadySigned = isCurrentAlreadySigned,
                                 userSelections = userSelections,
                                 faceRecognitionImageIconStatus = faceRecognitionImageIconList,
+                                getFaceImage = { phoneNumber ->
+                                    ChaoxingFaceHelper.storedFaceRecognitionImages.peekValue()
+                                        ?.get(phoneNumber)
+                                        .orEmpty()
+                                        .map { ChaoxingFaceHelper.getFaceImageFile(context, it.objectId) }
+                                },
                                 prefixTipsContent = {
                                     if (signoffData != null)
                                         SignOutRedirectTips(
@@ -743,12 +754,18 @@ fun QRCodeSignScreen(
                                                 context
                                             )
                                         selectedPhoneNumbers.forEach { phoneNumber ->
-                                            storedImages[phoneNumber].orEmpty().randomOrNull()
-                                                ?.let { image ->
-                                                    faceImageObjectIds[phoneNumber] = image.objectId
-                                                    storedFaceImageObjectIds[phoneNumber] =
-                                                        image.objectId
-                                                }
+                                            val images = storedImages[phoneNumber].orEmpty()
+                                            val candidate =
+                                                if (phoneNumber in faceRecognitionFailedPhoneNumbers)
+                                                    images.filter {
+                                                        !it.isFailureBefore && it.useCount > 0
+                                                    }.randomOrNull()
+                                                else images.randomOrNull()
+                                            candidate?.let { image ->
+                                                faceImageObjectIds[phoneNumber] = image.objectId
+                                                storedFaceImageObjectIds[phoneNumber] =
+                                                    image.objectId
+                                            }
                                         }
                                     }
                                     if (isFaceRequired && (
@@ -794,13 +811,23 @@ fun QRCodeSignScreen(
                                         )
                                     ) add(it.phoneNumber to it.name)
                                 }
+                            }, getSessionClient = { phoneNumber ->
+                                if (phoneNumber == ChaoxingHttpClient.instance!!.userEntity.phoneNumber)
+                                    ChaoxingHttpClient.instance!!
+                                else httpClientStorage.getOrPut(phoneNumber) {
+                                    ChaoxingHttpClient.loadFromOtherUserSession(
+                                        signUserList.first { it?.phoneNumber == phoneNumber }!!,
+                                        context
+                                    )
+                                }
                             }, onCancel = {
                                 isSigning.value = false
                                 isFaceImageCaptured = false
-                            }) {
-                                it.forEach { (string, bitmap) ->
+                            }) { bitmaps, isUseProfileImage ->
+                                bitmaps.forEach { (string, bitmap) ->
                                     faceRecognitionImageIconList.setStatus(
-                                        FaceRecognitionImageStatus.NewImageAdded,
+                                        if (isUseProfileImage) FaceRecognitionImageStatus.UseProfileImage
+                                        else FaceRecognitionImageStatus.NewImageAdded,
                                         string,
                                         signUserList
                                     )
