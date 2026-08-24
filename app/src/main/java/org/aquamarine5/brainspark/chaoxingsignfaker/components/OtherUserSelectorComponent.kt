@@ -402,40 +402,39 @@ fun OtherUserSelectorComponent(
                 }
                 LaunchedEffect(Unit) {
                     withContext(Dispatchers.IO) {
-                        val data = context.chaoxingDataStore.data.first().let { datastore ->
-                            tagEntities = datastore.tagsLibraryList
-                            tagClickState.addAll(List(datastore.tagsLibraryList.size) {
-                                mutableStateOf(
-                                    false
-                                )
-                            })
-                            selfPhoneNumber = datastore.loginSession.phoneNumber
-                            tagContainedUserIndexList = datastore.tagsLibraryList.map { tagEntity ->
-                                buildList {
-                                    datastore.otherUsersList.mapIndexed { index, otherUserSession ->
-                                        if (otherUserSession.tagsList.any { it == tagEntity.id })
-                                            add(index)
-                                    }
+                        val datastore = context.chaoxingDataStore.data.first()
+                        tagEntities = datastore.tagsLibraryList
+                        tagClickState.addAll(List(datastore.tagsLibraryList.size) {
+                            mutableStateOf(
+                                false
+                            )
+                        })
+                        selfPhoneNumber = datastore.loginSession.phoneNumber
+                        tagContainedUserIndexList = datastore.tagsLibraryList.map { tagEntity ->
+                            buildList {
+                                datastore.otherUsersList.mapIndexed { index, otherUserSession ->
+                                    if (otherUserSession.tagsList.any { it == tagEntity.id })
+                                        add(index)
                                 }
                             }
-                            if (faceRecognitionImageIconStatus?.value?.isEmpty() == true) {
-                                faceRecognitionImageIconStatus.value = buildList {
+                        }
+                        val data = datastore.otherUsersList.filter {
+                            it.phoneNumber != datastore.loginSession.phoneNumber
+                        }
+                        if (faceRecognitionImageIconStatus?.value?.isEmpty() == true) {
+                            faceRecognitionImageIconStatus.value = buildList {
+                                add(
+                                    if (datastore.faceRecognitionConfiguresMap[datastore.loginSession.phoneNumber]?.imagesList?.isNotEmpty() == true)
+                                        mutableStateOf(FaceRecognitionImageStatus.HaveImage)
+                                    else mutableStateOf(FaceRecognitionImageStatus.NoImage)
+                                )
+                                data.forEach {
                                     add(
-                                        if (datastore.faceRecognitionConfiguresMap[datastore.loginSession.phoneNumber]?.imagesList?.isNotEmpty() == true)
+                                        if (datastore.faceRecognitionConfiguresMap[it.phoneNumber]?.imagesList?.isNotEmpty() == true)
                                             mutableStateOf(FaceRecognitionImageStatus.HaveImage)
                                         else mutableStateOf(FaceRecognitionImageStatus.NoImage)
                                     )
-                                    datastore.otherUsersList.forEach {
-                                        add(
-                                            if (datastore.faceRecognitionConfiguresMap[it.phoneNumber]?.imagesList?.isNotEmpty() == true)
-                                                mutableStateOf(FaceRecognitionImageStatus.HaveImage)
-                                            else mutableStateOf(FaceRecognitionImageStatus.NoImage)
-                                        )
-                                    }
                                 }
-                            }
-                            datastore.otherUsersList.filter {
-                                it.phoneNumber != datastore.loginSession.phoneNumber
                             }
                         }
                         signStatus.addAll(Array(data.size) {

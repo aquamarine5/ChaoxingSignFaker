@@ -208,15 +208,18 @@ object ChaoxingFaceHelper {
                     )
                     .build()
             }
-            storedFaceRecognitionImages.setValue(
-                storedFaceRecognitionImages.getValue(context).toMutableMap().apply {
+            storedFaceRecognitionImages.updateCachedValue { imagesByPhoneNumber ->
+                imagesByPhoneNumber?.toMutableMap()?.apply {
+                    val effectiveImage =
+                        this[targetPhoneNumber].orEmpty().firstOrNull { it.objectId == objectId }
+                            ?: image
                     put(
                         targetPhoneNumber,
                         this[targetPhoneNumber].orEmpty()
-                            .filterNot { it.objectId == objectId } + image,
+                            .filterNot { it.objectId == objectId } + effectiveImage,
                     )
                 }
-            )
+            }
             image
         }.onFailure {
             it.printStackTrace()
@@ -265,11 +268,11 @@ object ChaoxingFaceHelper {
                     )
                     .build()
             }
-            storedFaceRecognitionImages.setValue(
-                storedFaceRecognitionImages.getValue(context).toMutableMap().apply {
+            storedFaceRecognitionImages.updateCachedValue { imagesByPhoneNumber ->
+                imagesByPhoneNumber?.toMutableMap()?.apply {
                     put(targetPhoneNumber, this[targetPhoneNumber].orEmpty() + image)
                 }
-            )
+            }
             image
         }.onFailure {
             temporary.delete()
@@ -296,13 +299,11 @@ object ChaoxingFaceHelper {
                 .build()
         }
         getFaceImageFile(context, objectId).delete()
-        storedFaceRecognitionImages.peekValue()?.let { imagesByPhoneNumber ->
-            storedFaceRecognitionImages.setValue(
-                imagesByPhoneNumber.toMutableMap().apply {
-                    this[phoneNumber] = this[phoneNumber].orEmpty()
-                        .filterNot { it.objectId == objectId }
-                },
-            )
+        storedFaceRecognitionImages.updateCachedValue { imagesByPhoneNumber ->
+            imagesByPhoneNumber?.toMutableMap()?.apply {
+                this[phoneNumber] = this[phoneNumber].orEmpty()
+                    .filterNot { it.objectId == objectId }
+            }
         }
     }
 
@@ -330,19 +331,17 @@ object ChaoxingFaceHelper {
                 )
                 .build()
         }
-        storedFaceRecognitionImages.peekValue()?.let { imagesByPhoneNumber ->
-            storedFaceRecognitionImages.setValue(
-                imagesByPhoneNumber.toMutableMap().apply {
-                    this[phoneNumber] = this[phoneNumber].orEmpty().map { image ->
-                        if (image.objectId == objectId) {
-                            image.toBuilder()
-                                .setUseCount(image.useCount + 1)
-                                .setIsFailureBefore(image.isFailureBefore || isFailureBefore)
-                                .build()
-                        } else image
-                    }
+        storedFaceRecognitionImages.updateCachedValue { imagesByPhoneNumber ->
+            imagesByPhoneNumber?.toMutableMap()?.apply {
+                this[phoneNumber] = this[phoneNumber].orEmpty().map { image ->
+                    if (image.objectId == objectId) {
+                        image.toBuilder()
+                            .setUseCount(image.useCount + 1)
+                            .setIsFailureBefore(image.isFailureBefore || isFailureBefore)
+                            .build()
+                    } else image
                 }
-            )
+            }
         }
     }
 

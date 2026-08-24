@@ -119,8 +119,8 @@ class ChaoxingSignHandler<in T>(
                 }
             }
             var isFirstOtherUserForSign = true
-            otherUserSessionList.forEachIndexed { index, session ->
-                if (session == null) return@forEachIndexed
+            for ((index, session) in otherUserSessionList.withIndex()) {
+                if (session == null) continue
                 signStatus[index + 1].loading()
                 if (!isCaptchaSigning || (isSelf && isFirstOtherUserForSign))
                     delay(ChaoxingOtherUserHelper.TIMEOUT_NEXT_SIGN)
@@ -167,7 +167,7 @@ class ChaoxingSignHandler<in T>(
                         )
                         hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
                         onAllSigningFinished(false)
-                        return@forEachIndexed
+                        return@launch
                     } else {
                         if (otherUserSessionList.checkIsLast(index + 1)) {
                             onAllSigningFinished(userSelections.all { !it })

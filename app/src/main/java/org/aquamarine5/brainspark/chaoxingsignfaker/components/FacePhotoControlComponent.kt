@@ -98,6 +98,7 @@ fun FacePhotoControlComponent(
     modifier: Modifier = Modifier,
     pendingCapturedBitmap: Bitmap? = null,
     onPendingCapturedBitmapHandled: () -> Unit = {},
+    uploadClientProvider: suspend (phoneNumber: String) -> ChaoxingHttpClient? = { null },
 ) {
     val context = LocalContext.current
     val snackbarHost = LocalSnackbarHostState.current
@@ -159,8 +160,10 @@ fun FacePhotoControlComponent(
         }
         coroutineScope.launch {
             runCatching {
+                val client = uploadClientProvider(phoneNumber)
+                    ?: ChaoxingHttpClient.instance!!
                 ChaoxingFaceHelper.saveFaceImage(
-                    ChaoxingHttpClient.instance!!,
+                    client,
                     context,
                     bitmap,
                     phoneNumber = phoneNumber,

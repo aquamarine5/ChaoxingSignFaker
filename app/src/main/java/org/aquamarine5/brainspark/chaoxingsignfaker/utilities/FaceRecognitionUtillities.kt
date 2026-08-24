@@ -39,5 +39,5 @@ fun FaceRecognitionImageIconState.setStatus(
     status: FaceRecognitionImageStatus,
     index: Int
 ) {
-    this.value[index].value = status
+    if (index in this.value.indices) this.value[index].value = status
 }

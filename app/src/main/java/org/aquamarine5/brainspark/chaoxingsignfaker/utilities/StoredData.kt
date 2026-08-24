@@ -27,6 +27,10 @@ class StoredData<P, R : Any>(private val loader: suspend (P) -> R) {
         cache = value
     }
 
+    suspend fun updateCachedValue(transform: (R?) -> R?) = mutex.withLock {
+        transform(cache)?.let { cache = it }
+    }
+
     fun peekValue(): R? = cache
 
     fun invalidate() {

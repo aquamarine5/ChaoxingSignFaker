@@ -7,6 +7,7 @@
 package org.aquamarine5.brainspark.chaoxingsignfaker.screen
 
 import android.content.ClipboardManager
+import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.widget.Toast
@@ -129,7 +130,9 @@ import io.sentry.Sentry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -170,6 +173,20 @@ object OtherUserDestination
 object OtherUserGraphDestination
 
 const val TAG_COLOR_UNSPECIFIED = -1L
+
+private suspend fun syncFaceImagesUpdatedSession(
+    context: Context,
+    result: ImportOtherUserResult,
+    otherUserSessions: MutableList<ChaoxingOtherUserSession>
+) {
+    val phoneNumber = result.third.phoneNumber
+    val index = otherUserSessions.indexOfFirst { it.phoneNumber == phoneNumber }
+    if (index != -1) {
+        context.chaoxingDataStore.data.first()
+            .otherUsersList.firstOrNull { it.phoneNumber == phoneNumber }
+            ?.let { otherUserSessions[index] = it }
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -226,15 +243,29 @@ fun OtherUserScreen(
                 }
             })
             isTooltipShowed.value = !datastore.learntTooltips.supportCloneOtherUserSession
-            facePhotos.addAll(
+            isLocalSharedEntityReady = ChaoxingOtherUserHelper.checkSharedEntity(datastore)
+        }
+    }
+    LaunchedEffect(Unit) {
+        context.chaoxingDataStore.data
+            .map { datastore ->
                 datastore.faceRecognitionConfiguresMap[datastore.loginSession.phoneNumber]
                     ?.imagesList
                     .orEmpty()
                     .take(ChaoxingFaceHelper.MAX_FACE_IMAGES)
-            )
-            selectedSharedFaceObjectIds.addAll(facePhotos.map { it.objectId })
-            isLocalSharedEntityReady = ChaoxingOtherUserHelper.checkSharedEntity(datastore)
-        }
+            }
+            .distinctUntilChanged()
+            .collect { images ->
+                facePhotos.clear()
+                facePhotos.addAll(images)
+                selectedSharedFaceObjectIds.removeAll { objectId ->
+                    images.none { it.objectId == objectId }
+                }
+                images.forEach { image ->
+                    if (image.objectId !in selectedSharedFaceObjectIds)
+                        selectedSharedFaceObjectIds.add(image.objectId)
+                }
+            }
     }
     var job: Job? = null
     val hapticFeedback = LocalHapticFeedback.current
@@ -256,6 +287,13 @@ fun OtherUserScreen(
         }
     }
 
+    LaunchedEffect(inspectedFacePhotoObjectId, facePhotos.toList()) {
+        if (inspectedFacePhotoObjectId != null &&
+            facePhotos.none { it.objectId == inspectedFacePhotoObjectId }
+        ) {
+            inspectedFacePhotoObjectId = null
+        }
+    }
     inspectedFacePhotoObjectId?.let { objectId ->
         val photo = facePhotos.firstOrNull { it.objectId == objectId }
         if (photo != null) {
@@ -474,7 +512,11 @@ fun OtherUserScreen(
                                     }
 
                                     ChaoxingImportOtherUserResultStatus.EXISTED_BUT_UPDATE_FACE_IMAGES -> {
-
+                                        syncFaceImagesUpdatedSession(
+                                            context,
+                                            result,
+                                            otherUserSessions
+                                        )
                                     }
                                 }
                                 isInputDialog = false
@@ -1478,6 +1520,18 @@ fun OtherUserScreen(
                                 },
                                 pendingCapturedBitmap = pendingFacePhotoBitmap,
                                 onPendingCapturedBitmapHandled = { pendingFacePhotoBitmap = null },
+                                uploadClientProvider = { phoneNumber ->
+                                    if (phoneNumber == ChaoxingHttpClient.instance!!.userEntity.phoneNumber)
+                                        ChaoxingHttpClient.instance
+                                    else otherUserSessions.firstOrNull {
+                                        it.phoneNumber == phoneNumber
+                                    }?.let { session ->
+                                        ChaoxingHttpClient.loadFromOtherUserSession(
+                                            session,
+                                            context
+                                        )
+                                    }
+                                },
                             )
                         }
                     }
@@ -1586,7 +1640,12 @@ fun OtherUserScreen(
                                                 updatedSession
                                         }
 
-                                        ChaoxingImportOtherUserResultStatus.EXISTED_BUT_UPDATE_FACE_IMAGES -> Unit
+                                        ChaoxingImportOtherUserResultStatus.EXISTED_BUT_UPDATE_FACE_IMAGES ->
+                                            syncFaceImagesUpdatedSession(
+                                                context,
+                                                result,
+                                                otherUserSessions
+                                            )
                                     }
                                     isURLSharedDialog = false
                                 }.onFailure { failure ->
@@ -2448,7 +2507,11 @@ fun OtherUserScreen(
                                         }
 
                                         ChaoxingImportOtherUserResultStatus.EXISTED_BUT_UPDATE_FACE_IMAGES -> {
-
+                                            syncFaceImagesUpdatedSession(
+                                                context,
+                                                result,
+                                                otherUserSessions
+                                            )
                                         }
                                     }
                                 }.onFailure { failure ->

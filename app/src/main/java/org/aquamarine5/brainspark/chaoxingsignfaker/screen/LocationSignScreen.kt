@@ -70,6 +70,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignStatus
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingLocationSigner
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSignHandler
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingFaceSignException
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingPredictableException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.FaceRecognitionImageIconState
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.FaceRecognitionImageStatus
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
@@ -260,19 +261,28 @@ fun LocationSignScreen(
                                     faceImageBitmaps[phoneNumber]?.let { bitmap ->
                                         runCatching {
                                             val client =
-                                                if (phoneNumber == ChaoxingHttpClient.instance!!.userEntity.phoneNumber) ChaoxingHttpClient.instance!! else httpClientStorage[phoneNumber]!!
-                                            ChaoxingFaceHelper.saveFaceImage(
+                                                if (phoneNumber == ChaoxingHttpClient.instance!!.userEntity.phoneNumber) ChaoxingHttpClient.instance!! else httpClientStorage[phoneNumber]
+                                                    ?: return@forEach
+                                            val savedImage = ChaoxingFaceHelper.saveFaceImage(
                                                 client,
                                                 context,
                                                 bitmap,
                                                 phoneNumber
                                             )
+                                            runCatching {
+                                                ChaoxingFaceHelper.afterUsingFaceImage(
+                                                    context,
+                                                    phoneNumber,
+                                                    savedImage.objectId,
+                                                    false
+                                                )
+                                            }
+                                            faceImageBitmaps.remove(phoneNumber)
                                             faceRecognitionImageIconList.setStatus(
                                                 FaceRecognitionImageStatus.HaveImage,
                                                 phoneNumber,
                                                 otherUserSessionForSignList
                                             )
-                                            faceImageBitmaps.remove(phoneNumber)
                                         }.onFailure {
                                             it.snackbarReport(
                                                 snackbarHost,
@@ -308,17 +318,20 @@ fun LocationSignScreen(
                             context = context, userSelections = userSelections,
                             signStatus = signStatus,
                             onSelfSigning = { value ->
+                                val selfPhoneNumber =
+                                    ChaoxingHttpClient.instance!!.userEntity.phoneNumber
                                 runCatching {
                                     val faceImageUploadedObjectId =
                                         if (isFaceRequired) {
-                                            faceImageObjectIds.getOrPut(
-                                                ChaoxingHttpClient.instance!!.userEntity.phoneNumber
-                                            ) {
+                                            faceImageObjectIds.getOrPut(selfPhoneNumber) {
+                                                val bitmap =
+                                                    faceImageBitmaps.remove(selfPhoneNumber)
+                                                        ?: throw ChaoxingPredictableException(
+                                                            "未拍摄人脸照片，无法上传"
+                                                        )
                                                 ChaoxingCloudDriveHelper.uploadImage(
                                                     ChaoxingHttpClient.instance!!,
-                                                    faceImageBitmaps[
-                                                        ChaoxingHttpClient.instance!!.userEntity.phoneNumber
-                                                    ]!!
+                                                    bitmap
                                                 )
                                             }
                                         } else null
@@ -344,17 +357,17 @@ fun LocationSignScreen(
                                     } else return@runCatching false
                                 }.onFailure { exception ->
                                     if (exception is ChaoxingFaceSignException) {
-                                        faceImageObjectIds.remove(ChaoxingHttpClient.instance!!.userEntity.phoneNumber)
+                                        faceImageObjectIds.remove(selfPhoneNumber)
                                         faceRecognitionImageIconList.setStatus(
                                             FaceRecognitionImageStatus.ImageCheckFailure,
                                             0
                                         )
                                     }
-                                    storedFaceImageObjectIds[ChaoxingHttpClient.instance!!.userEntity.phoneNumber]
+                                    storedFaceImageObjectIds[selfPhoneNumber]
                                         ?.let { objectId ->
                                             ChaoxingFaceHelper.afterUsingFaceImage(
                                                 context,
-                                                ChaoxingHttpClient.instance!!.userEntity.phoneNumber,
+                                                selfPhoneNumber,
                                                 objectId,
                                                 exception is ChaoxingFaceSignException,
                                             )
@@ -364,6 +377,16 @@ fun LocationSignScreen(
                                         FaceRecognitionImageStatus.ImageCheckSuccess,
                                         0
                                     )
+                                    storedFaceImageObjectIds[selfPhoneNumber]?.let { objectId ->
+                                        runCatching {
+                                            ChaoxingFaceHelper.afterUsingFaceImage(
+                                                context,
+                                                selfPhoneNumber,
+                                                objectId,
+                                                false
+                                            )
+                                        }
+                                    }
                                 }
                             },
                             onOtherUserSigning = { value, session, bypassChecking, index ->
@@ -390,11 +413,14 @@ fun LocationSignScreen(
                                                     faceImageObjectIds.getOrPut(
                                                         session.phoneNumber
                                                     ) {
+                                                        val bitmap = faceImageBitmaps.remove(
+                                                            session.phoneNumber
+                                                        ) ?: throw ChaoxingPredictableException(
+                                                            "未拍摄${session.name}的人脸照片，无法上传"
+                                                        )
                                                         ChaoxingCloudDriveHelper.uploadImage(
                                                             client,
-                                                            faceImageBitmaps[
-                                                                session.phoneNumber
-                                                            ]!!
+                                                            bitmap
                                                         )
                                                     }
                                                 } else null
@@ -441,6 +467,16 @@ fun LocationSignScreen(
                                         FaceRecognitionImageStatus.ImageCheckSuccess,
                                         index + 1
                                     )
+                                    storedFaceImageObjectIds[session.phoneNumber]?.let { objectId ->
+                                        runCatching {
+                                            ChaoxingFaceHelper.afterUsingFaceImage(
+                                                context,
+                                                session.phoneNumber,
+                                                objectId,
+                                                false
+                                            )
+                                        }
+                                    }
                                 }
                             },
                             destination = destination,
