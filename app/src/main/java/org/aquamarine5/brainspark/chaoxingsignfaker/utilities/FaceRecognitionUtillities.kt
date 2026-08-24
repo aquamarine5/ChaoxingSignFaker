@@ -30,8 +30,7 @@ fun FaceRecognitionImageIconState.setStatus(
     otherUserSessionList: List<ChaoxingOtherUserSession?>
 ) {
     val index = if (phoneNumber == ChaoxingHttpClient.instance!!.userEntity.phoneNumber) 0
-    else otherUserSessionList.filterNotNull()
-        .indexOfFirst { it.phoneNumber == phoneNumber }
+    else otherUserSessionList.indexOfFirst { it?.phoneNumber == phoneNumber }
         .let { if (it < 0) return else it + 1 }
     if (index in this.value.indices) setStatus(status, index)
 }

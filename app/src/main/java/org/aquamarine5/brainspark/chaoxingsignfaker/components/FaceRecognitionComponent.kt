@@ -15,11 +15,15 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -33,43 +37,65 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingFaceHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
 import java.io.ByteArrayOutputStream
 import java.net.URL
+import kotlin.math.abs
+import kotlin.math.cos
+import kotlin.math.sin
 import kotlin.random.Random
 
 private const val PROFILE_IMAGE_COMPRESS_QUALITY = 90
 
-private suspend fun randomizeProfileFaceImage(bitmap: Bitmap): Bitmap =
-    withContext(Dispatchers.IO) {
-        val cropRatio = 0.90f + Random.nextFloat() * 0.09f
-        val cropWidth = (bitmap.width * cropRatio).toInt().coerceAtLeast(1)
-        val cropHeight = (bitmap.height * cropRatio).toInt().coerceAtLeast(1)
-        val cropped = Bitmap.createBitmap(
-            bitmap,
-            Random.nextInt(bitmap.width - cropWidth + 1),
-            Random.nextInt(bitmap.height - cropHeight + 1),
-            cropWidth,
-            cropHeight
-        )
-        val rotated = Bitmap.createBitmap(
-            cropped, 0, 0, cropped.width, cropped.height,
-            Matrix().apply { postRotate(Random.nextFloat() * 10f - 5f) }, true
-        )
-        ByteArrayOutputStream().use { out ->
-            rotated.compress(Bitmap.CompressFormat.JPEG, PROFILE_IMAGE_COMPRESS_QUALITY, out)
-            BitmapFactory.decodeByteArray(out.toByteArray(), 0, out.size())
-                ?: rotated
-        }
+private suspend fun randomizeProfileFaceImage(
+    bitmap: Bitmap,
+    cropLeft: Int,
+    cropTop: Int,
+    cropWidth: Int,
+    cropHeight: Int,
+    angle: Float
+): Bitmap = withContext(Dispatchers.IO) {
+    val matrix = Matrix().apply {
+        postTranslate(-cropLeft.toFloat(), -cropTop.toFloat())
+        postRotate(angle)
     }
+    val rotated = Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
+    val radians = Math.toRadians(abs(angle.toDouble()))
+    val sin = sin(radians)
+    val cos = cos(radians)
+    val width = cropWidth.toDouble()
+    val height = cropHeight.toDouble()
+    val safeWidth = minOf(
+        width / (cos + sin * width / height),
+        height / (sin + cos * width / height)
+    ).toInt().coerceIn(1, minOf(rotated.width, cropWidth))
+    val safeHeight = (safeWidth * height / width).toInt()
+        .coerceIn(1, minOf(rotated.height, cropHeight))
+    ByteArrayOutputStream().use { out ->
+        Bitmap.createBitmap(
+            rotated,
+            (rotated.width - safeWidth) / 2,
+            (rotated.height - safeHeight) / 2,
+            safeWidth,
+            safeHeight
+        ).compress(Bitmap.CompressFormat.JPEG, PROFILE_IMAGE_COMPRESS_QUALITY, out)
+        BitmapFactory.decodeByteArray(out.toByteArray(), 0, out.size())
+            ?: rotated
+    }
+}
 
 @Composable
 fun FaceRecognitionComponent(
@@ -84,34 +110,65 @@ fun FaceRecognitionComponent(
     var faceImageCapturedIndex by remember { mutableIntStateOf(0) }
     var useProfileImage by remember { mutableStateOf<Boolean?>(null) }
     var isProcessingProfileImage by remember { mutableStateOf(false) }
+    var profileImageProgress by remember { mutableStateOf<Pair<Int, Int>?>(null) }
     BackHandler(enabled = !isProcessingProfileImage) {
         onCancel()
     }
 
-    if (useProfileImage == null) {
-        AlertDialog(
-            onDismissRequest = onCancel,
-            title = { Text("使用默认人脸识别照片？") },
-            text = {
-                Text("是否使用代签用户的学习通默认人脸识别照片代替拍摄？" +
-                        "此方式存在风险：使用账号原有照片可能被学习通风控校验识别，导致代签失败甚至影响账号安全。")
-            },
-            confirmButton = {
-                Button(onClick = { useProfileImage = true }) { Text("是") }
-            },
-            dismissButton = {
-                OutlinedButton(onClick = { useProfileImage = false }) { Text("否") }
+    AlertDialog(
+        onDismissRequest = { if (!isProcessingProfileImage) onCancel() },
+        title = { Text("使用默认人脸识别照片？") },
+        icon = {
+            Icon(
+                painterResource(R.drawable.ic_triangle_alert),
+                contentDescription = "警告",
+                tint = Color(0xFFFCC307),
+                modifier = Modifier.size(40.dp)
+            )
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(buildAnnotatedString {
+                    append("是否使用代签用户的学习通默认人脸识别照片代替拍摄？")
+                    withStyle(SpanStyle(color = Color.Red, fontWeight = FontWeight.Bold)) {
+                        append("此方式存在风险：使用账号原有照片可能被学习通风控校验识别，导致代签失败甚至影响账号安全。")
+                    }
+                })
+                if (isProcessingProfileImage) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        CircularProgressIndicator()
+                        Text(
+                            "正在获取默认人脸识别照片...(" +
+                                    "${profileImageProgress?.first ?: 0}/${profileImageProgress?.second ?: signUserName.size})"
+                        )
+                    }
+                }
             }
-        )
-        return
-    }
+        },
+        confirmButton = {
+            Button(
+                enabled = !isProcessingProfileImage,
+                onClick = { useProfileImage = true }
+            ) { Text("是") }
+        },
+        dismissButton = {
+            OutlinedButton(
+                enabled = !isProcessingProfileImage,
+                onClick = { useProfileImage = false }
+            ) { Text("否") }
+        }
+    )
 
     if (useProfileImage == true) {
-        LaunchedEffect(Unit) {
+        LaunchedEffect(useProfileImage) {
             isProcessingProfileImage = true
+            profileImageProgress = 0 to signUserName.size
             runCatching {
                 buildMap {
-                    signUserName.forEach { (phoneNumber, _) ->
+                    signUserName.forEachIndexed { index, (phoneNumber, _) ->
                         val url = ChaoxingFaceHelper.getUserProfileFaceImageUrl(
                             getSessionClient(phoneNumber)
                         )
@@ -121,11 +178,24 @@ fun FaceRecognitionComponent(
                                     ?: throw IllegalStateException("默认人脸识别照片下载失败")
                             }
                         }
-                        put(phoneNumber, randomizeProfileFaceImage(bitmap))
+                        val cropRatio = 0.90f + Random.nextFloat() * 0.09f
+                        put(
+                            phoneNumber,
+                            randomizeProfileFaceImage(
+                                bitmap,
+                                Random.nextInt(bitmap.width - (bitmap.width * cropRatio).toInt() + 1),
+                                Random.nextInt(bitmap.height - (bitmap.height * cropRatio).toInt() + 1),
+                                (bitmap.width * cropRatio).toInt().coerceAtLeast(1),
+                                (bitmap.height * cropRatio).toInt().coerceAtLeast(1),
+                                Random.nextFloat() * 10f - 5f
+                            )
+                        )
+                        profileImageProgress = index + 1 to signUserName.size
                     }
                 }
             }.onSuccess {
                 isProcessingProfileImage = false
+                profileImageProgress = null
                 onFinish(it, true)
             }.onFailure {
                 it.snackbarReport(
@@ -134,40 +204,39 @@ fun FaceRecognitionComponent(
                     "获取默认人脸识别照片失败",
                     hapticFeedback
                 )
-                useProfileImage = false
                 isProcessingProfileImage = false
+                profileImageProgress = null
+                useProfileImage = null
             }
         }
-        CenterCircularProgressIndicator()
-        return
-    }
-
-    CameraComponent(signUserName.size, isDefaultBackCamera = false, onNextPhoto = {
-        faceImageCapturedIndex++
-    }, content = {
-        Row(
-            modifier = Modifier
-                .animateContentSize()
-                .background(
-                    Color(0x88888888),
-                    RoundedCornerShape(14.dp)
-                )
-                .border(
-                    BorderStroke(
-                        2.dp, Color(0xFF444444)
-                    ), RoundedCornerShape(14.dp)
-                )
-                .padding(10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center
-        ) {
-            Text("拍摄给 ${signUserName[faceImageCapturedIndex].second} 人脸识别的图片")
+    } else if (useProfileImage == false) {
+        CameraComponent(signUserName.size, isDefaultBackCamera = false, onNextPhoto = {
+            faceImageCapturedIndex++
+        }, content = {
+            Row(
+                modifier = Modifier
+                    .animateContentSize()
+                    .background(
+                        Color(0x88888888),
+                        RoundedCornerShape(14.dp)
+                    )
+                    .border(
+                        BorderStroke(
+                            2.dp, Color(0xFF444444)
+                        ), RoundedCornerShape(14.dp)
+                    )
+                    .padding(10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Text("拍摄给 ${signUserName[faceImageCapturedIndex].second} 人脸识别的图片")
+            }
+        }) {
+            onFinish(
+                it.mapIndexed { index, bitmap -> signUserName[index].first to bitmap }
+                    .associate { it },
+                false
+            )
         }
-    }) {
-        onFinish(
-            it.mapIndexed { index, bitmap -> signUserName[index].first to bitmap }
-                .associate { it },
-            false
-        )
     }
 }
