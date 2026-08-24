@@ -7,7 +7,6 @@
 package org.aquamarine5.brainspark.chaoxingsignfaker.components
 
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -84,8 +83,10 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingFaceHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingFaceRecognitionImage
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingFaceImageException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.decodePhotoBitmap
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.displaySnackbar
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
 
@@ -196,9 +197,8 @@ fun FacePhotoControlComponent(
         rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
             if (uri != null) {
                 runCatching {
-                    context.contentResolver.openInputStream(uri)
-                        .use { BitmapFactory.decodeStream(it) }
-                        ?: error("无法读取照片")
+                    context.contentResolver.decodePhotoBitmap(uri)
+                        ?: throw ChaoxingFaceImageException("无法读取照片")
                 }.onSuccess(::cropAndSave).onFailure {
                     it.snackbarReport(snackbarHost, coroutineScope, "读取照片失败", hapticFeedback)
                 }

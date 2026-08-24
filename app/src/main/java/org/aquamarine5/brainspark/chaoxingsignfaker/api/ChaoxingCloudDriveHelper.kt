@@ -8,7 +8,6 @@ package org.aquamarine5.brainspark.chaoxingsignfaker.api
 
 import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -27,6 +26,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingPhotoSigner.ChaoxingPhotoSignException
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingPhotoSigner.Companion.URL_CLOUD_UPLOAD
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.checkResponseThrowException
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.decodePhotoBitmap
 import java.io.ByteArrayOutputStream
 import java.util.UUID
 
@@ -57,19 +57,14 @@ object ChaoxingCloudDriveHelper {
     }
 
     private fun uriToFile(context: Context, uri: Uri): RequestBody {
-        val contentResolver = context.contentResolver
-        return runCatching {
-            contentResolver.openInputStream(uri).use result@{
-                val bitmap = BitmapFactory.decodeStream(it)
-                ByteArrayOutputStream().use { out ->
-                    bitmap.compress(
-                        Bitmap.CompressFormat.JPEG,
-                        50, out
-                    )
-                    return@use out.toByteArray().toRequestBody("image/jpeg".toMediaType())
-                }
-            }
+        val bitmap = runCatching {
+            context.contentResolver.decodePhotoBitmap(uri)
+                ?: throw ChaoxingPhotoSignException("无法读取照片")
         }.getOrElse { throw ChaoxingPhotoSignException("文件转换失败") }
+        ByteArrayOutputStream().use { out ->
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 50, out)
+            return out.toByteArray().toRequestBody("image/jpeg".toMediaType())
+        }
     }
 
     suspend fun uploadImage(client: ChaoxingHttpClient, image: Bitmap): String =

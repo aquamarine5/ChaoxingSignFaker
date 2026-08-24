@@ -319,11 +319,7 @@ object ChaoxingOtherUserHelper {
 
             if (existedSession == null) {
                 context.chaoxingDataStore.updateData { datastore ->
-                    if (datastore.otherUsersList.any { it.phoneNumber == session.phoneNumber }) {
-                        datastore
-                    } else {
-                        datastore.toBuilder().addOtherUsers(session).build()
-                    }
+                    datastore.toBuilder().addOtherUsers(session).build()
                 }
                 saveFaceImages(tempOkHttpClient, userEntity)
                 return@withContext Triple(

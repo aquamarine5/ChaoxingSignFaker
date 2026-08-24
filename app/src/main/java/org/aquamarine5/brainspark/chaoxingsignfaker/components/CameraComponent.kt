@@ -6,10 +6,7 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.components
 
-import android.content.ContentResolver
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
-import android.net.Uri
 import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -93,35 +90,13 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.ui.theme.FontGilroy
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingPredictableException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.decodePhotoBitmap
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.displaySnackbar
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
 import kotlin.time.Duration.Companion.milliseconds
-
-private const val MAX_DECODE_DIMENSION = 3072
-
-private fun calculateInSampleSize(
-    options: BitmapFactory.Options
-): Int {
-    val largestDimension = maxOf(options.outWidth, options.outHeight)
-    var inSampleSize = 1
-    if (largestDimension > MAX_DECODE_DIMENSION) {
-        while (largestDimension / (inSampleSize * 2) >= MAX_DECODE_DIMENSION) {
-            inSampleSize *= 2
-        }
-    }
-    return inSampleSize
-}
-
-private fun ContentResolver.decodeSampledBitmap(uri: Uri): Bitmap? {
-    val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-    openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, bounds) } ?: return null
-    val options = BitmapFactory.Options().apply {
-        inSampleSize = calculateInSampleSize(bounds)
-    }
-    return openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, options) }
-}
 
 @OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -231,7 +206,7 @@ fun CameraComponent(
                 onResult = { uri ->
                     if (uri == null) return@rememberLauncherForActivityResult
                     runCatching {
-                        val image = application.contentResolver.decodeSampledBitmap(uri)
+                            val image = application.contentResolver.decodePhotoBitmap(uri)
                             ?: error("无法读取图片")
                         photoList.add(image)
                         job?.cancel()
@@ -260,8 +235,8 @@ fun CameraComponent(
                     if (uris.isEmpty()) return@rememberLauncherForActivityResult
                     runCatching {
                         uris.forEach { uri ->
-                            val image = application.contentResolver.decodeSampledBitmap(uri)
-                                ?: error("无法读取图片")
+                        val image = application.contentResolver.decodePhotoBitmap(uri)
+                                ?: throw ChaoxingPredictableException("无法读取图片")
                             photoList.add(image)
                             takeImage = image
                             needTakePictureCount--

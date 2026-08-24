@@ -344,15 +344,4 @@ object ChaoxingFaceHelper {
             }
         }
     }
-
-    @OptIn(ExperimentalContracts::class)
-    private fun checkThrowFaceException(value: Boolean, lazyMessage: () -> String){
-        contract {
-            returns() implies value
-        }
-        if (!value) {
-            val message = lazyMessage()
-            throw ChaoxingFaceImageException(message)
-        }
-    }
 }
