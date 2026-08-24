@@ -375,10 +375,12 @@ fun LocationSignScreen(
                                             )
                                         }
                                 }.onSuccess {
-                                    faceRecognitionImageIconList.setStatus(
-                                        FaceRecognitionImageStatus.ImageCheckSuccess,
-                                        0
-                                    )
+                                    if (faceRecognitionImageIconList.value.firstOrNull()?.value != FaceRecognitionImageStatus.UseProfileImage) {
+                                        faceRecognitionImageIconList.setStatus(
+                                            FaceRecognitionImageStatus.ImageCheckSuccess,
+                                            0
+                                        )
+                                    }
                                     faceRecognitionFailedPhoneNumbers.remove(selfPhoneNumber)
                                     storedFaceImageObjectIds[selfPhoneNumber]?.let { objectId ->
                                         runCatching {
@@ -467,10 +469,12 @@ fun LocationSignScreen(
                                         )
                                     }
                                 }.onSuccess {
-                                    faceRecognitionImageIconList.setStatus(
-                                        FaceRecognitionImageStatus.ImageCheckSuccess,
-                                        index + 1
-                                    )
+                                    if (faceRecognitionImageIconList.value.getOrNull(index + 1)?.value != FaceRecognitionImageStatus.UseProfileImage) {
+                                        faceRecognitionImageIconList.setStatus(
+                                            FaceRecognitionImageStatus.ImageCheckSuccess,
+                                            index + 1
+                                        )
+                                    }
                                     faceRecognitionFailedPhoneNumbers.remove(session.phoneNumber)
                                     storedFaceImageObjectIds[session.phoneNumber]?.let { objectId ->
                                         runCatching {
@@ -635,8 +639,42 @@ fun LocationSignScreen(
                                         string,
                                         otherUserSessionForSignList
                                     )
-                                    faceImageBitmaps[string] = bitmap
-                                    newFaceImagePhones.add(string)
+                                    if (isUseProfileImage) {
+                                        coroutineScope.launch {
+                                            runCatching {
+                                                val client =
+                                                    if (string == ChaoxingHttpClient.instance!!.userEntity.phoneNumber)
+                                                        ChaoxingHttpClient.instance!!
+                                                    else httpClientStorage.getOrPut(string) {
+                                                        ChaoxingHttpClient.loadFromOtherUserSession(
+                                                            otherUserSessionForSignList.first { it?.phoneNumber == string }!!,
+                                                            context
+                                                        )
+                                                    }
+                                                val savedImage = ChaoxingFaceHelper.saveFaceImage(
+                                                    client,
+                                                    context,
+                                                    bitmap,
+                                                    string
+                                                )
+                                                faceImageBitmaps.remove(string)
+                                                faceImageObjectIds[string] = savedImage.objectId
+                                                storedFaceImageObjectIds[string] =
+                                                    savedImage.objectId
+                                            }.onFailure {
+                                                it.snackbarReport(
+                                                    snackbarHost,
+                                                    coroutineScope,
+                                                    "保存默认人脸识别照片失败",
+                                                    hapticFeedback
+                                                )
+                                                faceImageBitmaps[string] = bitmap
+                                            }
+                                        }
+                                    } else {
+                                        faceImageBitmaps[string] = bitmap
+                                        newFaceImagePhones.add(string)
+                                    }
                                 }
                             isGetLocation = true
                             isFaceImageCaptured = false
