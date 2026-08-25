@@ -83,6 +83,7 @@ import okhttp3.OkHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCaptchaHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingFaceHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClientPool
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CloneSessionTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.initializeClientInfo
@@ -401,319 +402,330 @@ class MainActivity : ComponentActivity() {
                             }
                             CompositionLocalProvider(LocalImageLoader provides imageLoader) {
                                 LaunchedEffect(Unit) {
-                                withContext(Dispatchers.IO) {
-                                    val datastore =
-                                        applicationContext.chaoxingDataStore.data.first()
-                                    ChaoxingFaceHelper.storedFaceRecognitionImages.setValue(
-                                        datastore.faceRecognitionConfiguresMap.mapValues { it.value.imagesList }
-                                    )
-                                    if (datastore.agreeTerms) {
-                                        UMengHelper.init(applicationContext)
-                                        LocationClient.setAgreePrivacy(true)
-                                        SDKInitializer.setAgreePrivacy(applicationContext, true)
-                                    }
-                                    initializeClientInfo(
-                                        datastore.preferences.customizedUserAgent,
-                                        datastore.preferences.customizedPackageName
-                                    )
-                                    isDevelopedMode = datastore.preferences.isDevelopedMode
-                                    isAlwaysForceSign = datastore.preferences.alwaysForceSign
-                                    destination =
-                                        when {
-                                            !datastore.agreeTerms -> WelcomeDestination
-                                            !datastore.hasLoginSession() -> LoginDestination()
-                                            else -> {
-                                                runCatching {
-                                                    ChaoxingHttpClient.loadFromDataStore(
-                                                        datastore,
-                                                        applicationContext
-                                                    )
-                                                    return@runCatching SignGraphDestination
-                                                }.onSuccess {
-                                                    if (System.currentTimeMillis() - datastore.captchaMemories.lastCheckRemoteMemoriesTimestamp > 1.days.inWholeMilliseconds)
+                                    withContext(Dispatchers.IO) {
+                                        val datastore =
+                                            applicationContext.chaoxingDataStore.data.first()
+                                        ChaoxingHttpClientPool.initialize(datastore.otherUsersList)
+                                        ChaoxingFaceHelper.storedFaceRecognitionImages.setValue(
+                                            datastore.faceRecognitionConfiguresMap.mapValues { it.value.imagesList }
+                                        )
+                                        if (datastore.agreeTerms) {
+                                            UMengHelper.init(applicationContext)
+                                            LocationClient.setAgreePrivacy(true)
+                                            SDKInitializer.setAgreePrivacy(applicationContext, true)
+                                        }
+                                        initializeClientInfo(
+                                            datastore.preferences.customizedUserAgent,
+                                            datastore.preferences.customizedPackageName
+                                        )
+                                        isDevelopedMode = datastore.preferences.isDevelopedMode
+                                        isAlwaysForceSign = datastore.preferences.alwaysForceSign
+                                        destination =
+                                            when {
+                                                !datastore.agreeTerms -> WelcomeDestination
+                                                !datastore.hasLoginSession() -> LoginDestination()
+                                                else -> {
+                                                    runCatching {
+                                                        ChaoxingHttpClient.loadFromDataStore(
+                                                            datastore,
+                                                            applicationContext
+                                                        )
+                                                        return@runCatching SignGraphDestination
+                                                    }.onSuccess {
+                                                        if (System.currentTimeMillis() - datastore.captchaMemories.lastCheckRemoteMemoriesTimestamp > 1.days.inWholeMilliseconds)
+                                                            launch {
+                                                                ChaoxingCaptchaHelper.updateRemoteCaptchaMemoriesData(
+                                                                    this@MainActivity
+                                                                ) { currentVersion, supportVersion ->
+                                                                    snackbarHostState.displaySnackbar(
+                                                                        "服务器上的验证码数值记忆版本 $currentVersion 高于当前程序支持的版本 $supportVersion ，请更新程序版本",
+                                                                        this
+                                                                    )
+                                                                }.onFailure {
+                                                                    it.snackbarReport(
+                                                                        snackbarHostState,
+                                                                        this,
+                                                                        "更新验证码数值记忆数据失败",
+                                                                        hapticFeedback,
+                                                                        shouldDismiss = false
+                                                                    )
+                                                                }
+                                                            }
                                                         launch {
-                                                            ChaoxingCaptchaHelper.updateRemoteCaptchaMemoriesData(
-                                                                this@MainActivity
-                                                            ) { currentVersion, supportVersion ->
-                                                                snackbarHostState.displaySnackbar(
-                                                                    "服务器上的验证码数值记忆版本 $currentVersion 高于当前程序支持的版本 $supportVersion ，请更新程序版本",
-                                                                    this
+                                                            runCatching {
+                                                                ChaoxingAnalyser.setupStateAnalyser(
+                                                                    datastore
                                                                 )
-                                                            }.onFailure {
-                                                                it.snackbarReport(
-                                                                    snackbarHostState,
-                                                                    this,
-                                                                    "更新验证码数值记忆数据失败",
-                                                                    hapticFeedback,
-                                                                    shouldDismiss = false
+                                                                ChaoxingAnalyser.checkAndUploadAnalyserRankData(
+                                                                    applicationContext
                                                                 )
                                                             }
                                                         }
-                                                    launch {
-                                                        runCatching {
-                                                            ChaoxingAnalyser.setupStateAnalyser(
-                                                                datastore
-                                                            )
-                                                            ChaoxingAnalyser.checkAndUploadAnalyserRankData(
-                                                                applicationContext
-                                                            )
+                                                        launch {
+                                                            if (UMengHelper.md5(
+                                                                    packageManager.getApplicationLabel(
+                                                                        versionData.applicationInfo!!
+                                                                    ).toString()
+                                                                ) != "181b23fb3bfa29181fcde41f72757e97" && UMengHelper.md5(
+                                                                    packageName
+                                                                ) != "717670698be98532464cfc122894908b"
+                                                            ) {
+                                                                UMengHelper.onIllegalChannelEvent(
+                                                                    this@MainActivity,
+                                                                    versionData
+                                                                )
+                                                                MobclickAgent.onKillProcess(this@MainActivity)
+                                                                Process.killProcess(Process.myPid())
+                                                                exitProcess(0)
+                                                                @Suppress("KotlinUnreachableCode")
+                                                                throw ChaoxingPredictableException.ApplicationIllegalChannelException()
+                                                            }
                                                         }
-                                                    }
-                                                    launch {
-                                                        if (UMengHelper.md5(
-                                                                packageManager.getApplicationLabel(
-                                                                    versionData.applicationInfo!!
-                                                                ).toString()
-                                                            ) != "181b23fb3bfa29181fcde41f72757e97" && UMengHelper.md5(
-                                                                packageName
-                                                            ) != "717670698be98532464cfc122894908b"
-                                                        ) {
-                                                            UMengHelper.onIllegalChannelEvent(
-                                                                this@MainActivity,
-                                                                versionData
-                                                            )
-                                                            MobclickAgent.onKillProcess(this@MainActivity)
-                                                            Process.killProcess(Process.myPid())
-                                                            exitProcess(0)
-                                                            @Suppress("KotlinUnreachableCode")
-                                                            throw ChaoxingPredictableException.ApplicationIllegalChannelException()
+                                                    }.getOrElse {
+                                                        it.printStackTrace()
+                                                        withContext(Dispatchers.Main) {
+                                                            Toast.makeText(
+                                                                applicationContext,
+                                                                "初始化客户端失败，可能是网络问题或登录过期。",
+                                                                Toast.LENGTH_SHORT
+                                                            ).show()
                                                         }
+                                                        LoginDestination(isFailureNetworkRedirect = true)
                                                     }
-                                                }.getOrElse {
-                                                    it.printStackTrace()
-                                                    withContext(Dispatchers.Main) {
-                                                        Toast.makeText(
-                                                            applicationContext,
-                                                            "初始化客户端失败，可能是网络问题或登录过期。",
-                                                            Toast.LENGTH_SHORT
-                                                        ).show()
-                                                    }
-                                                    LoginDestination(isFailureNetworkRedirect = true)
                                                 }
                                             }
-                                        }
 
+                                    }
                                 }
-                            }
-                            if (destination == null) {
-                                CenterCircularProgressIndicator(isDelay = false)
-                            } else {
-                                val coroutineScope = rememberCoroutineScope()
-                                val isCloning =
-                                    ChaoxingHttpClient.cloneInstance?.userEntity != null
-                                AnimatedVisibility(
-                                    isCloning,
-                                    enter = expandVertically(),
-                                    exit = shrinkVertically()
-                                ) {
-                                    CloneSessionTips(onExitCloning = {
-                                        hapticFeedback.performHapticFeedback(
-                                            HapticFeedbackType.ContextClick
-                                        )
-                                        ChaoxingHttpClient.exitCloning(
-                                            coroutineScope,
-                                            snackbarHostState
-                                        )
-                                        navController.navigate(CourseListDestination(false)) {
-                                            popUpTo(navController.graph.findStartDestination().id) {
-                                                saveState = true
-                                            }
-                                            launchSingleTop = true
-                                        }
-                                    })
-                                }
-                                NavHost(
-                                    navController,
-                                    destination!!,
-                                    enterTransition = {
-                                        fadeIn(
-                                            animationSpec = tween(300)
-                                        )
-                                    },
-                                    exitTransition = {
-                                        fadeOut(
-                                            animationSpec = tween(300)
-                                        )
-                                    },
-                                ) {
-                                    navigation<SignGraphDestination>(startDestination = CourseListDestination()) {
-                                        composable<CourseListDestination> { entry ->
-                                            CourseListScreen(
-                                                entry.toRoute(),
-                                                stackbricksService,
-                                                navToDetailDestination = {
-                                                    navController.navigate(it)
-                                                },
-                                                onNewVersionAvailable = {
-                                                    isNewVersionAvailable = true
-                                                },
-                                                navToSignActivityDestination = {
-                                                    navController.navigate(it)
-                                                },
-                                                navToSettingDestination = {
-                                                    navController.navigate(SettingDestination) {
-                                                        popUpTo<CourseListDestination> {
-                                                            inclusive = true
-                                                            saveState = true
-                                                        }
-                                                        restoreState = true
-                                                    }
-                                                }, navToLoginDestination = {
-                                                    navController.navigate(LoginDestination(true)) {
-                                                        popUpTo<CourseListDestination> {
-                                                            inclusive = true
-                                                            saveState = true
-                                                        }
-                                                        restoreState = true
-                                                    }
-                                                }, navToGroupDestination = {
-                                                    navController.navigate(GroupListDestination(it))
-                                                })
-                                        }
-                                        composable<GroupDetailDestination>(
-                                            typeMap = mapOf(
-                                                typeOf<ChaoxingEasemobIMGroup>() to ChaoxingEasemobIMGroup.ChaoxingEasemobIMGroupNavType
+                                if (destination == null) {
+                                    CenterCircularProgressIndicator(isDelay = false)
+                                } else {
+                                    val coroutineScope = rememberCoroutineScope()
+                                    val isCloning =
+                                        ChaoxingHttpClient.cloneInstance?.userEntity != null
+                                    AnimatedVisibility(
+                                        isCloning,
+                                        enter = expandVertically(),
+                                        exit = shrinkVertically()
+                                    ) {
+                                        CloneSessionTips(onExitCloning = {
+                                            hapticFeedback.performHapticFeedback(
+                                                HapticFeedbackType.ContextClick
                                             )
-                                        ) {
-                                            GroupDetailScreen(
-                                                it.toRoute(),
-                                                navToGroupListDestination = {
+                                            ChaoxingHttpClient.exitCloning(
+                                                coroutineScope,
+                                                snackbarHostState
+                                            )
+                                            navController.navigate(CourseListDestination(false)) {
+                                                popUpTo(navController.graph.findStartDestination().id) {
+                                                    saveState = true
+                                                }
+                                                launchSingleTop = true
+                                            }
+                                        })
+                                    }
+                                    NavHost(
+                                        navController,
+                                        destination!!,
+                                        enterTransition = {
+                                            fadeIn(
+                                                animationSpec = tween(300)
+                                            )
+                                        },
+                                        exitTransition = {
+                                            fadeOut(
+                                                animationSpec = tween(300)
+                                            )
+                                        },
+                                    ) {
+                                        navigation<SignGraphDestination>(startDestination = CourseListDestination()) {
+                                            composable<CourseListDestination> { entry ->
+                                                CourseListScreen(
+                                                    entry.toRoute(),
+                                                    stackbricksService,
+                                                    navToDetailDestination = {
+                                                        navController.navigate(it)
+                                                    },
+                                                    onNewVersionAvailable = {
+                                                        isNewVersionAvailable = true
+                                                    },
+                                                    navToSignActivityDestination = {
+                                                        navController.navigate(it)
+                                                    },
+                                                    navToSettingDestination = {
+                                                        navController.navigate(SettingDestination) {
+                                                            popUpTo<CourseListDestination> {
+                                                                inclusive = true
+                                                                saveState = true
+                                                            }
+                                                            restoreState = true
+                                                        }
+                                                    }, navToLoginDestination = {
+                                                        navController.navigate(LoginDestination(true)) {
+                                                            popUpTo<CourseListDestination> {
+                                                                inclusive = true
+                                                                saveState = true
+                                                            }
+                                                            restoreState = true
+                                                        }
+                                                    }, navToGroupDestination = {
+                                                        navController.navigate(
+                                                            GroupListDestination(
+                                                                it
+                                                            )
+                                                        )
+                                                    })
+                                            }
+                                            composable<GroupDetailDestination>(
+                                                typeMap = mapOf(
+                                                    typeOf<ChaoxingEasemobIMGroup>() to ChaoxingEasemobIMGroup.ChaoxingEasemobIMGroupNavType
+                                                )
+                                            ) {
+                                                GroupDetailScreen(
+                                                    it.toRoute(),
+                                                    navToGroupListDestination = {
+                                                        navController.navigateUp()
+                                                    },
+                                                    onSignAction = {
+                                                        navController.navigate(it)
+                                                    })
+                                            }
+
+                                            composable<GroupListDestination> {
+                                                GroupListScreen(
+                                                    it.toRoute(),
+                                                    navToGroupDetail = { destination ->
+                                                        navController.navigate(destination)
+                                                    }
+                                                )
+                                            }
+
+                                            composable<QRCodeSignDestination> { entry ->
+                                                QRCodeSignScreen(entry.toRoute(), navToOtherSign = {
+                                                    navController.navigate(it)
+                                                }, navToOtherUser = {
+                                                    navController.navigate(OtherUserGraphDestination)
+                                                }) {
                                                     navController.navigateUp()
-                                                },
-                                                onSignAction = {
-                                                    navController.navigate(it)
-                                                })
-                                        }
-
-                                        composable<GroupListDestination> {
-                                            GroupListScreen(
-                                                it.toRoute(),
-                                                navToGroupDetail = { destination ->
-                                                    navController.navigate(destination)
                                                 }
-                                            )
-                                        }
-
-                                        composable<QRCodeSignDestination> { entry ->
-                                            QRCodeSignScreen(entry.toRoute(), navToOtherSign = {
-                                                navController.navigate(it)
-                                            }, navToOtherUser = {
-                                                navController.navigate(OtherUserGraphDestination)
-                                            }) {
-                                                navController.navigateUp()
                                             }
-                                        }
 
-                                        composable<GetLocationDestination>(
-                                            typeMap = mapOf(
-                                                typeOf<ChaoxingSignActivityEntity>() to ChaoxingSignActivityEntity.SignActivityNavType
-                                            )
-                                        ) {
-                                            LocationSignScreen(
-                                                it.toRoute(), navToOtherSign = {
+                                            composable<GetLocationDestination>(
+                                                typeMap = mapOf(
+                                                    typeOf<ChaoxingSignActivityEntity>() to ChaoxingSignActivityEntity.SignActivityNavType
+                                                )
+                                            ) {
+                                                LocationSignScreen(
+                                                    it.toRoute(), navToOtherSign = {
+                                                        navController.navigate(it)
+                                                    },
+                                                    navToCourseDetailDestination = {
+                                                        navController.navigateUp()
+                                                    }) {
+                                                    navController.navigate(OtherUserGraphDestination)
+                                                }
+                                            }
+
+                                            composable<CourseDetailDestination> {
+                                                CourseDetailScreen(
+                                                    it.toRoute(),
+                                                    navToSignerDestination = { destination ->
+                                                        navController.navigate(destination)
+                                                    },
+                                                    navToNonCloningListDestination = {
+                                                        navController.navigate(
+                                                            CourseListDestination(
+                                                                false
+                                                            )
+                                                        ) {
+                                                            popUpTo<CourseListDestination>()
+                                                        }
+                                                    }) {
+                                                    navController.navigateUp()
+                                                }
+                                            }
+
+                                            composable<PhotoSignDestination> {
+                                                PhotoSignScreen(it.toRoute(), navToOtherSign = {
                                                     navController.navigate(it)
-                                                },
-                                                navToCourseDetailDestination = {
+                                                }, navBack = {
                                                     navController.navigateUp()
                                                 }) {
-                                                navController.navigate(OtherUserGraphDestination)
+                                                    navController.navigate(OtherUserGraphDestination)
+                                                }
+                                            }
+
+                                            composable<GestureSignDestination> { route ->
+                                                GestureSignScreen(
+                                                    route.toRoute(), navToOtherSign = {
+                                                        navController.navigate(it)
+                                                    },
+                                                    navToCourseDetailDestination = {
+                                                        navController.navigateUp()
+                                                    }) {
+                                                    navController.navigate(OtherUserGraphDestination)
+                                                }
+                                            }
+
+                                            composable<PasswordSignDestination> { route ->
+                                                PasswordSignScreen(
+                                                    route.toRoute(), navToOtherSign = {
+                                                        navController.navigate(it)
+                                                    },
+                                                    navToCourseDetailDestination = {
+                                                        navController.navigateUp()
+                                                    }) {
+                                                    navController.navigate(OtherUserGraphDestination)
+                                                }
                                             }
                                         }
 
-                                        composable<CourseDetailDestination> {
-                                            CourseDetailScreen(
-                                                it.toRoute(),
-                                                navToSignerDestination = { destination ->
-                                                    navController.navigate(destination)
-                                                },
-                                                navToNonCloningListDestination = {
+                                        navigation<OtherUserGraphDestination>(startDestination = OtherUserDestination) {
+                                            composable<OtherUserDestination> {
+                                                OtherUserScreen(naviCloneCourseListScreen = {
                                                     navController.navigate(
                                                         CourseListDestination(
-                                                            false
+                                                            true
                                                         )
-                                                    ) {
-                                                        popUpTo<CourseListDestination>()
+                                                    )
+                                                }) {
+                                                    navController.navigateUp()
+                                                }
+                                            }
+                                        }
+
+                                        navigation<SettingGraphDestination>(startDestination = SettingDestination) {
+                                            composable<SettingDestination> {
+                                                SettingScreen(stackbricksService) {
+                                                    navController.navigate(LoginDestination()) {
+                                                        popUpTo<SettingDestination> {
+                                                            inclusive = true
+                                                        }
                                                     }
-                                                }) {
-                                                navController.navigateUp()
+                                                }
                                             }
                                         }
 
-                                        composable<PhotoSignDestination> {
-                                            PhotoSignScreen(it.toRoute(), navToOtherSign = {
-                                                navController.navigate(it)
-                                            }, navBack = {
-                                                navController.navigateUp()
-                                            }) {
-                                                navController.navigate(OtherUserGraphDestination)
-                                            }
-                                        }
 
-                                        composable<GestureSignDestination> { route ->
-                                            GestureSignScreen(
-                                                route.toRoute(), navToOtherSign = {
-                                                    navController.navigate(it)
-                                                },
-                                                navToCourseDetailDestination = {
-                                                    navController.navigateUp()
-                                                }) {
-                                                navController.navigate(OtherUserGraphDestination)
-                                            }
-                                        }
-
-                                        composable<PasswordSignDestination> { route ->
-                                            PasswordSignScreen(
-                                                route.toRoute(), navToOtherSign = {
-                                                    navController.navigate(it)
-                                                },
-                                                navToCourseDetailDestination = {
-                                                    navController.navigateUp()
-                                                }) {
-                                                navController.navigate(OtherUserGraphDestination)
-                                            }
-                                        }
-                                    }
-
-                                    navigation<OtherUserGraphDestination>(startDestination = OtherUserDestination) {
-                                        composable<OtherUserDestination> {
-                                            OtherUserScreen(naviCloneCourseListScreen = {
-                                                navController.navigate(CourseListDestination(true))
-                                            }) {
-                                                navController.navigateUp()
-                                            }
-                                        }
-                                    }
-
-                                    navigation<SettingGraphDestination>(startDestination = SettingDestination) {
-                                        composable<SettingDestination> {
-                                            SettingScreen(stackbricksService) {
+                                        composable<WelcomeDestination> {
+                                            WelcomeScreen {
                                                 navController.navigate(LoginDestination()) {
-                                                    popUpTo<SettingDestination> { inclusive = true }
+                                                    popUpTo<WelcomeDestination> { inclusive = true }
+                                                }
+                                            }
+                                        }
+
+                                        composable<LoginDestination> {
+                                            LoginPage(it.toRoute(), stackbricksService) {
+                                                navController.navigate(CourseListDestination()) {
+                                                    popUpTo<LoginDestination> { inclusive = true }
                                                 }
                                             }
                                         }
                                     }
-
-
-                                    composable<WelcomeDestination> {
-                                        WelcomeScreen {
-                                            navController.navigate(LoginDestination()) {
-                                                popUpTo<WelcomeDestination> { inclusive = true }
-                                            }
-                                        }
-                                    }
-
-                                    composable<LoginDestination> {
-                                        LoginPage(it.toRoute(), stackbricksService) {
-                                            navController.navigate(CourseListDestination()) {
-                                                popUpTo<LoginDestination> { inclusive = true }
-                                            }
-                                        }
-                                    }
                                 }
-                                }
-                        }
                             }
+                        }
                     }
                 }
             }

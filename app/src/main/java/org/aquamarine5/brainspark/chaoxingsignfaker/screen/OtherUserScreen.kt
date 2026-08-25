@@ -142,6 +142,7 @@ import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingFaceHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClientPool
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingOtherUserHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CameraComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.FacePhotoControlComponent
@@ -1520,18 +1521,6 @@ fun OtherUserScreen(
                                 },
                                 pendingCapturedBitmap = pendingFacePhotoBitmap,
                                 onPendingCapturedBitmapHandled = { pendingFacePhotoBitmap = null },
-                                uploadClientProvider = { phoneNumber ->
-                                    if (phoneNumber == ChaoxingHttpClient.instance!!.userEntity.phoneNumber)
-                                        ChaoxingHttpClient.instance
-                                    else otherUserSessions.firstOrNull {
-                                        it.phoneNumber == phoneNumber
-                                    }?.let { session ->
-                                        ChaoxingHttpClient.loadFromOtherUserSession(
-                                            session,
-                                            context
-                                        )
-                                    }
-                                },
                             )
                         }
                     }
@@ -1755,7 +1744,7 @@ fun OtherUserScreen(
                             textDecoration = TextDecoration.Underline
                         )
                     ) {
-                        append("随地大小签APP")
+                        append("随地大小签")
                     }
                     append(" 扫描二维码\n以将你的账号添加到其他设备中")
                 },
@@ -1792,7 +1781,7 @@ fun OtherUserScreen(
                                 withStyle(SpanStyle(textDecoration = TextDecoration.Underline)) {
                                     append("对方会收到以下照片")
                                 }
-                                append("。")
+                                append("，让对方重新扫描你的二维码可以把你的人脸识别照片载入到对方设备中。")
                             },
                             modifier = Modifier
                                 .clickable(role = Role.Button) {
@@ -2362,19 +2351,20 @@ fun OtherUserScreen(
                                                         )
                                                     }
                                                 else
-                                                    IconButton(onClick = {
-                                                        coroutineScope.launch {
-                                                            hapticFeedback.performHapticFeedback(
-                                                                HapticFeedbackType.ContextClick
-                                                            )
-                                                            ChaoxingHttpClient.cloneInstance =
-                                                                ChaoxingHttpClient.loadFromOtherUserSession(
-                                                                    otherUserSessions[index],
-                                                                    context
-                                                                )
-                                                            naviCloneCourseListScreen()
-                                                        }
-                                                    }) {
+                                                     IconButton(onClick = {
+                                                         coroutineScope.launch {
+                                                             hapticFeedback.performHapticFeedback(
+                                                                 HapticFeedbackType.ContextClick
+                                                             )
+                                                             val client =
+                                                                 ChaoxingHttpClientPool.get(
+                                                                     context,
+                                                                     otherUserSessions[index].phoneNumber
+                                                                 )
+                                                             ChaoxingHttpClient.cloneInstance = client
+                                                             naviCloneCourseListScreen()
+                                                         }
+                                                     }) {
                                                         Icon(
                                                             painterResource(R.drawable.ic_user_left_arrow),
                                                             null

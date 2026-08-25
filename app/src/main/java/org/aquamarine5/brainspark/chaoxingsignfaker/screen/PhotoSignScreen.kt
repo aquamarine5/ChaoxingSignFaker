@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2025-2026, @aquamarine5 (@海蓝色的咕咕鸽). All Rights Reserved.
  * Author: aquamarine5@163.com (Github: https://github.com/aquamarine5) and Brainspark (previously RenegadeCreation)
  * Repository: https://github.com/aquamarine5/ChaoxingSignFaker
@@ -65,6 +65,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCloudDriveHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCourseHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClientPool
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingRecommendHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingSignHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.SignDestination
@@ -148,7 +149,6 @@ fun PhotoSignScreen(
     var isForSelf by remember { mutableStateOf(false) }
     var isSponsor by remember { mutableStateOf(false) }
     var signoffEntity by remember { mutableStateOf<ChaoxingSignOutEntity?>(null) }
-    val httpClientStorage = remember { mutableMapOf<String, ChaoxingHttpClient>() }
     if (isSponsor) {
         SponsorPopupDialog()
     }
@@ -169,7 +169,6 @@ fun PhotoSignScreen(
         isFetchedFailure = runCatching {
             val data = if (destination.isCloneSession) {
                 ChaoxingHttpClient.cloneInstance!!.let { client ->
-                    httpClientStorage.putIfAbsent(client.userEntity.phoneNumber, client)
                     ChaoxingPhotoSigner(
                         client,
                         destination
@@ -249,12 +248,7 @@ fun PhotoSignScreen(
                                     },
                                     onOtherUserSigning = { _, session, bypassChecking, _ ->
                                         runCatching {
-                                            httpClientStorage.getOrPut(session.phoneNumber) {
-                                                ChaoxingHttpClient.loadFromOtherUserSession(
-                                                    session,
-                                                    context
-                                                )
-                                            }.let { client ->
+                                            ChaoxingHttpClientPool.get(context, session.phoneNumber).let { client ->
                                                 ChaoxingPhotoSigner(
                                                     client,
                                                     if (isAlwaysForceSign || bypassChecking) destination.copy(
@@ -439,12 +433,7 @@ fun PhotoSignScreen(
                                             },
                                             onOtherUserSigning = { value, session, bypassChecking, index ->
                                                 runCatching {
-                                                    httpClientStorage.getOrPut(session.phoneNumber) {
-                                                        ChaoxingHttpClient.loadFromOtherUserSession(
-                                                            session,
-                                                            context
-                                                        )
-                                                    }.let { client ->
+                                                    ChaoxingHttpClientPool.get(context, session.phoneNumber).let { client ->
                                                         ChaoxingPhotoSigner(
                                                             client,
                                                             if (isAlwaysForceSign || bypassChecking) destination.copy(

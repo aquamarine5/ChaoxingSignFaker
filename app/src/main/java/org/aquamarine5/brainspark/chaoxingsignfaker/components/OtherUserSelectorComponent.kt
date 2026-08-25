@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2025-2026, @aquamarine5 (@海蓝色的咕咕鸽). All Rights Reserved.
  * Author: aquamarine5@163.com (Github: https://github.com/aquamarine5) and Brainspark (previously RenegadeCreation)
  * Repository: https://github.com/aquamarine5/ChaoxingSignFaker
@@ -99,6 +99,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.Request
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingFaceHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingOtherUserHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
@@ -106,7 +107,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.OtherUserTagType
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignStatus
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.TAG_COLOR_UNSPECIFIED
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingPredictableException
-import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.FaceRecognitionImageIconState
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.FaceRecognitionData
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.FaceRecognitionImageStatus
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalImageLoader
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
@@ -129,8 +130,7 @@ fun OtherUserSelectorComponent(
     userContent: @Composable ((index: Int) -> Unit)? = null,
     prefixTipsContent: @Composable (() -> Unit),
     suffixContent: @Composable (() -> Unit)? = null,
-    faceRecognitionImageIconStatus: FaceRecognitionImageIconState? = null,
-    @OnlyAppDevelopedMode getFaceImage: ((phoneNumber: String) -> List<Any>)? = null,
+    faceRecognitionData: FaceRecognitionData? = null,
     onSignAction: (isSelf: Boolean, otherUserSessionList: List<ChaoxingOtherUserSession?>, indexList: List<Int>) -> Unit
 ) {
     LocalContext.current.let { context ->
@@ -152,6 +152,7 @@ fun OtherUserSelectorComponent(
 
         @OnlyAppDevelopedMode
         var inspectingFaceImagePhoneNumber by remember { mutableStateOf<String?>(null) }
+        var inspectedFailedFaceImagePhoneNumber by remember { mutableStateOf<String?>(null) }
 
         @OnlyAppDevelopedMode
         var inspectedFaceImage by remember { mutableStateOf<Any?>(null) }
@@ -331,7 +332,7 @@ fun OtherUserSelectorComponent(
             })
         }
 
-        @OnlyAppDevelopedMode if (isDevelopedMode && getFaceImage != null && inspectingFaceImagePhoneNumber != null) {
+        @OnlyAppDevelopedMode if (isDevelopedMode && faceRecognitionData != null && inspectingFaceImagePhoneNumber != null) {
             val phoneNumber = inspectingFaceImagePhoneNumber!!
             SnackbarAlertDialog(onDismissRequest = {
                 inspectingFaceImagePhoneNumber = null
@@ -341,7 +342,11 @@ fun OtherUserSelectorComponent(
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    items(getFaceImage(phoneNumber)) { image ->
+                    items(
+                        ChaoxingFaceHelper.storedFaceRecognitionImages.peekValue()
+                            ?.get(phoneNumber).orEmpty()
+                            .map { ChaoxingFaceHelper.getFaceImageFile(context, it.objectId) }
+                    ) { image ->
                         AsyncImage(
                             model = image,
                             imageLoader = imageLoader,
@@ -480,6 +485,47 @@ fun OtherUserSelectorComponent(
             })
         }
 
+        if (faceRecognitionData != null) {
+            inspectedFailedFaceImagePhoneNumber?.let { phoneNumber ->
+                val info = faceRecognitionData.failedImageInfos[phoneNumber]
+                val objectId = info?.first
+                SnackbarAlertDialog(onDismissRequest = {
+                    inspectedFailedFaceImagePhoneNumber = null
+                }, title = {
+                    Text("本次签到的人脸照片")
+                }, text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        AsyncImage(
+                            model = info?.second
+                                ?: objectId?.let {
+                                    ChaoxingFaceHelper.getFaceImageFile(
+                                        context,
+                                        it
+                                    )
+                                },
+                            imageLoader = imageLoader,
+                            contentDescription = "本次签到人脸照片",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .aspectRatio(3f / 4f)
+                        )
+                        Text("图片ID: ${objectId ?: "无"}")
+                        val record = objectId?.let { id ->
+                            ChaoxingFaceHelper.storedFaceRecognitionImages.peekValue()
+                                ?.get(phoneNumber)?.firstOrNull { it.objectId == id }
+                        }
+                        Text("此前是否人脸识别失败过: ${if (record?.isFailureBefore == true) "是" else "否"}")
+                        Text("使用次数: ${record?.useCount ?: 0}")
+                    }
+                }, confirmButton = {
+                    Button(onClick = {
+                        inspectedFailedFaceImagePhoneNumber = null
+                    }) { Text("关闭") }
+                })
+            }
+        }
+
         fun updateTagClickState() {
             tagContainedUserIndexList?.forEachIndexed { tagIndex, userIndexList ->
                 if (userIndexList.isNotEmpty()) {
@@ -602,8 +648,8 @@ fun OtherUserSelectorComponent(
                         val data = datastore.otherUsersList.filter {
                             it.phoneNumber != datastore.loginSession.phoneNumber
                         }
-                        if (faceRecognitionImageIconStatus?.value?.isEmpty() == true) {
-                            faceRecognitionImageIconStatus.value = buildList {
+                        if (faceRecognitionData?.imageIconList?.value?.isEmpty() == true) {
+                            faceRecognitionData.imageIconList.value = buildList {
                                 add(
                                     if (datastore.faceRecognitionConfiguresMap[datastore.loginSession.phoneNumber]?.imagesList?.isNotEmpty() == true)
                                         mutableStateOf(FaceRecognitionImageStatus.HaveImage)
@@ -761,7 +807,7 @@ fun OtherUserSelectorComponent(
                                         fontWeight = FontWeight.Bold,
                                         textDecoration = if (success != true) TextDecoration.None else TextDecoration.LineThrough
                                     )
-                                    faceRecognitionImageIconStatus?.value?.getOrNull(0)
+                                    faceRecognitionData?.imageIconList?.value?.getOrNull(0)
                                         ?.let {
                                             Icon(
                                                 painterResource(it.value.resId),
@@ -770,7 +816,7 @@ fun OtherUserSelectorComponent(
                                                     .padding(start = 4.dp)
                                                     .size(14.dp)
                                                     .then(
-                                                        if (isDevelopedMode && getFaceImage != null) Modifier.clickable {
+                                                        if (isDevelopedMode && faceRecognitionData != null) Modifier.clickable {
                                                             hapticFeedback.performHapticFeedback(
                                                                 HapticFeedbackType.ContextClick
                                                             )
@@ -781,6 +827,27 @@ fun OtherUserSelectorComponent(
                                                 tint = it.value.color.takeOrElse { MaterialTheme.colorScheme.primary }
                                             )
                                         }
+                                    if (faceRecognitionData != null) {
+                                        val selfPhone =
+                                            ChaoxingHttpClient.instance!!.userEntity.phoneNumber
+                                        if (selfPhone in faceRecognitionData.failedPhoneNumbers) {
+                                            Icon(
+                                                painterResource(R.drawable.ic_image),
+                                                contentDescription = "查看本次签到照片",
+                                                tint = Color(0xFFF43E06),
+                                                modifier = Modifier
+                                                    .padding(start = 4.dp)
+                                                    .size(14.dp)
+                                                    .clickable {
+                                                        hapticFeedback.performHapticFeedback(
+                                                            HapticFeedbackType.ContextClick
+                                                        )
+                                                        inspectedFailedFaceImagePhoneNumber =
+                                                            selfPhone
+                                                    }
+                                            )
+                                        }
+                                    }
                                 }
                                 Text(
                                     "${ChaoxingHttpClient.instance?.userEntity?.name} ($selfPhoneNumber)",
@@ -843,7 +910,7 @@ fun OtherUserSelectorComponent(
                                                         .padding(start = 4.dp)
                                                         .size(16.dp)
                                                 )
-                                            faceRecognitionImageIconStatus?.value?.getOrNull(i)
+                                            faceRecognitionData?.imageIconList?.value?.getOrNull(i)
                                                 ?.let {
                                                     Icon(
                                                         painterResource(it.value.resId),
@@ -852,7 +919,7 @@ fun OtherUserSelectorComponent(
                                                             .padding(start = 4.dp)
                                                             .size(14.dp)
                                                             .then(
-                                                                if (isDevelopedMode && getFaceImage != null) Modifier.clickable {
+                                                                if (isDevelopedMode) Modifier.clickable {
                                                                     hapticFeedback.performHapticFeedback(
                                                                         HapticFeedbackType.ContextClick
                                                                     )
@@ -863,6 +930,23 @@ fun OtherUserSelectorComponent(
                                                         tint = it.value.color.takeOrElse { MaterialTheme.colorScheme.primary }
                                                     )
                                                 }
+                                        }
+                                        if (faceRecognitionData != null && session.phoneNumber in faceRecognitionData.failedPhoneNumbers) {
+                                            Icon(
+                                                painterResource(R.drawable.ic_image),
+                                                contentDescription = "查看本次签到照片",
+                                                tint = Color(0xFFF43E06),
+                                                modifier = Modifier
+                                                    .padding(start = 4.dp)
+                                                    .size(14.dp)
+                                                    .clickable {
+                                                        hapticFeedback.performHapticFeedback(
+                                                            HapticFeedbackType.ContextClick
+                                                        )
+                                                        inspectedFailedFaceImagePhoneNumber =
+                                                            session.phoneNumber
+                                                    }
+                                            )
                                         }
                                         Text(
                                             session.phoneNumber,

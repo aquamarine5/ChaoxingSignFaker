@@ -288,6 +288,7 @@ fun SettingScreen(
                         onClick = {
                             hapticFeedback.performHapticFeedback(HapticFeedbackType.Confirm)
                             coroutineScope.launch {
+                                ChaoxingHttpClient.cloneInstance = null
                                 context.chaoxingDataStore.updateData {
                                     it.toBuilder()
                                         .clearLoginSession()

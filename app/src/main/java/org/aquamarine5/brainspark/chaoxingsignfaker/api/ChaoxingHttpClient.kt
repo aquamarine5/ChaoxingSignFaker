@@ -244,6 +244,7 @@ class ChaoxingHttpClient private constructor(
                 userInfo
             ).apply {
                 instance = this
+                ChaoxingHttpClientPool.put(this)
             }
         }
 
@@ -303,6 +304,7 @@ class ChaoxingHttpClient private constructor(
                 userInfo
             ).apply {
                 instance = this
+                ChaoxingHttpClientPool.put(this)
             }
         }
 

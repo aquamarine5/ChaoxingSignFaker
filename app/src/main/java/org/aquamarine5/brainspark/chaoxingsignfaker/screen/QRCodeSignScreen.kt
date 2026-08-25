@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2025-2026, @aquamarine5 (@海蓝色的咕咕鸽). All Rights Reserved.
  * Author: aquamarine5@163.com (Github: https://github.com/aquamarine5) and Brainspark (previously RenegadeCreation)
  * Repository: https://github.com/aquamarine5/ChaoxingSignFaker
@@ -19,11 +19,13 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
@@ -55,6 +57,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalResources
@@ -65,6 +69,8 @@ import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
+import coil3.compose.AsyncImage
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.SnackbarAlertDialog
 import io.sentry.Sentry
 import kotlinx.coroutines.CancellableContinuation
 import kotlinx.coroutines.Dispatchers
@@ -79,6 +85,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCloudDriveHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCourseHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingFaceHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClientPool
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingSignHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.SignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerDialog
@@ -107,7 +114,9 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingFaceSignEx
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingPredictableException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.FaceRecognitionImageIconState
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.FaceRecognitionImageStatus
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalImageLoader
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.rememberFaceRecognitionData
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.displaySnackbar
@@ -175,11 +184,9 @@ fun QRCodeSignScreen(
             null
         )
     }
-    val faceRecognitionImageIconList: FaceRecognitionImageIconState =
-        remember { mutableStateOf(emptyList()) }
+    val faceRecognitionData = rememberFaceRecognitionData()
     val hapticFeedback = LocalHapticFeedback.current
     var isFetchedFailure by remember { mutableStateOf<Result<*>?>(null) }
-    val httpClientStorage = remember { mutableMapOf<String, ChaoxingHttpClient>() }
     val isDisplayFaceRecognitionImageNewFeatureTips = remember { mutableStateOf(false) }
     if (captchaValidateParams != null) {
         CaptchaHandlerDialog(
@@ -198,10 +205,6 @@ fun QRCodeSignScreen(
         isFetchedFailure = runCatching {
             val data = if (destination.isCloneSession) {
                 ChaoxingHttpClient.cloneInstance!!.let { cloneHttpClient ->
-                    httpClientStorage.putIfAbsent(
-                        cloneHttpClient.userEntity.phoneNumber,
-                        cloneHttpClient
-                    )
                     ChaoxingQRCodeSigner(cloneHttpClient, destination).let {
                         isFaceRequired = it.isFaceRequired()
                         signActivityStatus = it.preSign()
@@ -298,71 +301,22 @@ fun QRCodeSignScreen(
 
                     var isFaceImageCaptured by remember { mutableStateOf(false) }
 
-                    val faceImageBitmaps = remember { mutableMapOf<String, Bitmap>() }
-                    val newFaceImagePhones = remember { mutableStateSetOf<String>() }
                     var showFaceSaveDialog by remember { mutableStateOf(false) }
                     var sponsorPendingAfterFaceSave by remember { mutableStateOf(false) }
                     if (showFaceSaveDialog) {
-                        SaveFaceImagesDialog(newFaceImagePhones.size, onSave = {
-                            coroutineScope.launch {
-                                newFaceImagePhones.toList().forEach { phone ->
-                                    faceImageBitmaps[phone]?.let { bitmap ->
-                                        runCatching {
-                                            val client =
-                                                if (phone == ChaoxingHttpClient.instance!!.userEntity.phoneNumber) ChaoxingHttpClient.instance!! else httpClientStorage[phone]
-                                                    ?: return@forEach
-                                            val savedImage = ChaoxingFaceHelper.saveFaceImage(
-                                                client,
-                                                context,
-                                                bitmap,
-                                                phone
-                                            )
-                                            runCatching {
-                                                ChaoxingFaceHelper.afterUsingFaceImage(
-                                                    context,
-                                                    phone,
-                                                    savedImage.objectId,
-                                                    false
-                                                )
-                                            }
-                                            faceImageBitmaps.remove(phone)
-                                            faceRecognitionImageIconList.setStatus(
-                                                FaceRecognitionImageStatus.HaveImage,
-                                                phone,
-                                                signUserList
-                                            )
-                                        }.onFailure {
-                                            it.snackbarReport(
-                                                snackbarHost,
-                                                coroutineScope,
-                                                "保存人脸照片失败",
-                                                hapticFeedback
-                                            )
-                                        }
-                                    }
-                                }
-                                newFaceImagePhones.clear()
-                                if (sponsorPendingAfterFaceSave) {
+                        SaveFaceImagesDialog(
+                            faceRecognitionData,
+                            signUserList
+                        ) {
+                            if (sponsorPendingAfterFaceSave) {
+                                coroutineScope.launch {
                                     delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED); isSponsor =
                                         true; sponsorPendingAfterFaceSave = false
                                 }
-                                showFaceSaveDialog = false
-                            }
-                        }, onDismiss = {
-                            newFaceImagePhones.clear()
-                            if (sponsorPendingAfterFaceSave) {
-                                sponsorPendingAfterFaceSave = false; coroutineScope.launch {
-                                    delay(
-                                        ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED
-                                    ); isSponsor = true
-                                }
                             }
                             showFaceSaveDialog = false
-                        })
+                        }
                     }
-                    val faceImageObjectIds = remember { mutableMapOf<String, String>() }
-                    val storedFaceImageObjectIds = remember { mutableMapOf<String, String>() }
-                    val faceRecognitionFailedPhoneNumbers = remember { mutableStateListOf<String>() }
 
                     val signHandler = remember {
                         ChaoxingSignHandler(
@@ -380,12 +334,13 @@ fun QRCodeSignScreen(
                                 runCatching {
                                     val faceImageUploadedObjectId =
                                         if (isFaceRequired) {
-                                            faceImageObjectIds.getOrPut(selfPhoneNumber) {
+                                            faceRecognitionData.faceImageObjectIds.getOrPut(selfPhoneNumber) {
                                                 val bitmap =
-                                                    faceImageBitmaps.remove(selfPhoneNumber)
+                                                    faceRecognitionData.capturedBitmaps.remove(selfPhoneNumber)
                                                         ?: throw ChaoxingPredictableException(
                                                             "未拍摄人脸照片，无法上传"
                                                         )
+                                                faceRecognitionData.signUsedFaceBitmaps[selfPhoneNumber] = bitmap
                                                 ChaoxingCloudDriveHelper.uploadImage(
                                                     ChaoxingHttpClient.instance!!,
                                                     bitmap
@@ -414,42 +369,6 @@ fun QRCodeSignScreen(
                                         }
                                         return@runCatching true
                                     } else return@runCatching false
-                                }.onFailure { exception ->
-                                    if (exception is ChaoxingFaceSignException) {
-                                        faceImageObjectIds.remove(selfPhoneNumber)
-                                        faceRecognitionFailedPhoneNumbers.add(selfPhoneNumber)
-                                        faceRecognitionImageIconList.setStatus(
-                                            FaceRecognitionImageStatus.ImageCheckFailure,
-                                            0
-                                        )
-                                    }
-                                    storedFaceImageObjectIds[selfPhoneNumber]
-                                        ?.let { objectId ->
-                                            ChaoxingFaceHelper.afterUsingFaceImage(
-                                                context,
-                                                selfPhoneNumber,
-                                                objectId,
-                                                exception is ChaoxingFaceSignException,
-                                            )
-                                        }
-                                }.onSuccess {
-                                    if (faceRecognitionImageIconList.value.firstOrNull()?.value != FaceRecognitionImageStatus.UseProfileImage) {
-                                        faceRecognitionImageIconList.setStatus(
-                                            FaceRecognitionImageStatus.ImageCheckSuccess,
-                                            0
-                                        )
-                                    }
-                                    faceRecognitionFailedPhoneNumbers.remove(selfPhoneNumber)
-                                    storedFaceImageObjectIds[selfPhoneNumber]?.let { objectId ->
-                                        runCatching {
-                                            ChaoxingFaceHelper.afterUsingFaceImage(
-                                                context,
-                                                selfPhoneNumber,
-                                                objectId,
-                                                false
-                                            )
-                                        }
-                                    }
                                 }
                             },
                             onSigningFinished = { _, name, isOtherUser ->
@@ -463,22 +382,19 @@ fun QRCodeSignScreen(
                             },
                             onOtherUserSigning = { value, session, bypassChecking, index ->
                                 runCatching {
-                                    httpClientStorage.getOrPut(session.phoneNumber) {
-                                        ChaoxingHttpClient.loadFromOtherUserSession(
-                                            session,
-                                            context
-                                        )
-                                    }.let { client ->
+                                    ChaoxingHttpClientPool.get(context, session.phoneNumber).let { client ->
                                         val faceImageUploadedObjectId =
                                             if (isFaceRequired) {
-                                                faceImageObjectIds.getOrPut(
+                                            faceRecognitionData.faceImageObjectIds.getOrPut(
                                                     session.phoneNumber
                                                 ) {
-                                                    val bitmap = faceImageBitmaps.remove(
+                                                    val bitmap = faceRecognitionData.capturedBitmaps.remove(
                                                         session.phoneNumber
                                                     ) ?: throw ChaoxingPredictableException(
                                                         "未拍摄${session.name}的人脸照片，无法上传"
                                                     )
+                                                    faceRecognitionData.signUsedFaceBitmaps[session.phoneNumber] =
+                                                        bitmap
                                                     ChaoxingCloudDriveHelper.uploadImage(
                                                         client,
                                                         bitmap
@@ -520,66 +436,32 @@ fun QRCodeSignScreen(
                                                             }
                                                         }
                                                 }
-                                                return@runCatching true
-                                            } else return@runCatching false
-                                        }
-                                    }
-                                }.onFailure { exception ->
-                                    if (exception is ChaoxingFaceSignException) {
-                                        faceImageObjectIds.remove(session.phoneNumber)
-                                        faceRecognitionFailedPhoneNumbers.add(session.phoneNumber)
-                                        faceRecognitionImageIconList.setStatus(
-                                            FaceRecognitionImageStatus.ImageCheckFailure,
-                                            index + 1
-                                        )
-                                    }
-                                    storedFaceImageObjectIds[session.phoneNumber]?.let { objectId ->
-                                        ChaoxingFaceHelper.afterUsingFaceImage(
-                                            context,
-                                            session.phoneNumber,
-                                            objectId,
-                                            exception is ChaoxingFaceSignException,
-                                        )
-                                    }
-                                }.onSuccess {
-                                    if (faceRecognitionImageIconList.value.getOrNull(index + 1)?.value != FaceRecognitionImageStatus.UseProfileImage) {
-                                        faceRecognitionImageIconList.setStatus(
-                                            FaceRecognitionImageStatus.ImageCheckSuccess,
-                                            index + 1
-                                        )
-                                    }
-                                    faceRecognitionFailedPhoneNumbers.remove(session.phoneNumber)
-                                    storedFaceImageObjectIds[session.phoneNumber]?.let { objectId ->
-                                        runCatching {
-                                            ChaoxingFaceHelper.afterUsingFaceImage(
-                                                context,
-                                                session.phoneNumber,
-                                                objectId,
-                                                false
-                                            )
-                                        }
-                                    }
-                                }
+                                                 return@runCatching true
+                                             } else return@runCatching false
+                                         }
+                                     }
+                                 }
 
-                            },
-                            onAllSigningFinished = { isSuccessful ->
-                                isSigning.value = false
-                                if (isSuccessful) {
-                                    if (newFaceImagePhones.isNotEmpty()) {
-                                        sponsorPendingAfterFaceSave = true
-                                        showFaceSaveDialog = true
-                                    } else coroutineScope.launch {
-                                        delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)
-                                        isSponsor = true
-                                    }
-                                }
-                            },
-                            destination = destination,
-                            userSelections = userSelections,
-                            signStatus = signStatus,
-                        )
-                    }
-                    Box(
+                             },
+                             onAllSigningFinished = { isSuccessful ->
+                                 isSigning.value = false
+                                 if (isSuccessful) {
+                                     if (faceRecognitionData.newImagePhones.isNotEmpty()) {
+                                         sponsorPendingAfterFaceSave = true
+                                         showFaceSaveDialog = true
+                                     } else coroutineScope.launch {
+                                         delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)
+                                         isSponsor = true
+                                     }
+                                 }
+                             },
+                             destination = destination,
+                             userSelections = userSelections,
+                             signStatus = signStatus,
+                             faceRecognitionData = faceRecognitionData,
+                         )
+                     }
+                     Box(
                         modifier = Modifier
                             .fillMaxSize()
                             .zIndex(0f)
@@ -595,13 +477,7 @@ fun QRCodeSignScreen(
                                 signStatus = signStatus,
                                 isCurrentAlreadySigned = isCurrentAlreadySigned,
                                 userSelections = userSelections,
-                                faceRecognitionImageIconStatus = faceRecognitionImageIconList,
-                                getFaceImage = { phoneNumber ->
-                                    ChaoxingFaceHelper.storedFaceRecognitionImages.peekValue()
-                                        ?.get(phoneNumber)
-                                        .orEmpty()
-                                        .map { ChaoxingFaceHelper.getFaceImageFile(context, it.objectId) }
-                                },
+                                faceRecognitionData = faceRecognitionData,
                                 prefixTipsContent = {
                                     if (signoffData != null)
                                         SignOutRedirectTips(
@@ -760,21 +636,21 @@ fun QRCodeSignScreen(
                                         selectedPhoneNumbers.forEach { phoneNumber ->
                                             val images = storedImages[phoneNumber].orEmpty()
                                             val candidate =
-                                                if (phoneNumber in faceRecognitionFailedPhoneNumbers)
+                                                if (phoneNumber in faceRecognitionData.failedPhoneNumbers)
                                                     images.filter {
                                                         !it.isFailureBefore && it.useCount > 0
                                                     }.randomOrNull()
                                                 else images.randomOrNull()
                                             candidate?.let { image ->
-                                                faceImageObjectIds[phoneNumber] = image.objectId
-                                                storedFaceImageObjectIds[phoneNumber] =
+                                                faceRecognitionData.faceImageObjectIds[phoneNumber] = image.objectId
+                                                faceRecognitionData.storedFaceImageObjectIds[phoneNumber] =
                                                     image.objectId
                                             }
                                         }
                                     }
                                     if (isFaceRequired && (
-                                                (isSelf && ChaoxingHttpClient.instance!!.userEntity.phoneNumber !in faceImageObjectIds.keys) ||
-                                                        otherUserSessionList.any { it != null && it.phoneNumber !in faceImageObjectIds.keys }
+                                                (isSelf && ChaoxingHttpClient.instance!!.userEntity.phoneNumber !in faceRecognitionData.faceImageObjectIds.keys) ||
+                                                        otherUserSessionList.any { it != null && it.phoneNumber !in faceRecognitionData.faceImageObjectIds.keys }
                                                 )
                                     ) {
                                         isFaceImageCaptured = true
@@ -805,71 +681,30 @@ fun QRCodeSignScreen(
                                 isFaceImageCaptured = false
                             }
                             FaceRecognitionComponent(mutableListOf<Pair<String, String>>().apply {
-                                if (isSelfForSign && !faceImageObjectIds.containsKey(
+                                if (isSelfForSign && !faceRecognitionData.faceImageObjectIds.containsKey(
                                         ChaoxingHttpClient.instance!!.userEntity.phoneNumber
                                     )
                                 ) add(ChaoxingHttpClient.instance!!.userEntity.phoneNumber to ChaoxingHttpClient.instance!!.userEntity.name)
                                 signUserList.forEach {
-                                    if (it != null && !faceImageObjectIds.containsKey(
+                                    if (it != null && !faceRecognitionData.faceImageObjectIds.containsKey(
                                             it.phoneNumber
                                         )
                                     ) add(it.phoneNumber to it.name)
-                                }
-                            }, getSessionClient = { phoneNumber ->
-                                if (phoneNumber == ChaoxingHttpClient.instance!!.userEntity.phoneNumber)
-                                    ChaoxingHttpClient.instance!!
-                                else httpClientStorage.getOrPut(phoneNumber) {
-                                    ChaoxingHttpClient.loadFromOtherUserSession(
-                                        signUserList.first { it?.phoneNumber == phoneNumber }!!,
-                                        context
-                                    )
                                 }
                             }, onCancel = {
                                 isSigning.value = false
                                 isFaceImageCaptured = false
                             }) { bitmaps, isUseProfileImage ->
                                 bitmaps.forEach { (string, bitmap) ->
-                                    faceRecognitionImageIconList.setStatus(
+                                    faceRecognitionData.setStatus(
                                         if (isUseProfileImage) FaceRecognitionImageStatus.UseProfileImage
                                         else FaceRecognitionImageStatus.NewImageAdded,
                                         string,
                                         signUserList
                                     )
-                                    if (isUseProfileImage) {
-                                        coroutineScope.launch {
-                                            runCatching {
-                                                val client =
-                                                    if (string == ChaoxingHttpClient.instance!!.userEntity.phoneNumber)
-                                                        ChaoxingHttpClient.instance!!
-                                                    else httpClientStorage.getOrPut(string) {
-                                                        ChaoxingHttpClient.loadFromOtherUserSession(
-                                                            signUserList.first { it?.phoneNumber == string }!!,
-                                                            context
-                                                        )
-                                                    }
-                                                val savedImage = ChaoxingFaceHelper.saveFaceImage(
-                                                    client,
-                                                    context,
-                                                    bitmap,
-                                                    string
-                                                )
-                                                faceImageBitmaps.remove(string)
-                                                faceImageObjectIds[string] = savedImage.objectId
-                                                storedFaceImageObjectIds[string] =
-                                                    savedImage.objectId
-                                            }.onFailure {
-                                                it.snackbarReport(
-                                                    snackbarHost,
-                                                    coroutineScope,
-                                                    "保存默认人脸识别照片失败",
-                                                    hapticFeedback
-                                                )
-                                                faceImageBitmaps[string] = bitmap
-                                            }
-                                        }
-                                    } else {
-                                        faceImageBitmaps[string] = bitmap
-                                        newFaceImagePhones.add(string)
+                                    faceRecognitionData.capturedBitmaps[string] = bitmap
+                                    if (!isUseProfileImage) {
+                                        faceRecognitionData.newImagePhones.add(string)
                                     }
                                 }
                                 isFaceImageCaptured = false

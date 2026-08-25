@@ -37,6 +37,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
@@ -48,7 +49,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingFaceHelper
-import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClientPool
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
 import java.io.ByteArrayOutputStream
@@ -100,10 +101,10 @@ private suspend fun randomizeProfileFaceImage(
 @Composable
 fun FaceRecognitionComponent(
     signUserName: List<Pair<String, String>>,
-    getSessionClient: suspend (phoneNumber: String) -> ChaoxingHttpClient,
     onCancel: () -> Unit,
     onFinish: (Map<String, Bitmap>, isUseProfileImage: Boolean) -> Unit
 ) {
+    val context = LocalContext.current
     val snackbarHost = LocalSnackbarHostState.current
     val coroutineScope = rememberCoroutineScope()
     val hapticFeedback = LocalHapticFeedback.current
@@ -170,7 +171,7 @@ fun FaceRecognitionComponent(
                 buildMap {
                     signUserName.forEachIndexed { index, (phoneNumber, _) ->
                         val url = ChaoxingFaceHelper.getUserProfileFaceImageUrl(
-                            getSessionClient(phoneNumber)
+                            ChaoxingHttpClientPool.get(context, phoneNumber)
                         )
                         val bitmap = withContext(Dispatchers.IO) {
                             URL(url).openStream().use { stream ->

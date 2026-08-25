@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2026, @aquamarine5 (@海蓝色的咕咕鸽). All Rights Reserved.
  * Author: aquamarine5@163.com (Github: https://github.com/aquamarine5) and Brainspark (previously RenegadeCreation)
  * Repository: https://github.com/aquamarine5/ChaoxingSignFaker
@@ -15,12 +15,15 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingFaceHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingOtherUserHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.SignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignStatus
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingQRCodeSigner.QRCodeExpiredException
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingFaceSignException
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.FaceRecognitionData
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.checkIsLast
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.displaySnackbar
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ifShouldDeselect
@@ -36,6 +39,7 @@ class ChaoxingSignHandler<in T>(
     private val userSelections: SnapshotStateList<Boolean>,
     private val signStatus: MutableList<ChaoxingSignStatus>,
     private val context: Context,
+    private val faceRecognitionData: FaceRecognitionData? = null,
     private val getSignRealtimeParameter: (suspend () -> T)? = null
 ) {
     private var storedValue: T? = null
@@ -74,12 +78,15 @@ class ChaoxingSignHandler<in T>(
     ) {
         var isCaptchaSigning = false
         storedValue = value
+        val selfPhoneNumber = ChaoxingHttpClient.instance!!.userEntity.phoneNumber
         coroutineScope.launch {
             if (isSelf) {
                 signStatus[0].loading()
                 onSelfSigning(value).onSuccess {
                     isCaptchaSigning = it
                     userSelections[0] = false
+                    faceRecognitionData?.markSuccess(selfPhoneNumber, otherUserSessionList)
+                    faceRecognitionData?.reportUsage(context, selfPhoneNumber, false)
                     if (destination.endTime != null && System.currentTimeMillis() > destination.endTime!!)
                         signStatus[0].successForLate()
                     else
@@ -89,6 +96,9 @@ class ChaoxingSignHandler<in T>(
                     }
                     onSigningFinished(value, ChaoxingHttpClient.instance!!.userEntity.name, false)
                 }.onFailure {
+                    if (it is ChaoxingFaceSignException)
+                        faceRecognitionData?.markFailure(selfPhoneNumber, otherUserSessionList)
+                    faceRecognitionData?.reportUsage(context, selfPhoneNumber, it is ChaoxingFaceSignException)
                     signStatus[0].failed(it)
                     it.ifShouldDeselect {
                         userSelections[0] = false
@@ -132,6 +142,8 @@ class ChaoxingSignHandler<in T>(
                     else
                         signStatus[1 + index].success()
                     userSelections[index + 1] = false
+                    faceRecognitionData?.markSuccess(session.phoneNumber, otherUserSessionList)
+                    faceRecognitionData?.reportUsage(context, session.phoneNumber, false)
                     if (otherUserSessionList.checkIsLast(
                             index + 1
                         )
@@ -146,6 +158,9 @@ class ChaoxingSignHandler<in T>(
                             ChaoxingOtherUserHelper.markSessionObsoleted(session, context)
                         }
                     }
+                    if (it is ChaoxingFaceSignException)
+                        faceRecognitionData?.markFailure(session.phoneNumber, otherUserSessionList)
+                    faceRecognitionData?.reportUsage(context, session.phoneNumber, it is ChaoxingFaceSignException)
                     it.snackbarReport(
                         snackbarHost,
                         coroutineScope,
