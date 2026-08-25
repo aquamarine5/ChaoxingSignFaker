@@ -503,28 +503,29 @@ class MainActivity : ComponentActivity() {
                                     val coroutineScope = rememberCoroutineScope()
                                     val isCloning =
                                         ChaoxingHttpClient.cloneInstance?.userEntity != null
-                                    AnimatedVisibility(
-                                        isCloning,
-                                        enter = expandVertically(),
-                                        exit = shrinkVertically()
-                                    ) {
-                                        CloneSessionTips(onExitCloning = {
-                                            hapticFeedback.performHapticFeedback(
-                                                HapticFeedbackType.ContextClick
-                                            )
-                                            ChaoxingHttpClient.exitCloning(
-                                                coroutineScope,
-                                                snackbarHostState
-                                            )
-                                            navController.navigate(CourseListDestination(false)) {
-                                                popUpTo(navController.graph.findStartDestination().id) {
-                                                    saveState = true
+                                    Column(modifier = Modifier.fillMaxSize()) {
+                                        AnimatedVisibility(
+                                            isCloning,
+                                            enter = expandVertically(),
+                                            exit = shrinkVertically()
+                                        ) {
+                                            CloneSessionTips(onExitCloning = {
+                                                hapticFeedback.performHapticFeedback(
+                                                    HapticFeedbackType.ContextClick
+                                                )
+                                                ChaoxingHttpClient.exitCloning(
+                                                    coroutineScope,
+                                                    snackbarHostState
+                                                )
+                                                navController.navigate(CourseListDestination(false)) {
+                                                    popUpTo(navController.graph.findStartDestination().id) {
+                                                        saveState = true
+                                                    }
+                                                    launchSingleTop = true
                                                 }
-                                                launchSingleTop = true
-                                            }
-                                        })
-                                    }
-                                    NavHost(
+                                            })
+                                        }
+                                        NavHost(
                                         navController,
                                         destination!!,
                                         enterTransition = {
@@ -722,6 +723,7 @@ class MainActivity : ComponentActivity() {
                                                 }
                                             }
                                         }
+                                    }
                                     }
                                 }
                             }

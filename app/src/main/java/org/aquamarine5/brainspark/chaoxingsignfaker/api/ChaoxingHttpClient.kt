@@ -534,7 +534,7 @@ class ChaoxingHttpClient private constructor(
             isEncryptedPassword: Boolean = false
         ): Unit =
             withContext(Dispatchers.IO) {
-                checkPasswordIllegalThrowException(password)
+                if (!isEncryptedPassword) checkPasswordIllegalThrowException(password)
                 val uname = encryptByAES(phoneNumber)
                 val encryptedPassword =
                     if (isEncryptedPassword) password else encryptByAES(password)

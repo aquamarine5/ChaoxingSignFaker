@@ -8,7 +8,6 @@ package org.aquamarine5.brainspark.chaoxingsignfaker.components
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.graphics.Matrix
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.BorderStroke
@@ -47,56 +46,15 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import okhttp3.Request
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingFaceHelper
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClientPool
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.randomizeStylizeFaceImage
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
-import java.io.ByteArrayOutputStream
-import java.net.URL
-import kotlin.math.abs
-import kotlin.math.cos
-import kotlin.math.sin
-import kotlin.random.Random
-
-private const val PROFILE_IMAGE_COMPRESS_QUALITY = 90
-
-private suspend fun randomizeProfileFaceImage(
-    bitmap: Bitmap,
-    cropLeft: Int,
-    cropTop: Int,
-    cropWidth: Int,
-    cropHeight: Int,
-    angle: Float
-): Bitmap = withContext(Dispatchers.IO) {
-    val matrix = Matrix().apply {
-        postTranslate(-cropLeft.toFloat(), -cropTop.toFloat())
-        postRotate(angle)
-    }
-    val rotated = Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
-    val radians = Math.toRadians(abs(angle.toDouble()))
-    val sin = sin(radians)
-    val cos = cos(radians)
-    val width = cropWidth.toDouble()
-    val height = cropHeight.toDouble()
-    val safeWidth = minOf(
-        width / (cos + sin * width / height),
-        height / (sin + cos * width / height)
-    ).toInt().coerceIn(1, minOf(rotated.width, cropWidth))
-    val safeHeight = (safeWidth * height / width).toInt()
-        .coerceIn(1, minOf(rotated.height, cropHeight))
-    ByteArrayOutputStream().use { out ->
-        Bitmap.createBitmap(
-            rotated,
-            (rotated.width - safeWidth) / 2,
-            (rotated.height - safeHeight) / 2,
-            safeWidth,
-            safeHeight
-        ).compress(Bitmap.CompressFormat.JPEG, PROFILE_IMAGE_COMPRESS_QUALITY, out)
-        BitmapFactory.decodeByteArray(out.toByteArray(), 0, out.size())
-            ?: rotated
-    }
-}
+import java.util.concurrent.TimeUnit
 
 @Composable
 fun FaceRecognitionComponent(
@@ -112,12 +70,12 @@ fun FaceRecognitionComponent(
     var useProfileImage by remember { mutableStateOf<Boolean?>(null) }
     var isProcessingProfileImage by remember { mutableStateOf(false) }
     var profileImageProgress by remember { mutableStateOf<Pair<Int, Int>?>(null) }
-    BackHandler(enabled = !isProcessingProfileImage) {
+    BackHandler {
         onCancel()
     }
 
     AlertDialog(
-        onDismissRequest = { if (!isProcessingProfileImage) onCancel() },
+        onDismissRequest = onCancel,
         title = { Text("使用默认人脸识别照片？") },
         icon = {
             Icon(
@@ -168,28 +126,29 @@ fun FaceRecognitionComponent(
             isProcessingProfileImage = true
             profileImageProgress = 0 to signUserName.size
             runCatching {
+                val profileImageHttpClient =
+                    ChaoxingHttpClient.instance!!.okHttpClient.newBuilder()
+                        .connectTimeout(10, TimeUnit.SECONDS)
+                        .readTimeout(15, TimeUnit.SECONDS)
+                        .build()
                 buildMap {
                     signUserName.forEachIndexed { index, (phoneNumber, _) ->
                         val url = ChaoxingFaceHelper.getUserProfileFaceImageUrl(
                             ChaoxingHttpClientPool.get(context, phoneNumber)
                         )
                         val bitmap = withContext(Dispatchers.IO) {
-                            URL(url).openStream().use { stream ->
-                                BitmapFactory.decodeStream(stream)
-                                    ?: throw IllegalStateException("默认人脸识别照片下载失败")
+                            profileImageHttpClient.newCall(
+                                Request.Builder().url(url).build()
+                            ).execute().use { response ->
+                                response.body.byteStream().use { stream ->
+                                    BitmapFactory.decodeStream(stream)
+                                        ?: throw IllegalStateException("默认人脸识别照片下载失败")
+                                }
                             }
                         }
-                        val cropRatio = 0.90f + Random.nextFloat() * 0.09f
                         put(
                             phoneNumber,
-                            randomizeProfileFaceImage(
-                                bitmap,
-                                Random.nextInt(bitmap.width - (bitmap.width * cropRatio).toInt() + 1),
-                                Random.nextInt(bitmap.height - (bitmap.height * cropRatio).toInt() + 1),
-                                (bitmap.width * cropRatio).toInt().coerceAtLeast(1),
-                                (bitmap.height * cropRatio).toInt().coerceAtLeast(1),
-                                Random.nextFloat() * 10f - 5f
-                            )
+                            randomizeStylizeFaceImage(bitmap).also { bitmap.recycle() }
                         )
                         profileImageProgress = index + 1 to signUserName.size
                     }

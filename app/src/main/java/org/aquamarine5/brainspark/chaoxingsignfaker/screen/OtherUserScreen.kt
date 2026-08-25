@@ -2564,6 +2564,18 @@ fun OtherUserScreen(
                             isQRCodeParsing.value = true
                             isQRCodeScanPause.value = true
                             return@runCatching ChaoxingOtherUserSharedEntity.parseFromQRCode(qr)
+                        }.onFailure { failure ->
+                            isQRCodeIllegal = true
+                            isQRCodeParsing.value = false
+                            hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
+                            qrcodeIllegalText = failure.message ?: "二维码解析失败，登录失败。"
+                            job?.cancel()
+                            job = coroutineScope.launch {
+                                delay(1.seconds)
+                                isQRCodeScanPause.value = false
+                                delay(1.seconds)
+                                isQRCodeIllegal = false
+                            }
                         }.onSuccess { sharedEntity ->
                             coroutineScope.launch {
                                 runCatching {

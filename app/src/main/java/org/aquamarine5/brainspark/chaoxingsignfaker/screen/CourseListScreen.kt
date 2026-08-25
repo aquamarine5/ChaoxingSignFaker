@@ -40,6 +40,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -419,7 +420,7 @@ fun CourseListScreen(
                                 }
                             } //TODO: Recommend
 
-                            var debouncePreviousTime = remember { 0L }
+                            var debouncePreviousTime by remember { mutableLongStateOf(0L) }
                             LazyColumn {
                                 item {
                                     Card(modifier = Modifier.zIndex(1f)) {

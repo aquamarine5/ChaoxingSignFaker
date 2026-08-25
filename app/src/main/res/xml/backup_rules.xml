@@ -15,4 +15,7 @@
     <include
         domain="file"
         path="/datastore/." />
+    <include
+        domain="file"
+        path="face_images/" />
 </full-backup-content>

@@ -82,7 +82,9 @@ object ChaoxingOtherUserHelper {
             val faceObjectIds = selectedFaceObjectIds
                 .distinct()
                 .filter { it in availableFaceObjectIds }.take(ChaoxingFaceHelper.MAX_FACE_IMAGES)
-            "http://cdn.aquamarine5.fun/?phone=${sharedEntity.phoneNumber}&pwd=${sharedEntity.encryptedPassword}&name=${
+            "http://cdn.aquamarine5.fun/?phone=${sharedEntity.phoneNumber}&pwd=${
+                Uri.encode(sharedEntity.encryptedPassword)
+            }&name=${
                 Uri.encode(sharedEntity.userName)
             }&face=${faceObjectIds.joinToString(",")}"
         }
@@ -233,7 +235,11 @@ object ChaoxingOtherUserHelper {
                     }
             }
 
-            if (existedSession != null && existedSession.password == sharedEntity.encryptedPassword) {
+            if (existedSession != null && existedSession.password == sharedEntity.encryptedPassword.replace(
+                    " ",
+                    "+"
+                )
+            ) {
                 if (sharedEntity.faceObjectIds.isEmpty())
                     throw AlreadyExistedOtherUserException(
                         "${sharedEntity.userName}(${sharedEntity.phoneNumber}) 用户已经存在！"
@@ -299,10 +305,11 @@ object ChaoxingOtherUserHelper {
             val userEntity =
                 ChaoxingHttpClient.getInfo(tempOkHttpClient, context, sharedEntity.phoneNumber)
 
-            val session = ChaoxingOtherUserSession.newBuilder()
+            val session = (existedSession?.toBuilder() ?: ChaoxingOtherUserSession.newBuilder())
                 .setPassword(sharedEntity.encryptedPassword.replace(" ", "+"))
                 .setName(sharedEntity.userName.ifEmpty { userEntity.name })
                 .setPhoneNumber(sharedEntity.phoneNumber)
+                .clearCookies()
                 .addAllCookies(
                     tempOkHttpClient.cookieJar.loadForRequest(
                         HttpUrl.Builder()

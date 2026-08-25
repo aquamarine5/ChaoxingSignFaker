@@ -13,7 +13,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -39,15 +43,19 @@ fun SaveFaceImagesDialog(
     val snackbarHost = LocalSnackbarHostState.current
     val hapticFeedback = LocalHapticFeedback.current
     val coroutineScope = rememberCoroutineScope()
+    var isSaving by remember { mutableStateOf(false) }
     SnackbarAlertDialog(
         onDismissRequest = {
-            faceRecognitionData.newImagePhones.clear()
-            onFinished()
+            if (!isSaving) {
+                faceRecognitionData.newImagePhones.clear()
+                onFinished()
+            }
         },
         title = { Text("保存人脸照片？") },
         text = { Text("是否保存刚才拍摄的 ${faceRecognitionData.newImagePhones.size} 张人脸照片，以便下次签到使用？") },
         confirmButton = {
-            Button(onClick = {
+            Button(enabled = !isSaving, onClick = {
+                isSaving = true
                 coroutineScope.launch {
                     faceRecognitionData.newImagePhones.toList().forEach { phoneNumber ->
                         faceRecognitionData.capturedBitmaps[phoneNumber]?.let { bitmap ->
@@ -83,12 +91,13 @@ fun SaveFaceImagesDialog(
                         }
                     }
                     faceRecognitionData.newImagePhones.clear()
+                    isSaving = false
                     onFinished()
                 }
             }) { Text("保存") }
         },
         dismissButton = {
-            OutlinedButton(onClick = {
+            OutlinedButton(enabled = !isSaving, onClick = {
                 faceRecognitionData.newImagePhones.clear()
                 onFinished()
             }) { Text("不保存") }
