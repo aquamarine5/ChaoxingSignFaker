@@ -1772,7 +1772,7 @@ fun OtherUserScreen(
                             Text(buildAnnotatedString {
                                 append("▪ 在1.17.0的新版本里，你可以拍摄或上传自己的人脸识别照片，并通过支持的方式（二维码或链接形式均支持，账密方式暂不支持自动添加）把你的账户信息附带着你的人脸识别照片分享给其他使用随地大小签的用户，这样对方就可以在他的设备为你代签有人脸认证的签到了！\n")
                                 withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
-                                    append("注意：如果勾选此选项，则代表你的人脸识别照片会被分享给对方，对方可以看见你分享的所有人脸识别照片，并且无法远程删除。")
+                                    append("▪ 注意：如果勾选此选项，则代表你的人脸识别照片会被分享给对方，对方可以看见你分享的所有人脸识别照片，并且无法远程删除。")
                                 }
                                 append("\n▪ 若你不想分享某张人脸识别照片，点击【展开人脸识别照片】后选择不想分享的照片，在对话框点击【取消附带此张照片】即可。随地大小签推荐用户分享尽可能多的照片以避免被服务器判断为异常请求。")
                                 append("\n▪ 如果你没有分享你的人脸识别照片给对方，随地大小签可以选择调取你在学习通服务器设置的第一张人脸识别照片信息作为模板，进行风格化处理后作为你的签到人脸识别照片。对方不会看见你的这张照片。")
@@ -2077,7 +2077,7 @@ fun OtherUserScreen(
                     },
                     confirmButton = {
                         Button(onClick = {
-                            isControlFaceImageNewFeatureDialog
+                            isControlFaceImageNewFeatureDialog = false
                         }) {
                             Text("确定")
                         }
