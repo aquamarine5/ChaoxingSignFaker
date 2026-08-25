@@ -69,7 +69,7 @@ object ChaoxingOtherUserHelper {
     suspend fun getSharedUrl(
         context: Context,
         insertSharedEntity: ChaoxingOtherUserSharedEntity? = null,
-        selectedFaceObjectIds: List<String>? = null,
+        selectedFaceObjectIds: List<String>,
     ): String =
         withContext(Dispatchers.IO) {
             val dataStore = context.chaoxingDataStore.data.first()
@@ -79,10 +79,9 @@ object ChaoxingOtherUserHelper {
                     ?.imagesList
                     .orEmpty()
                     .map { it.objectId }
-            val faceObjectIds = (selectedFaceObjectIds
-                ?.distinct()
-                ?.filter { it in availableFaceObjectIds }
-                ?: availableFaceObjectIds).take(ChaoxingFaceHelper.MAX_FACE_IMAGES)
+            val faceObjectIds = selectedFaceObjectIds
+                .distinct()
+                .filter { it in availableFaceObjectIds }.take(ChaoxingFaceHelper.MAX_FACE_IMAGES)
             "http://cdn.aquamarine5.fun/?phone=${sharedEntity.phoneNumber}&pwd=${sharedEntity.encryptedPassword}&name=${
                 Uri.encode(sharedEntity.userName)
             }&face=${faceObjectIds.joinToString(",")}"
@@ -91,7 +90,7 @@ object ChaoxingOtherUserHelper {
     suspend fun generateQRCode(
         context: Context,
         insertSharedEntity: ChaoxingOtherUserSharedEntity? = null,
-        selectedFaceObjectIds: List<String>? = null,
+        selectedFaceObjectIds: List<String>,
     ): Bitmap = withContext(Dispatchers.Default) {
         val qrcodeSize = getQRCodeSize(context)
         val qrCode = QRCodeWriter().encode(

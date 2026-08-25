@@ -29,6 +29,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -78,10 +79,21 @@ fun CaptchaHandlerDialog(
     val density by remember(containerWidth) { mutableFloatStateOf(containerWidth / 320) }
     val sliderMaxValue = remember(containerWidth) { containerWidth - 56f * density }
 
-    suspend fun check(normalizedPosition: Float, isCheckingCaptcha: AtomicBoolean?): Boolean {
+    @OnlyAppDevelopedMode var memoriesMatchCount by remember { mutableIntStateOf(0) }
+    @OnlyAppDevelopedMode var totalTryCount by remember { mutableIntStateOf(0) }
+    suspend fun check(
+        normalizedPosition: Float,
+        isCheckingCaptcha: AtomicBoolean?,
+        isAutoCheck: Boolean = false
+    ): Boolean {
         signer.checkCaptchaResult(normalizedPosition, data!!)
             .let { result ->
                 if (result == null) {
+                    if (isAutoCheck) {
+                        data = signer.getCaptchaImageV2()
+                        isCheckingCaptcha?.set(false)
+                        return false
+                    }
                     hapticFeedback.performHapticFeedback(
                         HapticFeedbackType.Reject
                     )
@@ -99,15 +111,19 @@ fun CaptchaHandlerDialog(
                     @OnlyAppDevelopedMode if (!isRecordingCaptchaMemories) {
                         onDismiss()
                     } else {
-                        ChaoxingCaptchaHelper.storedCaptchaMemories.getValue(context)[data!!.token] =
+                        ChaoxingCaptchaHelper.storedCaptchaMemories.getValue(context)[data!!.imageFilename] =
                             normalizedPosition
                         sliderPosition = 0f
                         var captchaData: ChaoxingCaptchaDataEntity
+                        val captchaMemories =
+                            ChaoxingCaptchaHelper.storedCaptchaMemories.getValue(context)
                         do {
                             captchaData = signer.getCaptchaImageV2()
-                        } while (captchaData.token in ChaoxingCaptchaHelper.getCaptchaMemories(
-                                context
-                            ).keys
+                            totalTryCount++
+                        } while (totalTryCount < 20 &&
+                            (captchaData.imageFilename in captchaMemories).also { isMatched ->
+                                if (isMatched) memoriesMatchCount++
+                            }
                         )
                         data = captchaData
                     }
@@ -118,13 +134,15 @@ fun CaptchaHandlerDialog(
     }
 
     var isDisplayCaptchaDialog by remember { mutableStateOf(false) }
+
     LaunchedEffect(signer) {
         runCatching {
             data = signer.getCaptchaImageV2()
-            ChaoxingCaptchaHelper.storedCaptchaMemories.getValue(context)[data!!.token].let {
-                if (it == null || !check(it, null))
-                    isDisplayCaptchaDialog = true
-            }
+            ChaoxingCaptchaHelper.storedCaptchaMemories.getValue(context)[data!!.imageFilename]
+                .let {
+                    if (it == null || !check(it, null, isAutoCheck = true))
+                        isDisplayCaptchaDialog = true
+                }
         }.onFailure {
             it.snackbarReport(
                 snackbar,
@@ -132,6 +150,8 @@ fun CaptchaHandlerDialog(
                 "获取验证码信息失败",
                 hapticFeedback
             )
+            onResult(Result.failure(it))
+            onDismiss()
         }
     }
 
@@ -209,6 +229,8 @@ fun CaptchaHandlerDialog(
                             valueRange = 0f..sliderMaxValue,
                             modifier = Modifier.fillMaxWidth()
                         )
+                        if (isRecordingCaptchaMemories)
+                            Text("$memoriesMatchCount / $totalTryCount")
                     }
                 } else {
                     Column(
