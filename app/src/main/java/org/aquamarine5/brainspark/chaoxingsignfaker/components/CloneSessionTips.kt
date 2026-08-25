@@ -7,11 +7,12 @@
 package org.aquamarine5.brainspark.chaoxingsignfaker.components
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -26,9 +27,11 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalImageLoader
 
 @Composable
 fun CloneSessionTips(onExitCloning: () -> Unit) {
@@ -47,24 +50,32 @@ fun CloneSessionTips(onExitCloning: () -> Unit) {
         )
         AsyncImage(
             ChaoxingHttpClient.cloneInstance?.userEntity?.pic,
+            imageLoader = LocalImageLoader.current,
             contentDescription = null,
             contentScale = ContentScale.Crop,
             modifier = Modifier
                 .size(32.dp)
-                .clip(CircleShape)
+                .clip(RoundedCornerShape(5.dp))
         )
-        Text(
-            ChaoxingHttpClient.cloneInstance?.userEntity?.name ?: "未知用户",
-            color = MaterialTheme.colorScheme.primary,
-            fontWeight = FontWeight.Bold,
-            style = MaterialTheme.typography.bodyMedium
-        )
-        Text(
-            "(${ChaoxingHttpClient.cloneInstance?.userEntity?.schoolName?.firstOrNull() ?: "未知学校"})",
-            color = Color.Gray,
-            style = MaterialTheme.typography.labelSmall,
-            modifier = Modifier.weight(1f)
-        )
+        Column {
+            Text("当前正在克隆的用户：", color = Color.Gray, fontSize = 12.sp)
+            Row {
+                Text(
+                    ChaoxingHttpClient.cloneInstance?.userEntity?.name ?: "未知用户",
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Text(
+                    "(${ChaoxingHttpClient.cloneInstance?.userEntity?.schoolName?.firstOrNull() ?: "未知学校"})",
+                    color = Color.Gray,
+                    style = MaterialTheme.typography.labelSmall,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+
+
         Button(onClick = onExitCloning) {
             Text("退出克隆")
         }

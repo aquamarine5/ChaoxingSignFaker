@@ -42,7 +42,7 @@ object ChaoxingFaceHelper {
     private val URL_CHECK_FACE_RESULT =
         "https://mobilelearn.chaoxing.com/pptSign/check-face-result?DB_STRATEGY=PRIMARY_KEY&STRATEGY_PARA=activeId".toHttpUrl()
 
-    const val MAX_FACE_IMAGES = 3
+    const val MAX_FACE_IMAGES = 5
 
     suspend fun checkFaceResultAndGetEnc(
         client: ChaoxingHttpClient,

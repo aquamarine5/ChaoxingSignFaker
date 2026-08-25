@@ -284,11 +284,7 @@ fun QRCodeSignScreen(
                     if (isSponsor) {
                         SponsorPopupDialog()
                     }
-
-                    // TODO: 人脸识别
-
                     var isFaceImageCaptured by remember { mutableStateOf(false) }
-
                     var showFaceSaveDialog by remember { mutableStateOf(false) }
                     var sponsorPendingAfterFaceSave by remember { mutableStateOf(false) }
                     if (showFaceSaveDialog) {
@@ -298,8 +294,9 @@ fun QRCodeSignScreen(
                         ) {
                             if (sponsorPendingAfterFaceSave) {
                                 coroutineScope.launch {
-                                    delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED); isSponsor =
-                                    true; sponsorPendingAfterFaceSave = false
+                                    delay(ChaoxingSignHelper.TIMEOUT_SHOW_SPONSOR_AFTER_ALL_SIGNED)
+                                    isSponsor = true
+                                    sponsorPendingAfterFaceSave = false
                                 }
                             }
                             showFaceSaveDialog = false

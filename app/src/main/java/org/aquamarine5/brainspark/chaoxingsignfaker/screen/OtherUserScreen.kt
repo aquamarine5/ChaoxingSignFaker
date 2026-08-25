@@ -53,6 +53,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -1748,10 +1749,45 @@ fun OtherUserScreen(
                     }
                     append(" 扫描二维码\n以将你的账号添加到其他设备中")
                 },
-                fontSize = 13.sp,
-                lineHeight = 17.sp,
-                textAlign = TextAlign.Center
+                fontSize = 12.sp,
+                lineHeight = 14.sp,
+                textAlign = TextAlign.Center,
+                color = Color.Gray
             )
+            var isFaceLoadImagesTipsDialog by remember { mutableStateOf(false) }
+            if (isFaceLoadImagesTipsDialog) {
+                AlertDialog(
+                    onDismissRequest = { isFaceLoadImagesTipsDialog = false },
+                    title = { Text("新版本的功能") },
+                    icon = {
+                        Icon(
+                            painterResource(R.drawable.ic_sparkles),
+                            null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(40.dp)
+                        )
+                    },
+                    text = {
+                        Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                            Text(buildAnnotatedString {
+                                append("在1.17.0的新版本里，你可以拍摄或上传自己的人脸识别照片，并通过支持的方式（二维码或链接形式均支持，账密方式暂不支持自动添加）把你的账户信息附带着你的人脸识别照片分享给其他使用随地大小签的用户，这样对方就可以在他的设备为你代签有人脸认证的签到了！\n")
+                                withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+                                    append("注意：如果勾选此选项，则代表你的人脸识别照片会被分享给对方，对方可以看见你分享的所有人脸识别照片，并且无法远程删除。")
+                                }
+                                append("\n若你不想分享某张人脸识别照片，点击【展开人脸识别照片】后选择不想分享的照片，在对话框点击【取消附带此张照片】即可。随地大小签推荐用户分享尽可能多的照片以避免被服务器判断为异常请求。")
+                                append("\n如果你没有分享你的人脸识别照片给对方，随地大小签可以选择调取你在学习通服务器设置的第一张人脸识别照片信息作为模板，进行风格化处理后作为你的签到人脸识别照片。对方不会看见你的这张照片。")
+                                append("\n所有的人脸识别照片都会存储到本地，并上传到学习通服务器上以进行签到操作，但随地大小签并不会收集你的照片信息。")
+                            })
+                        }
+                    },
+                    confirmButton = {
+                        Button(onClick = { isFaceLoadImagesTipsDialog = false }) {
+                            Text("确定")
+                        }
+                    }
+                )
+            }
+
             if (facePhotos.isNotEmpty()) {
                 Column(
                     modifier = Modifier
@@ -1781,7 +1817,7 @@ fun OtherUserScreen(
                                 withStyle(SpanStyle(textDecoration = TextDecoration.Underline)) {
                                     append("对方会收到以下照片")
                                 }
-                                append("，让对方重新扫描你的二维码可以把你的人脸识别照片载入到对方设备中。")
+                                append("。")
                             },
                             modifier = Modifier
                                 .clickable(role = Role.Button) {
@@ -1793,10 +1829,22 @@ fun OtherUserScreen(
                                             facePhotos.map { photo -> photo.objectId }
                                         )
                                     }
-                                },
+                                }
+                                .weight(1f),
                             fontSize = 13.sp,
                             lineHeight = 17.sp,
                         )
+                        IconButton(onClick = {
+                            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                            isFaceLoadImagesTipsDialog = true
+                        }) {
+                            Icon(
+                                painterResource(R.drawable.ic_circle_question_mark),
+                                null,
+                                tint = Color.Gray,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
                     }
                     TextButton(
                         onClick = {
@@ -2004,10 +2052,57 @@ fun OtherUserScreen(
                 }
             }
             Spacer(modifier = Modifier.height(3.dp))
+            var isControlFaceImageNewFeatureDialog by remember { mutableStateOf(false) }
+            if (isControlFaceImageNewFeatureDialog) {
+                AlertDialog(
+                    onDismissRequest = {
+                        isControlFaceImageNewFeatureDialog = false
+                    }, title = { Text("新版本的功能") },
+                    icon = {
+                        Icon(
+                            painterResource(R.drawable.ic_sparkles),
+                            null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(40.dp)
+                        )
+                    }, text = {
+                        Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                            Text(buildString {
+                                append("在这里你可以管理自己和任何代签用户的人脸识别照片，每次签到时会随机选择一张存储的人脸识别照片进行签到。每个人最多可以上传${ChaoxingFaceHelper.MAX_FACE_IMAGES}张照片，仅支持竖屏照片。随地大小签推荐每个用户上传尽可能多的人脸识别照片，以避免同一张照片多次复用被服务器判断为异常签到。")
+                                append("\n你可以使用二维码或链接方式把你的人脸识别照片分享给其他使用随地大小签的用户，这样对方就可以在他的设备为你代签有人脸认证的签到。但目前不支持将代签用户的人脸识别照片分享给其他人。")
+                                append("\n如果你没有分享你的人脸识别照片给对方，随地大小签可以选择调取你在学习通服务器设置的第一张人脸识别照片信息作为模板，进行风格化处理后作为你的签到人脸识别照片。对方不会看见你的这张照片。")
+                                append("\n所有的人脸识别照片都会存储到本地，并上传到学习通服务器上以进行签到操作，但随地大小签并不会收集你的照片信息。")
+                            })
+                        }
+                    },
+                    confirmButton = {
+                        Button(onClick = {
+                            isControlFaceImageNewFeatureDialog
+                        }) {
+                            Text("确定")
+                        }
+                    }
+                )
+            }
             if (isFacePhotoDialog) {
                 SnackbarAlertDialog(
                     onDismissRequest = { isFacePhotoDialog = false },
-                    title = { Text("管理人脸照片") },
+                    title = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("管理人脸照片")
+                            IconButton(onClick = {
+                                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                                isControlFaceImageNewFeatureDialog = true
+                            }) {
+                                Icon(
+                                    painterResource(R.drawable.ic_info),
+                                    null,
+                                    modifier = Modifier.size(24.dp),
+                                    tint = Color.Gray
+                                )
+                            }
+                        }
+                    },
                     text = {
                         FacePhotoControlComponent(
                             phoneNumber = ChaoxingHttpClient.instance!!.userEntity.phoneNumber,

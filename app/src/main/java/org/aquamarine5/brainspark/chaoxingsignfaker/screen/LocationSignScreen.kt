@@ -414,7 +414,7 @@ fun LocationSignScreen(
                                         destination.endTime,
                                         destination.isLate
                                     )
-
+                                ;
                                 if (isFaceRequired) {
                                     FaceRecognitionNewFeatureTips(
                                         isDisplayFaceRecognitionImageNewFeatureTips
