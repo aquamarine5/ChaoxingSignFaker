@@ -10,6 +10,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.widget.Toast
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.runtime.mutableStateOf
 import com.alibaba.fastjson2.JSONObject
 import io.sentry.Sentry
 import kotlinx.coroutines.CoroutineScope
@@ -83,7 +84,13 @@ class ChaoxingHttpClient private constructor(
 
         var instance: ChaoxingHttpClient? = null
 
-        var cloneInstance: ChaoxingHttpClient? = null
+        private var cloneInstanceState = mutableStateOf<ChaoxingHttpClient?>(null)
+
+        var cloneInstance: ChaoxingHttpClient?
+            get() = cloneInstanceState.value
+            set(value) {
+                cloneInstanceState.value = value
+            }
 
         fun getHttpInstanceOrClone(isCloneSession: Boolean) =
             if (isCloneSession && cloneInstance != null) cloneInstance else instance

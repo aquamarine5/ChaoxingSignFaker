@@ -51,7 +51,6 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingIMHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
-import org.aquamarine5.brainspark.chaoxingsignfaker.components.CloneSessionTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NetworkExceptionComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingEasemobIMGroup
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalImageLoader
@@ -66,8 +65,7 @@ data class GroupListDestination(
 @Composable
 fun GroupListScreen(
     destination: GroupListDestination,
-    navToGroupDetail: (GroupDetailDestination) -> Unit,
-    navToCourseList: () -> Unit
+    navToGroupDetail: (GroupDetailDestination) -> Unit
 ) {
     val imageLoader = LocalImageLoader.current
     Column(
@@ -146,12 +144,6 @@ fun GroupListScreen(
                 }
 
                 imGroupsInfo!!.isEmpty() -> {
-                    if (destination.isCloneSession) {
-                        CloneSessionTips {
-                            ChaoxingHttpClient.exitCloning(coroutineScope, snackbarHostState)
-                            navToCourseList()
-                        }
-                    }
                     Box(modifier = Modifier.fillMaxSize()) {
                         Column(modifier = Modifier.align(Alignment.Center)) {
                             Icon(painterResource(R.drawable.ic_circle_question_mark), null)
@@ -161,12 +153,6 @@ fun GroupListScreen(
                 }
 
                 else -> {
-                    if (destination.isCloneSession) {
-                        CloneSessionTips {
-                            ChaoxingHttpClient.exitCloning(coroutineScope, snackbarHostState)
-                            navToCourseList()
-                        }
-                    }
                     LazyColumn {
                         items(imGroupsInfo!!, key = {
                             it.id

@@ -77,7 +77,6 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingRecommendHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.SignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.BlockedContent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
-import org.aquamarine5.brainspark.chaoxingsignfaker.components.CloneSessionTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CourseInfoColumnCard
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NetworkExceptionComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NewFeatureTipsCard
@@ -121,7 +120,6 @@ fun CourseListScreen(
     navToSettingDestination: () -> Unit,
     navToSignActivityDestination: (SignDestination) -> Unit,
     navToLoginDestination: () -> Unit,
-    navToCourseList: () -> Unit,
     navToGroupDestination: (isCloneSession: Boolean) -> Unit,
 ) {
     val imageLoader = LocalImageLoader.current
@@ -421,11 +419,6 @@ fun CourseListScreen(
                                 }
                             } //TODO: Recommend
 
-                            if (destination.isCloneSession && ChaoxingHttpClient.cloneInstance != null)
-                                CloneSessionTips {
-                                    ChaoxingHttpClient.exitCloning(coroutineScope, snackbarHost)
-                                    navToCourseList()
-                                }
                             var debouncePreviousTime = remember { 0L }
                             LazyColumn {
                                 item {

@@ -59,8 +59,11 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
@@ -277,7 +280,19 @@ fun FacePhotoControlComponent(
                         )
                         Text("图片ID: ${record.objectId}")
                         Text("使用次数: ${record.useCount}")
-                        Text("此前是否人脸识别失败过: ${if (record.isFailureBefore) "是" else "否"}")
+                        Text(buildAnnotatedString {
+                            append("此前是否人脸识别失败过: ")
+                            if (record.isFailureBefore) {
+                                withStyle(
+                                    SpanStyle(
+                                        color = Color.Red,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                ) {
+                                    append("是")
+                                }
+                            } else append("否")
+                        })
                     }
                 },
                 confirmButton = {

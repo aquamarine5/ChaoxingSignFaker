@@ -46,6 +46,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -83,6 +84,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCaptchaHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingFaceHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.CloneSessionTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.initializeClientInfo
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingEasemobIMGroup
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
@@ -495,7 +497,31 @@ class MainActivity : ComponentActivity() {
                             }
                             if (destination == null) {
                                 CenterCircularProgressIndicator(isDelay = false)
-                            } else
+                            } else {
+                                val coroutineScope = rememberCoroutineScope()
+                                val isCloning =
+                                    ChaoxingHttpClient.cloneInstance?.userEntity != null
+                                AnimatedVisibility(
+                                    isCloning,
+                                    enter = expandVertically(),
+                                    exit = shrinkVertically()
+                                ) {
+                                    CloneSessionTips(onExitCloning = {
+                                        hapticFeedback.performHapticFeedback(
+                                            HapticFeedbackType.ContextClick
+                                        )
+                                        ChaoxingHttpClient.exitCloning(
+                                            coroutineScope,
+                                            snackbarHostState
+                                        )
+                                        navController.navigate(CourseListDestination(false)) {
+                                            popUpTo(navController.graph.findStartDestination().id) {
+                                                saveState = true
+                                            }
+                                            launchSingleTop = true
+                                        }
+                                    })
+                                }
                                 NavHost(
                                     navController,
                                     destination!!,
@@ -540,14 +566,6 @@ class MainActivity : ComponentActivity() {
                                                         }
                                                         restoreState = true
                                                     }
-                                                }, navToCourseList = {
-                                                    navController.navigate(
-                                                        CourseListDestination(
-                                                            false
-                                                        )
-                                                    ) {
-                                                        popUpTo<CourseListDestination>()
-                                                    }
                                                 }, navToGroupDestination = {
                                                     navController.navigate(GroupListDestination(it))
                                                 })
@@ -572,15 +590,6 @@ class MainActivity : ComponentActivity() {
                                                 it.toRoute(),
                                                 navToGroupDetail = { destination ->
                                                     navController.navigate(destination)
-                                                },
-                                                navToCourseList = {
-                                                    navController.navigate(
-                                                        CourseListDestination(
-                                                            false
-                                                        )
-                                                    ) {
-                                                        popUpTo<CourseListDestination>()
-                                                    }
                                                 }
                                             )
                                         }
@@ -645,15 +654,6 @@ class MainActivity : ComponentActivity() {
                                                 route.toRoute(), navToOtherSign = {
                                                     navController.navigate(it)
                                                 },
-                                                navToCourseList = {
-                                                    navController.navigate(
-                                                        CourseListDestination(
-                                                            false
-                                                        )
-                                                    ) {
-                                                        popUpTo<CourseListDestination>()
-                                                    }
-                                                },
                                                 navToCourseDetailDestination = {
                                                     navController.navigateUp()
                                                 }) {
@@ -710,6 +710,7 @@ class MainActivity : ComponentActivity() {
                                             }
                                         }
                                     }
+                                }
                                 }
                         }
                             }

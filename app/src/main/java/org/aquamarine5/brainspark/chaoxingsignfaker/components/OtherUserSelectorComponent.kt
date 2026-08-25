@@ -68,6 +68,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -129,8 +130,7 @@ fun OtherUserSelectorComponent(
     prefixTipsContent: @Composable (() -> Unit),
     suffixContent: @Composable (() -> Unit)? = null,
     faceRecognitionImageIconStatus: FaceRecognitionImageIconState? = null,
-    @OnlyAppDevelopedMode
-    getFaceImage: ((phoneNumber: String) -> List<Any>)? = null,
+    @OnlyAppDevelopedMode getFaceImage: ((phoneNumber: String) -> List<Any>)? = null,
     onSignAction: (isSelf: Boolean, otherUserSessionList: List<ChaoxingOtherUserSession?>, indexList: List<Int>) -> Unit
 ) {
     LocalContext.current.let { context ->
@@ -149,10 +149,13 @@ fun OtherUserSelectorComponent(
             )
         }
         var repairSessionIndex by remember { mutableStateOf<Int?>(null) }
+
         @OnlyAppDevelopedMode
         var inspectingFaceImagePhoneNumber by remember { mutableStateOf<String?>(null) }
+
         @OnlyAppDevelopedMode
         var inspectedFaceImage by remember { mutableStateOf<Any?>(null) }
+
         @OnlyAppDevelopedMode
         var isSavingFaceImage by remember { mutableStateOf(false) }
         val imageLoader = LocalImageLoader.current
@@ -328,7 +331,7 @@ fun OtherUserSelectorComponent(
             })
         }
 
-        if (isDevelopedMode && getFaceImage != null && inspectingFaceImagePhoneNumber != null) {
+        @OnlyAppDevelopedMode if (isDevelopedMode && getFaceImage != null && inspectingFaceImagePhoneNumber != null) {
             val phoneNumber = inspectingFaceImagePhoneNumber!!
             SnackbarAlertDialog(onDismissRequest = {
                 inspectingFaceImagePhoneNumber = null
@@ -347,6 +350,7 @@ fun OtherUserSelectorComponent(
                             modifier = Modifier
                                 .width(110.dp)
                                 .aspectRatio(3f / 4f)
+                                .clip(RoundedCornerShape(5.dp))
                                 .clickable {
                                     hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                                     inspectedFaceImage = image
@@ -410,6 +414,7 @@ fun OtherUserSelectorComponent(
                                     val bitmap: Bitmap = when (image) {
                                         is File -> BitmapFactory.decodeFile(image.absolutePath)
                                             ?: throw IllegalStateException("读取人脸照片失败")
+
                                         is String -> {
                                             val result = imageLoader.execute(
                                                 ImageRequest.Builder(context).data(image).build()
@@ -424,10 +429,14 @@ fun OtherUserSelectorComponent(
                                                     }
                                                 }
                                         }
+
                                         else -> throw IllegalStateException("读取人脸照片失败")
                                     }
                                     val values = ContentValues().apply {
-                                        put(MediaStore.Images.Media.DISPLAY_NAME, "face_$objectId.jpg")
+                                        put(
+                                            MediaStore.Images.Media.DISPLAY_NAME,
+                                            "face_$objectId.jpg"
+                                        )
                                         put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
                                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                                             put(
