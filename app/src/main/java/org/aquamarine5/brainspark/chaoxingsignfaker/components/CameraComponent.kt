@@ -206,7 +206,7 @@ fun CameraComponent(
                 onResult = { uri ->
                     if (uri == null) return@rememberLauncherForActivityResult
                     runCatching {
-                            val image = application.contentResolver.decodePhotoBitmap(uri)
+                        val image = application.contentResolver.decodePhotoBitmap(uri)
                             ?: error("无法读取图片")
                         photoList.add(image)
                         job?.cancel()
@@ -235,7 +235,7 @@ fun CameraComponent(
                     if (uris.isEmpty()) return@rememberLauncherForActivityResult
                     runCatching {
                         uris.forEach { uri ->
-                        val image = application.contentResolver.decodePhotoBitmap(uri)
+                            val image = application.contentResolver.decodePhotoBitmap(uri)
                                 ?: throw ChaoxingPredictableException("无法读取图片")
                             photoList.add(image)
                             takeImage = image

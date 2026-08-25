@@ -31,4 +31,4 @@ fun Throwable.getPredictableMessage(): String {
 class ChaoxingFaceSignException(message: String) :
     ChaoxingPredictableException("人脸验证失败: $message")
 
-class ChaoxingFaceImageException(message: String): ChaoxingPredictableException(message)
+class ChaoxingFaceImageException(message: String) : ChaoxingPredictableException(message)

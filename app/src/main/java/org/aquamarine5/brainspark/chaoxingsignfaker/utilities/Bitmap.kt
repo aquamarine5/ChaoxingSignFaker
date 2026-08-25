@@ -48,12 +48,15 @@ fun ContentResolver.decodePhotoBitmap(uri: Uri): Bitmap? {
         sampleSize *= 2
     }
     return openInputStream(uri)?.use {
-        BitmapFactory.decodeStream(it, null, BitmapFactory.Options().apply { inSampleSize = sampleSize })
+        BitmapFactory.decodeStream(
+            it,
+            null,
+            BitmapFactory.Options().apply { inSampleSize = sampleSize })
     }
 }
 
 @OptIn(ExperimentalContracts::class)
-fun checkThrowFaceException(value: Boolean, lazyMessage: () -> String){
+fun checkThrowFaceException(value: Boolean, lazyMessage: () -> String) {
     contract {
         returns() implies value
     }

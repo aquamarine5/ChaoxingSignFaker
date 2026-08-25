@@ -15,7 +15,6 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingFaceHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingOtherUserHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.SignDestination
@@ -98,7 +97,11 @@ class ChaoxingSignHandler<in T>(
                 }.onFailure {
                     if (it is ChaoxingFaceSignException)
                         faceRecognitionData?.markFailure(selfPhoneNumber, otherUserSessionList)
-                    faceRecognitionData?.reportUsage(context, selfPhoneNumber, it is ChaoxingFaceSignException)
+                    faceRecognitionData?.reportUsage(
+                        context,
+                        selfPhoneNumber,
+                        it is ChaoxingFaceSignException
+                    )
                     signStatus[0].failed(it)
                     it.ifShouldDeselect {
                         userSelections[0] = false
@@ -160,7 +163,11 @@ class ChaoxingSignHandler<in T>(
                     }
                     if (it is ChaoxingFaceSignException)
                         faceRecognitionData?.markFailure(session.phoneNumber, otherUserSessionList)
-                    faceRecognitionData?.reportUsage(context, session.phoneNumber, it is ChaoxingFaceSignException)
+                    faceRecognitionData?.reportUsage(
+                        context,
+                        session.phoneNumber,
+                        it is ChaoxingFaceSignException
+                    )
                     it.snackbarReport(
                         snackbarHost,
                         coroutineScope,

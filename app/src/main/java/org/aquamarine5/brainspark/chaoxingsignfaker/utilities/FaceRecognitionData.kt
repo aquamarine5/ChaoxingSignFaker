@@ -76,7 +76,11 @@ class FaceRecognitionData {
         if (currentStatus(phoneNumber, otherUserSessionList) !=
             FaceRecognitionImageStatus.UseProfileImage
         ) {
-            setStatus(FaceRecognitionImageStatus.ImageCheckSuccess, phoneNumber, otherUserSessionList)
+            setStatus(
+                FaceRecognitionImageStatus.ImageCheckSuccess,
+                phoneNumber,
+                otherUserSessionList
+            )
         }
         failedPhoneNumbers.remove(phoneNumber)
         failedImageInfos.remove(phoneNumber)

@@ -6,7 +6,6 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.screen
 
-import android.graphics.Bitmap
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
@@ -15,18 +14,11 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.material3.Button
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
@@ -34,27 +26,19 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.mutableStateSetOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
-import coil3.compose.AsyncImage
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.serialization.Serializable
-import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCloudDriveHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCourseHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingFaceHelper
@@ -74,7 +58,6 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.components.OtherUserSelector
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SaveFaceImagesDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SignOutRedirectTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SignPotentialWarningTips
-import org.aquamarine5.brainspark.chaoxingsignfaker.components.SnackbarAlertDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SponsorPopupDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationDetailEntity
@@ -85,16 +68,12 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignOutEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignStatus
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingLocationSigner
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSignHandler
-import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingFaceSignException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingPredictableException
-import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.FaceRecognitionImageIconState
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.FaceRecognitionImageStatus
-import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalImageLoader
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
-import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.rememberFaceRecognitionData
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
-import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.setStatus
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.rememberFaceRecognitionData
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
 
 @Immutable
@@ -258,11 +237,7 @@ fun LocationSignScreen(
                         )
                     }
                     val userSelections = remember { mutableStateListOf(isSignForOther.not()) }
-
-                    // future will be edited.
-
                     var isFaceImageCaptured by remember { mutableStateOf(false) }
-
                     var showFaceSaveDialog by remember { mutableStateOf(false) }
                     var sponsorPendingAfterFaceSave by remember { mutableStateOf(false) }
                     if (showFaceSaveDialog) {
@@ -280,7 +255,7 @@ fun LocationSignScreen(
                             showFaceSaveDialog = false
                         }
                     }
-                    val signHandler = remember {
+                    val signHandler = remember(isFaceRequired) {
                         ChaoxingSignHandler<ChaoxingLocationSignEntity>(
                             context = context, userSelections = userSelections,
                             signStatus = signStatus,
@@ -290,13 +265,18 @@ fun LocationSignScreen(
                                 runCatching {
                                     val faceImageUploadedObjectId =
                                         if (isFaceRequired) {
-                                            faceRecognitionData.faceImageObjectIds.getOrPut(selfPhoneNumber) {
+                                            faceRecognitionData.faceImageObjectIds.getOrPut(
+                                                selfPhoneNumber
+                                            ) {
                                                 val bitmap =
-                                                    faceRecognitionData.capturedBitmaps.remove(selfPhoneNumber)
+                                                    faceRecognitionData.capturedBitmaps.remove(
+                                                        selfPhoneNumber
+                                                    )
                                                         ?: throw ChaoxingPredictableException(
                                                             "未拍摄人脸照片，无法上传"
                                                         )
-                                                faceRecognitionData.signUsedFaceBitmaps[selfPhoneNumber] = bitmap
+                                                faceRecognitionData.signUsedFaceBitmaps[selfPhoneNumber] =
+                                                    bitmap
                                                 ChaoxingCloudDriveHelper.uploadImage(
                                                     ChaoxingHttpClient.instance!!,
                                                     bitmap
@@ -325,63 +305,66 @@ fun LocationSignScreen(
                                     } else return@runCatching false
                                 }
                             },
-                            onOtherUserSigning = { value, session, bypassChecking, index ->
+                            onOtherUserSigning = { value, session, bypassChecking, _ ->
                                 runCatching {
-                                    ChaoxingHttpClientPool.get(context, session.phoneNumber).let { client ->
-                                        ChaoxingLocationSigner(
-                                            client,
-                                            if (isAlwaysForceSign || bypassChecking) destination.copy(
-                                                classId = ChaoxingCourseHelper.getClassIdFromCourseId(
-                                                    client,
-                                                    destination.courseId
-                                                ).getOrNull() ?: destination.classId
-                                            ) else destination,
-                                            signer.getSignInfo()
-                                        ).run {
-                                            if (!(isAlwaysForceSign || bypassChecking)) checkSignStatusThrowException()
-                                            val faceImageUploadedObjectId =
-                                                if (isFaceRequired) {
-                                                    faceRecognitionData.faceImageObjectIds.getOrPut(
-                                                        session.phoneNumber
-                                                    ) {
-                                                        val bitmap = faceRecognitionData.capturedBitmaps.remove(
+                                    ChaoxingHttpClientPool.get(context, session.phoneNumber)
+                                        .let { client ->
+                                            ChaoxingLocationSigner(
+                                                client,
+                                                if (isAlwaysForceSign || bypassChecking) destination.copy(
+                                                    classId = ChaoxingCourseHelper.getClassIdFromCourseId(
+                                                        client,
+                                                        destination.courseId
+                                                    ).getOrNull() ?: destination.classId
+                                                ) else destination,
+                                                signer.getSignInfo()
+                                            ).run {
+                                                if (!(isAlwaysForceSign || bypassChecking)) checkSignStatusThrowException()
+                                                val faceImageUploadedObjectId =
+                                                    if (isFaceRequired) {
+                                                        faceRecognitionData.faceImageObjectIds.getOrPut(
                                                             session.phoneNumber
-                                                        ) ?: throw ChaoxingPredictableException(
-                                                            "未拍摄${session.name}的人脸照片，无法上传"
-                                                        )
-                                                        faceRecognitionData.signUsedFaceBitmaps[session.phoneNumber] =
-                                                            bitmap
-                                                        ChaoxingCloudDriveHelper.uploadImage(
-                                                            client,
-                                                            bitmap
-                                                        )
-                                                    }
-                                                } else null
-                                            if (sign(value, faceImageUploadedObjectId)) {
-                                                suspendCancellableCoroutine { continuation ->
-                                                    captchaValidateParams =
-                                                        this to { captchaValidate ->
-                                                            if (continuation.isActive) {
-                                                                continuation.resumeWith(
-                                                                    runCatching {
-                                                                        captchaValidate.onSuccess {
-                                                                            signWithCaptcha(
-                                                                                value,
-                                                                                it,
-                                                                                faceImageUploadedObjectId
-                                                                            )
-                                                                        }.getOrThrow()
-                                                                    })
-                                                            }
+                                                        ) {
+                                                            val bitmap =
+                                                                faceRecognitionData.capturedBitmaps.remove(
+                                                                    session.phoneNumber
+                                                                )
+                                                                    ?: throw ChaoxingPredictableException(
+                                                                        "未拍摄${session.name}的人脸照片，无法上传"
+                                                                    )
+                                                            faceRecognitionData.signUsedFaceBitmaps[session.phoneNumber] =
+                                                                bitmap
+                                                            ChaoxingCloudDriveHelper.uploadImage(
+                                                                client,
+                                                                bitmap
+                                                            )
                                                         }
-                                                }
-                                                 return@runCatching true
-                                             } else return@runCatching false
-                                         }
-                                     }
-                                 }
-                             },
-                             destination = destination,
+                                                    } else null
+                                                if (sign(value, faceImageUploadedObjectId)) {
+                                                    suspendCancellableCoroutine { continuation ->
+                                                        captchaValidateParams =
+                                                            this to { captchaValidate ->
+                                                                if (continuation.isActive) {
+                                                                    continuation.resumeWith(
+                                                                        runCatching {
+                                                                            captchaValidate.onSuccess {
+                                                                                signWithCaptcha(
+                                                                                    value,
+                                                                                    it,
+                                                                                    faceImageUploadedObjectId
+                                                                                )
+                                                                            }.getOrThrow()
+                                                                        })
+                                                                }
+                                                            }
+                                                    }
+                                                    return@runCatching true
+                                                } else return@runCatching false
+                                            }
+                                        }
+                                }
+                            },
+                            destination = destination,
                             onSigningFinished = { value, name, isOtherUser ->
                                 coroutineScope.launch {
                                     UMengHelper.onSignLocationEvent(
@@ -405,7 +388,8 @@ fun LocationSignScreen(
                                         }
                                     }
                                 }
-                            }
+                            },
+                            faceRecognitionData = faceRecognitionData.takeIf { isFaceRequired }
                         )
                     }
 
@@ -437,7 +421,7 @@ fun LocationSignScreen(
                                     )
                                 }
                             },
-                            faceRecognitionData = faceRecognitionData,
+                            faceRecognitionData = faceRecognitionData.takeIf { isFaceRequired },
                             isCloneSession = destination.isCloneSession,
                             onIgnoreExceptionSignAction = { index, session ->
                                 signHandler.ignoreExceptionOtherUserSigning(session, index)
@@ -467,7 +451,8 @@ fun LocationSignScreen(
                                                 }.randomOrNull()
                                             else images.randomOrNull()
                                         candidate?.let { image ->
-                                            faceRecognitionData.faceImageObjectIds[phoneNumber] = image.objectId
+                                            faceRecognitionData.faceImageObjectIds[phoneNumber] =
+                                                image.objectId
                                             faceRecognitionData.storedFaceImageObjectIds[phoneNumber] =
                                                 image.objectId
                                         }
@@ -510,23 +495,23 @@ fun LocationSignScreen(
                                 isSigning.value = false
                                 isFaceImageCaptured = false
                             }) { bitmaps, isUseProfileImage ->
-                                bitmaps.forEach { (string, bitmap) ->
-                                    faceRecognitionData.setStatus(
-                                        if (isUseProfileImage) FaceRecognitionImageStatus.UseProfileImage
-                                        else FaceRecognitionImageStatus.NewImageAdded,
-                                        string,
-                                        otherUserSessionForSignList
-                                    )
-                                    faceRecognitionData.capturedBitmaps[string] = bitmap
-                                    if (!isUseProfileImage) {
-                                        faceRecognitionData.newImagePhones.add(string)
-                                    }
-                                 }
-                              isGetLocation = true
-                             isFaceImageCaptured = false
-                         }
-                     }
-                     AnimatedVisibility(
+                            bitmaps.forEach { (string, bitmap) ->
+                                faceRecognitionData.setStatus(
+                                    if (isUseProfileImage) FaceRecognitionImageStatus.UseProfileImage
+                                    else FaceRecognitionImageStatus.NewImageAdded,
+                                    string,
+                                    otherUserSessionForSignList
+                                )
+                                faceRecognitionData.capturedBitmaps[string] = bitmap
+                                if (!isUseProfileImage) {
+                                    faceRecognitionData.newImagePhones.add(string)
+                                }
+                            }
+                            isGetLocation = true
+                            isFaceImageCaptured = false
+                        }
+                    }
+                    AnimatedVisibility(
                         isGetLocation,
                         enter =
                             slideInHorizontally(

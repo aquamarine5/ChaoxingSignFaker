@@ -248,38 +248,39 @@ fun PhotoSignScreen(
                                     },
                                     onOtherUserSigning = { _, session, bypassChecking, _ ->
                                         runCatching {
-                                            ChaoxingHttpClientPool.get(context, session.phoneNumber).let { client ->
-                                                ChaoxingPhotoSigner(
-                                                    client,
-                                                    if (isAlwaysForceSign || bypassChecking) destination.copy(
-                                                        classId = ChaoxingCourseHelper.getClassIdFromCourseId(
-                                                            client,
-                                                            destination.courseId
-                                                        ).getOrNull() ?: destination.classId
-                                                    ) else destination,
-                                                    signer.getSignInfo()
-                                                ).run {
-                                                    if (!(isAlwaysForceSign || bypassChecking)) checkSignStatusThrowException()
-                                                    if (signByClick()) {
-                                                        suspendCancellableCoroutine { continuation ->
-                                                            captchaValidateParams =
-                                                                this to { validateValue ->
-                                                                    if (continuation.isActive) {
-                                                                        continuation.resumeWith(
-                                                                            runCatching {
-                                                                                validateValue.onSuccess {
-                                                                                    this.signByClickWithCaptcha(
-                                                                                        it
-                                                                                    )
-                                                                                }.getOrThrow()
-                                                                            })
+                                            ChaoxingHttpClientPool.get(context, session.phoneNumber)
+                                                .let { client ->
+                                                    ChaoxingPhotoSigner(
+                                                        client,
+                                                        if (isAlwaysForceSign || bypassChecking) destination.copy(
+                                                            classId = ChaoxingCourseHelper.getClassIdFromCourseId(
+                                                                client,
+                                                                destination.courseId
+                                                            ).getOrNull() ?: destination.classId
+                                                        ) else destination,
+                                                        signer.getSignInfo()
+                                                    ).run {
+                                                        if (!(isAlwaysForceSign || bypassChecking)) checkSignStatusThrowException()
+                                                        if (signByClick()) {
+                                                            suspendCancellableCoroutine { continuation ->
+                                                                captchaValidateParams =
+                                                                    this to { validateValue ->
+                                                                        if (continuation.isActive) {
+                                                                            continuation.resumeWith(
+                                                                                runCatching {
+                                                                                    validateValue.onSuccess {
+                                                                                        this.signByClickWithCaptcha(
+                                                                                            it
+                                                                                        )
+                                                                                    }.getOrThrow()
+                                                                                })
+                                                                        }
                                                                     }
-                                                                }
-                                                        }
-                                                        return@runCatching true
-                                                    } else return@runCatching false
+                                                            }
+                                                            return@runCatching true
+                                                        } else return@runCatching false
+                                                    }
                                                 }
-                                            }
                                         }
                                     },
                                     destination = destination,
@@ -433,7 +434,10 @@ fun PhotoSignScreen(
                                             },
                                             onOtherUserSigning = { value, session, bypassChecking, index ->
                                                 runCatching {
-                                                    ChaoxingHttpClientPool.get(context, session.phoneNumber).let { client ->
+                                                    ChaoxingHttpClientPool.get(
+                                                        context,
+                                                        session.phoneNumber
+                                                    ).let { client ->
                                                         ChaoxingPhotoSigner(
                                                             client,
                                                             if (isAlwaysForceSign || bypassChecking) destination.copy(

@@ -2351,20 +2351,21 @@ fun OtherUserScreen(
                                                         )
                                                     }
                                                 else
-                                                     IconButton(onClick = {
-                                                         coroutineScope.launch {
-                                                             hapticFeedback.performHapticFeedback(
-                                                                 HapticFeedbackType.ContextClick
-                                                             )
-                                                             val client =
-                                                                 ChaoxingHttpClientPool.get(
-                                                                     context,
-                                                                     otherUserSessions[index].phoneNumber
-                                                                 )
-                                                             ChaoxingHttpClient.cloneInstance = client
-                                                             naviCloneCourseListScreen()
-                                                         }
-                                                     }) {
+                                                    IconButton(onClick = {
+                                                        coroutineScope.launch {
+                                                            hapticFeedback.performHapticFeedback(
+                                                                HapticFeedbackType.ContextClick
+                                                            )
+                                                            val client =
+                                                                ChaoxingHttpClientPool.get(
+                                                                    context,
+                                                                    otherUserSessions[index].phoneNumber
+                                                                )
+                                                            ChaoxingHttpClient.cloneInstance =
+                                                                client
+                                                            naviCloneCourseListScreen()
+                                                        }
+                                                    }) {
                                                         Icon(
                                                             painterResource(R.drawable.ic_user_left_arrow),
                                                             null
