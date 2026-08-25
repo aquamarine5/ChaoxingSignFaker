@@ -234,6 +234,10 @@ object ChaoxingFaceHelper {
     ): ChaoxingFaceRecognitionImage = withContext(Dispatchers.IO) {
         val targetPhoneNumber = phoneNumber ?: client.userEntity.phoneNumber
         checkThrowFaceException(targetPhoneNumber.isNotBlank()) { "无法确定人脸照片所属用户" }
+        checkThrowFaceException(
+            (storedFaceRecognitionImages.getValue(context)[targetPhoneNumber]?.size ?: 0) <
+                    MAX_FACE_IMAGES
+        ) { "最多只能保存$MAX_FACE_IMAGES 张人脸照片" }
         val objectId = ChaoxingCloudDriveHelper.uploadImage(client, bitmap)
         val image = ChaoxingFaceRecognitionImage.newBuilder()
             .setObjectId(objectId)

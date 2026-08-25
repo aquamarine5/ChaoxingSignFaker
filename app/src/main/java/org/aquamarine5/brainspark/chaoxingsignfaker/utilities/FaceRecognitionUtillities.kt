@@ -70,8 +70,6 @@ suspend fun randomizeStylizeFaceImage(bitmap: Bitmap): Bitmap = withContext(Disp
     val sinValue = sin(radians)
     val cosValue = cos(radians)
     val heightRatio = cropHeight.toDouble() / cropWidth.toDouble()
-    // 旋转后画布会扩展为外接包围盒，四角为透明像素（JPEG 中变黑）。
-    // 计算旋转区域内保持原裁剪宽高比的最大内接矩形，中心裁剪以去除黑边。
     val safeWidth = minOf(
         cropWidth / (cosValue + sinValue * heightRatio),
         cropHeight / (sinValue + cosValue * heightRatio)

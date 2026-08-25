@@ -123,8 +123,7 @@ fun FacePhotoControlComponent(
     }
 
     fun delete(
-        record: ChaoxingFaceRecognitionImage,
-        dialogSnackbarHost: androidx.compose.material3.SnackbarHostState
+        record: ChaoxingFaceRecognitionImage
     ) {
         if (record.objectId in removingObjectIds) return
         removingObjectIds = removingObjectIds + record.objectId
@@ -139,10 +138,10 @@ fun FacePhotoControlComponent(
                     )
                     reload()
                 }.onSuccess {
-                    dialogSnackbarHost.displaySnackbar("人脸照片删除成功", coroutineScope)
+                    snackbarHost.displaySnackbar("人脸照片删除成功", coroutineScope)
                 }.onFailure {
                     it.snackbarReport(
-                        dialogSnackbarHost,
+                        snackbarHost,
                         coroutineScope,
                         "删除人脸照片失败",
                         hapticFeedback,
@@ -359,10 +358,9 @@ fun FacePhotoControlComponent(
                     }
                 },
                 confirmButton = {
-                    val dialogSnackbarHost = LocalSnackbarHostState.current
                     Button(onClick = {
                         hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                        delete(record, dialogSnackbarHost)
+                        delete(record)
                     }) { Text("删除") }
                 },
                 dismissButton = {
