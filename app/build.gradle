@@ -28,12 +28,12 @@ stackbricksConfig {
     ]
     changelog =
             "暑假的时候作者还在积极更新！带来一个更好的随地大小签\n以下是暑假期间的新版本更新内容：" +
-                    "# 1.17.0 更新：\n1. 支持存储自己和代签用户的人脸识别照片，就不用每次自己找了。\n2. 没有代签用户的人脸识别照片时，可以自动获取一张用于签到。\n3. 现在自己的代签二维码会附带自己的人脸识别照片，重新扫描其他人的新版本二维码时会把你的照片下载到他的设备上存储。\n4. 修复了超级多Bug。\n\n"+
+                    "# 1.17.* 更新：\n1. 支持存储自己和代签用户的人脸识别照片，就不用每次自己找了。\n2. 没有代签用户的人脸识别照片时，可以自动获取一张用于签到。\n3. 现在自己的代签二维码会附带自己的人脸识别照片，重新扫描其他人的新版本二维码时会把你的照片下载到他的设备上存储。\n4. 修复了超级多Bug。\n\n"+
                     "# 1.16.* 更新：\n1. 由于学习通更新导致原接口失效，修复了获取群聊列表失败的问题。\n\n" +
                     "# 1.15.* 更新：\n1. 支持克隆登录代签用户的账号以给他有你没有的课程签到\n\n" +
                     "lovely but not lonely, 20260826 life need dimoo, @aquamarine5 Brainspark."
     requiredManifestVersion2MigrateForceInstall = true
-    forceInstallLessVersion = 1_1700_1665
+    forceInstallLessVersion = 1_1700_9999
     qiniuConfig {
         accessKey = project.findProperty("qiniu.accessKey") ?: ""
         secretKey = project.findProperty("qiniu.secretKey") ?: ""
@@ -54,8 +54,8 @@ android {
         applicationId = "org.aquamarine5.brainspark.chaoxingsignfaker"
         minSdk = 26
         targetSdk = 37
-        versionCode = 1_1700_1666
-        versionName = "1.17.0-stable-260826"
+        versionCode = 1_1701_0826
+        versionName = "1.17.1-stable-260826"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

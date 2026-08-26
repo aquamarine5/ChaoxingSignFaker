@@ -257,51 +257,54 @@ fun CourseListScreen(
             } else {
                 newestVersionData = null
             }
-        }, dismissButton = {
-            TextButton(onClick = {
-                if (isForceInstall)
-                    isEmergencyToSkipUpdate = true
-                else
-                    newestVersionData = null
-            }) {
-                Text("我着急签到，来不及更新")
-            }
         }, confirmButton = {
-            Button(onClick = {
-                navToSettingDestination()
-            }) {
-                Text("去更新")
+            Column(horizontalAlignment = Alignment.End) {
+                Button(onClick = {
+                    navToSettingDestination()
+                }) {
+                    Text("去更新", maxLines = 1)
+                }
+                TextButton(onClick = {
+                    if (isForceInstall)
+                        isEmergencyToSkipUpdate = true
+                    else
+                        newestVersionData = null
+                }) {
+                    Text("我着急签到，来不及更新")
+                }
             }
         }, text = {
-            Text(buildAnnotatedString {
-                append("检测到新版本：")
-                withStyle(
-                    SpanStyle(
-                        fontWeight = FontWeight.Bold, fontFamily = FontGilroy
-                    )
-                ) {
-                    append(
-                        newestVersionData?.versionName
-                            ?: stackbricksService.internalVersionData?.versionName
-                    )
+            Column {
+                Text(buildAnnotatedString {
+                    append("检测到新版本：")
+                    withStyle(
+                        SpanStyle(
+                            fontWeight = FontWeight.Bold, fontFamily = FontGilroy
+                        )
+                    ) {
+                        append(
+                            newestVersionData?.versionName
+                                ?: stackbricksService.internalVersionData?.versionName
+                        )
+                    }
+                    append("\n当前版本：")
+                    withStyle(
+                        SpanStyle(
+                            fontWeight = FontWeight.Bold, fontFamily = FontGilroy
+                        )
+                    ) {
+                        append(stackbricksService.getCurrentVersionName())
+                    }
+                    append("\n更新日志：\n")
                 }
-                append("\n当前版本：")
-                withStyle(
-                    SpanStyle(
-                        fontWeight = FontWeight.Bold, fontFamily = FontGilroy
-                    )
-                ) {
-                    append(stackbricksService.getCurrentVersionName())
-                }
-                append("\n更新日志：\n")
+                )
+                Text(
+                    newestVersionData?.changelog
+                        ?: stackbricksService.internalVersionData?.changelog ?: "暂无更新日志",
+                    fontSize = 11.sp,
+                    lineHeight = 12.sp
+                )
             }
-            )
-            Text(
-                newestVersionData?.changelog
-                    ?: stackbricksService.internalVersionData?.changelog ?: "暂无更新日志",
-                fontSize = 11.sp,
-                lineHeight = 12.sp
-            )
         }, title = {
             Text("有新版本可用！")
         }, icon = {
