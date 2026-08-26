@@ -832,7 +832,7 @@ fun OtherUserSelectorComponent(
                                             ChaoxingHttpClient.instance!!.userEntity.phoneNumber
                                         if (selfPhone in faceRecognitionData.failedPhoneNumbers) {
                                             Icon(
-                                                painterResource(R.drawable.ic_image),
+                                                painterResource(R.drawable.ic_user_square),
                                                 contentDescription = "查看本次签到照片",
                                                 tint = Color(0xFFF43E06),
                                                 modifier = Modifier
@@ -933,7 +933,7 @@ fun OtherUserSelectorComponent(
                                         }
                                         if (faceRecognitionData != null && session.phoneNumber in faceRecognitionData.failedPhoneNumbers) {
                                             Icon(
-                                                painterResource(R.drawable.ic_image),
+                                                painterResource(R.drawable.ic_user_square),
                                                 contentDescription = "查看本次签到照片",
                                                 tint = Color(0xFFF43E06),
                                                 modifier = Modifier
