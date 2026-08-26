@@ -15,10 +15,13 @@ import android.os.Environment
 import android.provider.MediaStore
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -537,6 +540,60 @@ fun OtherUserSelectorComponent(
             }
         }
 
+        var isDatastoreLoadReady by remember { mutableStateOf(false) }
+        LaunchedEffect(Unit) {
+            withContext(Dispatchers.IO) {
+                val datastore = context.chaoxingDataStore.data.first()
+                tagEntities = datastore.tagsLibraryList
+                tagClickState.addAll(List(datastore.tagsLibraryList.size) {
+                    mutableStateOf(
+                        false
+                    )
+                })
+                selfPhoneNumber = datastore.loginSession.phoneNumber
+                tagContainedUserIndexList = datastore.tagsLibraryList.map { tagEntity ->
+                    buildList {
+                        datastore.otherUsersList.mapIndexed { index, otherUserSession ->
+                            if (otherUserSession.tagsList.any { it == tagEntity.id })
+                                add(index)
+                        }
+                    }
+                }
+                val data = datastore.otherUsersList.filter {
+                    it.phoneNumber != datastore.loginSession.phoneNumber
+                }
+                if (faceRecognitionData?.imageIconList?.value?.isEmpty() == true) {
+                    faceRecognitionData.imageIconList.value = buildList {
+                        add(
+                            if (datastore.faceRecognitionConfiguresMap[datastore.loginSession.phoneNumber]?.imagesList?.isNotEmpty() == true)
+                                mutableStateOf(FaceRecognitionImageStatus.HaveImage)
+                            else mutableStateOf(FaceRecognitionImageStatus.NoImage)
+                        )
+                        data.forEach {
+                            add(
+                                if (datastore.faceRecognitionConfiguresMap[it.phoneNumber]?.imagesList?.isNotEmpty() == true)
+                                    mutableStateOf(FaceRecognitionImageStatus.HaveImage)
+                                else mutableStateOf(FaceRecognitionImageStatus.NoImage)
+                            )
+                        }
+                    }
+                }
+                signStatus.addAll(Array(data.size) {
+                    ChaoxingSignStatus(hapticFeedback)
+                })
+                userSelections.addAll(List(data.size) { false })
+                signUserList.addAll(data.let { sessions ->
+                    if (isCloneSession) {
+                        sessions.sortedBy { it.phoneNumber != ChaoxingHttpClient.cloneInstance!!.userEntity.phoneNumber }
+                    } else {
+                        sessions
+                    }
+                })
+            }
+            isDatastoreLoadReady = true
+            success = isCurrentAlreadySigned
+            userSelections[0] = isCurrentAlreadySigned != true
+        }
         val scrollState = rememberScrollState()
         val density = LocalDensity.current
         val gapPx = remember { with(density) { 80.dp.toPx() } }
@@ -588,96 +645,58 @@ fun OtherUserSelectorComponent(
             ) {
                 prefixTipsContent()
 
-                Card(
-                    onClick = {
-                        hapticFeedback.performHapticFeedback(
-                            HapticFeedbackType.ContextClick
+                AnimatedVisibility(
+                    isDatastoreLoadReady && signUserList.size < 2,
+                    enter = slideInVertically(tween(300), initialOffsetY = { -it }) + fadeIn(
+                        tween(
+                            300
                         )
-                        navToOtherUser()
-                    },
-                    shape = RoundedCornerShape(18.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = Color(0xFF10AEC2)
                     ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(0.dp, 6.dp)
+                    exit = slideOutVertically(tween(300), targetOffsetY = { it }) + fadeOut(
+                        tween(
+                            300
+                        )
+                    )
                 ) {
-                    Row(
-                        modifier = Modifier
-                            .padding(10.dp, 12.dp)
-                            .fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Spacer(modifier = Modifier.width(10.5.dp))
-                        Icon(
-                            painterResource(R.drawable.ic_lightbulb),
-                            contentDescription = "Help",
-                            tint = Color.White
-                        )
-                        Spacer(modifier = Modifier.width(10.5.dp))
-                        Text(
-                            "如果你想给其他用户签到但还没有添加其他用户，可以点击此跳转至添加用户向导。",
-                            color = Color.White,
-                            fontSize = 14.sp,
-                            lineHeight = 19.sp,
-                            fontWeight = FontWeight.W500,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        Spacer(modifier = Modifier.width(12.dp))
-                    }
-                }
-                LaunchedEffect(Unit) {
-                    withContext(Dispatchers.IO) {
-                        val datastore = context.chaoxingDataStore.data.first()
-                        tagEntities = datastore.tagsLibraryList
-                        tagClickState.addAll(List(datastore.tagsLibraryList.size) {
-                            mutableStateOf(
-                                false
+                    Card(
+                        onClick = {
+                            hapticFeedback.performHapticFeedback(
+                                HapticFeedbackType.ContextClick
                             )
-                        })
-                        selfPhoneNumber = datastore.loginSession.phoneNumber
-                        tagContainedUserIndexList = datastore.tagsLibraryList.map { tagEntity ->
-                            buildList {
-                                datastore.otherUsersList.mapIndexed { index, otherUserSession ->
-                                    if (otherUserSession.tagsList.any { it == tagEntity.id })
-                                        add(index)
-                                }
-                            }
+                            navToOtherUser()
+                        },
+                        shape = RoundedCornerShape(18.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = Color(0xFF10AEC2)
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(0.dp, 6.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .padding(10.dp, 12.dp)
+                                .fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Spacer(modifier = Modifier.width(10.5.dp))
+                            Icon(
+                                painterResource(R.drawable.ic_lightbulb),
+                                contentDescription = "Help",
+                                tint = Color.White
+                            )
+                            Spacer(modifier = Modifier.width(10.5.dp))
+                            Text(
+                                "如果你想给其他用户签到但还没有添加其他用户，可以点击此跳转至添加用户向导。",
+                                color = Color.White,
+                                fontSize = 14.sp,
+                                lineHeight = 19.sp,
+                                fontWeight = FontWeight.W500,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
                         }
-                        val data = datastore.otherUsersList.filter {
-                            it.phoneNumber != datastore.loginSession.phoneNumber
-                        }
-                        if (faceRecognitionData?.imageIconList?.value?.isEmpty() == true) {
-                            faceRecognitionData.imageIconList.value = buildList {
-                                add(
-                                    if (datastore.faceRecognitionConfiguresMap[datastore.loginSession.phoneNumber]?.imagesList?.isNotEmpty() == true)
-                                        mutableStateOf(FaceRecognitionImageStatus.HaveImage)
-                                    else mutableStateOf(FaceRecognitionImageStatus.NoImage)
-                                )
-                                data.forEach {
-                                    add(
-                                        if (datastore.faceRecognitionConfiguresMap[it.phoneNumber]?.imagesList?.isNotEmpty() == true)
-                                            mutableStateOf(FaceRecognitionImageStatus.HaveImage)
-                                        else mutableStateOf(FaceRecognitionImageStatus.NoImage)
-                                    )
-                                }
-                            }
-                        }
-                        signStatus.addAll(Array(data.size) {
-                            ChaoxingSignStatus(hapticFeedback)
-                        })
-                        userSelections.addAll(List(data.size) { false })
-                        signUserList.addAll(data.let { sessions ->
-                            if (isCloneSession) {
-                                sessions.sortedBy { it.phoneNumber != ChaoxingHttpClient.cloneInstance!!.userEntity.phoneNumber }
-                            } else {
-                                sessions
-                            }
-                        })
                     }
-                    success = isCurrentAlreadySigned
-                    userSelections[0] = isCurrentAlreadySigned != true
                 }
 
                 suffixContent?.invoke()
