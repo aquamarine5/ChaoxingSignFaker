@@ -311,7 +311,7 @@ fun CourseListScreen(
     BlockedContent {
         Column(
             modifier = Modifier
-                .padding(16.dp, 4.dp, 16.dp, 0.dp)
+                .padding(16.dp, 0.dp, 16.dp, 0.dp)
         ) {
             Crossfade(isFetchedFailure) { v ->
                 if (activitiesData.isNotEmpty()) {
@@ -361,7 +361,8 @@ fun CourseListScreen(
                             disableComposableCode {
                                 AnimatedVisibility(
                                     recommendActivities != null,
-                                    enter = fadeIn() + slideInVertically()
+                                    enter = fadeIn() + slideInVertically(),
+                                    modifier = Modifier.padding(top = 4.dp)
                                 ) {
                                     recommendActivities?.forEachIndexed { index, item ->
                                         Card(
@@ -422,6 +423,9 @@ fun CourseListScreen(
 
                             var debouncePreviousTime by remember { mutableLongStateOf(0L) }
                             LazyColumn {
+                                item {
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                }
                                 item {
                                     Card(modifier = Modifier.zIndex(1f)) {
                                         Row(
