@@ -23,10 +23,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -56,7 +54,7 @@ fun CloneSessionTips(onExitCloning: () -> Unit) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp,9.dp,16.dp,6.dp),
+                .padding(16.dp, 9.dp, 16.dp, 6.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
@@ -121,6 +119,6 @@ fun CloneSessionTips(onExitCloning: () -> Unit) {
                 )
             }
         }
-        HorizontalDivider(modifier = Modifier.padding(12.dp,0.dp))
+        HorizontalDivider(modifier = Modifier.padding(12.dp, 0.dp))
     }
 }

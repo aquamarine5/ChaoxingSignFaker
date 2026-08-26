@@ -787,6 +787,12 @@ class MainActivity : ComponentActivity() {
                                             onDismissRequest = {
                                                 showExitCloneDialog = false
                                             },
+                                            icon = {
+                                                Icon(
+                                                    painterResource(R.drawable.ic_circle_question_mark),
+                                                    contentDescription = null
+                                                )
+                                            },
                                             title = {
                                                 Text("是否要退出克隆模式？")
                                             },
@@ -795,7 +801,9 @@ class MainActivity : ComponentActivity() {
                                                     verticalArrangement = Arrangement.spacedBy(4.dp)
                                                 ) {
                                                     Row(
-                                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                                        horizontalArrangement = Arrangement.spacedBy(
+                                                            8.dp
+                                                        )
                                                     ) {
                                                         OutlinedButton(onClick = {
                                                             showExitCloneDialog = false
@@ -809,10 +817,13 @@ class MainActivity : ComponentActivity() {
                                                             Text("是")
                                                         }
                                                     }
-                                                    TextButton(onClick = {
-                                                        showExitCloneDialog = false
-                                                        finishAffinity()
-                                                    }) {
+                                                    TextButton(
+                                                        onClick = {
+                                                            showExitCloneDialog = false
+                                                            finishAffinity()
+                                                        },
+                                                        modifier = Modifier.align(Alignment.End)
+                                                    ) {
                                                         Text("关闭程序")
                                                     }
                                                 }
