@@ -7,6 +7,7 @@
 package org.aquamarine5.brainspark.chaoxingsignfaker.components
 
 import android.Manifest
+import android.graphics.Color.argb
 import android.os.Bundle
 import android.util.Log
 import androidx.compose.foundation.background
@@ -24,7 +25,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -106,6 +106,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.MARKER_BUNDLE_LABE
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.MARKER_BUNDLE_TYPE
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.MarkerBundleType
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.disableComposableCode
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.displaySnackbar
 
 
@@ -162,11 +163,11 @@ fun GetLocationComponent(
                 BitmapDescriptorFactory.fromResource(R.drawable.ic_geo_alt_fill)
             }
             if (selectedLocation != null) {
-                AlertDialog(onDismissRequest = {
+                SnackbarAlertDialog(onDismissRequest = {
                     selectedLocation = null
-                }, title = {
+                }, title = { _ ->
                     Text("设置位置 \"${selectedLocation!!.second.label}\" ")
-                }, text = {
+                }, text = { _ ->
 
                 }, confirmButton = {
                     Button(onClick = {
@@ -183,11 +184,11 @@ fun GetLocationComponent(
                 })
             }
             if (isShowFavoriteLocationDialog) {
-                AlertDialog(onDismissRequest = {
+                SnackbarAlertDialog(onDismissRequest = {
                     isShowFavoriteLocationDialog = false
-                }, title = {
+                }, title = { _ ->
                     Text("管理收藏的签到位置")
-                }, text = {
+                }, text = { _ ->
                     Text("暂不可用，请期待后续更新。")
                     Column(modifier = Modifier.selectableGroup()) {
                         favoriteLocations.forEachIndexed { index, it ->
@@ -249,7 +250,7 @@ fun GetLocationComponent(
                 })
             }
             if (isShowDialog) {
-                AlertDialog(onDismissRequest = {
+                SnackbarAlertDialog(onDismissRequest = {
                     isShowDialog = false
                 }, confirmButton = {
                     Button(onClick = {
@@ -257,7 +258,7 @@ fun GetLocationComponent(
                     }) {
                         Text("OK")
                     }
-                }, text = {
+                }, text = { _ ->
                     Column {
                         TextField(value = clickedName, onValueChange = {
                             clickedName = it
@@ -549,7 +550,7 @@ fun GetLocationComponent(
                                 CircleOptions()
                                     .center(locationPosition)
                                     .radius(locationInfo.locationRange!!)
-                                    .fillColor(android.graphics.Color.argb(128, 255, 0, 0))
+                                    .fillColor(argb(128, 255, 0, 0))
                             )
                         }
                         locationClient.start()
@@ -596,7 +597,7 @@ fun GetLocationComponent(
                                 favoriteLocationTooltipState.show()
                         }
                     }
-                    if (false)
+                    disableComposableCode {
                         TooltipBox(
                             onDismissRequest = {},
                             positionProvider = TooltipDefaults.rememberTooltipPositionProvider(
@@ -658,6 +659,7 @@ fun GetLocationComponent(
                                 )
                             }
                         }
+                    }
                     Spacer(modifier = Modifier.height(8.dp))
                     TooltipBox(
                         onDismissRequest = {},
@@ -737,7 +739,7 @@ fun GetLocationComponent(
                     Spacer(modifier = Modifier.height(8.dp))
                     FloatingActionButton(onClick = {
                         hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                        locationClient.start()
+                        locationClient.requestLocation()
                     }) {
                         Icon(
                             painterResource(R.drawable.ic_locate_fixed),

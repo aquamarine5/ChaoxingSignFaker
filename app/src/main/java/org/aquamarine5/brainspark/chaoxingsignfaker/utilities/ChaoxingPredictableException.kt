@@ -27,3 +27,8 @@ fun Throwable.getPredictableMessage(): String {
         "预期外错误: ${this::class.java.name}: ${this.localizedMessage ?: this.toString()}"
     }
 }
+
+class ChaoxingFaceSignException(message: String) :
+    ChaoxingPredictableException("人脸验证失败: $message")
+
+class ChaoxingFaceImageException(message: String) : ChaoxingPredictableException(message)

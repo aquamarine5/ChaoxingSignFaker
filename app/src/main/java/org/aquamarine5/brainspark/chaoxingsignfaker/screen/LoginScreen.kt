@@ -6,6 +6,7 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.screen
 
+import android.content.Intent
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -15,11 +16,13 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -43,8 +46,6 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.Font
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -53,12 +54,15 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.net.toUri
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import org.aquamarine5.brainspark.chaoxingsignfaker.BuildConfig
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.CustomizeClientCard
+import org.aquamarine5.brainspark.chaoxingsignfaker.ui.theme.FontGilroy
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
@@ -97,9 +101,7 @@ fun LoginPage(
                 append("随地大小签（")
                 withStyle(
                     SpanStyle(
-                        fontFamily = FontFamily(
-                            Font(R.font.gilroy)
-                        ),
+                        fontFamily = FontGilroy,
                         fontSize = 16.sp
                     )
                 ) {
@@ -192,35 +194,42 @@ fun LoginPage(
                     shape = RoundedCornerShape(16.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
                 ) {
+                    fun retryAutoLogin() {
+                        coroutineScope.launch {
+                            runCatching {
+                                ChaoxingHttpClient.loadFromDataStore(
+                                    context.chaoxingDataStore.data.first(),
+                                    context
+                                )
+                            }.onSuccess {
+                                if (ChaoxingHttpClient.instance != null) {
+                                    snackbarHost.displaySnackbar("登录成功", coroutineScope)
+                                    navToCourseListDestination()
+                                }
+                            }.onFailure {
+                                it.snackbarReport(
+                                    snackbarHost,
+                                    coroutineScope,
+                                    "登录失败",
+                                    hapticFeedback
+                                )
+                            }
+                        }
+                    }
                     Column(modifier = Modifier.padding(6.dp)) {
+                        Text("自动登录失败，可能是遇到了网络问题或修改了学习通密码。")
                         Button(
                             onClick = {
                                 hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                                coroutineScope.launch {
-                                    runCatching {
-                                        ChaoxingHttpClient.loadFromDataStore(
-                                            context.chaoxingDataStore.data.first(),
-                                            context
-                                        )
-                                    }.onSuccess {
-                                        if (ChaoxingHttpClient.instance != null) {
-                                            snackbarHost.displaySnackbar("登录成功", coroutineScope)
-                                            navToCourseListDestination()
-                                        }
-                                    }.onFailure {
-                                        it.snackbarReport(
-                                            snackbarHost,
-                                            coroutineScope,
-                                            "登录失败",
-                                            hapticFeedback
-                                        )
-                                    }
-                                }
+                                retryAutoLogin()
                             }, modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(4.dp)
                         ) {
                             Text("尝试重新自动登录")
+                        }
+                        CustomizeClientCard {
+                            retryAutoLogin()
                         }
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(painterResource(R.drawable.ic_info), null)
@@ -233,6 +242,63 @@ fun LoginPage(
                         }
                         Spacer(modifier = Modifier.height(4.dp))
                         StackbricksComponent(stackbricksService)
+
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Button(
+                            onClick = {
+                                runCatching {
+                                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                                    context.startActivity(Intent(Intent.ACTION_SEND).apply {
+                                        setData("mailto:aquamarine5forever@gmail.com".toUri())
+                                        putExtra(Intent.EXTRA_EMAIL, "aquamarine5forever@gmail.com")
+                                        putExtra(Intent.EXTRA_CC, "aquamarine5forever@gmail.com")
+                                        putExtra(
+                                            Intent.EXTRA_SUBJECT,
+                                            "Send to ChaoxingSignFaker:\n"
+                                        )
+                                        putExtra(Intent.EXTRA_TEXT, "Your content:")
+                                    })
+                                }
+                            },
+                            shape = RoundedCornerShape(18.dp),
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFC08EAF))
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(3.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    painterResource(R.drawable.ic_mail),
+                                    contentDescription = "mail"
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(buildAnnotatedString {
+                                    append("还是有问题？\n联系作者发送邮件到：")
+                                    withStyle(
+                                        SpanStyle(
+                                            fontFamily = FontGilroy,
+                                            fontSize = 14.sp
+                                        )
+                                    ) {
+                                        append("aquamarine5forever")
+                                    }
+                                    withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+                                        append("@")
+                                    }
+                                    withStyle(
+                                        SpanStyle(
+                                            fontFamily = FontGilroy,
+                                            fontSize = 14.sp
+                                        )
+                                    ) {
+                                        append("gmail.com")
+                                    }
+                                })
+                            }
+                        }
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             "ChaoxingSignFaker versionName:${BuildConfig.VERSION_NAME}, versionCode: ${BuildConfig.VERSION_CODE}, buildDate: ${BuildConfig.releaseDate}, channel: ${BuildConfig.umengChannel}",

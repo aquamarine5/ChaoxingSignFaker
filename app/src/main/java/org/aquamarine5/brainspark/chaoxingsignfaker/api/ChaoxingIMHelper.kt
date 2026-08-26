@@ -40,12 +40,12 @@ object ChaoxingIMHelper {
     )
 
     @Deprecated(
-        message = "`im.chaoxing.com` is deprecated",
+        message = "The service of im.chaoxing.com is no longer available. Please use the new interface based on easecdn.com. For more information, please refer to: https://github.com/aquamarine5/ChaoxingSignFaker/issues/188",
         replaceWith = ReplaceWith("URL_EASEMOB_IM_TOKEN")
     )
     val URL_IM_ME = "https://im.chaoxing.com/webim/me".toHttpUrl()
 
-    @Deprecated(message = "`im.chaoxing.com` is deprecated")
+    @Deprecated(message = "The service of im.chaoxing.com is no longer available. Please use the new interface based on easecdn.com. For more information, please refer to: https://github.com/aquamarine5/ChaoxingSignFaker/issues/188")
     val URL_IM_GROUPS = "https://im.chaoxing.com/webim/message/list/getMessageList".toHttpUrl()
 
     val URL_EASEMOB_IM_TOKEN = "https://a1-vip6.easemob.com/cx-dev/cxstudy/token".toHttpUrl()
@@ -58,51 +58,6 @@ object ChaoxingIMHelper {
 
     val IM_ENCRYPTED_KEY = BuildConfig.imEncryptedKey.toByteArray(Charsets.UTF_8)
 
-    //
-//    fun initializeEasemobClient(httpClient: ChaoxingHttpClient, context: Context) {
-//        EMClient.getInstance().init(context, EMOptions().apply {
-//            appKey = "cx-dev#cxstudy"
-//        })
-//        EMClient.getInstance()
-//            .login(httpClient.userEntity.uid.toString(), "kwe371", object : EMCallBack {
-//                override fun onSuccess() {
-//                    Log.i("ChaoxingIMHelper", "Success")
-//                }
-//
-//                override fun onError(p0: Int, p1: String?) {
-//                    Log.e("ChaoxingIMHelper", "$p0 $p1")
-//                }
-//            })
-//    }
-//
-//    fun getHistoryMessages() {
-////        EMClient.getInstance().chatManager().asyncFetchHistoryMessages()
-//    }
-//
-//    suspend fun getConversations(): List<EMConversation> =
-//        suspendCancellableCoroutine { continuation ->
-//            EMClient.getInstance().chatManager().asyncFetchConversationsFromServer(
-//                100,
-//                "",
-//                object : EMValueCallBack<EMCursorResult<EMConversation>> {
-//                    override fun onSuccess(p0: EMCursorResult<EMConversation>?) {
-//                        Log.i("ChaoxingIMHelper", p0!!.data.toString())
-//                        continuation.resume(p0!!.data)
-//                    }
-//
-//                    override fun onError(p0: Int, p1: String?) {
-//                        TODO("Not yet implemented")
-//                    }
-//                })
-//        }
-//
-//
-//    suspend fun getEasemobGroups(
-//        httpClient: ChaoxingHttpClient,
-//        config: ChaoxingEasemobIMConfig
-//    ): List<ChaoxingIMGroup> {
-//        return TODO()
-//    }
     fun desDecrypt(imEncryptedPassword: String): String {
         @Suppress("GetInstance")
         val cipher = Cipher.getInstance("DES/ECB/PKCS5Padding")
@@ -151,19 +106,27 @@ object ChaoxingIMHelper {
                     .addHeader("Authorization", "Bearer ${imConfig.accessToken}")
                     .header("User-Agent", USER_AGENT_EASEMOB)
                     .build()
-            ).execute().use {
-                it.checkResponseThrowException()
-                val jsonObject = JSONObject.parseObject(it.body.string()).getJSONArray("data")
-                return@withContext List(jsonObject.size) { index ->
-                    jsonObject.getJSONObject(index).run {
-                        val jsonDescription = JSONObject.parseObject(getString("description"))
-                        ChaoxingEasemobIMGroup(
-                            getString("name").takeUnless { it.isNullOrBlank() }
-                                ?: jsonDescription.getJSONObject("courseInfo")
-                                    .getString("coursename"),
-                            getString("id"),
-                            jsonDescription.getJSONObject("courseInfo")?.getString("imageUrl")
-                        )
+            ).execute().use { response ->
+                response.checkResponseThrowException()
+                val jsonObject = JSONObject.parseObject(response.body.string()).getJSONArray("data")
+                return@withContext buildList {
+                    for (index in jsonObject.indices) {
+                        runCatching {
+                            jsonObject.getJSONObject(index).run {
+                                val jsonDescription =
+                                    JSONObject.parseObject(getString("description"))
+                                ChaoxingEasemobIMGroup(
+                                    getString("name").takeUnless { it.isNullOrBlank() }
+                                        ?: jsonDescription.getJSONObject("courseInfo")
+                                            .getString("coursename"),
+                                    getString("id"),
+                                    jsonDescription.getJSONObject("courseInfo")
+                                        ?.getString("imageUrl")
+                                )
+                            }
+                        }.onSuccess {
+                            add(it)
+                        }
                     }
                 }
 
@@ -172,7 +135,10 @@ object ChaoxingIMHelper {
     }
 
     @Suppress("Deprecation")
-    @Deprecated(message = "`im.chaoxing.com` is deprecated", level = DeprecationLevel.ERROR)
+    @Deprecated(
+        message = "The service of im.chaoxing.com is no longer available. Please use the new interface based on easecdn.com. For more information, please refer to: https://github.com/aquamarine5/ChaoxingSignFaker/issues/188",
+        level = DeprecationLevel.ERROR
+    )
     suspend fun getIMGroups(
         httpClient: ChaoxingHttpClient,
         config: ChaoxingIMConfig
@@ -200,7 +166,10 @@ object ChaoxingIMHelper {
 
 
     @Suppress("Deprecation")
-    @Deprecated(message = "`im.chaoxing.com` is deprecated", level = DeprecationLevel.ERROR)
+    @Deprecated(
+        message = "The service of im.chaoxing.com is no longer available. Please use the new interface based on easecdn.com. For more information, please refer to: https://github.com/aquamarine5/ChaoxingSignFaker/issues/188",
+        level = DeprecationLevel.ERROR
+    )
     suspend fun getIMConfig(httpClient: ChaoxingHttpClient): ChaoxingIMConfig {
         return withContext(Dispatchers.IO) {
             httpClient.newCall(Request.Builder().url(URL_IM_ME).build()).execute().use { response ->
@@ -314,7 +283,10 @@ object ChaoxingIMHelper {
     }
 
     @Suppress("Deprecation")
-    @Deprecated(message = "`im.chaoxing.com` is deprecated", level = DeprecationLevel.ERROR)
+    @Deprecated(
+        message = "The service of im.chaoxing.com is no longer available. Please use the new interface based on easecdn.com. For more information, please refer to: https://github.com/aquamarine5/ChaoxingSignFaker/issues/188",
+        level = DeprecationLevel.ERROR
+    )
     suspend fun fetchIMHistoryMessages(
         imGroup: ChaoxingIMGroup,
         httpClient: ChaoxingHttpClient,

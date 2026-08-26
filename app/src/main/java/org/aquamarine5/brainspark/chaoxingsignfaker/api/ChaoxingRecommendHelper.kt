@@ -43,10 +43,10 @@ object ChaoxingRecommendHelper {
         val currentDayOfWeek = now.dayOfWeek.value
         val currentMinuteOfDay = now.hour * 60 + now.minute
         if (allHabits.first) return emptyList()
-        return allHabits.second.filter { habit ->
+        return allHabits.second.asSequence().filter { habit ->
             habit.dayOfWeek == currentDayOfWeek &&
                     abs(habit.minuteOfDay - currentMinuteOfDay) <= FIND_RECOMMEND_HABIT_INTERVAL
-        }.map { it.classId to it.courseId }.distinct()
+        }.map { it.classId to it.courseId }.distinct().toList()
     }
 
     suspend fun checkPreferredActivities(

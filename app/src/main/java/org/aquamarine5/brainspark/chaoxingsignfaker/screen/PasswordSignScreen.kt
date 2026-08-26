@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2025-2026, @aquamarine5 (@海蓝色的咕咕鸽). All Rights Reserved.
  * Author: aquamarine5@163.com (Github: https://github.com/aquamarine5) and Brainspark (previously RenegadeCreation)
  * Repository: https://github.com/aquamarine5/ChaoxingSignFaker
@@ -56,6 +56,7 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.serialization.Serializable
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCourseHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClientPool
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingSignHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.SignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerDialog
@@ -129,7 +130,6 @@ fun PasswordSignScreen(
             destination
         )
     }
-    val httpClientStorage = remember { mutableMapOf<String, ChaoxingHttpClient>() }
     var isSponsor by remember { mutableStateOf(false) }
     var numberCount by remember { mutableIntStateOf(-1) }
     if (isSponsor) {
@@ -159,7 +159,6 @@ fun PasswordSignScreen(
         isFetchedFailure = runCatching {
             (if (destination.isCloneSession) {
                 ChaoxingHttpClient.cloneInstance!!.let { client ->
-                    httpClientStorage.putIfAbsent(client.userEntity.phoneNumber, client)
                     ChaoxingPasswordSigner(
                         client,
                         destination
@@ -259,43 +258,40 @@ fun PasswordSignScreen(
                             },
                             onOtherUserSigning = { value, session, bypassChecking, _ ->
                                 runCatching {
-                                    httpClientStorage.getOrPut(session.phoneNumber) {
-                                        ChaoxingHttpClient.loadFromOtherUserSession(
-                                            session,
-                                            context
-                                        )
-                                    }.let { client ->
-                                        ChaoxingPasswordSigner(
-                                            client,
-                                            if (isAlwaysForceSign || bypassChecking) destination.copy(
-                                                classId = ChaoxingCourseHelper.getClassIdFromCourseId(
-                                                    client,
-                                                    destination.courseId
-                                                ).getOrNull() ?: destination.classId
-                                            ) else destination,
-                                            signer.getSignInfo()
-                                        ).run {
-                                            if (!(isAlwaysForceSign || bypassChecking)) checkSignStatusThrowException()
-                                            if (sign(value)) {
-                                                suspendCancellableCoroutine { continuation ->
-                                                    captchaValidateParams =
-                                                        this to { captchaValue ->
-                                                            if (continuation.isActive) {
-                                                                continuation.resumeWith(runCatching {
-                                                                    captchaValue.onSuccess {
-                                                                        this.signWithCaptcha(
-                                                                            value,
-                                                                            it
-                                                                        )
-                                                                    }.getOrThrow()
-                                                                })
+                                    ChaoxingHttpClientPool.get(context, session.phoneNumber)
+                                        .let { client ->
+                                            ChaoxingPasswordSigner(
+                                                client,
+                                                if (isAlwaysForceSign || bypassChecking) destination.copy(
+                                                    classId = ChaoxingCourseHelper.getClassIdFromCourseId(
+                                                        client,
+                                                        destination.courseId
+                                                    ).getOrNull() ?: destination.classId
+                                                ) else destination,
+                                                signer.getSignInfo()
+                                            ).run {
+                                                if (!(isAlwaysForceSign || bypassChecking)) checkSignStatusThrowException()
+                                                if (sign(value)) {
+                                                    suspendCancellableCoroutine { continuation ->
+                                                        captchaValidateParams =
+                                                            this to { captchaValue ->
+                                                                if (continuation.isActive) {
+                                                                    continuation.resumeWith(
+                                                                        runCatching {
+                                                                            captchaValue.onSuccess {
+                                                                                this.signWithCaptcha(
+                                                                                    value,
+                                                                                    it
+                                                                                )
+                                                                            }.getOrThrow()
+                                                                        })
+                                                                }
                                                             }
-                                                        }
-                                                }
-                                                return@runCatching true
-                                            } else return@runCatching false
+                                                    }
+                                                    return@runCatching true
+                                                } else return@runCatching false
+                                            }
                                         }
-                                    }
                                 }
                             },
                             onSigningFinished = { _, name, isOtherUser ->

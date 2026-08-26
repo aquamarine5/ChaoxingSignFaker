@@ -17,6 +17,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityE
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.RecommendActivityEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingParseDataException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.checkResponseThrowException
+import kotlin.time.Duration.Companion.minutes
 
 object ChaoxingActivityHelper {
     enum class SignRedirectStatus {
@@ -31,7 +32,7 @@ object ChaoxingActivityHelper {
 
     const val NO_SIGN_OFF_EVENT = 4999L
 
-    const val AVAILABLE_INTERVAL = 20 * 60 * 1000L // 15 minutes
+    val AVAILABLE_INTERVAL = 20.minutes.inWholeMilliseconds
 
     suspend fun checkCourseHaveAvailableActivity(
         client: ChaoxingHttpClient,
@@ -49,7 +50,7 @@ object ChaoxingActivityHelper {
             it.checkResponseThrowException()
             val jsonResult = JSONObject.parseObject(it.body.string()).getJSONObject("data")
             val nowTimeMillis = System.currentTimeMillis()
-            jsonResult.getJSONArray("activeList").map { activity ->
+            jsonResult.getJSONArray("activeList").asSequence().map { activity ->
                 activity as JSONObject
             }.firstOrNull { activity ->
                 (activity.getInteger("type") == 2 || activity.getInteger("type") == 74) &&
@@ -84,9 +85,9 @@ object ChaoxingActivityHelper {
                         .addQueryParameter("classId", course.classId.toString())
                         .build()
                 ).build()
-            ).execute().use {
-                it.checkResponseThrowException()
-                val responseBody = it.body.string()
+            ).execute().use { response ->
+                response.checkResponseThrowException()
+                val responseBody = response.body.string()
                 val jsonResult = JSONObject.parseObject(responseBody)?.getJSONObject("data")
                     ?: throw ChaoxingParseDataException(
                         "解析课程数据失败",

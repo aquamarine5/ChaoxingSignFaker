@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2025-2026, @aquamarine5 (@海蓝色的咕咕鸽). All Rights Reserved.
  * Author: aquamarine5@163.com (Github: https://github.com/aquamarine5) and Brainspark (previously RenegadeCreation)
  * Repository: https://github.com/aquamarine5/ChaoxingSignFaker
@@ -28,7 +28,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
@@ -41,6 +40,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -56,8 +56,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.Font
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.LineBreak
 import androidx.compose.ui.text.withStyle
@@ -65,7 +63,6 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
-import coil3.ImageLoader
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
@@ -81,13 +78,15 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingRecommendHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.SignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.BlockedContent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
-import org.aquamarine5.brainspark.chaoxingsignfaker.components.CloneSessionTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CourseInfoColumnCard
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NetworkExceptionComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NewFeatureTipsCard
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.SnackbarAlertDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingCourseClass
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCourseEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.RecommendActivityEntity
+import org.aquamarine5.brainspark.chaoxingsignfaker.ui.theme.FontGilroy
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalImageLoader
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.disableCode
@@ -117,14 +116,14 @@ private const val SORT_COMMON = 0
 fun CourseListScreen(
     destination: CourseListDestination,
     stackbricksService: StackbricksService,
-    imageLoader: ImageLoader,
     navToDetailDestination: (ChaoxingCourseEntity) -> Unit,
     onNewVersionAvailable: () -> Unit,
     navToSettingDestination: () -> Unit,
     navToSignActivityDestination: (SignDestination) -> Unit,
     navToLoginDestination: () -> Unit,
-    navToGroupDestination: (isCloneSession: Boolean) -> Unit
+    navToGroupDestination: (isCloneSession: Boolean) -> Unit,
 ) {
+    val imageLoader = LocalImageLoader.current
     val activitiesData =
         rememberSaveable(saver = ChaoxingCourseEntity.Saver) { mutableStateListOf() }
     val preferredClassIds = rememberSaveable {
@@ -138,7 +137,7 @@ fun CourseListScreen(
     var recommendActivities by remember { mutableStateOf<List<RecommendActivityEntity>?>(null) }
     var isFetchedFailure by remember { mutableStateOf<Result<*>?>(null) }
     val coroutineScope = rememberCoroutineScope()
-    val isCaptchaAutoResolveLearntTooltip = remember { mutableStateOf(false) }
+    val isCaptchaAutoResolveLearntTooltip = rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
             launch {
@@ -156,8 +155,10 @@ fun CourseListScreen(
                     it.snackbarReport(snackbarHost, coroutineScope, "检查更新失败", hapticFeedback)
                 }
             }
-            recommendActivities =
-                ChaoxingRecommendHelper.checkRecommendedActivities(context)
+            disableCode {
+                recommendActivities =
+                    ChaoxingRecommendHelper.checkRecommendedActivities(context)
+            } //TODO: recommend
             if (activitiesData.isEmpty()) {
                 isFetchedFailure = runCatching {
                     val datastoreData = context.chaoxingDataStore.data.first()
@@ -221,7 +222,7 @@ fun CourseListScreen(
     }
     var isEmergencyToSkipUpdate by remember { mutableStateOf(false) }
     if (isEmergencyToSkipUpdate) {
-        AlertDialog(onDismissRequest = {
+        SnackbarAlertDialog(onDismissRequest = {
             isEmergencyToSkipUpdate = false
         }, dismissButton = {
             TextButton(onClick = {
@@ -247,8 +248,10 @@ fun CourseListScreen(
         })
     }
     if (newestVersionData != null) {
-        onNewVersionAvailable()
-        AlertDialog(onDismissRequest = {
+        LaunchedEffect(newestVersionData) {
+            onNewVersionAvailable()
+        }
+        SnackbarAlertDialog(onDismissRequest = {
             if (isForceInstall) {
                 Toast.makeText(context, "必须更新应用", Toast.LENGTH_SHORT).show()
             } else {
@@ -274,9 +277,7 @@ fun CourseListScreen(
                 append("检测到新版本：")
                 withStyle(
                     SpanStyle(
-                        fontWeight = FontWeight.Bold, fontFamily = FontFamily(
-                            Font(R.font.gilroy)
-                        )
+                        fontWeight = FontWeight.Bold, fontFamily = FontGilroy
                     )
                 ) {
                     append(
@@ -287,21 +288,20 @@ fun CourseListScreen(
                 append("\n当前版本：")
                 withStyle(
                     SpanStyle(
-                        fontWeight = FontWeight.Bold, fontFamily = FontFamily(
-                            Font(R.font.gilroy)
-                        )
+                        fontWeight = FontWeight.Bold, fontFamily = FontGilroy
                     )
                 ) {
                     append(stackbricksService.getCurrentVersionName())
                 }
                 append("\n更新日志：\n")
-                withStyle(SpanStyle(fontSize = 11.sp)) {
-                    append(
-                        newestVersionData?.changelog
-                            ?: stackbricksService.internalVersionData?.changelog
-                    )
-                }
-            })
+            }
+            )
+            Text(
+                newestVersionData?.changelog
+                    ?: stackbricksService.internalVersionData?.changelog ?: "暂无更新日志",
+                fontSize = 11.sp,
+                lineHeight = 12.sp
+            )
         }, title = {
             Text("有新版本可用！")
         }, icon = {
@@ -311,7 +311,7 @@ fun CourseListScreen(
     BlockedContent {
         Column(
             modifier = Modifier
-                .padding(16.dp, 4.dp, 16.dp, 0.dp)
+                .padding(16.dp, 0.dp, 16.dp, 0.dp)
         ) {
             Crossfade(isFetchedFailure) { v ->
                 if (activitiesData.isNotEmpty()) {
@@ -361,7 +361,8 @@ fun CourseListScreen(
                             disableComposableCode {
                                 AnimatedVisibility(
                                     recommendActivities != null,
-                                    enter = fadeIn() + slideInVertically()
+                                    enter = fadeIn() + slideInVertically(),
+                                    modifier = Modifier.padding(top = 4.dp)
                                 ) {
                                     recommendActivities?.forEachIndexed { index, item ->
                                         Card(
@@ -393,11 +394,7 @@ fun CourseListScreen(
                                                         append(" 在 ")
                                                         withStyle(
                                                             SpanStyle(
-                                                                fontFamily = FontFamily(
-                                                                    Font(
-                                                                        R.font.gilroy
-                                                                    )
-                                                                )
+                                                                fontFamily = FontGilroy
                                                             )
                                                         ) {
                                                             append(
@@ -424,10 +421,11 @@ fun CourseListScreen(
                                 }
                             } //TODO: Recommend
 
-                            if (destination.isCloneSession && ChaoxingHttpClient.cloneInstance != null)
-                                CloneSessionTips()
-                            var debouncePreviousTime = 0L
+                            var debouncePreviousTime by remember { mutableLongStateOf(0L) }
                             LazyColumn {
+                                item {
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                }
                                 item {
                                     Card(modifier = Modifier.zIndex(1f)) {
                                         Row(
@@ -495,16 +493,14 @@ fun CourseListScreen(
                                         isCaptchaAutoResolveLearntTooltip,
                                         "现在部分的验证码会根据内置的数据表自动滑动完成了。"
                                     ) {
-                                        coroutineScope.launch(Dispatchers.IO) {
-                                            context.chaoxingDataStore.updateData {
-                                                it.toBuilder()
-                                                    .setLearntTooltips(
-                                                        it.learntTooltips.toBuilder()
-                                                            .setSliderCaptchaAutoResolveByHashMap(
-                                                                true
-                                                            ).build()
-                                                    ).build()
-                                            }
+                                        context.chaoxingDataStore.updateData {
+                                            it.toBuilder()
+                                                .setLearntTooltips(
+                                                    it.learntTooltips.toBuilder()
+                                                        .setSliderCaptchaAutoResolveByHashMap(
+                                                            true
+                                                        ).build()
+                                                ).build()
                                         }
                                     }
                                 }

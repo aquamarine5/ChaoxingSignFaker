@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2026, @aquamarine5 (@海蓝色的咕咕鸽). All Rights Reserved.
  * Author: aquamarine5@163.com (Github: https://github.com/aquamarine5) and Brainspark (previously RenegadeCreation)
  * Repository: https://github.com/aquamarine5/ChaoxingSignFaker
@@ -30,6 +30,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -41,17 +42,18 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import coil3.ImageLoader
 import coil3.compose.AsyncImage
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.json.Json
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingIMHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
-import org.aquamarine5.brainspark.chaoxingsignfaker.components.CloneSessionTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NetworkExceptionComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingEasemobIMGroup
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalImageLoader
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
 
@@ -63,9 +65,9 @@ data class GroupListDestination(
 @Composable
 fun GroupListScreen(
     destination: GroupListDestination,
-    imageLoader: ImageLoader,
     navToGroupDetail: (GroupDetailDestination) -> Unit
 ) {
+    val imageLoader = LocalImageLoader.current
     Column(
         modifier = Modifier
             .padding(16.dp, 16.dp, 16.dp, 0.dp)
@@ -75,7 +77,24 @@ fun GroupListScreen(
         val context = LocalContext.current
         val snackbarHostState = LocalSnackbarHostState.current
         val hapticFeedback = LocalHapticFeedback.current
-        var imGroupsInfo by rememberSaveable { mutableStateOf<List<ChaoxingEasemobIMGroup>?>(null) }
+        var imGroupsInfo by rememberSaveable(
+            stateSaver = Saver(
+                save = { list ->
+                    list?.let {
+                        Json.encodeToString(
+                            ListSerializer(ChaoxingEasemobIMGroup.serializer()),
+                            it
+                        )
+                    }
+                },
+                restore = { value ->
+                    Json.decodeFromString(
+                        ListSerializer(ChaoxingEasemobIMGroup.serializer()),
+                        value
+                    )
+                }
+            )
+        ) { mutableStateOf<List<ChaoxingEasemobIMGroup>?>(null) }
         var isFetchedFailure by remember { mutableStateOf<Result<*>?>(null) }
 
         LaunchedEffect(Unit) {
@@ -87,12 +106,12 @@ fun GroupListScreen(
                             .getIMConfig()
                     )
             }.onFailure {
-//                it.snackbarReport(
-//                    snackbarHostState,
-//                    coroutineScope,
-//                    "获取群列表失败",
-//                    hapticFeedback
-//                )
+                it.snackbarReport(
+                    snackbarHostState,
+                    coroutineScope,
+                    "获取群列表失败",
+                    hapticFeedback
+                )
             }
         }
         Crossfade(isFetchedFailure) { v ->
@@ -125,9 +144,6 @@ fun GroupListScreen(
                 }
 
                 imGroupsInfo!!.isEmpty() -> {
-                    if (destination.isCloneSession) {
-                        CloneSessionTips()
-                    }
                     Box(modifier = Modifier.fillMaxSize()) {
                         Column(modifier = Modifier.align(Alignment.Center)) {
                             Icon(painterResource(R.drawable.ic_circle_question_mark), null)
@@ -137,9 +153,6 @@ fun GroupListScreen(
                 }
 
                 else -> {
-                    if (destination.isCloneSession) {
-                        CloneSessionTips()
-                    }
                     LazyColumn {
                         items(imGroupsInfo!!, key = {
                             it.id

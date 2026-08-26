@@ -11,13 +11,19 @@
 -->
 <data-extraction-rules>
     <cloud-backup>
-        <include domain="file" path="/datastore/."/>
-        <!-- TODO: Use <include> and <exclude> to control what is backed up.
-        <include .../>
-        <exclude .../>
-        -->
+        <include
+            domain="file"
+            path="/datastore/." />
+        <include
+            domain="file"
+            path="face_images/" />
     </cloud-backup>
     <device-transfer>
-        <include domain="file" path="/datastore/."/>
+        <include
+            domain="file"
+            path="/datastore/." />
+        <include
+            domain="file"
+            path="face_images/" />
     </device-transfer>
 </data-extraction-rules>

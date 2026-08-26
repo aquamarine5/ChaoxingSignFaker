@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2025-2026, @aquamarine5 (@海蓝色的咕咕鸽). All Rights Reserved.
  * Author: aquamarine5@163.com (Github: https://github.com/aquamarine5) and Brainspark (previously RenegadeCreation)
  * Repository: https://github.com/aquamarine5/ChaoxingSignFaker
@@ -29,7 +29,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -62,14 +61,11 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.Font
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
-import coil3.ImageLoader
 import coil3.compose.AsyncImage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -86,9 +82,12 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingSignHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.AnalyserCard
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CustomizeClientCard
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.SnackbarAlertDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SponsorCard
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.RecommendHabit
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSigner
+import org.aquamarine5.brainspark.chaoxingsignfaker.ui.theme.FontGilroy
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalImageLoader
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.OnlyAppDevelopedMode
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.UMengHelper
@@ -96,6 +95,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.disableComposableCode
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.displaySnackbar
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.isDevelopedMode
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
 import org.aquamarine5.brainspark.stackbricks.StackbricksComponent
 import org.aquamarine5.brainspark.stackbricks.StackbricksEventTrigger
 import org.aquamarine5.brainspark.stackbricks.StackbricksService
@@ -120,9 +120,9 @@ var isAlwaysForceSign by mutableStateOf(false)
 @Composable
 fun SettingScreen(
     stackbricksService: StackbricksService,
-    imageLoader: ImageLoader,
     naviToLoginScreen: () -> Unit,
 ) {
+    val imageLoader = LocalImageLoader.current
     Column(
         modifier = Modifier
             .padding(16.dp, 4.dp, 16.dp, 0.dp)
@@ -130,7 +130,6 @@ fun SettingScreen(
     ) {
         var isRecommendEnabled by remember { mutableStateOf(true) }
         val context = LocalContext.current
-        val fontGilroy = remember { FontFamily(Font(R.font.gilroy)) }
         val hapticFeedback = LocalHapticFeedback.current
         val coroutineScope = rememberCoroutineScope()
         val snackbarHostState = LocalSnackbarHostState.current
@@ -145,10 +144,13 @@ fun SettingScreen(
                 isRecommendEnabled = disableRecommend.not()
                 allRecommendHabits.addAll(recommendHabitsList)
             }
+            launch(Dispatchers.IO) {
+                stackbricksService.deleteTemp()
+            }
         }
         if (isUnblockDialog) {
             var inputPassword by remember { mutableStateOf("") }
-            AlertDialog(onDismissRequest = {
+            SnackbarAlertDialog(onDismissRequest = {
                 isUnblockDialog = false
             }, title = {
                 Text("输入密码：")
@@ -270,7 +272,7 @@ fun SettingScreen(
         )
         Spacer(modifier = Modifier.height(8.dp))
         if (isShowSignoffDialog) {
-            AlertDialog(
+            SnackbarAlertDialog(
                 onDismissRequest = { isShowSignoffDialog = false },
                 title = { Text("确定要登出吗？") },
                 text = {
@@ -286,6 +288,7 @@ fun SettingScreen(
                         onClick = {
                             hapticFeedback.performHapticFeedback(HapticFeedbackType.Confirm)
                             coroutineScope.launch {
+                                ChaoxingHttpClient.cloneInstance = null
                                 context.chaoxingDataStore.updateData {
                                     it.toBuilder()
                                         .clearLoginSession()
@@ -411,7 +414,7 @@ fun SettingScreen(
                                                 Row {
                                                     Text(buildAnnotatedString {
                                                         append("星期${ChaoxingRecommendHelper.dayOfWeekTextList[item.dayOfWeek]}的 ")
-                                                        withStyle(SpanStyle(fontFamily = fontGilroy)) {
+                                                        withStyle(SpanStyle(fontFamily = FontGilroy)) {
                                                             append(
                                                                 "${item.minuteOfDay.div(60)}:${
                                                                     (item.minuteOfDay % 60).toString()
@@ -491,7 +494,7 @@ fun SettingScreen(
                     append("前往Github给作者点一个Star吧\n前往：")
                     withStyle(
                         SpanStyle(
-                            fontFamily = fontGilroy,
+                            fontFamily = FontGilroy,
                             fontSize = 14.sp
                         )
                     ) {
@@ -502,7 +505,7 @@ fun SettingScreen(
                     }
                     withStyle(
                         SpanStyle(
-                            fontFamily = fontGilroy,
+                            fontFamily = FontGilroy,
                             fontSize = 14.sp
                         )
                     ) {
@@ -543,7 +546,7 @@ fun SettingScreen(
                     append("想要联系作者？\n发送邮件到：")
                     withStyle(
                         SpanStyle(
-                            fontFamily = fontGilroy,
+                            fontFamily = FontGilroy,
                             fontSize = 14.sp
                         )
                     ) {
@@ -554,7 +557,7 @@ fun SettingScreen(
                     }
                     withStyle(
                         SpanStyle(
-                            fontFamily = fontGilroy,
+                            fontFamily = FontGilroy,
                             fontSize = 14.sp
                         )
                     ) {
@@ -618,6 +621,7 @@ fun SettingScreen(
             Switch(isUiDevelopedMode, onCheckedChange = { value ->
                 isUiDevelopedMode = value
                 isDevelopedMode = value
+                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                 coroutineScope.launch(Dispatchers.IO) {
                     context.chaoxingDataStore.updateData {
                         it.toBuilder().setPreferences(
@@ -626,7 +630,18 @@ fun SettingScreen(
                     }
                 }
             })
-            Text("启用开发模式")
+            Text("启用开发模式", modifier = Modifier.clickable {
+                isUiDevelopedMode = !isUiDevelopedMode
+                isDevelopedMode = !isDevelopedMode
+                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                coroutineScope.launch(Dispatchers.IO) {
+                    context.chaoxingDataStore.updateData {
+                        it.toBuilder().setPreferences(
+                            it.preferences.toBuilder().setIsDevelopedMode(isDevelopedMode).build()
+                        ).build()
+                    }
+                }
+            })
         }
 
         @OnlyAppDevelopedMode AnimatedVisibility(
@@ -639,6 +654,7 @@ fun SettingScreen(
             var signer: ChaoxingSigner? by remember { mutableStateOf(null) }
             FlowColumn() {
                 Button(onClick = {
+                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                     coroutineScope.launch(Dispatchers.IO) {
                         context.chaoxingDataStore.updateData {
                             it.toBuilder().clearLearntTooltips().build()
@@ -648,14 +664,29 @@ fun SettingScreen(
                     Text("ResetAllStoredLearntTooltips")
                 }
                 Button(onClick = {
+                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                     isShowCaptchaMemoriesDialog = true
                 }) {
                     Text("DisplayMatchCaptchaHashMapDialog")
                 }
                 if (Debug.isDebuggerConnected())
                     Button(onClick = {
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                         coroutineScope.launch {
-                            ChaoxingCaptchaHelper.updateRemoteCaptchaMemoriesData(context)
+                            ChaoxingCaptchaHelper.updateRemoteCaptchaMemoriesData(context) { currentVersion, supportVersion ->
+                                snackbarHostState.displaySnackbar(
+                                    "服务器上的验证码数值记忆版本 $currentVersion 高于当前程序支持的版本 $supportVersion ，请更新程序版本",
+                                    coroutineScope
+                                )
+                            }.onFailure {
+                                it.snackbarReport(
+                                    snackbarHostState,
+                                    coroutineScope,
+                                    "更新验证码数值记忆数据失败",
+                                    hapticFeedback,
+                                    shouldDismiss = false
+                                )
+                            }
                         }
                     }) { Text("ForceUpdateRemoteCaptchaMemoriesData") }
             }
@@ -698,7 +729,7 @@ fun SettingScreen(
                 LaunchedEffect(Unit) {
                     jsonText = ChaoxingCaptchaHelper.buildCaptchaMemoriesDataToJson(context)
                 }
-                AlertDialog(
+                SnackbarAlertDialog(
                     onDismissRequest = {
                         isCaptchaMemoriesResultDialog = false
                     },

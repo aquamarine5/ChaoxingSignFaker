@@ -17,7 +17,10 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingParseDataE
 
 @Immutable
 @Suppress("DEPRECATION")
-@Deprecated("`im.chaoxing.com` is deprecated", replaceWith = ReplaceWith("ChaoxingEasemobIMGroup"))
+@Deprecated(
+    "The service of im.chaoxing.com is no longer available. Please use the new interface based on easecdn.com. For more information, please refer to: https://github.com/aquamarine5/ChaoxingSignFaker/issues/188",
+    replaceWith = ReplaceWith("ChaoxingEasemobIMGroup")
+)
 @Serializable
 data class ChaoxingIMGroup(
     val picArray: List<String>,
@@ -25,6 +28,7 @@ data class ChaoxingIMGroup(
     val chatName: String,
     val isGroup: Boolean
 ) {
+    @Suppress("unused")
     object ChaoxingIMGroupNavType : NavType<ChaoxingIMGroup>(false) {
         override fun get(bundle: Bundle, key: String): ChaoxingIMGroup? {
             return Json.decodeFromString(bundle.getString(key) ?: return null)

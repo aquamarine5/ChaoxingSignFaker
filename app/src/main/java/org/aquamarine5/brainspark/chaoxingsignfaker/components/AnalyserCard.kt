@@ -28,7 +28,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.TextAutoSize
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -70,8 +69,6 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.Font
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -86,6 +83,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingAnalyserRankAnalysis
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingAnalyserRankRecord
+import org.aquamarine5.brainspark.chaoxingsignfaker.ui.theme.FontGilroy
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingAnalyser
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
@@ -147,9 +145,6 @@ fun AnalyserCard() {
                 }
             }
         }
-        val fontGilroy = remember {
-            FontFamily(Font(R.font.gilroy))
-        }
         var clickToDisplayRankDetail by remember { mutableStateOf<ChaoxingAnalyserRankRecord?>(null) }
         var isAnalyserRankDialog by remember { mutableStateOf(false) }
         var isAnalyserRankHelpDialog by remember { mutableStateOf(false) }
@@ -159,7 +154,7 @@ fun AnalyserCard() {
         var userRank by remember { mutableStateOf<Int?>(null) }
         val focusRequester = remember { FocusRequester() }
         if (isChangeDisplayedNameDialog) {
-            AlertDialog(onDismissRequest = {
+            SnackbarAlertDialog(onDismissRequest = {
                 isChangeDisplayedNameDialog = false
             }, icon = {
                 Icon(
@@ -243,7 +238,7 @@ fun AnalyserCard() {
                     }
                 isAnalyserRankHelpDialog = false
             }
-            AlertDialog(onDismissRequest = {
+            SnackbarAlertDialog(onDismissRequest = {
                 dismissDialogAction()
             }, icon = {
                 Icon(
@@ -255,7 +250,7 @@ fun AnalyserCard() {
             }, title = {
                 Text("排行榜说明")
             }, text = {
-                Column() {
+                Column {
                     Column(
                         modifier = Modifier
                             .background(
@@ -320,19 +315,56 @@ fun AnalyserCard() {
                                     isExpanded = false
                                 }) {
                                     schoolNames.forEach { name ->
+                                        val isDigitLeading = name[0].isDigit()
+                                        val isDuplicateLibrary = name.endsWith("图书馆") &&
+                                                schoolNames.contains(name.removeSuffix("图书馆"))
+                                        val hasUsableSchoolName = schoolNames.any {
+                                            it[0].isDigit().not() &&
+                                                    (it.endsWith("图书馆") &&
+                                                            schoolNames.contains(it.removeSuffix("图书馆"))).not()
+                                        }
+                                        val isDisabled = when {
+                                            isDigitLeading -> hasUsableSchoolName
+                                            isDuplicateLibrary -> true
+                                            else -> false
+                                        }
                                         DropdownMenuItem(
                                             text = {
-                                                Text(
-                                                    name,
-                                                    style = MaterialTheme.typography.bodyLarge
-                                                )
+                                                Column {
+                                                    Text(
+                                                        name,
+                                                        style = MaterialTheme.typography.bodyLarge
+                                                    )
+                                                    if (isDisabled) {
+                                                        Spacer(modifier = Modifier.height(2.dp))
+                                                        Row(
+                                                            verticalAlignment = Alignment.CenterVertically
+                                                        ) {
+                                                            Icon(
+                                                                painterResource(R.drawable.ic_info),
+                                                                contentDescription = null,
+                                                                tint = Color.Gray,
+                                                                modifier = Modifier.size(14.dp)
+                                                            )
+                                                            Spacer(modifier = Modifier.width(4.dp))
+                                                            Text(
+                                                                if (isDigitLeading) "意义不明的学校名称"
+                                                                else "对于重复的学校名称，推荐使用不带\"图书馆\"的名称",
+                                                                fontSize = 10.sp,
+                                                                lineHeight = 11.sp,
+                                                                color = Color.Gray,
+                                                                fontWeight = FontWeight.W400
+                                                            )
+                                                        }
+                                                    }
+                                                }
                                             },
                                             onClick = {
                                                 displaySchoolName = name
                                                 isExpanded = false
                                             },
                                             contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding,
-                                            enabled = !name[0].isDigit()
+                                            enabled = !isDisabled
                                         )
                                     }
                                 }
@@ -348,7 +380,7 @@ fun AnalyserCard() {
             })
         }
         clickToDisplayRankDetail?.let { detail ->
-            AlertDialog(onDismissRequest = {
+            SnackbarAlertDialog(onDismissRequest = {
                 clickToDisplayRankDetail = null
             }, title = {
                 Text(detail.name)
@@ -402,7 +434,7 @@ fun AnalyserCard() {
                     else ChaoxingAnalyser.getUserTopRank(ChaoxingAnalyser.rankUUID).getOrNull()
                 }
             }
-            AlertDialog(onDismissRequest = {
+            SnackbarAlertDialog(onDismissRequest = {
                 isAnalyserRankDialog = false
             }, title = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -461,7 +493,7 @@ fun AnalyserCard() {
                                 SpanStyle(
                                     fontWeight = FontWeight.Bold,
                                     color = primaryColor,
-                                    fontFamily = fontGilroy,
+                                    fontFamily = FontGilroy,
                                     fontSize = 17.sp,
                                 )
                             }
@@ -491,7 +523,7 @@ fun AnalyserCard() {
                                                 .width(36.dp)
                                                 .padding(end = 6.dp),
                                             textAlign = TextAlign.Center,
-                                            fontFamily = fontGilroy,
+                                            fontFamily = FontGilroy,
                                             fontWeight = FontWeight.Bold,
                                             fontSize = 18.sp,
                                             color = MaterialTheme.colorScheme.primary,
@@ -585,7 +617,7 @@ fun AnalyserCard() {
                                             .padding(end = 6.dp),
                                         textAlign = TextAlign.Center,
                                         fontWeight = FontWeight.Bold,
-                                        fontFamily = fontGilroy,
+                                        fontFamily = FontGilroy,
                                         fontSize = 18.sp,
                                         maxLines = 1,
                                         color = MaterialTheme.colorScheme.primary,
@@ -783,7 +815,7 @@ fun AnalyserCard() {
                                             Spacer(modifier = Modifier.width(3.dp))
                                             Text(
                                                 it.first.value.toString(),
-                                                fontFamily = fontGilroy,
+                                                fontFamily = FontGilroy,
                                                 fontSize = 16.sp
                                             )
                                         }

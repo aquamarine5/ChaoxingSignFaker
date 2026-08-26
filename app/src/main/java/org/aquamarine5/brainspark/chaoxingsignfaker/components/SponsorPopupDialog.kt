@@ -9,7 +9,6 @@ package org.aquamarine5.brainspark.chaoxingsignfaker.components
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -41,7 +40,7 @@ fun SponsorPopupDialog() {
     val isShowSponsor = remember { mutableStateOf(false) }
     val hapticFeedback = LocalHapticFeedback.current
     if (isShowDialog)
-        AlertDialog(onDismissRequest = {
+        SnackbarAlertDialog(onDismissRequest = {
             isShowDialog = false
         }, icon = {
             Icon(

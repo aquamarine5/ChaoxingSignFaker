@@ -41,8 +41,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.umeng.analytics.MobclickAgent
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingOtherUserHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingOtherUserSharedEntity
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingImportOtherUserResultStatus
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingPredictableException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.toastReport
@@ -56,10 +58,18 @@ class ImportOtherUserActivity : ComponentActivity() {
             GET_META_DATA
         )
         if (UMengHelper.md5(
-                packageManager.getApplicationLabel(versionData.applicationInfo!!).toString()
-            ) != "181b23fb3bfa29181fcde41f72757e97"
+                packageManager.getApplicationLabel(
+                    versionData.applicationInfo!!
+                ).toString()
+            ) != "181b23fb3bfa29181fcde41f72757e97" && UMengHelper.md5(
+                packageName
+            ) != "717670698be98532464cfc122894908b"
         ) {
-            UMengHelper.onIllegalChannelEvent(this, versionData)
+            UMengHelper.onIllegalChannelEvent(
+                this,
+                versionData
+            )
+            MobclickAgent.onKillProcess(this)
             Process.killProcess(Process.myPid())
             exitProcess(0)
             throw ChaoxingPredictableException.ApplicationIllegalChannelException()
@@ -82,6 +92,11 @@ class ImportOtherUserActivity : ComponentActivity() {
                     val phone = data?.getQueryParameter("phone")
                     val pwd = data?.getQueryParameter("pwd")
                     val name = data?.getQueryParameter("name")
+                    val faceObjectIds = data?.getQueryParameter("face")
+                        ?.split(',')
+                        ?.filter { it.isNotBlank() }
+                        ?.distinct()
+                        .orEmpty()
                     Crossfade(errorTips) {
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
@@ -114,16 +129,23 @@ class ImportOtherUserActivity : ComponentActivity() {
                                                 ChaoxingOtherUserHelper.saveOtherUser(
                                                     this@ImportOtherUserActivity,
                                                     ChaoxingOtherUserSharedEntity(
-                                                        phone, pwd, name
+                                                        phone,
+                                                        pwd,
+                                                        name,
+                                                        faceObjectIds,
                                                     )
                                                 )
-                                            }.onSuccess {
+                                            }.onSuccess { result ->
                                                 isSuccess = true
                                                 isLoading = false
-                                                UMengHelper.onAccountOtherUserAddEvent(
-                                                    applicationContext,
-                                                    it
-                                                )
+                                                if (result.first == ChaoxingImportOtherUserResultStatus.SUCCESS) {
+                                                    result.third.let {
+                                                        UMengHelper.onAccountOtherUserAddEvent(
+                                                            applicationContext,
+                                                            it
+                                                        )
+                                                    }
+                                                }
                                             }.onFailure { failure ->
                                                 errorTips =
                                                     failure.message ?: failure.localizedMessage

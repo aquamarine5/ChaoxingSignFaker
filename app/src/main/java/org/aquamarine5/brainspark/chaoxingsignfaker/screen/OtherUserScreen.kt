@@ -7,15 +7,20 @@
 package org.aquamarine5.brainspark.chaoxingsignfaker.screen
 
 import android.content.ClipboardManager
+import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.BorderStroke
@@ -28,6 +33,7 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
@@ -45,6 +51,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -65,9 +72,11 @@ import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateListOf
@@ -77,7 +86,10 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
@@ -87,11 +99,13 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -108,14 +122,18 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.zIndex
+import coil3.compose.AsyncImage
 import com.github.skydoves.colorpicker.compose.HsvColorPicker
 import com.github.skydoves.colorpicker.compose.rememberColorPickerController
 import io.sentry.Sentry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -123,19 +141,28 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingFaceHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClientPool
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingOtherUserHelper
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.CameraComponent
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.FacePhotoControlComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NewFeatureTipsCard
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.QRCodeScanComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.RequireLoginAlertDialog
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.SnackbarAlertDialog
+import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingFaceRecognitionImage
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.OtherUserTagType
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingOtherUserSharedEntity
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingImportOtherUserResultStatus
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingPredictableException
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ImportOtherUserResult
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.displaySnackbar
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.getResultTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
 import sh.calvin.reorderable.ReorderableColumn
 import kotlin.random.Random
@@ -149,6 +176,20 @@ object OtherUserGraphDestination
 
 const val TAG_COLOR_UNSPECIFIED = -1L
 
+private suspend fun syncFaceImagesUpdatedSession(
+    context: Context,
+    result: ImportOtherUserResult,
+    otherUserSessions: MutableList<ChaoxingOtherUserSession>
+) {
+    val phoneNumber = result.third.phoneNumber
+    val index = otherUserSessions.indexOfFirst { it.phoneNumber == phoneNumber }
+    if (index != -1) {
+        context.chaoxingDataStore.data.first()
+            .otherUsersList.firstOrNull { it.phoneNumber == phoneNumber }
+            ?.let { otherUserSessions[index] = it }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OtherUserScreen(
@@ -161,17 +202,25 @@ fun OtherUserScreen(
     var inputUrl by remember { mutableStateOf("") }
     var selectedUserSettingDialogIndex by remember { mutableStateOf<Int?>(null) }
     var isTagsSettingDialog by remember { mutableStateOf(false) }
+    var isFacePhotoDialog by remember { mutableStateOf(false) }
+    var isFacePhotoCameraVisible by remember { mutableStateOf(false) }
+    var pendingFacePhotoBitmap by remember { mutableStateOf<Bitmap?>(null) }
+    var facePhotoReturnToUserIndex by remember { mutableStateOf<Int?>(null) }
     var isInputDialog by remember { mutableStateOf(false) }
     var isURLSharedDialog by remember { mutableStateOf(false) }
     val isQRCodeScanPause = remember { mutableStateOf(false) }
     var isQRCodeScanning by remember { mutableStateOf(false) }
     var isQRCodeIllegal by remember { mutableStateOf(false) }
     val isQRCodeParsing = remember { mutableStateOf(false) }
-    var isQRCodeImportSuccess by remember { mutableStateOf(false) }
+    var importQRCodeOtherUserResult by remember { mutableStateOf<ImportOtherUserResult?>(null) }
     var isLocalSharedEntityReady by remember { mutableStateOf<Boolean?>(null) }
-    var currentImportData by remember { mutableStateOf("") }
     var qrcodeIllegalText by remember { mutableStateOf("") }
     var importSharedEntity by remember { mutableStateOf<ChaoxingOtherUserSharedEntity?>(null) }
+    val facePhotos = remember { mutableStateListOf<ChaoxingFaceRecognitionImage>() }
+    val selectedSharedFaceObjectIds = remember { mutableStateListOf<String>() }
+    var attachFacePhotos by remember { mutableStateOf(true) }
+    var facePhotosExpanded by remember { mutableStateOf(false) }
+    var inspectedFacePhotoObjectId by remember { mutableStateOf<String?>(null) }
     val otherUserSessions = remember { mutableStateListOf<ChaoxingOtherUserSession>() }
     var qrCode by remember { mutableStateOf<Bitmap?>(null) }
     val isTooltipShowed = remember { mutableStateOf(false) }
@@ -199,6 +248,27 @@ fun OtherUserScreen(
             isLocalSharedEntityReady = ChaoxingOtherUserHelper.checkSharedEntity(datastore)
         }
     }
+    LaunchedEffect(Unit) {
+        context.chaoxingDataStore.data
+            .map { datastore ->
+                datastore.faceRecognitionConfiguresMap[datastore.loginSession.phoneNumber]
+                    ?.imagesList
+                    .orEmpty()
+                    .take(ChaoxingFaceHelper.MAX_FACE_IMAGES)
+            }
+            .distinctUntilChanged()
+            .collect { images ->
+                facePhotos.clear()
+                facePhotos.addAll(images)
+                selectedSharedFaceObjectIds.removeAll { objectId ->
+                    images.none { it.objectId == objectId }
+                }
+                images.forEach { image ->
+                    if (image.objectId !in selectedSharedFaceObjectIds)
+                        selectedSharedFaceObjectIds.add(image.objectId)
+                }
+            }
+    }
     var job: Job? = null
     val hapticFeedback = LocalHapticFeedback.current
     BackHandler(isQRCodeScanning) {
@@ -210,13 +280,68 @@ fun OtherUserScreen(
             isLocalSharedEntityReady = true
         }
     } else if (isLocalSharedEntityReady == true) {
-        LaunchedEffect(Unit) {
-            qrCode = ChaoxingOtherUserHelper.generateQRCode(context, importSharedEntity)
+        LaunchedEffect(importSharedEntity, attachFacePhotos, selectedSharedFaceObjectIds.toList()) {
+            qrCode = ChaoxingOtherUserHelper.generateQRCode(
+                context,
+                importSharedEntity,
+                if (attachFacePhotos) selectedSharedFaceObjectIds else emptyList(),
+            )
+        }
+    }
+
+    LaunchedEffect(inspectedFacePhotoObjectId, facePhotos.toList()) {
+        if (inspectedFacePhotoObjectId != null &&
+            facePhotos.none { it.objectId == inspectedFacePhotoObjectId }
+        ) {
+            inspectedFacePhotoObjectId = null
+        }
+    }
+    inspectedFacePhotoObjectId?.let { objectId ->
+        val photo = facePhotos.firstOrNull { it.objectId == objectId }
+        if (photo != null) {
+            SnackbarAlertDialog(
+                onDismissRequest = { inspectedFacePhotoObjectId = null },
+                title = { Text("人脸识别照片") },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        AsyncImage(
+                            model = ChaoxingFaceHelper.getFaceImageFile(context, photo.objectId),
+                            contentDescription = "人脸识别照片",
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .aspectRatio(1f),
+                        )
+                        Text("使用次数: ${photo.useCount}")
+                        Text("图片ID: ${photo.objectId}")
+                        Text("此前是否人脸识别失败过: ${if (photo.isFailureBefore) "是" else "否"}")
+                    }
+                },
+                confirmButton = {
+                    val isPhotoAttached =
+                        photo.objectId in selectedSharedFaceObjectIds
+                    Button(onClick = {
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                        if (isPhotoAttached)
+                            selectedSharedFaceObjectIds.remove(photo.objectId)
+                        else
+                            selectedSharedFaceObjectIds.add(photo.objectId)
+                        inspectedFacePhotoObjectId = null
+                    }) {
+                        Text(if (isPhotoAttached) "取消附带此张照片" else "附带此张照片")
+                    }
+                },
+                dismissButton = {
+                    OutlinedButton(onClick = {
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                        inspectedFacePhotoObjectId = null
+                    }) { Text("关闭") }
+                },
+            )
         }
     }
 
     if (isInputDialog) {
-        AlertDialog(onDismissRequest = {
+        SnackbarAlertDialog(onDismissRequest = {
             isInputDialog = false
         }, confirmButton = {
             OutlinedButton(onClick = {
@@ -366,15 +491,39 @@ fun OtherUserScreen(
                                     context,
                                     entity
                                 )
-                            }.onSuccess {
+                            }.onSuccess { result ->
                                 hapticFeedback.performHapticFeedback(HapticFeedbackType.Confirm)
-                                Toast.makeText(context, "导入成功", Toast.LENGTH_SHORT).show()
-                                UMengHelper.onAccountOtherUserAddEvent(context, it)
-                                otherUserSessions.add(it)
-                                userTagList.add(mutableStateOf(emptyList()))
+                                Toast.makeText(context, result.getResultTips(), Toast.LENGTH_SHORT)
+                                    .show()
+                                when (result.first) {
+                                    ChaoxingImportOtherUserResultStatus.SUCCESS -> {
+                                        UMengHelper.onAccountOtherUserAddEvent(
+                                            context,
+                                            result.third
+                                        )
+                                        otherUserSessions.add(result.third)
+                                        userTagList.add(mutableStateOf(emptyList()))
+                                    }
+
+                                    ChaoxingImportOtherUserResultStatus.EXISTED_BUT_UPDATE_PASSWORD -> {
+                                        val updatedSession = result.third
+                                        val index = otherUserSessions.indexOfFirst {
+                                            it.phoneNumber == updatedSession.phoneNumber
+                                        }
+                                        if (index != -1) otherUserSessions[index] = updatedSession
+                                    }
+
+                                    ChaoxingImportOtherUserResultStatus.EXISTED_BUT_UPDATE_FACE_IMAGES -> {
+                                        syncFaceImagesUpdatedSession(
+                                            context,
+                                            result,
+                                            otherUserSessions
+                                        )
+                                    }
+                                }
                                 isInputDialog = false
-                            }.onFailure {
-                                it.snackbarReport(
+                            }.onFailure { failure ->
+                                failure.snackbarReport(
                                     snackbarHost,
                                     coroutineScope,
                                     "保存用户失败",
@@ -389,7 +538,7 @@ fun OtherUserScreen(
         })
     }
     if (isTagsSettingDialog) {
-        AlertDialog(onDismissRequest = {
+        SnackbarAlertDialog(onDismissRequest = {
             isTagsSettingDialog = false
         }, confirmButton = {
             OutlinedButton(onClick = {
@@ -478,7 +627,7 @@ fun OtherUserScreen(
                 }
             }
             if (delectTagIndexForSecondaryConfirm != null) {
-                AlertDialog(
+                SnackbarAlertDialog(
                     onDismissRequest = {
                         delectTagIndexForSecondaryConfirm = null
                     },
@@ -529,7 +678,7 @@ fun OtherUserScreen(
                         Text("确认删除标签${tagsEntityList[delectTagIndexForSecondaryConfirm!!].name}？")
                     },
                     text = {
-                        Text("删除标签会同时将该标签从所有用户中移除，此操作不可撤销。")
+                        Text("删除标签会同样将该标签从所有用户中移除，此操作不可撤销。")
                     },
                     icon = {
                         Icon(
@@ -551,8 +700,11 @@ fun OtherUserScreen(
                         }
                     }
                 var isSavingDatastore by remember { mutableStateOf(false) }
-                AlertDialog(
+                SnackbarAlertDialog(
                     onDismissRequest = {},
+                    properties = DialogProperties(
+                        dismissOnBackPress = false
+                    ),
                     confirmButton = {
                         Button(onClick = {
                             hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
@@ -618,7 +770,7 @@ fun OtherUserScreen(
                             hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                             modifiedTagIndexForUserSelector = null
                         }) {
-                            Text("不保存")
+                            Text("不保存退出")
                         }
                     }, title = {
                         if (modifiedTagIndexForUserSelector != null)
@@ -697,7 +849,7 @@ fun OtherUserScreen(
             }
             if (isSelectNewTagColorDialog) {
                 var color by remember(newTagColor) { mutableStateOf(newTagColor) }
-                AlertDialog(onDismissRequest = {
+                SnackbarAlertDialog(onDismissRequest = {
                     isSelectNewTagColorDialog = false
                 }, confirmButton = {
                     Button(onClick = {
@@ -757,7 +909,7 @@ fun OtherUserScreen(
                 })
             }
             if (isSelectNewTagUserDialog) {
-                AlertDialog(onDismissRequest = {
+                SnackbarAlertDialog(onDismissRequest = {
                     isSelectNewTagUserDialog = false
                 }, confirmButton = {
                     Button(onClick = {
@@ -986,19 +1138,28 @@ fun OtherUserScreen(
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Column(modifier = Modifier.weight(1f)) {
                                         Text(tagEntity.name)
-                                        Text(
-                                            buildAnnotatedString {
-                                                tagUsageList.getOrNull(index)?.value?.let {
-                                                    if (it.isEmpty()) withStyle(SpanStyle(fontStyle = FontStyle.Italic)) {
-                                                        append("未被使用")
-                                                    }
-                                                    else
-                                                        it.forEachIndexed { index, userIndex ->
-                                                            append(otherUserSessions[userIndex].name)
-                                                            if (index != it.size - 1) append(", ")
+                                        val usageText by remember(index) {
+                                            derivedStateOf {
+                                                buildAnnotatedString {
+                                                    tagUsageList.getOrNull(index)?.value?.let {
+                                                        if (it.isEmpty()) withStyle(
+                                                            SpanStyle(
+                                                                fontStyle = FontStyle.Italic
+                                                            )
+                                                        ) {
+                                                            append("未被使用")
                                                         }
+                                                        else
+                                                            it.forEachIndexed { index, userIndex ->
+                                                                append(otherUserSessions[userIndex].name)
+                                                                if (index != it.size - 1) append(", ")
+                                                            }
+                                                    }
                                                 }
-                                            },
+                                            }
+                                        }
+                                        Text(
+                                            usageText,
                                             fontSize = 12.sp,
                                             lineHeight = 14.sp,
                                             color = if (isSystemInDarkTheme()) Color.Gray else Color.DarkGray
@@ -1052,7 +1213,7 @@ fun OtherUserScreen(
     }
     var repairSessionIndex by remember { mutableStateOf<Int?>(null) }
     if (repairSessionIndex != null) {
-        AlertDialog(onDismissRequest = {
+        SnackbarAlertDialog(onDismissRequest = {
             repairSessionIndex = null
         }, title = {
             Text("修复用户 ${otherUserSessions[repairSessionIndex!!].name} 的登录状态")
@@ -1178,7 +1339,7 @@ fun OtherUserScreen(
         }
         var requestedDeleteUserIndex by remember { mutableStateOf<Int?>(null) }
         if (requestedDeleteUserIndex != null) {
-            AlertDialog(
+            SnackbarAlertDialog(
                 onDismissRequest = {
                     requestedDeleteUserIndex = null
                 },
@@ -1238,7 +1399,7 @@ fun OtherUserScreen(
             )
         }
         var isSavingDatastore by remember { mutableStateOf(false) }
-        AlertDialog(
+        SnackbarAlertDialog(
             onDismissRequest = {
                 selectedUserSettingDialogIndex = null
             },
@@ -1283,31 +1444,37 @@ fun OtherUserScreen(
                     Text(if (isSavingDatastore) "保存中" else "保存")
                 }
             }, dismissButton = {
-                OutlinedButton(onClick = {
-                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                    selectedUserSettingDialogIndex = null
-                }) { Text("不保存退出") }
+                Button(
+                    onClick = {
+                        requestedDeleteUserIndex = selectedUserSettingDialogIndex
+                    },
+                    colors = ButtonDefaults.buttonColors(Color(0xFFF1441D))
+                ) {
+                    Text("删除用户", color = Color.White)
+                }
             }, title = {
                 if (selectedUserSettingDialogIndex != null)
                     Text("设置 ${otherUserSessions[selectedUserSettingDialogIndex!!].name} 用户")
             }, text = {
                 Column {
-                    if (tagsEntityList.isEmpty()) {
-                        Text(
-                            "暂无可用标签，设置用户标签前请先创建标签。",
-                            fontStyle = FontStyle.Italic,
-                            color = Color.Gray,
-                            modifier = Modifier.padding(6.dp)
-                        )
-                    } else
-                        LazyColumn {
+                    LazyColumn {
+                        if (tagsEntityList.isEmpty()) {
+                            item {
+                                Text(
+                                    "暂无可用标签，设置用户标签前请先创建标签。",
+                                    fontStyle = FontStyle.Italic,
+                                    color = Color.Gray,
+                                    modifier = Modifier.padding(6.dp)
+                                )
+                            }
+                        } else
                             itemsIndexed(tagsEntityList) { index, tagEntity ->
                                 key(tagEntity.id) {
                                     Row(
                                         verticalAlignment = Alignment.CenterVertically,
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .padding(3.dp, 1.5.dp)
+                                            .padding(3.dp, 0.dp)
                                     ) {
                                         Checkbox(
                                             checked = modifiedTagIndexList[index].value,
@@ -1339,21 +1506,30 @@ fun OtherUserScreen(
                                     }
                                 }
                             }
+                        item {
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Text(
+                                "人脸识别照片",
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(0.dp, 0.dp, 0.dp, 4.dp)
+                            )
+                            FacePhotoControlComponent(
+                                phoneNumber = otherUserSessions[selectedUserSettingDialogIndex!!].phoneNumber,
+                                onStartCamera = {
+                                    facePhotoReturnToUserIndex = selectedUserSettingDialogIndex
+                                    selectedUserSettingDialogIndex = null
+                                    isFacePhotoCameraVisible = true
+                                },
+                                pendingCapturedBitmap = pendingFacePhotoBitmap,
+                                onPendingCapturedBitmapHandled = { pendingFacePhotoBitmap = null },
+                            )
                         }
-                    Button(
-                        onClick = {
-                            requestedDeleteUserIndex = selectedUserSettingDialogIndex
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(Color(0xFFF1441D))
-                    ) {
-                        Text("删除用户", color = Color.White)
                     }
                 }
             })
     }
     if (isURLSharedDialog) {
-        AlertDialog(onDismissRequest = {
+        SnackbarAlertDialog(onDismissRequest = {
             isURLSharedDialog = false
         }, confirmButton = {
             OutlinedButton(onClick = {
@@ -1406,6 +1582,11 @@ fun OtherUserScreen(
                             val phone = url.queryParameter("phone")
                             val pwd = url.queryParameter("pwd")
                             val name = url.queryParameter("name")
+                            val faceObjectIds = url.queryParameter("face")
+                                ?.split(',')
+                                ?.filter { it.isNotBlank() }
+                                ?.distinct()
+                                .orEmpty()
                             if (phone == null || pwd == null || name == null) {
                                 hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
                                 Toast.makeText(context, "链接格式错误", Toast.LENGTH_SHORT).show()
@@ -1415,17 +1596,50 @@ fun OtherUserScreen(
                                 runCatching {
                                     ChaoxingOtherUserHelper.saveOtherUser(
                                         context,
-                                        ChaoxingOtherUserSharedEntity(phone, pwd, name)
+                                        ChaoxingOtherUserSharedEntity(
+                                            phone,
+                                            pwd,
+                                            name,
+                                            faceObjectIds,
+                                        )
                                     )
-                                }.onSuccess {
+                                }.onSuccess { result ->
                                     hapticFeedback.performHapticFeedback(HapticFeedbackType.Confirm)
-                                    Toast.makeText(context, "导入成功", Toast.LENGTH_SHORT).show()
-                                    UMengHelper.onAccountOtherUserAddEvent(context, it)
-                                    otherUserSessions.add(it)
-                                    userTagList.add(mutableStateOf(emptyList()))
+                                    Toast.makeText(
+                                        context,
+                                        result.getResultTips(),
+                                        Toast.LENGTH_SHORT
+                                    )
+                                        .show()
+                                    when (result.first) {
+                                        ChaoxingImportOtherUserResultStatus.SUCCESS -> {
+                                            UMengHelper.onAccountOtherUserAddEvent(
+                                                context,
+                                                result.third
+                                            )
+                                            otherUserSessions.add(result.third)
+                                            userTagList.add(mutableStateOf(emptyList()))
+                                        }
+
+                                        ChaoxingImportOtherUserResultStatus.EXISTED_BUT_UPDATE_PASSWORD -> {
+                                            val updatedSession = result.third
+                                            val index = otherUserSessions.indexOfFirst {
+                                                it.phoneNumber == updatedSession.phoneNumber
+                                            }
+                                            if (index != -1) otherUserSessions[index] =
+                                                updatedSession
+                                        }
+
+                                        ChaoxingImportOtherUserResultStatus.EXISTED_BUT_UPDATE_FACE_IMAGES ->
+                                            syncFaceImagesUpdatedSession(
+                                                context,
+                                                result,
+                                                otherUserSessions
+                                            )
+                                    }
                                     isURLSharedDialog = false
-                                }.onFailure {
-                                    it.snackbarReport(
+                                }.onFailure { failure ->
+                                    failure.snackbarReport(
                                         snackbarHost,
                                         coroutineScope,
                                         "导入失败",
@@ -1464,7 +1678,8 @@ fun OtherUserScreen(
                                 "${ChaoxingHttpClient.instance!!.userEntity.name} 的用户数据链接：${
                                     ChaoxingOtherUserHelper.getSharedUrl(
                                         context,
-                                        importSharedEntity
+                                        importSharedEntity,
+                                        if (attachFacePhotos) selectedSharedFaceObjectIds else emptyList(),
                                     )
                                 }，点击链接下载随地大小签或复制文本打开软件即可将此账号添加并为他代签。"
                             )
@@ -1530,14 +1745,190 @@ fun OtherUserScreen(
                             textDecoration = TextDecoration.Underline
                         )
                     ) {
-                        append("随地大小签APP")
+                        append("随地大小签")
                     }
                     append(" 扫描二维码\n以将你的账号添加到其他设备中")
                 },
-                fontSize = 13.sp,
-                lineHeight = 17.sp,
-                textAlign = TextAlign.Center
+                fontSize = 12.sp,
+                lineHeight = 14.sp,
+                textAlign = TextAlign.Center,
+                color = Color.Gray
             )
+            var isFaceLoadImagesTipsDialog by remember { mutableStateOf(false) }
+            if (isFaceLoadImagesTipsDialog) {
+                AlertDialog(
+                    onDismissRequest = { isFaceLoadImagesTipsDialog = false },
+                    title = { Text("新版本的功能") },
+                    icon = {
+                        Icon(
+                            painterResource(R.drawable.ic_sparkles),
+                            null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(40.dp)
+                        )
+                    },
+                    text = {
+                        Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                            Text(buildAnnotatedString {
+                                append("▪ 在1.17.0的新版本里，你可以拍摄或上传自己的人脸识别照片，并通过支持的方式（二维码或链接形式均支持，账密方式暂不支持自动添加）把你的账户信息附带着你的人脸识别照片分享给其他使用随地大小签的用户，这样对方就可以在他的设备为你代签有人脸认证的签到了！\n")
+                                withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+                                    append("▪ 注意：如果勾选此选项，则代表你的人脸识别照片会被分享给对方，对方可以看见你分享的所有人脸识别照片，并且无法远程删除。")
+                                }
+                                append("\n▪ 若你不想分享某张人脸识别照片，点击【展开人脸识别照片】后选择不想分享的照片，在对话框点击【取消附带此张照片】即可。随地大小签推荐用户分享尽可能多的照片以避免被服务器判断为异常请求。")
+                                append("\n▪ 如果你没有分享你的人脸识别照片给对方，随地大小签可以选择调取你在学习通服务器设置的第一张人脸识别照片信息作为模板，进行风格化处理后作为你的签到人脸识别照片。对方不会看见你的这张照片。")
+                                append("\n▪ 所有的人脸识别照片都会存储到本地，并上传到学习通服务器上以进行签到操作，但随地大小签并不会收集你的照片信息。")
+                            })
+                        }
+                    },
+                    confirmButton = {
+                        Button(onClick = { isFaceLoadImagesTipsDialog = false }) {
+                            Text("确定")
+                        }
+                    }
+                )
+            }
+
+            if (facePhotos.isNotEmpty()) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(end = 6.dp),
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Checkbox(
+                            checked = attachFacePhotos,
+                            onCheckedChange = {
+                                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                                attachFacePhotos = it
+                                if (it) {
+                                    selectedSharedFaceObjectIds.clear()
+                                    selectedSharedFaceObjectIds.addAll(
+                                        facePhotos.map { photo -> photo.objectId }
+                                    )
+                                }
+                            },
+                        )
+                        Text(
+                            buildAnnotatedString {
+                                append("同时附带你的人脸识别照片供其他人代签使用，")
+                                withStyle(SpanStyle(textDecoration = TextDecoration.Underline)) {
+                                    append("对方会收到以下照片")
+                                }
+                                append("。")
+                            },
+                            modifier = Modifier
+                                .clickable(role = Role.Button) {
+                                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                                    attachFacePhotos = !attachFacePhotos
+                                    if (attachFacePhotos) {
+                                        selectedSharedFaceObjectIds.clear()
+                                        selectedSharedFaceObjectIds.addAll(
+                                            facePhotos.map { photo -> photo.objectId }
+                                        )
+                                    }
+                                }
+                                .weight(1f),
+                            fontSize = 13.sp,
+                            lineHeight = 17.sp,
+                        )
+                        IconButton(onClick = {
+                            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                            isFaceLoadImagesTipsDialog = true
+                        }) {
+                            Icon(
+                                painterResource(R.drawable.ic_circle_question_mark),
+                                null,
+                                tint = Color.Gray,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    }
+                    TextButton(
+                        onClick = {
+                            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                            facePhotosExpanded = !facePhotosExpanded
+                        },
+                        modifier = Modifier
+                            .padding(start = 36.dp)
+                            .height(20.dp),
+                        contentPadding = PaddingValues(horizontal = 12.dp),
+                    ) {
+                        Text(
+                            if (facePhotosExpanded) "收起人脸识别照片" else "展开人脸识别照片",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    AnimatedVisibility(visible = facePhotosExpanded) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = 48.dp, top = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            val selectedSharedFaceObjectIdSet by remember {
+                                derivedStateOf { selectedSharedFaceObjectIds.toSet() }
+                            }
+                            facePhotos.forEach { photo ->
+                                val isAttached =
+                                    attachFacePhotos && photo.objectId in selectedSharedFaceObjectIdSet
+                                Box(
+                                    modifier = Modifier
+                                        .size(64.dp)
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .border(
+                                            BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                                            RoundedCornerShape(8.dp),
+                                        )
+                                        .clickable {
+                                            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                                            inspectedFacePhotoObjectId = photo.objectId
+                                        },
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    val blurRadius by animateDpAsState(
+                                        if (!isAttached) 6.dp else 0.dp,
+                                        animationSpec = tween(200, easing = LinearOutSlowInEasing)
+                                    )
+                                    AsyncImage(
+                                        model = remember(photo) {
+                                            ChaoxingFaceHelper.getFaceImageFile(
+                                                context,
+                                                photo.objectId
+                                            )
+                                        },
+                                        contentDescription = "人脸识别照片",
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .blur(blurRadius),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                    this@Row.AnimatedVisibility(
+                                        !isAttached,
+                                        enter = scaleIn(
+                                            tween(200, easing = LinearOutSlowInEasing),
+                                            initialScale = 0.5f
+                                        ) + fadeIn(tween(200)),
+                                        exit = scaleOut(
+                                            tween(200, easing = LinearOutSlowInEasing),
+                                            targetScale = 0.5f
+                                        ) + fadeOut(tween(200))
+                                    ) {
+                                        Icon(
+                                            painterResource(R.drawable.ic_x),
+                                            null,
+                                            modifier = Modifier.size(32.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
             Spacer(modifier = Modifier.height(8.dp))
             Card(
                 shape = RoundedCornerShape(18.dp),
@@ -1570,39 +1961,175 @@ fun OtherUserScreen(
                 }
             }
             Spacer(modifier = Modifier.height(8.dp))
-            Card(
-                onClick = {
-                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                    isTagsSettingDialog = true
-                },
-                shape = RoundedCornerShape(18.dp),
+            SingleChoiceSegmentedButtonRow(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(4.dp, 0.dp),
-                elevation = CardDefaults.cardElevation(4.dp),
-                colors = CardDefaults.cardColors(MaterialTheme.colorScheme.primary)
+                    .padding(4.dp, 0.dp)
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(10.dp),
+                SegmentedButton(
+                    onClick = {
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                        isTagsSettingDialog = true
+                    },
+                    shape = SegmentedButtonDefaults.itemShape(0, 2),
+                    selected = false,
+                    colors = SegmentedButtonDefaults.colors(
+                        activeContainerColor = MaterialTheme.colorScheme.primary,
+                        inactiveContainerColor = MaterialTheme.colorScheme.primary,
+                        activeContentColor = MaterialTheme.colorScheme.onPrimary,
+                        inactiveContentColor = MaterialTheme.colorScheme.onPrimary,
+                        activeBorderColor = MaterialTheme.colorScheme.primary,
+                        inactiveBorderColor = MaterialTheme.colorScheme.primary,
+                    ),
+                    modifier = Modifier.shadow(4.dp, SegmentedButtonDefaults.itemShape(0, 2))
                 ) {
-                    Icon(
-                        painterResource(R.drawable.ic_tags),
-                        null,
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        "管理用户标签",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.W500
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(4.dp),
+                    ) {
+                        Icon(
+                            painterResource(R.drawable.ic_tags),
+                            null,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            "管理用户标签",
+                            fontWeight = FontWeight.W500,
+                            autoSize = TextAutoSize.StepBased(
+                                minFontSize = 8.sp,
+                                maxFontSize = 16.sp,
+                                stepSize = 0.5.sp,
+                            ),
+                            maxLines = 1,
+                        )
+                    }
+                }
+                SegmentedButton(
+                    onClick = {
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                        isFacePhotoDialog = true
+                    },
+                    shape = SegmentedButtonDefaults.itemShape(1, 2),
+                    selected = false,
+                    colors = SegmentedButtonDefaults.colors(
+                        activeContainerColor = MaterialTheme.colorScheme.primary,
+                        inactiveContainerColor = MaterialTheme.colorScheme.primary,
+                        activeContentColor = MaterialTheme.colorScheme.onPrimary,
+                        inactiveContentColor = MaterialTheme.colorScheme.onPrimary,
+                        activeBorderColor = MaterialTheme.colorScheme.primary,
+                        inactiveBorderColor = MaterialTheme.colorScheme.primary,
+                    ),
+                    modifier = Modifier.shadow(4.dp, SegmentedButtonDefaults.itemShape(1, 2))
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(4.dp)
+                    ) {
+                        Icon(
+                            painterResource(R.drawable.ic_scan_face),
+                            null,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            "管理人脸照片",
+                            fontWeight = FontWeight.W500,
+                            autoSize = TextAutoSize.StepBased(
+                                minFontSize = 8.sp,
+                                maxFontSize = 16.sp,
+                                stepSize = 0.5.sp,
+                            ),
+                            maxLines = 1,
+                        )
+                    }
                 }
             }
             Spacer(modifier = Modifier.height(3.dp))
+            var isControlFaceImageNewFeatureDialog by remember { mutableStateOf(false) }
+            if (isControlFaceImageNewFeatureDialog) {
+                AlertDialog(
+                    onDismissRequest = {
+                        isControlFaceImageNewFeatureDialog = false
+                    }, title = { Text("新版本的功能") },
+                    icon = {
+                        Icon(
+                            painterResource(R.drawable.ic_sparkles),
+                            null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(40.dp)
+                        )
+                    }, text = {
+                        Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                            Text(buildString {
+                                append("▪ 在这里你可以管理自己和任何代签用户的人脸识别照片，每次签到时会随机选择一张存储的人脸识别照片进行签到。每个人最多可以上传${ChaoxingFaceHelper.MAX_FACE_IMAGES}张照片，仅支持竖屏照片。随地大小签推荐每个用户上传尽可能多的人脸识别照片，以避免同一张照片多次复用被服务器判断为异常签到。")
+                                append("\n▪ 你可以使用二维码或链接方式把你的人脸识别照片分享给其他使用随地大小签的用户，这样对方就可以在他的设备为你代签有人脸认证的签到。但目前不支持将代签用户的人脸识别照片分享给其他人。")
+                                append("\n▪ 如果你没有分享你的人脸识别照片给对方，随地大小签可以选择调取你在学习通服务器设置的第一张人脸识别照片信息作为模板，进行风格化处理后作为你的签到人脸识别照片。对方不会看见你的这张照片。")
+                                append("\n▪ 所有的人脸识别照片都会存储到本地，并上传到学习通服务器上以进行签到操作，但随地大小签并不会收集你的照片信息。")
+                            })
+                        }
+                    },
+                    confirmButton = {
+                        Button(onClick = {
+                            isControlFaceImageNewFeatureDialog = false
+                        }) {
+                            Text("确定")
+                        }
+                    }
+                )
+            }
+            if (isFacePhotoDialog) {
+                SnackbarAlertDialog(
+                    onDismissRequest = { isFacePhotoDialog = false },
+                    title = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("管理人脸照片")
+                            IconButton(onClick = {
+                                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                                isControlFaceImageNewFeatureDialog = true
+                            }) {
+                                Icon(
+                                    painterResource(R.drawable.ic_info),
+                                    null,
+                                    modifier = Modifier.size(24.dp),
+                                    tint = Color.Gray
+                                )
+                            }
+                        }
+                    },
+                    text = {
+                        FacePhotoControlComponent(
+                            phoneNumber = ChaoxingHttpClient.instance!!.userEntity.phoneNumber,
+                            onStartCamera = {
+                                facePhotoReturnToUserIndex = null
+                                isFacePhotoDialog = false
+                                isFacePhotoCameraVisible = true
+                            },
+                            pendingCapturedBitmap = pendingFacePhotoBitmap,
+                            onPendingCapturedBitmapHandled = { pendingFacePhotoBitmap = null },
+                        )
+                    },
+                    confirmButton = {
+                        OutlinedButton(onClick = { isFacePhotoDialog = false }) {
+                            Text("关闭")
+                        }
+                    },
+                    icon = {
+                        Icon(
+                            painterResource(R.drawable.ic_scan_face),
+                            null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(40.dp)
+                        )
+                    }
+                )
+            }
             SingleChoiceSegmentedButtonRow(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1632,8 +2159,16 @@ fun OtherUserScreen(
                             modifier = Modifier.size(22.dp),
                             tint = MaterialTheme.colorScheme.primary
                         )
-                        Spacer(modifier = Modifier.width(2.dp))
-                        Text("扫码添加")
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            "扫码添加",
+                            autoSize = TextAutoSize.StepBased(
+                                minFontSize = 8.sp,
+                                maxFontSize = 14.sp,
+                                stepSize = 0.5.sp,
+                            ),
+                            maxLines = 1,
+                        )
                     }
                 }
                 SegmentedButton(
@@ -1657,8 +2192,16 @@ fun OtherUserScreen(
                             modifier = Modifier.size(22.dp),
                             tint = MaterialTheme.colorScheme.primary
                         )
-                        Spacer(modifier = Modifier.width(2.dp))
-                        Text("链接添加")
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            "链接添加",
+                            autoSize = TextAutoSize.StepBased(
+                                minFontSize = 8.sp,
+                                maxFontSize = 14.sp,
+                                stepSize = 0.5.sp,
+                            ),
+                            maxLines = 1,
+                        )
                     }
                 }
                 SegmentedButton(
@@ -1682,8 +2225,16 @@ fun OtherUserScreen(
                             modifier = Modifier.size(22.dp),
                             tint = MaterialTheme.colorScheme.primary
                         )
-                        Spacer(modifier = Modifier.width(2.dp))
-                        Text("账密添加")
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            "账密添加",
+                            autoSize = TextAutoSize.StepBased(
+                                minFontSize = 8.sp,
+                                maxFontSize = 14.sp,
+                                stepSize = 0.5.sp,
+                            ),
+                            maxLines = 1,
+                        )
                     }
                 }
             }
@@ -1698,7 +2249,9 @@ fun OtherUserScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Card(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .zIndex(2f),
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.primaryContainer
                     )
@@ -1727,18 +2280,16 @@ fun OtherUserScreen(
                     NewFeatureTipsCard(
                         isTooltipShowed,
                         "现在可以克隆登录其他人的账号，来给其他人代签你没有的课程。",
-                        modifier = Modifier.padding(8.dp, 4.dp)
+                        modifier = Modifier.padding(8.dp, 0.dp)
                     ) {
-                        coroutineScope.launch(Dispatchers.IO) {
-                            context.chaoxingDataStore.updateData {
-                                it.toBuilder()
-                                    .setLearntTooltips(
-                                        it.learntTooltips.toBuilder()
-                                            .setSupportCloneOtherUserSession(
-                                                true
-                                            ).build()
-                                    ).build()
-                            }
+                        context.chaoxingDataStore.updateData {
+                            it.toBuilder()
+                                .setLearntTooltips(
+                                    it.learntTooltips.toBuilder()
+                                        .setSupportCloneOtherUserSession(
+                                            true
+                                        ).build()
+                                ).build()
                         }
                     }
 
@@ -1831,28 +2382,37 @@ fun OtherUserScreen(
                                                         Spacer(modifier = Modifier.width(4.dp))
                                                         val fontSize10spStyle =
                                                             remember { SpanStyle(fontSize = 10.sp) }
-                                                        Text(
-                                                            buildAnnotatedString {
-                                                                userTagList[index].value.forEachIndexed { tagIndex, tagEntity ->
-                                                                    withStyle(
-                                                                        SpanStyle(
-                                                                            color = if (tagEntity.color == TAG_COLOR_UNSPECIFIED) {
-                                                                                if (isSystemInDarkTheme()) Color.LightGray else Color.DarkGray
-                                                                            } else Color(
-                                                                                tagEntity.color
-                                                                            ), fontSize = 10.sp
-                                                                        )
-                                                                    ) {
-                                                                        append(tagEntity.name)
-                                                                    }
-                                                                    if (tagIndex != userTagList[index].value.size - 1)
+                                                        val isDarkTheme = isSystemInDarkTheme()
+                                                        val userTagText by remember(
+                                                            index,
+                                                            isDarkTheme
+                                                        ) {
+                                                            derivedStateOf {
+                                                                buildAnnotatedString {
+                                                                    userTagList[index].value.forEachIndexed { tagIndex, tagEntity ->
                                                                         withStyle(
-                                                                            fontSize10spStyle
+                                                                            SpanStyle(
+                                                                                color = if (tagEntity.color == TAG_COLOR_UNSPECIFIED) {
+                                                                                    if (isDarkTheme) Color.LightGray else Color.DarkGray
+                                                                                } else Color(
+                                                                                    tagEntity.color
+                                                                                ), fontSize = 10.sp
+                                                                            )
                                                                         ) {
-                                                                            append(", ")
+                                                                            append(tagEntity.name)
                                                                         }
+                                                                        if (tagIndex != userTagList[index].value.size - 1)
+                                                                            withStyle(
+                                                                                fontSize10spStyle
+                                                                            ) {
+                                                                                append(", ")
+                                                                            }
+                                                                    }
                                                                 }
-                                                            },
+                                                            }
+                                                        }
+                                                        Text(
+                                                            userTagText,
                                                             lineHeight = 12.sp,
                                                             style = TextStyle.Default.copy(
                                                                 lineBreak = LineBreak.Paragraph
@@ -1891,11 +2451,13 @@ fun OtherUserScreen(
                                                             hapticFeedback.performHapticFeedback(
                                                                 HapticFeedbackType.ContextClick
                                                             )
-                                                            ChaoxingHttpClient.cloneInstance =
-                                                                ChaoxingHttpClient.loadFromOtherUserSession(
-                                                                    otherUserSessions[index],
-                                                                    context
+                                                            val client =
+                                                                ChaoxingHttpClientPool.get(
+                                                                    context,
+                                                                    otherUserSessions[index].phoneNumber
                                                                 )
+                                                            ChaoxingHttpClient.cloneInstance =
+                                                                client
                                                             naviCloneCourseListScreen()
                                                         }
                                                     }) {
@@ -1950,21 +2512,21 @@ fun OtherUserScreen(
             }
         }
     }
-    if (isQRCodeImportSuccess) {
-        AlertDialog(
+    if (importQRCodeOtherUserResult != null) {
+        SnackbarAlertDialog(
             onDismissRequest = {
-                isQRCodeImportSuccess = false
+                importQRCodeOtherUserResult = null
             },
             title = {
                 Text("导入成功")
             },
             text = {
-                Text("$currentImportData 用户已经成功导入")
+                Text(importQRCodeOtherUserResult!!.getResultTips())
             },
             confirmButton = {
                 Button(
                     onClick = {
-                        isQRCodeImportSuccess = false
+                        importQRCodeOtherUserResult = null
                     }
                 ) {
                     Text("确定")
@@ -2002,25 +2564,60 @@ fun OtherUserScreen(
                             isQRCodeParsing.value = true
                             isQRCodeScanPause.value = true
                             return@runCatching ChaoxingOtherUserSharedEntity.parseFromQRCode(qr)
+                        }.onFailure { failure ->
+                            isQRCodeIllegal = true
+                            isQRCodeParsing.value = false
+                            hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
+                            qrcodeIllegalText = failure.message ?: "二维码解析失败，登录失败。"
+                            job?.cancel()
+                            job = coroutineScope.launch {
+                                delay(1.seconds)
+                                isQRCodeScanPause.value = false
+                                delay(1.seconds)
+                                isQRCodeIllegal = false
+                            }
                         }.onSuccess { sharedEntity ->
                             coroutineScope.launch {
                                 runCatching {
                                     ChaoxingOtherUserHelper.saveOtherUser(context, sharedEntity)
-                                }.onSuccess {
+                                }.onSuccess { result ->
                                     isQRCodeScanning = false
                                     isQRCodeParsing.value = false
-                                    currentImportData =
-                                        "${sharedEntity.userName}(手机号：${sharedEntity.phoneNumber})"
-                                    isQRCodeImportSuccess = true
+                                    importQRCodeOtherUserResult = result
                                     hapticFeedback.performHapticFeedback(HapticFeedbackType.Confirm)
-                                    otherUserSessions.add(it)
-                                    userTagList.add(mutableStateOf(emptyList()))
-                                    UMengHelper.onAccountOtherUserAddEvent(context, it)
-                                }.onFailure {
+                                    when (result.first) {
+                                        ChaoxingImportOtherUserResultStatus.SUCCESS -> {
+                                            UMengHelper.onAccountOtherUserAddEvent(
+                                                context,
+                                                result.third
+                                            )
+                                            otherUserSessions.add(result.third)
+                                            userTagList.add(mutableStateOf(emptyList()))
+                                        }
+
+                                        ChaoxingImportOtherUserResultStatus.EXISTED_BUT_UPDATE_PASSWORD -> {
+                                            val updatedSession = result.third
+                                            val index = otherUserSessions.indexOfFirst {
+                                                it.phoneNumber == updatedSession.phoneNumber
+                                            }
+                                            if (index != -1) otherUserSessions[index] =
+                                                updatedSession
+                                        }
+
+                                        ChaoxingImportOtherUserResultStatus.EXISTED_BUT_UPDATE_FACE_IMAGES -> {
+                                            syncFaceImagesUpdatedSession(
+                                                context,
+                                                result,
+                                                otherUserSessions
+                                            )
+                                        }
+                                    }
+                                }.onFailure { failure ->
                                     isQRCodeIllegal = true
                                     isQRCodeParsing.value = false
                                     hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
-                                    qrcodeIllegalText = it.message ?: "二维码解析失败，登录失败。"
+                                    qrcodeIllegalText =
+                                        failure.message ?: "二维码解析失败，登录失败。"
                                     job?.cancel()
                                     job = coroutineScope.launch {
                                         delay(1.seconds)
@@ -2029,17 +2626,6 @@ fun OtherUserScreen(
                                         isQRCodeIllegal = false
                                     }
                                 }
-                            }
-                        }.onFailure {
-                            isQRCodeIllegal = true
-                            isQRCodeScanPause.value = true
-                            hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
-                            qrcodeIllegalText = it.message ?: "二维码解析失败，不是正确码。"
-                            job?.cancel()
-                            job = coroutineScope.launch {
-                                delay(3.seconds)
-                                isQRCodeScanPause.value = false
-                                isQRCodeIllegal = false
                             }
                         }
                     }
@@ -2107,6 +2693,47 @@ fun OtherUserScreen(
                         }
                     }
                 }
+            }
+        }
+    }
+    AnimatedVisibility(
+        isFacePhotoCameraVisible, enter = slideInHorizontally(
+            initialOffsetX = { it },
+            animationSpec = tween(300)
+        ),
+        exit = slideOutHorizontally(
+            animationSpec = tween(400),
+            targetOffsetX = { (it * 1.5).toInt() }
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .zIndex(1f)
+                .fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            fun closeFacePhotoCamera() {
+                isFacePhotoCameraVisible = false
+
+                val returnToUserIndex = facePhotoReturnToUserIndex
+                if (returnToUserIndex == null) {
+                    isFacePhotoDialog = true
+                } else {
+                    selectedUserSettingDialogIndex = returnToUserIndex
+                }
+
+                facePhotoReturnToUserIndex = null
+            }
+            BackHandler {
+                closeFacePhotoCamera()
+            }
+            CameraComponent(
+                pictureCount = 1,
+                isDefaultBackCamera = false,
+            ) { pictures ->
+                pendingFacePhotoBitmap = pictures.firstOrNull()
+                closeFacePhotoCamera()
             }
         }
     }

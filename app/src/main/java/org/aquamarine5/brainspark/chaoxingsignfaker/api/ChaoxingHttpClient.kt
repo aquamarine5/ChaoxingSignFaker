@@ -9,10 +9,14 @@ package org.aquamarine5.brainspark.chaoxingsignfaker.api
 import android.content.Context
 import android.content.pm.PackageManager
 import android.widget.Toast
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.runtime.mutableStateOf
 import com.alibaba.fastjson2.JSONObject
 import io.sentry.Sentry
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.Call
 import okhttp3.Cookie
@@ -34,6 +38,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingPredictabl
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.checkResponseThrowException
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.displaySnackbar
 import java.security.MessageDigest
 import java.util.Base64
 import java.util.UUID
@@ -79,7 +84,13 @@ class ChaoxingHttpClient private constructor(
 
         var instance: ChaoxingHttpClient? = null
 
-        var cloneInstance: ChaoxingHttpClient? = null
+        private var cloneInstanceState = mutableStateOf<ChaoxingHttpClient?>(null)
+
+        var cloneInstance: ChaoxingHttpClient?
+            get() = cloneInstanceState.value
+            set(value) {
+                cloneInstanceState.value = value
+            }
 
         fun getHttpInstanceOrClone(isCloneSession: Boolean) =
             if (isCloneSession && cloneInstance != null) cloneInstance else instance
@@ -101,12 +112,26 @@ class ChaoxingHttpClient private constructor(
             }
         }
 
+        fun exitCloning(coroutineScope: CoroutineScope, snackbarHostState: SnackbarHostState) {
+            cloneInstance = null
+            coroutineScope.launch {
+                snackbarHostState.displaySnackbar("已退出克隆登录", coroutineScope)
+            }
+        }
+
         fun generateDeviceCode(): String {
             val rawData = MessageDigest.getInstance("SHA-256").digest(
                 (UUID.randomUUID().toString().replace("-", "") + UUID.randomUUID().toString()
                     .replace("-", "")).toByteArray()
             )
             return Base64.getEncoder().encodeToString(rawData + rawData)
+        }
+
+        private fun checkPasswordIllegalThrowException(password: String) {
+            if (password.isEmpty())
+                throw ChaoxingLoginException("密码不能为空")
+            if (password.length !in 8..16)
+                throw ChaoxingLoginException("密码位数应该在8-16位")
         }
 
         suspend fun loadFromOtherUserSession(
@@ -171,6 +196,7 @@ class ChaoxingHttpClient private constructor(
             password: String,
             context: Context
         ): ChaoxingHttpClient = withContext(Dispatchers.IO) {
+            checkPasswordIllegalThrowException(password)
             val cookieJar: CookieJar = object : CookieJar {
                 private val cookieStore: MutableMap<String, List<Cookie>> = mutableMapOf()
                 private var chaoxingCookieSession: List<Cookie> = listOf()
@@ -218,6 +244,7 @@ class ChaoxingHttpClient private constructor(
                 userInfo
             ).apply {
                 instance = this
+                ChaoxingHttpClientPool.put(this)
             }
         }
 
@@ -277,6 +304,7 @@ class ChaoxingHttpClient private constructor(
                 userInfo
             ).apply {
                 instance = this
+                ChaoxingHttpClientPool.put(this)
             }
         }
 
@@ -428,6 +456,7 @@ class ChaoxingHttpClient private constructor(
             context: Context
         ): ChaoxingOtherUserSharedEntity =
             withContext(Dispatchers.IO) {
+                checkPasswordIllegalThrowException(password)
                 val uname = encryptByAES(phoneNumber)
                 val encryptedPassword = encryptByAES(password)
                 val request = Request.Builder()
@@ -505,6 +534,7 @@ class ChaoxingHttpClient private constructor(
             isEncryptedPassword: Boolean = false
         ): Unit =
             withContext(Dispatchers.IO) {
+                if (!isEncryptedPassword) checkPasswordIllegalThrowException(password)
                 val uname = encryptByAES(phoneNumber)
                 val encryptedPassword =
                     if (isEncryptedPassword) password else encryptByAES(password)
@@ -533,13 +563,7 @@ class ChaoxingHttpClient private constructor(
                     val jsonResult = JSONObject.parseObject(it.body.string())
                     if (!jsonResult.getBoolean("status")) {
                         throw ChaoxingLoginException(
-                            if (jsonResult.containsKey("msg2")) {
-                                jsonResult.getString("msg2").ifEmpty {
-                                    "登录错误"
-                                }
-                            } else {
-                                "登录错误"
-                            })
+                            jsonResult.getString("msg2")?.takeIf { it.isNotEmpty() } ?: "登录错误")
                     }
 
                     client.cookieJar.saveFromResponse(

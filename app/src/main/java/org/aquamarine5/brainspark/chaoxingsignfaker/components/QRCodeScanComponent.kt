@@ -11,6 +11,7 @@ import android.graphics.Color
 import android.graphics.ColorFilter
 import android.graphics.Paint
 import android.graphics.PixelFormat
+import android.graphics.Rect
 import android.graphics.RectF
 import android.graphics.drawable.Drawable
 import android.net.Uri
@@ -48,10 +49,10 @@ import androidx.compose.material3.TooltipBox
 import androidx.compose.material3.TooltipDefaults
 import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisallowComposableCalls
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -89,7 +90,7 @@ fun QRCodeScanComponent(
     isPause: MutableState<Boolean>,
     isLoading: MutableState<Boolean>,
     onClose: () -> Unit,
-    onScanResult: @DisallowComposableCalls (Barcode) -> Unit,
+    onScanResult: (Barcode) -> Unit,
     content: @Composable BoxScope.() -> Unit
 ) {
     val coroutineScope = rememberCoroutineScope()
@@ -131,6 +132,8 @@ fun QRCodeScanComponent(
                         .build()
                 )
             }
+            val qrCodeDrawable = remember { QRCodeDrawable() }
+            val qrCodeOverlayAdded = remember { mutableStateOf(false) }
             val photoPickerLauncher = rememberLauncherForActivityResult(
                 contract = ActivityResultContracts.PickVisualMedia()
             ) { uri: Uri? ->
@@ -180,12 +183,18 @@ fun QRCodeScanComponent(
                             it?.let { result ->
                                 val barcodeResult = result.getValue(barcodeScanner)
                                 if (barcodeResult.isNullOrEmpty()) {
-                                    previewView.overlay.clear()
+                                    if (qrCodeOverlayAdded.value) {
+                                        previewView.overlay.clear()
+                                        qrCodeOverlayAdded.value = false
+                                    }
                                     return@MlKitAnalyzer
                                 }
                                 val barcode = barcodeResult[0]
-                                previewView.overlay.clear()
-                                previewView.overlay.add(QRCodeDrawable(barcode))
+                                qrCodeDrawable.updateBoundingBox(barcode.boundingBox)
+                                if (!qrCodeOverlayAdded.value) {
+                                    previewView.overlay.add(qrCodeDrawable)
+                                    qrCodeOverlayAdded.value = true
+                                }
                                 if (!isPause.value) {
                                     hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                                     onScanResult(barcode)
@@ -330,15 +339,22 @@ fun QRCodeScanComponent(
     }
 }
 
-class QRCodeDrawable(private val barcode: Barcode) : Drawable() {
+class QRCodeDrawable : Drawable() {
     private val paint = Paint().apply {
         color = Color.RED
         style = Paint.Style.STROKE
         strokeWidth = 8f
     }
 
+    private var boundingBox: Rect? = null
+
+    fun updateBoundingBox(boundingBox: Rect?) {
+        this.boundingBox = boundingBox
+        invalidateSelf()
+    }
+
     override fun draw(canvas: Canvas) {
-        barcode.boundingBox?.let {
+        boundingBox?.let {
             val rectF = RectF(it)
             canvas.drawRoundRect(rectF, 16F, 16F, paint)
         }

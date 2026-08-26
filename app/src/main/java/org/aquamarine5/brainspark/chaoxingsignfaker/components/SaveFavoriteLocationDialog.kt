@@ -6,7 +6,6 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.components
 
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -28,7 +27,7 @@ fun SaveFavoriteLocationDialog(
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val hapticFeedback = LocalHapticFeedback.current
-    AlertDialog(
+    SnackbarAlertDialog(
         onDismissRequest = {
             hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
             onDismiss()

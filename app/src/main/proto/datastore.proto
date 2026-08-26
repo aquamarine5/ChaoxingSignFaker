@@ -51,6 +51,7 @@ message ChaoxingCaptchaResult{
 message ChaoxingFaceRecognitionImage{
   string objectId = 1;
   uint32 useCount = 2;
+  bool isFailureBefore = 3;
 }
 
 message ChaoxingFaceRecognitionConfigure{
@@ -82,6 +83,7 @@ message LearntTooltip{
   bool cameraSelectedMultipleImagesFromGallery = 7;
   bool supportCloneOtherUserSession = 8;
   bool sliderCaptchaAutoResolveByHashMap = 9;
+  bool saveFaceRecognitionImagesToLocal = 10;
 }
 
 message OtherUserTagType{

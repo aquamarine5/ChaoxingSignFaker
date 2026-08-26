@@ -22,7 +22,7 @@
     <queries>
         <package android:name="com.netease.cloudmusic" />
         <package android:name="com.chaoxing.mobile" />
-        <package android:name="com.chaoxing.mobile.xuezaixidian"/>
+        <package android:name="com.chaoxing.mobile.xuezaixidian" />
     </queries>
 
     <application
@@ -36,6 +36,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.ChaoxingSignFaker"
         android:usesCleartextTraffic="true"
+        android:networkSecurityConfig="@xml/network_security_config"
         tools:targetApi="33">
 
         <activity

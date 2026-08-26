@@ -10,7 +10,6 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.OutlinedButton
@@ -44,7 +43,7 @@ fun RequireLoginAlertDialog(
     val context = LocalContext.current
     val coroutineContext = rememberCoroutineScope()
     if (isShowDialog) {
-        AlertDialog(
+        SnackbarAlertDialog(
             onDismissRequest = { },
             title = {
                 Text("重新登录")

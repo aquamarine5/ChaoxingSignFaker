@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2025-2026, @aquamarine5 (@海蓝色的咕咕鸽). All Rights Reserved.
  * Author: aquamarine5@163.com (Github: https://github.com/aquamarine5) and Brainspark (previously RenegadeCreation)
  * Repository: https://github.com/aquamarine5/ChaoxingSignFaker
@@ -13,8 +13,6 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.BorderStroke
@@ -32,7 +30,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -40,6 +37,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
@@ -67,6 +65,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCloudDriveHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCourseHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClientPool
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingRecommendHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingSignHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.SignDestination
@@ -79,6 +78,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.components.NotReadyToSignNot
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.OtherUserSelectorComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SignOutRedirectTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SignPotentialWarningTips
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.SnackbarAlertDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SponsorPopupDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
@@ -149,7 +149,6 @@ fun PhotoSignScreen(
     var isForSelf by remember { mutableStateOf(false) }
     var isSponsor by remember { mutableStateOf(false) }
     var signoffEntity by remember { mutableStateOf<ChaoxingSignOutEntity?>(null) }
-    val httpClientStorage = remember { mutableMapOf<String, ChaoxingHttpClient>() }
     if (isSponsor) {
         SponsorPopupDialog()
     }
@@ -170,7 +169,6 @@ fun PhotoSignScreen(
         isFetchedFailure = runCatching {
             val data = if (destination.isCloneSession) {
                 ChaoxingHttpClient.cloneInstance!!.let { client ->
-                    httpClientStorage.putIfAbsent(client.userEntity.phoneNumber, client)
                     ChaoxingPhotoSigner(
                         client,
                         destination
@@ -250,43 +248,39 @@ fun PhotoSignScreen(
                                     },
                                     onOtherUserSigning = { _, session, bypassChecking, _ ->
                                         runCatching {
-                                            httpClientStorage.getOrPut(session.phoneNumber) {
-                                                ChaoxingHttpClient.loadFromOtherUserSession(
-                                                    session,
-                                                    context
-                                                )
-                                            }.let { client ->
-                                                ChaoxingPhotoSigner(
-                                                    client,
-                                                    if (isAlwaysForceSign || bypassChecking) destination.copy(
-                                                        classId = ChaoxingCourseHelper.getClassIdFromCourseId(
-                                                            client,
-                                                            destination.courseId
-                                                        ).getOrNull() ?: destination.classId
-                                                    ) else destination,
-                                                    signer.getSignInfo()
-                                                ).run {
-                                                    if (!(isAlwaysForceSign || bypassChecking)) checkSignStatusThrowException()
-                                                    if (signByClick()) {
-                                                        suspendCancellableCoroutine { continuation ->
-                                                            captchaValidateParams =
-                                                                this to { validateValue ->
-                                                                    if (continuation.isActive) {
-                                                                        continuation.resumeWith(
-                                                                            runCatching {
-                                                                                validateValue.onSuccess {
-                                                                                    this.signByClickWithCaptcha(
-                                                                                        it
-                                                                                    )
-                                                                                }.getOrThrow()
-                                                                            })
+                                            ChaoxingHttpClientPool.get(context, session.phoneNumber)
+                                                .let { client ->
+                                                    ChaoxingPhotoSigner(
+                                                        client,
+                                                        if (isAlwaysForceSign || bypassChecking) destination.copy(
+                                                            classId = ChaoxingCourseHelper.getClassIdFromCourseId(
+                                                                client,
+                                                                destination.courseId
+                                                            ).getOrNull() ?: destination.classId
+                                                        ) else destination,
+                                                        signer.getSignInfo()
+                                                    ).run {
+                                                        if (!(isAlwaysForceSign || bypassChecking)) checkSignStatusThrowException()
+                                                        if (signByClick()) {
+                                                            suspendCancellableCoroutine { continuation ->
+                                                                captchaValidateParams =
+                                                                    this to { validateValue ->
+                                                                        if (continuation.isActive) {
+                                                                            continuation.resumeWith(
+                                                                                runCatching {
+                                                                                    validateValue.onSuccess {
+                                                                                        this.signByClickWithCaptcha(
+                                                                                            it
+                                                                                        )
+                                                                                    }.getOrThrow()
+                                                                                })
+                                                                        }
                                                                     }
-                                                                }
-                                                        }
-                                                        return@runCatching true
-                                                    } else return@runCatching false
+                                                            }
+                                                            return@runCatching true
+                                                        } else return@runCatching false
+                                                    }
                                                 }
-                                            }
                                         }
                                     },
                                     destination = destination,
@@ -440,12 +434,10 @@ fun PhotoSignScreen(
                                             },
                                             onOtherUserSigning = { value, session, bypassChecking, index ->
                                                 runCatching {
-                                                    httpClientStorage.getOrPut(session.phoneNumber) {
-                                                        ChaoxingHttpClient.loadFromOtherUserSession(
-                                                            session,
-                                                            context
-                                                        )
-                                                    }.let { client ->
+                                                    ChaoxingHttpClientPool.get(
+                                                        context,
+                                                        session.phoneNumber
+                                                    ).let { client ->
                                                         ChaoxingPhotoSigner(
                                                             client,
                                                             if (isAlwaysForceSign || bypassChecking) destination.copy(
@@ -557,7 +549,14 @@ fun PhotoSignScreen(
                                                             false
                                                         )
                                                     }
-                                                    bitmapIndexList.indexOf(index).let {
+                                                    val bitmapIndex by remember(index) {
+                                                        derivedStateOf {
+                                                            bitmapIndexList.indexOf(
+                                                                index
+                                                            )
+                                                        }
+                                                    }
+                                                    bitmapIndex.let {
                                                         if (it != -1 && bitmapList.size > it) {
                                                             IconButton(onClick = {
                                                                 hapticFeedback.performHapticFeedback(
@@ -570,7 +569,7 @@ fun PhotoSignScreen(
                                                                     null
                                                                 )
                                                             }
-                                                            if (isShowDialog) AlertDialog(
+                                                            if (isShowDialog) SnackbarAlertDialog(
                                                                 onDismissRequest = {
                                                                     isShowDialog = false
                                                                 },
@@ -582,7 +581,7 @@ fun PhotoSignScreen(
                                                                         Text("关闭")
                                                                     }
                                                                 },
-                                                                text = {
+                                                                text = { _ ->
                                                                     Image(
                                                                         bitmapList[it].asImageBitmap(),
                                                                         null,
@@ -620,29 +619,29 @@ fun PhotoSignScreen(
                                                 isCamera, enter = slideInHorizontally(
                                                     initialOffsetX = { it },
                                                     animationSpec = tween(300)
-                                                ) + fadeIn(
-                                                    animationSpec = tween(300)
-                                                ), exit = slideOutHorizontally(
-                                                    targetOffsetX = { -it },
-                                                    animationSpec = tween(300)
-                                                ) + fadeOut(
-                                                    animationSpec = tween(300)
+                                                ),
+                                                exit = slideOutHorizontally(
+                                                    animationSpec = tween(400),
+                                                    targetOffsetX = { (it * 1.5).toInt() }
                                                 )
                                             ) {
                                                 BackHandler(isCamera) {
                                                     isSigning.value = false
                                                     isCamera = false
                                                 }
-                                                val combinedUserList =
-                                                    if (isSelfForSign) {
-                                                        listOf(
-                                                            ChaoxingHttpClient.instance!!.userEntity.name,
-                                                        ) + otherUserSessionForSignList.filterNotNull()
-                                                            .map { it.name }
-                                                    } else {
-                                                        otherUserSessionForSignList.filterNotNull()
-                                                            .map { it.name }
+                                                val combinedUserList by remember {
+                                                    derivedStateOf {
+                                                        if (isSelfForSign) {
+                                                            listOf(
+                                                                ChaoxingHttpClient.instance!!.userEntity.name,
+                                                            ) + otherUserSessionForSignList.filterNotNull()
+                                                                .map { it.name }
+                                                        } else {
+                                                            otherUserSessionForSignList.filterNotNull()
+                                                                .map { it.name }
+                                                        }
                                                     }
+                                                }
                                                 var imageIndex by remember {
                                                     mutableIntStateOf(
                                                         0

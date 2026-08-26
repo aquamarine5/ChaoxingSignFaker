@@ -7,7 +7,6 @@
 package org.aquamarine5.brainspark.chaoxingsignfaker.components
 
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -73,8 +72,6 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.Font
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
@@ -92,8 +89,11 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
+import org.aquamarine5.brainspark.chaoxingsignfaker.ui.theme.FontGilroy
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingPredictableException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.decodePhotoBitmap
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.displaySnackbar
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
 import kotlin.time.Duration.Companion.milliseconds
@@ -206,9 +206,8 @@ fun CameraComponent(
                 onResult = { uri ->
                     if (uri == null) return@rememberLauncherForActivityResult
                     runCatching {
-                        val image = application.contentResolver.openInputStream(uri).use {
-                            BitmapFactory.decodeStream(it)
-                        }
+                        val image = application.contentResolver.decodePhotoBitmap(uri)
+                            ?: error("无法读取图片")
                         photoList.add(image)
                         job?.cancel()
                         takeImage = image
@@ -236,9 +235,8 @@ fun CameraComponent(
                     if (uris.isEmpty()) return@rememberLauncherForActivityResult
                     runCatching {
                         uris.forEach { uri ->
-                            val image = application.contentResolver.openInputStream(uri).use {
-                                BitmapFactory.decodeStream(it)
-                            }
+                            val image = application.contentResolver.decodePhotoBitmap(uri)
+                                ?: throw ChaoxingPredictableException("无法读取图片")
                             photoList.add(image)
                             takeImage = image
                             needTakePictureCount--
@@ -265,7 +263,7 @@ fun CameraComponent(
             var tooltipText by remember { mutableStateOf("") }
             LaunchedEffect(Unit) {
                 context.chaoxingDataStore.data.first().learntTooltips.let {
-                    if (!it.cameraSelectedMultipleImagesFromGallery) {
+                    if (!it.cameraSelectedMultipleImagesFromGallery && pictureCount > 1) {
                         tooltipText = "点击可以从图库选择多张图片，一次就可以上传完毕"
                         tooltipState.show()
                     } else if (!it.cameraSelectedFromGallery) {
@@ -286,7 +284,7 @@ fun CameraComponent(
                     TooltipBox(
                         onDismissRequest = {},
                         positionProvider = TooltipDefaults.rememberTooltipPositionProvider(
-                            TooltipAnchorPosition.Above,
+                            TooltipAnchorPosition.Start,
                             13.dp
                         ), modifier = Modifier.zIndex(2f), hasAction = true,
                         tooltip = {
@@ -314,9 +312,13 @@ fun CameraComponent(
                                                             .setCameraSelectedFromGallery(
                                                                 true
                                                             )
-                                                            .setCameraSelectedMultipleImagesFromGallery(
-                                                                true
-                                                            ).build()
+                                                            .apply {
+                                                                if (pictureCount > 1)
+                                                                    setCameraSelectedMultipleImagesFromGallery(
+                                                                        true
+                                                                    )
+                                                            }
+                                                            .build()
                                                     ).build()
                                                 }
                                             }
@@ -329,52 +331,51 @@ fun CameraComponent(
                                         )
                                     }
                                 }
+
                             }
                         },
                         state = tooltipState
                     ) {
+                        val isMultipleImageButton = pictureCount > 1 && needTakePictureCount > 1
                         Column {
                             FloatingActionButton(onClick = {
                                 hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                                if (needTakePictureCount > 1) {
+                                if (isMultipleImageButton)
                                     galleryMultiple.launch(
                                         PickVisualMediaRequest(
                                             ActivityResultContracts.PickVisualMedia.ImageOnly,
-                                            needTakePictureCount,
-                                            isOrderedSelection = true
+                                            isOrderedSelection = true,
+                                            maxItems = needTakePictureCount
                                         )
                                     )
-                                } else {
+                                else
                                     gallerySingle.launch(
                                         PickVisualMediaRequest(
                                             ActivityResultContracts.PickVisualMedia.ImageOnly
                                         )
                                     )
+                            }) {
+
+                                Crossfade(isMultipleImageButton) {
+                                    if (it) {
+                                        Icon(
+                                            painterResource(R.drawable.ic_images),
+                                            null,
+                                            modifier = Modifier.size(32.dp)
+                                        )
+                                    } else {
+                                        Icon(
+                                            painterResource(R.drawable.ic_image),
+                                            null,
+                                            modifier = Modifier.size(32.dp)
+                                        )
+                                    }
                                 }
-                            }) {
-                                Icon(
-                                    painterResource(R.drawable.ic_images),
-                                    null,
-                                    modifier = Modifier.size(32.dp)
-                                )
-                            }
-                            Spacer(modifier = Modifier.height(12.dp))
-                            FloatingActionButton(onClick = {
-                                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                                gallerySingle.launch(
-                                    PickVisualMediaRequest(
-                                        ActivityResultContracts.PickVisualMedia.ImageOnly
-                                    )
-                                )
-                            }) {
-                                Icon(
-                                    painterResource(R.drawable.ic_image),
-                                    null,
-                                    modifier = Modifier.size(32.dp)
-                                )
+
                             }
                         }
                     }
+
 
                 }
             }
@@ -445,24 +446,25 @@ fun CameraComponent(
                 }, color = Color.White,
                 shape = CircleShape,
                 modifier = Modifier
-                    .padding(18.dp)
-                    .size(60.dp)
+                    .padding(18.dp, 100.dp)
+                    .size(70.dp)
                     .align(Alignment.BottomCenter)
             ) {
-                Column(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Crossfade(needTakePictureCount) {
-                        Text(
-                            text = it.toString(),
-                            color = Color.Black, fontSize = 32.sp,
-                            textAlign = TextAlign.Center,
-                            fontFamily = FontFamily(Font(R.font.gilroy))
-                        )
+                if (pictureCount > 1)
+                    Column(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.Center,
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Crossfade(needTakePictureCount) {
+                            Text(
+                                text = it.toString(),
+                                color = Color.Black, fontSize = 32.sp,
+                                textAlign = TextAlign.Center,
+                                fontFamily = FontGilroy
+                            )
+                        }
                     }
-                }
             }
         } else {
             Column(

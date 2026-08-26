@@ -302,8 +302,8 @@ fun FavoriteLocationSettingComponent() {
                 })
             }
         }
-        locationClient.start()
         LaunchedEffect(Unit) {
+            locationClient.start()
             favoriteLocations.addAll(context.chaoxingDataStore.data.first().locationsList)
             favoriteLocations.forEach {
                 favoriteLocationMarkers.add(
@@ -326,7 +326,7 @@ fun FavoriteLocationSettingComponent() {
                 )
             }
         }
-        Column() {
+        Column {
             var isShowFavoriteLocationDialog by remember { mutableStateOf(false) }
             Row(
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -454,7 +454,7 @@ fun FavoriteLocationSettingComponent() {
                     }
                 }
                 AndroidView(
-                    factory = { _ ->
+                    factory = {
                         baiduMap
                     }, modifier = Modifier.zIndex(0f), onRelease = {
                         runCatching {

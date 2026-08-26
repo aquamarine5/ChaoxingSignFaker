@@ -86,7 +86,10 @@ object ChaoxingCourseHelper {
         }
     }
 
-    private fun MutableList<ChaoxingCourseEntity>.parseCourseListData(channelList: JSONArray) {
+    private fun MutableList<ChaoxingCourseEntity>.parseCourseListData(
+        channelList: JSONArray,
+        isCloneSession: Boolean
+    ) {
         for (i in channelList.indices) {
             val course = channelList.getJSONObject(i)
             val content = course.getJSONObject("content")
@@ -105,7 +108,7 @@ object ChaoxingCourseHelper {
                         courseContent.getString("imageurl")
                             ?: "https://p.ananas.chaoxing.com/star3/270_160c/669ca80d6a0c5f74835bb936a41aabca.jpg",
                         courseContent.getString("schools"),
-                        isCloneSession = false
+                        isCloneSession = isCloneSession
                     )
                 )
             }.getOrElse {
@@ -129,7 +132,7 @@ object ChaoxingCourseHelper {
                         rawResponse.checkResponseThrowException()
                         val jsonResult = JSONObject.parseObject(rawResponse.body.string())
                         val channelList = jsonResult.getJSONArray("channelList")
-                        parseCourseListData(channelList)
+                        parseCourseListData(channelList, isCloneSession = false)
                     }
             }
         }
@@ -187,8 +190,7 @@ object ChaoxingCourseHelper {
                                     }
                             }
                         }
-
-                        parseCourseListData(channelList)
+                        parseCourseListData(channelList, isCloneSession)
                     }
             }
         }

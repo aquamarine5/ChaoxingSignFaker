@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -32,7 +31,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.R
 
 @Composable
 fun NotReadyToSignNoticeComponent(
-    onSignForOtherUser: (() -> Unit)?,
+    onSignForOtherUser: () -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
     isExpiredSign: Boolean = false,
@@ -61,7 +60,7 @@ fun NotReadyToSignNoticeComponent(
             } else {
                 "已签到"
             },
-            tint = MaterialTheme.colorScheme.onBackground
+            tint = MaterialTheme.colorScheme.primary
         )
         Spacer(modifier = Modifier.height(6.dp))
         Text(
@@ -72,29 +71,27 @@ fun NotReadyToSignNoticeComponent(
             }, color = MaterialTheme.colorScheme.onBackground
         )
         Spacer(modifier = Modifier.height(6.dp))
-        onSignForOtherUser?.let {
-            Spacer(modifier = Modifier.width(6.dp))
-            Button(onClick = {
-                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                it.invoke()
-            }, modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    if (isExpiredSign) {
-                        "仍为其他用户签到"
-                    } else {
-                        "为其他用户签到"
-                    }
-                )
-            }
+        Button(onClick = {
+            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+            if (isExpiredSign)
+                onDismiss()
+            else
+                onSignForOtherUser()
+        }, modifier = Modifier.fillMaxWidth()) {
+            Text(
+                if (isExpiredSign) {
+                    "仍为其他用户签到"
+                } else {
+                    "为其他用户签到"
+                }
+            )
         }
-        Spacer(modifier = Modifier.width(6.dp))
         OutlinedButton(onClick = {
             hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
             navBack()
         }, modifier = Modifier.fillMaxWidth()) {
             Text("返回")
         }
-        Spacer(modifier = Modifier.width(6.dp))
         TextButton(onClick = {
             onDismiss()
         }, modifier = Modifier.fillMaxWidth()) {

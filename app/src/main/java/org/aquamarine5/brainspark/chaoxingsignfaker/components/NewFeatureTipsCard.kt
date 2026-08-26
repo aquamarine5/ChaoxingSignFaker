@@ -7,6 +7,8 @@
 package org.aquamarine5.brainspark.chaoxingsignfaker.components
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Arrangement
@@ -26,6 +28,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -34,6 +37,8 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 
 @Composable
@@ -41,13 +46,14 @@ fun NewFeatureTipsCard(
     isDisplay: MutableState<Boolean>,
     tipsText: String,
     modifier: Modifier = Modifier,
-    onDismiss: () -> Unit
+    onDismiss: suspend () -> Unit
 ) {
     val hapticFeedback = LocalHapticFeedback.current
+    val coroutineScope = rememberCoroutineScope()
     AnimatedVisibility(
         isDisplay.value,
-        enter = slideInVertically(),
-        exit = slideOutVertically(targetOffsetY = { -it })
+        enter = slideInVertically() + fadeIn(),
+        exit = slideOutVertically() + fadeOut()
     ) {
         Column {
             Card(
@@ -78,7 +84,9 @@ fun NewFeatureTipsCard(
                     IconButton(
                         onClick = {
                             hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                            onDismiss()
+                            coroutineScope.launch(Dispatchers.IO) {
+                                onDismiss()
+                            }
                             isDisplay.value = false
                         },
                         modifier = Modifier.size(32.dp)

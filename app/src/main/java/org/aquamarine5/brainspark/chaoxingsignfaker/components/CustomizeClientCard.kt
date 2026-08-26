@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -56,7 +55,7 @@ enum class ChaoxingClientInfo(
     val identity: String
 ) {
     DEFAULT(
-        "Dalvik/2.1.0 (Linux; U; Android 12; SM-N9006 Build/8aba9e4.0) (schild:ce31140dfcdc2fcd113ccdd86f89a9aa) (device:SM-N9006) Language/zh_CN com.chaoxing.mobile/ChaoXingStudy_3_6.5.1_android_phone_10837_265 (@Kalimdor)_68f184fd763546c1a04ab3a09b3deebb",
+        "Dalvik/2.1.0 (Linux; U; Android 12; SM-N9006 Build/8aba9e4.0) (schild:2d97f7b9439f21333c946878fc4d6ccb) (device:SM-N9006) Language/zh_CN com.chaoxing.mobile/ChaoXingStudy_3_6.7.5_android_phone_10941_314 (@Kalimdor)_68f184fd763546c1a04ab3a09b3deebb",
         "com.chaoxing.mobile",
         "@@default"
     ),
@@ -95,7 +94,7 @@ fun initializeClientInfo(userAgent: String, packageName: String) {
 }
 
 @Composable
-fun CustomizeClientCard() {
+fun CustomizeClientCard(onClose: (() -> Unit)? = null) {
     var isShowDialog by remember { mutableStateOf(false) }
     val hapticFeedback = LocalHapticFeedback.current
     val context = LocalContext.current
@@ -146,7 +145,8 @@ fun CustomizeClientCard() {
     }
     Spacer(modifier = Modifier.height(8.dp))
     if (isShowDialog) {
-        AlertDialog(onDismissRequest = {
+        SnackbarAlertDialog(onDismissRequest = {
+            onClose?.invoke()
             isShowDialog = false
         }, title = {
             Text("定制专属客户端")
@@ -174,9 +174,9 @@ fun CustomizeClientCard() {
                         Text("学习通")
                         Text(
                             ChaoxingClientInfo.DEFAULT.packageName,
-                            fontSize = 10.sp,
+                            fontSize = 11.sp,
                             color = Color.Gray,
-                            lineHeight = 11.sp
+                            lineHeight = 12.sp
                         )
                     }
                 }
@@ -200,9 +200,9 @@ fun CustomizeClientCard() {
                         Text("学在西电")
                         Text(
                             ChaoxingClientInfo.XUEZAIXIDIAN.packageName,
-                            fontSize = 10.sp,
+                            fontSize = 11.sp,
                             color = Color.Gray,
-                            lineHeight = 11.sp
+                            lineHeight = 12.sp
                         )
                     }
                 }
@@ -252,7 +252,11 @@ fun CustomizeClientCard() {
                             tint = Color(0xffffa500)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("如果你不知道具体的UserAgent是什么，或者不知道什么是UserAgent时，请勿进行自定义操作，否则将无法正常签到。")
+                        Text(
+                            "如果你不知道具体的UserAgent是什么，或者不知道什么是UserAgent时，请勿进行自定义操作，否则将无法正常签到。",
+                            fontSize = 11.sp,
+                            lineHeight = 13.sp
+                        )
                     }
                 }
             }
@@ -279,6 +283,7 @@ fun CustomizeClientCard() {
                         }.build()
                     }
                 }
+                onClose?.invoke()
                 isShowDialog = false
             }) {
                 Text("确定")

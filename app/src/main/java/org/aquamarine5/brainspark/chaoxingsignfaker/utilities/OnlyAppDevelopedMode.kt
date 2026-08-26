@@ -16,12 +16,14 @@ import androidx.compose.runtime.Composable
     AnnotationTarget.EXPRESSION,
     AnnotationTarget.PROPERTY
 )
-annotation class OnlyAppDevelopedMode()
+annotation class OnlyAppDevelopedMode
 
+@Suppress("unused")
 @OnlyAppDevelopedMode
 fun disableComposableCode(block: @Composable () -> Unit) {
 }
 
+@Suppress("unused")
 @OnlyAppDevelopedMode
 fun disableCode(block: suspend () -> Unit) {
 }

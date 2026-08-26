@@ -9,7 +9,9 @@ package org.aquamarine5.brainspark.chaoxingsignfaker.utilities
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
-class StoredData<P, R>(private val block: suspend (P) -> R) {
+
+class StoredData<P, R : Any>(private val loader: suspend (P) -> R) {
+    @Volatile
     private var cache: R? = null
 
     private val mutex = Mutex()
@@ -17,7 +19,7 @@ class StoredData<P, R>(private val block: suspend (P) -> R) {
     suspend fun getValue(param: P): R {
         cache?.let { return it }
         return mutex.withLock {
-            cache ?: block(param).also { cache = it }
+            cache ?: loader(param).also { cache = it }
         }
     }
 
@@ -25,11 +27,15 @@ class StoredData<P, R>(private val block: suspend (P) -> R) {
         cache = value
     }
 
+    suspend fun updateCachedValue(transform: (R?) -> R?) = mutex.withLock {
+        transform(cache)?.let { cache = it }
+    }
+
+    fun peekValue(): R? = cache
+
     fun invalidate() {
         cache = null
     }
 }
 
-fun <P, R> storedData(block: suspend (P) -> R): StoredData<P, R> {
-    return StoredData(block)
-}
+fun <P, R : Any> storedData(loader: suspend (P) -> R): StoredData<P, R> = StoredData(loader)

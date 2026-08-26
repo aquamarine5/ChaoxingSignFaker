@@ -30,12 +30,11 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.Font
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
+import org.aquamarine5.brainspark.chaoxingsignfaker.ui.theme.FontGilroy
 
 @Composable
 fun SponsorCard() {
@@ -61,9 +60,7 @@ fun SponsorCard() {
             Text(buildAnnotatedString {
                 withStyle(
                     SpanStyle(
-                        fontFamily = FontFamily(
-                            Font(R.font.gilroy)
-                        ),
+                        fontFamily = FontGilroy,
                         fontSize = 14.sp
                     )
                 ) {
