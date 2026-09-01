@@ -95,6 +95,8 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClientPool
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CloneSessionTips
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.FavoriteLocationSettingComponent
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.FavoriteLocationSettingDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.initializeClientInfo
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingEasemobIMGroup
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
@@ -750,13 +752,26 @@ class MainActivity : ComponentActivity() {
 
                                             navigation<SettingGraphDestination>(startDestination = SettingDestination) {
                                                 composable<SettingDestination> {
-                                                    SettingScreen(stackbricksService) {
-                                                        navController.navigate(LoginDestination()) {
-                                                            popUpTo<SettingDestination> {
-                                                                inclusive = true
+                                                    SettingScreen(
+                                                        stackbricksService,
+                                                        naviToLoginScreen = {
+                                                            navController.navigate(LoginDestination()) {
+                                                                popUpTo<SettingDestination> {
+                                                                    inclusive = true
+                                                                }
                                                             }
+                                                        },
+                                                        naviToFavoriteLocationSetting = {
+                                                            navController.navigate(
+                                                                FavoriteLocationSettingDestination
+                                                            )
                                                         }
-                                                    }
+                                                    )
+                                                }
+                                                composable<FavoriteLocationSettingDestination> {
+                                                    FavoriteLocationSettingComponent(
+                                                        modifier = Modifier.fillMaxSize()
+                                                    )
                                                 }
                                             }
 

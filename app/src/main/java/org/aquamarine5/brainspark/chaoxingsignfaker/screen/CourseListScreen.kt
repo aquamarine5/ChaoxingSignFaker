@@ -39,7 +39,6 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -507,19 +506,20 @@ fun CourseListScreen(
                                         }
                                     }
                                 }
-                                items(activitiesData) { data ->
-                                    key(data.classId) {
+                                items(activitiesData, key = { it.classId }) { data ->
+                                    Column(
+                                        modifier = Modifier.animateItem(
+                                            placementSpec = spring(
+                                                stiffness = Spring.StiffnessVeryLow,
+                                                visibilityThreshold = IntOffset.VisibilityThreshold
+                                            ),
+                                            fadeInSpec = spring(Spring.StiffnessVeryLow),
+                                            fadeOutSpec = spring(Spring.StiffnessVeryLow)
+                                        )
+                                    ) {
                                         CourseInfoColumnCard(
                                             data,
                                             imageLoader,
-                                            modifier = Modifier.animateItem(
-                                                placementSpec = spring(
-                                                    stiffness = Spring.StiffnessVeryLow,
-                                                    visibilityThreshold = IntOffset.VisibilityThreshold
-                                                ),
-                                                fadeInSpec = spring(Spring.StiffnessVeryLow),
-                                                fadeOutSpec = spring(Spring.StiffnessVeryLow)
-                                            ),
                                             onPreferredResort = { isPreferred ->
                                                 hapticFeedback.performHapticFeedback(
                                                     HapticFeedbackType.ContextClick

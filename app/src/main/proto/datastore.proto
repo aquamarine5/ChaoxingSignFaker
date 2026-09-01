@@ -35,6 +35,7 @@ message ChaoxingSignFakerDataStore{
   uint64 lastUploadAnalysisTimestamp = 25;
   ChaoxingCaptchaMemories captchaMemories = 26;
   string selectedAnalysisRankSchoolName = 27;
+  repeated ChaoxingLocation dontSaveNearbyPosition = 28;
 }
 
 message ChaoxingCaptchaMemories{

@@ -34,6 +34,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -59,6 +60,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.components.SaveFaceImagesDia
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SignOutRedirectTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SignPotentialWarningTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SponsorPopupDialog
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.toChaoxingLocation
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationDetailEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationSignEntity
@@ -373,6 +375,15 @@ fun LocationSignScreen(
                                         name,
                                         isOtherUser
                                     )
+                                }
+                                coroutineScope.launch(Dispatchers.IO) {
+                                    context.chaoxingDataStore.updateData {
+                                        it.toBuilder().setPreferences(
+                                            it.preferences.toBuilder()
+                                                .setLastSignedLocation(value.toChaoxingLocation())
+                                                .build()
+                                        ).build()
+                                    }
                                 }
                             },
                             onAllSigningFinished = { isSuccessful ->

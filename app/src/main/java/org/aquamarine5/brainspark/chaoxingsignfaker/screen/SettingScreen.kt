@@ -121,6 +121,7 @@ var isAlwaysForceSign by mutableStateOf(false)
 fun SettingScreen(
     stackbricksService: StackbricksService,
     naviToLoginScreen: () -> Unit,
+    naviToFavoriteLocationSetting: () -> Unit = {}
 ) {
     val imageLoader = LocalImageLoader.current
     Column(
@@ -466,6 +467,38 @@ fun SettingScreen(
         AnalyserCard()
         Spacer(modifier = Modifier.height(8.dp))
         CustomizeClientCard()
+        Spacer(modifier = Modifier.height(8.dp))
+        Card(
+            shape = RoundedCornerShape(18.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable {
+                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                    naviToFavoriteLocationSetting()
+                }
+        ) {
+            Row(
+                modifier = Modifier.padding(16.dp, 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(painterResource(R.drawable.ic_map_star), null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Column {
+                    Text(
+                        "收藏的签到位置",
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.Bold,
+                        lineHeight = 21.sp
+                    )
+                    Text(
+                        "在地图上收藏常用的签到位置，位置签到时可以直接选用。",
+                        fontSize = 12.sp,
+                        lineHeight = 14.sp
+                    )
+                }
+            }
+        }
+        Spacer(modifier = Modifier.height(8.dp))
         Button(
             onClick = {
                 runCatching {

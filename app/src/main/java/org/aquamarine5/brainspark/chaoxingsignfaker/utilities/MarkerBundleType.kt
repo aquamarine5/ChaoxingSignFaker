@@ -11,7 +11,7 @@ const val MARKER_BUNDLE_LABEL = "label"
 const val MARKER_BUNDLE_TYPE = "type"
 
 enum class MarkerBundleType(val value: String) {
-    LOCATION("location"), FAVORITE("favorite");
+    LOCATION("location"), FAVORITE("favorite"), LAST_SIGNED("lastSigned");
 
     override fun toString(): String {
         return value
