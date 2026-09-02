@@ -835,7 +835,7 @@ fun OtherUserSelectorComponent(
                                                     .padding(start = 4.dp)
                                                     .size(14.dp)
                                                     .then(
-                                                        if (isDevelopedMode && faceRecognitionData != null) Modifier.clickable {
+                                                        if (isDevelopedMode) Modifier.clickable {
                                                             hapticFeedback.performHapticFeedback(
                                                                 HapticFeedbackType.ContextClick
                                                             )

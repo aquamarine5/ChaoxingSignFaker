@@ -6,10 +6,8 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.screen
 
-import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Intent
-import android.os.Debug
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
@@ -21,7 +19,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowColumn
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -73,19 +70,13 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import org.aquamarine5.brainspark.chaoxingsignfaker.BuildConfig
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
-import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingActivityHelper
-import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCaptchaHelper
-import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCourseHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingRecommendHelper
-import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingSignHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.AnalyserCard
-import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CustomizeClientCard
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SnackbarAlertDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SponsorCard
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.RecommendHabit
-import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSigner
 import org.aquamarine5.brainspark.chaoxingsignfaker.ui.theme.FontGilroy
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalImageLoader
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
@@ -95,7 +86,6 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.disableComposableCode
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.displaySnackbar
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.isDevelopedMode
-import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
 import org.aquamarine5.brainspark.stackbricks.StackbricksComponent
 import org.aquamarine5.brainspark.stackbricks.StackbricksEventTrigger
 import org.aquamarine5.brainspark.stackbricks.StackbricksService
@@ -682,9 +672,6 @@ fun SettingScreen(
             enter = slideInVertically(),
             exit = slideOutVertically()
         ) {
-            var isShowCaptchaMemoriesDialog by remember { mutableStateOf(false) }
-            var isCaptchaMemoriesResultDialog by remember { mutableStateOf(false) }
-            var signer: ChaoxingSigner? by remember { mutableStateOf(null) }
             FlowColumn() {
                 Button(onClick = {
                     hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
@@ -696,112 +683,6 @@ fun SettingScreen(
                 }) {
                     Text("ResetAllStoredLearntTooltips")
                 }
-                Button(onClick = {
-                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                    isShowCaptchaMemoriesDialog = true
-                }) {
-                    Text("DisplayMatchCaptchaHashMapDialog")
-                }
-                if (Debug.isDebuggerConnected())
-                    Button(onClick = {
-                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                        coroutineScope.launch {
-                            ChaoxingCaptchaHelper.updateRemoteCaptchaMemoriesData(context) { currentVersion, supportVersion ->
-                                snackbarHostState.displaySnackbar(
-                                    "服务器上的验证码数值记忆版本 $currentVersion 高于当前程序支持的版本 $supportVersion ，请更新程序版本",
-                                    coroutineScope
-                                )
-                            }.onFailure {
-                                it.snackbarReport(
-                                    snackbarHostState,
-                                    coroutineScope,
-                                    "更新验证码数值记忆数据失败",
-                                    hapticFeedback,
-                                    shouldDismiss = false
-                                )
-                            }
-                        }
-                    }) { Text("ForceUpdateRemoteCaptchaMemoriesData") }
-            }
-            if (isShowCaptchaMemoriesDialog) {
-                LaunchedEffect(Unit) {
-                    if (signer == null) {
-                        signer = ChaoxingSignHelper.getSigner(
-                            ChaoxingHttpClient.instance!!,
-                            ChaoxingCourseHelper.getAllCourse(ChaoxingHttpClient.instance!!)
-                                .firstNotNullOf { course ->
-                                    runCatching {
-                                        ChaoxingActivityHelper.getActivitiesEntity(
-                                            ChaoxingHttpClient.instance!!,
-                                            course
-                                        )
-                                    }.getOrNull()
-                                        ?.takeIf { it.signActivities.isNotEmpty() }
-                                        ?.signActivities
-                                        ?.get(0)
-                                })
-                    }
-                }
-                signer?.let {
-                    CaptchaHandlerDialog(
-                        it,
-                        {},
-                        {
-                            coroutineScope.launch {
-                                ChaoxingCaptchaHelper.saveCaptchaMemories(context)
-                            }
-                            isShowCaptchaMemoriesDialog = false
-                            isCaptchaMemoriesResultDialog = true
-                        },
-                        isRecordingCaptchaMemories = true
-                    )
-                }
-            }
-            if (isCaptchaMemoriesResultDialog) {
-                var jsonText by remember { mutableStateOf("") }
-                LaunchedEffect(Unit) {
-                    jsonText = ChaoxingCaptchaHelper.buildCaptchaMemoriesDataToJson(context)
-                }
-                SnackbarAlertDialog(
-                    onDismissRequest = {
-                        isCaptchaMemoriesResultDialog = false
-                    },
-                    confirmButton = {
-                        OutlinedButton(onClick = {
-                            isCaptchaMemoriesResultDialog = false
-                        }) {
-                            Text("关闭")
-                        }
-                    }, text = {
-                        TextField(
-                            jsonText,
-                            {
-                                jsonText = it
-                            },
-                            modifier = Modifier.fillMaxSize()
-                        )
-                    },
-                    dismissButton = {
-                        Button(onClick = {
-                            runCatching {
-                                context.getSystemService(ClipboardManager::class.java)
-                                    .setPrimaryClip(
-                                        ClipData.newPlainText(
-                                            "chaoxingsignfaker.captchaMemoriesJsonString",
-                                            jsonText
-                                        )
-                                    )
-                            }.onFailure {
-                                snackbarHostState.displaySnackbar(
-                                    "剪切板写入失败",
-                                    coroutineScope
-                                )
-                            }
-                        }) {
-                            Text("复制到剪切板")
-                        }
-                    }
-                )
             }
         }
     }

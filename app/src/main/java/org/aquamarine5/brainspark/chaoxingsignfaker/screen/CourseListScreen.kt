@@ -188,7 +188,7 @@ fun CourseListScreen(
                         }
                     } //TODO: Recommend preferred class
                     isCaptchaAutoResolveLearntTooltip.value =
-                        !datastoreData.learntTooltips.sliderCaptchaAutoResolveByHashMap
+                        !datastoreData.learntTooltips.sliderCaptchaAutoResolveByModel
                     preferredClassIds.addAll(
                         datastoreData.preferClassIdList.reversed()
                     )
@@ -493,13 +493,13 @@ fun CourseListScreen(
                                 item {
                                     NewFeatureTipsCard(
                                         isCaptchaAutoResolveLearntTooltip,
-                                        "现在部分的验证码会根据内置的数据表自动滑动完成了。"
+                                        "现在验证码会通过内置的识别模型自动滑动完成了。"
                                     ) {
                                         context.chaoxingDataStore.updateData {
                                             it.toBuilder()
                                                 .setLearntTooltips(
                                                     it.learntTooltips.toBuilder()
-                                                        .setSliderCaptchaAutoResolveByHashMap(
+                                                        .setSliderCaptchaAutoResolveByModel(
                                                             true
                                                         ).build()
                                                 ).build()

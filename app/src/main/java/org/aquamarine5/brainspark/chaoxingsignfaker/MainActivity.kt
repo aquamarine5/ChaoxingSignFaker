@@ -89,7 +89,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
-import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCaptchaHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingFaceHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClientPool
@@ -140,9 +139,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalImageLoader
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
-import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.displaySnackbar
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.isDevelopedMode
-import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
 import org.aquamarine5.brainspark.stackbricks.StackbricksPolicy
 import org.aquamarine5.brainspark.stackbricks.StackbricksService
 import org.aquamarine5.brainspark.stackbricks.providers.qiniu.QiniuConfiguration
@@ -153,7 +150,6 @@ import java.security.MessageDigest
 import java.util.concurrent.TimeUnit
 import kotlin.reflect.typeOf
 import kotlin.system.exitProcess
-import kotlin.time.Duration.Companion.days
 
 class MainActivity : ComponentActivity() {
     companion object {
@@ -443,25 +439,6 @@ class MainActivity : ComponentActivity() {
                                                         )
                                                         return@runCatching SignGraphDestination
                                                     }.onSuccess {
-                                                        if (System.currentTimeMillis() - datastore.captchaMemories.lastCheckRemoteMemoriesTimestamp > 1.days.inWholeMilliseconds)
-                                                            launch {
-                                                                ChaoxingCaptchaHelper.updateRemoteCaptchaMemoriesData(
-                                                                    this@MainActivity
-                                                                ) { currentVersion, supportVersion ->
-                                                                    snackbarHostState.displaySnackbar(
-                                                                        "服务器上的验证码数值记忆版本 $currentVersion 高于当前程序支持的版本 $supportVersion ，请更新程序版本",
-                                                                        this
-                                                                    )
-                                                                }.onFailure {
-                                                                    it.snackbarReport(
-                                                                        snackbarHostState,
-                                                                        this,
-                                                                        "更新验证码数值记忆数据失败",
-                                                                        hapticFeedback,
-                                                                        shouldDismiss = false
-                                                                    )
-                                                                }
-                                                            }
                                                         launch {
                                                             runCatching {
                                                                 ChaoxingAnalyser.setupStateAnalyser(

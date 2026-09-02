@@ -18,9 +18,4 @@ data class ChaoxingCaptchaDataEntity(
     val iv: String,
     val shadeImageUrl: String,
     val cutoutImageUrl: String
-) {
-    val imageFilename: String
-        get() = shadeImageUrl.substringAfterLast('/')
-            .substringBefore('?')
-            .substringBeforeLast('.')
-}
+)

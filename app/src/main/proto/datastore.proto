@@ -33,20 +33,8 @@ message ChaoxingSignFakerDataStore{
   bool disableAnalysisRank = 23;
   bool hideAnalysisRankSchoolName = 24;
   uint64 lastUploadAnalysisTimestamp = 25;
-  ChaoxingCaptchaMemories captchaMemories = 26;
   string selectedAnalysisRankSchoolName = 27;
   repeated ChaoxingLocation dontSaveNearbyPosition = 28;
-}
-
-message ChaoxingCaptchaMemories{
-  uint32 memoriesVersion = 1;
-  repeated ChaoxingCaptchaResult memories = 2;
-  uint64 lastCheckRemoteMemoriesTimestamp = 3;
-}
-
-message ChaoxingCaptchaResult{
-  string token = 1;
-  float xPosition = 2;
 }
 
 message ChaoxingFaceRecognitionImage{
@@ -83,7 +71,7 @@ message LearntTooltip{
   bool restoreLocationOfQRCodeSign = 6;
   bool cameraSelectedMultipleImagesFromGallery = 7;
   bool supportCloneOtherUserSession = 8;
-  bool sliderCaptchaAutoResolveByHashMap = 9;
+  bool sliderCaptchaAutoResolveByModel = 9;
   bool saveFaceRecognitionImagesToLocal = 10;
 }
 
