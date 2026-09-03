@@ -119,14 +119,18 @@ fun CaptchaHandlerDialog(
             val captchaData = signer.getCaptchaImageV2()
             data = captchaData
             val predictedOffset = withContext(Dispatchers.IO) {
-                ChaoxingCaptchaPredictor.initialize(context)
-                signer.client.okHttpClient.newCall(
-                    Request.Builder().get().url(captchaData.shadeImageUrl).build()
-                ).execute().use { response ->
-                    BitmapFactory.decodeStream(response.body.byteStream())
-                }?.let { bitmap ->
-                    ChaoxingCaptchaPredictor.predictSliderXOffset(bitmap)
-                }
+                runCatching {
+                    ChaoxingCaptchaPredictor.initialize(context)
+                    signer.client.okHttpClient.newCall(
+                        Request.Builder().get().url(captchaData.shadeImageUrl).build()
+                    ).execute().use { response ->
+                        BitmapFactory.decodeStream(response.body.byteStream())
+                    }?.let { bitmap ->
+                        ChaoxingCaptchaPredictor.predictSliderXOffset(bitmap)
+                    }
+                }.onFailure {
+                    it.printStackTrace()
+                }.getOrNull()
             }
             if (predictedOffset == null || !check(
                     predictedOffset.toFloat(),

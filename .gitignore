@@ -18,3 +18,4 @@ app/build
 /app/release
 /.kotlin
 .idea/copilotDiffState.xml
+/native

@@ -12,6 +12,7 @@ import kotlinx.coroutines.withContext
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Request
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationSignEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignOutEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.GestureSignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.checkResponseThrowException
@@ -61,7 +62,10 @@ class ChaoxingGestureSigner(
         }
     }
 
-    suspend fun sign(gestureOrderCode: String): Boolean = withContext(Dispatchers.IO) {
+    suspend fun sign(
+        gestureOrderCode: String,
+        position: ChaoxingLocationSignEntity? = null
+    ): Boolean = withContext(Dispatchers.IO) {
         if (isCaptchaRequired()) return@withContext true
         client.newCall(
             Request.Builder().url(
@@ -74,6 +78,22 @@ class ChaoxingGestureSigner(
                     .addQueryParameter("fid", client.userEntity.fid.toString())
                     .addQueryParameter("signCode", gestureOrderCode)
                     .addQueryParameter("deviceCode", client.deviceCode)
+                    .apply {
+                        if (position != null) {
+                            addQueryParameter(
+                                "location", JSONObject()
+                                    .fluentPut("result", 1)
+                                    .fluentPut("latitude", "%.6f".format(position.latitude))
+                                    .fluentPut("longitude", "%.6f".format(position.longitude))
+                                    .fluentPut("address", position.address)
+                                    .fluentPut(
+                                        "mockData",
+                                        "{\"strategy\":0,\"probability\":-1}"
+                                    )
+                                    .toString()
+                            )
+                        }
+                    }
                     .build()
             ).build()
         ).execute().use {
@@ -82,7 +102,11 @@ class ChaoxingGestureSigner(
         }
     }
 
-    suspend fun signWithCaptcha(gestureOrderCode: String, validateValue: String) =
+    suspend fun signWithCaptcha(
+        gestureOrderCode: String,
+        validateValue: String,
+        position: ChaoxingLocationSignEntity? = null
+    ) =
         withContext(Dispatchers.IO) {
             client.newCall(
                 Request.Builder().url(
@@ -96,6 +120,22 @@ class ChaoxingGestureSigner(
                         .addQueryParameter("signCode", gestureOrderCode)
                         .addQueryParameter("deviceCode", client.deviceCode)
                         .addQueryParameter("validate", validateValue)
+                        .apply {
+                            if (position != null) {
+                                addQueryParameter(
+                                    "location", JSONObject()
+                                        .fluentPut("result", 1)
+                                        .fluentPut("latitude", "%.6f".format(position.latitude))
+                                        .fluentPut("longitude", "%.6f".format(position.longitude))
+                                        .fluentPut("address", position.address)
+                                        .fluentPut(
+                                            "mockData",
+                                            "{\"strategy\":0,\"probability\":-1}"
+                                        )
+                                        .toString()
+                                )
+                            }
+                        }
                         .build()
                 ).build()
             ).execute().use {

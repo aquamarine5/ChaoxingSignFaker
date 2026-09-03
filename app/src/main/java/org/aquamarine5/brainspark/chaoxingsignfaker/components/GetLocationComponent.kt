@@ -102,11 +102,13 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.MARKER_BUNDLE_ADDR
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.MARKER_BUNDLE_LABEL
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.MARKER_BUNDLE_TYPE
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.MarkerBundleType
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.MARKER_TITLE_VISIBLE_ZOOM
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.addFavoriteLocationMarker
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.addOrUpdateLocationMarker
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.createBitmapDescriptorFromVector
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.displaySnackbar
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.updateMarkerTitlesVisibility
 
 
 @OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
@@ -156,7 +158,7 @@ fun GetLocationComponent(
             var isShowFavoriteLocationDialog by remember { mutableStateOf(false) }
             val favoriteLocations = remember { mutableStateListOf<ChaoxingLocation>() }
             val favoriteLocationMarkers = remember { mutableListOf<Marker>() }
-            var lastClickedFavoriteLocationMarker: Marker? = remember { null }
+            var isMarkerTitleVisible = remember { true }
             var lastSignedLocation by remember { mutableStateOf<ChaoxingLocationSignEntity?>(null) }
             var lastSignedLocationMarker: Marker? = remember { null }
             var isShowSaveFavoriteLocationDialog by remember { mutableStateOf(false) }
@@ -404,7 +406,7 @@ fun GetLocationComponent(
                             p0?.let { favoriteMarker ->
                                 favoriteMarker.extraInfo.let {
                                     if (it.getString(MARKER_BUNDLE_TYPE) != MarkerBundleType.FAVORITE.toString()) {
-                                        return@setOnMarkerClickListener false
+                                        return@setOnMarkerClickListener true
                                     }
                                     clickedPosition = favoriteMarker.position
                                     clickedName =
@@ -419,11 +421,6 @@ fun GetLocationComponent(
                                             )
                                             "加载中..."
                                         }
-                                    favoriteMarker.titleOptions = TitleOptions().text(
-                                        it.getString(MARKER_BUNDLE_LABEL) ?: "收藏点"
-                                    )
-                                    lastClickedFavoriteLocationMarker?.titleOptions = TitleOptions()
-                                    lastClickedFavoriteLocationMarker = favoriteMarker
                                     setMarkerPositionOrCreate(clickedPosition)
                                 }
                             }
@@ -447,6 +444,27 @@ fun GetLocationComponent(
                             }
 
                             override fun onMarkerDragStart(p0: Marker?) {}
+                        })
+                        map.setOnMapStatusChangeListener(object :
+                            BaiduMap.OnMapStatusChangeListener {
+                            override fun onMapStatusChangeStart(p0: MapStatus?) {}
+
+                            override fun onMapStatusChangeStart(p0: MapStatus?, p1: Int) {}
+
+                            override fun onMapStatusChange(p0: MapStatus?) {}
+
+                            override fun onMapStatusChangeFinish(p0: MapStatus?) {
+                                val isTitleVisible =
+                                    (p0?.zoom ?: 0f) >= MARKER_TITLE_VISIBLE_ZOOM
+                                if (isMarkerTitleVisible != isTitleVisible) {
+                                    isMarkerTitleVisible = isTitleVisible
+                                    map.updateMarkerTitlesVisibility(
+                                        favoriteLocationMarkers,
+                                        lastSignedLocationMarker,
+                                        isTitleVisible
+                                    )
+                                }
+                            }
                         })
                         if (locationInfo != null && locationInfo.isAvailable()) {
                             locationRange = locationInfo.locationRange
@@ -511,6 +529,11 @@ fun GetLocationComponent(
                             }
                         }
                     }
+                    baiduMap.map.updateMarkerTitlesVisibility(
+                        favoriteLocationMarkers,
+                        lastSignedLocationMarker,
+                        isMarkerTitleVisible
+                    )
                 }
             }
             if (isShowSaveFavoriteLocationDialog) {
@@ -529,6 +552,11 @@ fun GetLocationComponent(
                                     baiduMap.map.addFavoriteLocationMarker(it, starBitmap)
                                 )
                             }
+                            baiduMap.map.updateMarkerTitlesVisibility(
+                                favoriteLocationMarkers,
+                                lastSignedLocationMarker,
+                                isMarkerTitleVisible
+                            )
                         }
                     )
                 }

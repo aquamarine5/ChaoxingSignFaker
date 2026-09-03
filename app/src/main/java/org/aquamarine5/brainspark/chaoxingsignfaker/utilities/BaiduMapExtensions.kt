@@ -60,6 +60,27 @@ fun BaiduMap.addFavoriteLocationMarker(
     ) as Marker
 }
 
+const val MARKER_TITLE_VISIBLE_ZOOM = 16f
+
+fun BaiduMap.updateMarkerTitlesVisibility(
+    favoriteLocationMarkers: List<Marker>,
+    lastSignedLocationMarker: Marker?,
+    isTitleVisible: Boolean
+) {
+    favoriteLocationMarkers.forEach { marker ->
+        marker.titleOptions = if (isTitleVisible) {
+            TitleOptions().text(marker.extraInfo.getString(MARKER_BUNDLE_LABEL) ?: "收藏点")
+        } else {
+            TitleOptions()
+        }
+    }
+    lastSignedLocationMarker?.titleOptions = if (isTitleVisible) {
+        TitleOptions().text("上次签到的位置")
+    } else {
+        TitleOptions()
+    }
+}
+
 fun Context.createBitmapDescriptorFromVector(
     @DrawableRes resourceId: Int,
     backgroundColor: Int? = null,

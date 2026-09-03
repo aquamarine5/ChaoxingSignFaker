@@ -12,32 +12,41 @@ import ai.onnxruntime.OrtSession
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import androidx.core.graphics.createBitmap
+import androidx.core.graphics.scale
 import java.nio.FloatBuffer
 import kotlin.math.max
 import kotlin.math.min
 
-/**
- * 通过内置的 ONNX 模型识别滑块验证码背景图里缺口的 X 轴位置。
- * 验证码校验接口（captcha/check/verification/result）是无状态的，
- * 无需携带用户 Cookie 即可获取 validate，因此识别结果只与图片本身有关。
- */
+
 object ChaoxingCaptchaPredictor {
-    private const val MODEL_FILENAME = "captcha.onnx"
+    private const val MODEL_FILENAME = "captcha.ort"
     private const val MODEL_INPUT_SIZE = 640
     private const val SCORE_THRESHOLD = 0.25f
     private const val NMS_IOU_THRESHOLD = 0.45f
 
-    /// 模型识别的缺口左边缘比实际提交的 textClickArr 位置偏右 4 像素。
     private const val EDGE_OFFSET = 4
 
     private var ortSession: OrtSession? = null
 
+    @Volatile
+    var isAvailable: Boolean = true
+        private set
+
     fun initialize(context: Context) {
-        if (ortSession != null) return
+        if (ortSession != null || !isAvailable) return
         synchronized(this) {
-            if (ortSession != null) return
-            context.assets.open(MODEL_FILENAME).use { stream ->
-                ortSession = OrtEnvironment.getEnvironment().createSession(stream.readBytes())
+            if (ortSession != null || !isAvailable) return
+            try {
+                context.assets.open(MODEL_FILENAME).use { stream ->
+                    ortSession = OrtEnvironment.getEnvironment().createSession(stream.readBytes())
+                }
+            } catch (e: UnsatisfiedLinkError) {
+                e.printStackTrace()
+                isAvailable = false
+            } catch (e: Exception) {
+                e.printStackTrace()
+                isAvailable = false
             }
         }
     }
@@ -47,11 +56,9 @@ object ChaoxingCaptchaPredictor {
         val environment = OrtEnvironment.getEnvironment()
         val paddedLength = max(originalImage.width, originalImage.height)
         val paddedImage =
-            Bitmap.createBitmap(paddedLength, paddedLength, Bitmap.Config.ARGB_8888)
+            createBitmap(paddedLength, paddedLength)
         Canvas(paddedImage).drawBitmap(originalImage, 0f, 0f, null)
-        val scaledImage = Bitmap.createScaledBitmap(
-            paddedImage, MODEL_INPUT_SIZE, MODEL_INPUT_SIZE, true
-        )
+        val scaledImage = paddedImage.scale(MODEL_INPUT_SIZE, MODEL_INPUT_SIZE)
         val pixels = IntArray(MODEL_INPUT_SIZE * MODEL_INPUT_SIZE)
         scaledImage.getPixels(
             pixels, 0, MODEL_INPUT_SIZE, 0, 0, MODEL_INPUT_SIZE, MODEL_INPUT_SIZE
@@ -69,7 +76,7 @@ object ChaoxingCaptchaPredictor {
             longArrayOf(1, 3, MODEL_INPUT_SIZE.toLong(), MODEL_INPUT_SIZE.toLong())
         ).use { tensor ->
             session.run(mapOf("images" to tensor)).use { results ->
-                val output =
+                @Suppress("UNCHECKED_CAST") val output =
                     (results[0].value as Array<Array<FloatArray>>)[0]
                 val centerXs = output[0]
                 val centerYs = output[1]

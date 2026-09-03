@@ -61,7 +61,6 @@ import com.baidu.mapapi.map.MapStatusUpdateFactory
 import com.baidu.mapapi.map.MapView
 import com.baidu.mapapi.map.Marker
 import com.baidu.mapapi.map.MyLocationData
-import com.baidu.mapapi.map.TitleOptions
 import com.baidu.mapapi.model.LatLng
 import com.baidu.mapapi.search.core.SearchResult
 import com.baidu.mapapi.search.geocode.GeoCodeResult
@@ -82,10 +81,12 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.MARKER_BUNDLE_ADDR
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.MARKER_BUNDLE_LABEL
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.MARKER_BUNDLE_TYPE
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.MarkerBundleType
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.MARKER_TITLE_VISIBLE_ZOOM
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.addFavoriteLocationMarker
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.addOrUpdateLocationMarker
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.displaySnackbar
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.updateMarkerTitlesVisibility
 
 @Serializable
 object FavoriteLocationSettingDestination
@@ -107,7 +108,7 @@ fun FavoriteLocationSettingComponent(modifier: Modifier = Modifier) {
     var isShowFavoriteLocationDialog by remember { mutableStateOf(false) }
     val favoriteLocations = remember { mutableStateListOf<ChaoxingLocation>() }
     val favoriteLocationMarkers = remember { mutableListOf<Marker>() }
-    var lastClickedFavoriteLocationMarker: Marker? = remember { null }
+    var isMarkerTitleVisible = remember { true }
     var isNeedLocationDescribe = remember { false }
     var clickedPosition by remember { mutableStateOf(LatLng(0.0, 0.0)) }
     var clickedName by remember { mutableStateOf("未指定") }
@@ -252,7 +253,7 @@ fun FavoriteLocationSettingComponent(modifier: Modifier = Modifier) {
                     p0?.let { favoriteMarker ->
                         favoriteMarker.extraInfo.let {
                             if (it.getString(MARKER_BUNDLE_TYPE) != MarkerBundleType.FAVORITE.toString()) {
-                                return@setOnMarkerClickListener false
+                                return@setOnMarkerClickListener true
                             }
                             clickedPosition = favoriteMarker.position
                             clickedName =
@@ -267,11 +268,6 @@ fun FavoriteLocationSettingComponent(modifier: Modifier = Modifier) {
                                     )
                                     "加载中..."
                                 }
-                            favoriteMarker.titleOptions = TitleOptions().text(
-                                it.getString(MARKER_BUNDLE_LABEL) ?: "收藏点"
-                            )
-                            lastClickedFavoriteLocationMarker?.titleOptions = TitleOptions()
-                            lastClickedFavoriteLocationMarker = favoriteMarker
                             setMarkerPositionOrCreate(clickedPosition)
                         }
                     }
@@ -296,6 +292,27 @@ fun FavoriteLocationSettingComponent(modifier: Modifier = Modifier) {
 
                     override fun onMarkerDragStart(p0: Marker?) {}
                 })
+                map.setOnMapStatusChangeListener(object :
+                    BaiduMap.OnMapStatusChangeListener {
+                    override fun onMapStatusChangeStart(p0: MapStatus?) {}
+
+                    override fun onMapStatusChangeStart(p0: MapStatus?, p1: Int) {}
+
+                    override fun onMapStatusChange(p0: MapStatus?) {}
+
+                    override fun onMapStatusChangeFinish(p0: MapStatus?) {
+                        val isTitleVisible =
+                            (p0?.zoom ?: 0f) >= MARKER_TITLE_VISIBLE_ZOOM
+                        if (isMarkerTitleVisible != isTitleVisible) {
+                            isMarkerTitleVisible = isTitleVisible
+                            map.updateMarkerTitlesVisibility(
+                                favoriteLocationMarkers,
+                                null,
+                                isTitleVisible
+                            )
+                        }
+                    }
+                })
             }
         }
         LaunchedEffect(Unit) {
@@ -308,6 +325,11 @@ fun FavoriteLocationSettingComponent(modifier: Modifier = Modifier) {
                     )
                 }
             }
+            baiduMap.map.updateMarkerTitlesVisibility(
+                favoriteLocationMarkers,
+                null,
+                isMarkerTitleVisible
+            )
         }
         if (isShowFavoriteLocationDialog) {
             FavoriteLocationSettingDialog(
@@ -418,6 +440,11 @@ fun FavoriteLocationSettingComponent(modifier: Modifier = Modifier) {
                         favoriteLocations.add(newFavoriteLocation)
                         favoriteLocationMarkers.add(
                             baiduMap.map.addFavoriteLocationMarker(newFavoriteLocation, starBitmap)
+                        )
+                        baiduMap.map.updateMarkerTitlesVisibility(
+                            favoriteLocationMarkers,
+                            null,
+                            isMarkerTitleVisible
                         )
                         hapticFeedback.performHapticFeedback(HapticFeedbackType.Confirm)
                         snackbarHost.displaySnackbar("已添加收藏位置：$clickedName", coroutineScope)

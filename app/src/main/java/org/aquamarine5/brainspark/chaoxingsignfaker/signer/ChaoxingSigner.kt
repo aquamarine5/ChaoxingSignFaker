@@ -130,6 +130,10 @@ abstract class ChaoxingSigner(
         return getSignInfo().getInteger("openCheckFaceFlag") == 1
     }
 
+    open suspend fun isPositionRequired(): Boolean {
+        return getSignInfo().getInteger("ifopenAddress") == 1
+    }
+
     open suspend fun preSign(): ChaoxingSignActivityStatus = withContext(Dispatchers.IO) {
         client.newCall(
             Request.Builder().post(

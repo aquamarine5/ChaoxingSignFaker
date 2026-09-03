@@ -54,8 +54,8 @@ android {
         applicationId = "org.aquamarine5.brainspark.chaoxingsignfaker"
         minSdk = 26
         targetSdk = 37
-        versionCode = 1_1800_0000
-        versionName = "1.18.0-alpha-260902"
+        versionCode = 1_1800_0001
+        versionName = "1.18.0-alpha2-260902"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -155,7 +155,7 @@ dependencies {
     implementation libs.protobuf.javalite
     implementation(libs.fastjson2)
     implementation(libs.okhttp)
-    implementation(libs.onnxruntime.android)
+    implementation(files("libs/onnxruntime-android-1.29.0-minimal-captcha.aar"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
