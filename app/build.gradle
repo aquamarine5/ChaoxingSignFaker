@@ -11,7 +11,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     id("org.aquamarine5.brainspark.stackbricks-gradle-plugin") version "2.2.9"
     id("com.google.protobuf") version "0.9.6"
-    id "io.sentry.android.gradle" version "6.19.0"
+    id "io.sentry.android.gradle" version "6.20.0"
     id("org.jetbrains.kotlin.plugin.serialization") version "2.4.10"
 }
 
@@ -54,8 +54,8 @@ android {
         applicationId = "org.aquamarine5.brainspark.chaoxingsignfaker"
         minSdk = 26
         targetSdk = 37
-        versionCode = 1_1800_0001
-        versionName = "1.18.0-alpha2-260902"
+        versionCode = 1_1800_0007
+        versionName = "1.18.0-alpha3-260904"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
