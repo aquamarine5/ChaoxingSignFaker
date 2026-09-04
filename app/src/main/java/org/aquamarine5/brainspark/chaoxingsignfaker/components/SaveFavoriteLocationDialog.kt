@@ -46,7 +46,8 @@ fun ChaoxingLocationSignEntity.toChaoxingLocation(label: String = address): Chao
 fun SaveFavoriteLocationDialog(
     location: ChaoxingLocationSignEntity,
     onDismiss: () -> Unit,
-    onSaveToFavorite: () -> Unit = {}
+    onSaveToFavorite: (ChaoxingLocation) -> Unit = {},
+    label: String = "自定义位置"
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -74,12 +75,13 @@ fun SaveFavoriteLocationDialog(
         confirmButton = {
             Button(onClick = {
                 hapticFeedback.performHapticFeedback(HapticFeedbackType.Confirm)
+                val savedLocation = location.toChaoxingLocation(label)
                 coroutineScope.launch(Dispatchers.IO) {
                     context.chaoxingDataStore.updateData {
-                        it.toBuilder().addLocations(location.toChaoxingLocation()).build()
+                        it.toBuilder().addLocations(savedLocation).build()
                     }
                 }
-                onSaveToFavorite()
+                onSaveToFavorite(savedLocation)
                 onDismiss()
             }) {
                 Text("是")
@@ -95,7 +97,7 @@ fun SaveFavoriteLocationDialog(
                     coroutineScope.launch(Dispatchers.IO) {
                         context.chaoxingDataStore.updateData {
                             it.toBuilder()
-                                .addDontSaveNearbyPosition(location.toChaoxingLocation())
+                                .addDontSaveNearbyPosition(location.toChaoxingLocation(label))
                                 .build()
                         }
                     }

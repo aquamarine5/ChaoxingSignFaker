@@ -104,6 +104,8 @@ fun CaptchaHandlerDialog(
                     isCheckingCaptcha?.set(false)
                     return false
                 } else {
+                    ChaoxingCaptchaPredictor.cacheValidate(result)
+                    ChaoxingCaptchaPredictor.lastResolveByModel = isAutoCheck
                     onResult(Result.success(result))
                     onDismiss()
                     isCheckingCaptcha?.set(false)
@@ -116,6 +118,12 @@ fun CaptchaHandlerDialog(
 
     LaunchedEffect(signer) {
         runCatching {
+            ChaoxingCaptchaPredictor.lastResolveByModel = false
+            ChaoxingCaptchaPredictor.consumeCachedValidate()?.let {
+                onResult(Result.success(it))
+                onDismiss()
+                return@LaunchedEffect
+            }
             val captchaData = signer.getCaptchaImageV2()
             data = captchaData
             val predictedOffset = withContext(Dispatchers.IO) {

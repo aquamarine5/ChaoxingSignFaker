@@ -126,6 +126,8 @@ fun SettingScreen(
         val coroutineScope = rememberCoroutineScope()
         val snackbarHostState = LocalSnackbarHostState.current
         val userEntity = remember { ChaoxingHttpClient.instance!!.userEntity }
+        val displayUserEntity =
+            (ChaoxingHttpClient.cloneInstance ?: ChaoxingHttpClient.instance!!).userEntity
         var isShowSignoffDialog by remember { mutableStateOf(false) }
         val allRecommendHabits = remember { mutableStateListOf<RecommendHabit>() }
         var isBypassBlockedChecking by remember { mutableStateOf(false) }
@@ -308,7 +310,7 @@ fun SettingScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 AsyncImage(
-                    ChaoxingHttpClient.instance!!.userEntity.pic,
+                    displayUserEntity.pic,
                     imageLoader = imageLoader,
                     contentDescription = "头像",
                     modifier = Modifier
@@ -319,7 +321,7 @@ fun SettingScreen(
                         )
                 )
                 Text(
-                    "登录用户：${ChaoxingHttpClient.instance!!.userEntity.name}",
+                    "登录用户：${displayUserEntity.name}",
                     modifier = Modifier
                         .padding(8.dp, 0.dp)
                         .weight(1f),

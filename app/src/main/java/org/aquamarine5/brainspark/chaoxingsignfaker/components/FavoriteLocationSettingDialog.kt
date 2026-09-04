@@ -8,39 +8,65 @@ package org.aquamarine5.brainspark.chaoxingsignfaker.components
 
 import android.content.Context
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.baidu.mapapi.map.Marker
+import com.baidu.mapapi.map.TitleOptions
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingLocation
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.MARKER_BUNDLE_LABEL
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
 
 @Composable
 fun FavoriteLocationSettingDialog(
-    favoriteLocations: List<ChaoxingLocation>,
+    favoriteLocations: SnapshotStateList<ChaoxingLocation>,
     onDismiss: () -> Unit,
     onSelectLocation: (ChaoxingLocation) -> Unit = {},
-    onDeleteLocation: (ChaoxingLocation) -> Unit = {}
+    onDeleteLocation: (ChaoxingLocation) -> Unit = {},
+    favoriteLocationMarkers: MutableList<Marker> = mutableListOf(),
+    selectedLocation: ChaoxingLocation? = null
 ) {
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    val hapticFeedback = LocalHapticFeedback.current
+    var selected by remember(selectedLocation) { mutableStateOf(selectedLocation) }
+    var editingLocation by remember { mutableStateOf<ChaoxingLocation?>(null) }
+    var editLabel by remember { mutableStateOf("") }
     SnackbarAlertDialog(
         onDismissRequest = onDismiss,
         title = { _ ->
@@ -52,16 +78,23 @@ fun FavoriteLocationSettingDialog(
             } else {
                 Column {
                     favoriteLocations.forEach { location ->
+                        val onSelect = {
+                            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                            selected = location
+                            onSelectLocation(location)
+                            onDismiss()
+                        }
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable {
-                                    onSelectLocation(location)
-                                    onDismiss()
-                                }
+                                .clickable(onClick = onSelect)
                                 .padding(0.dp, 6.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
+                            RadioButton(
+                                selected = selected == location,
+                                onClick = onSelect
+                            )
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     location.label,
@@ -81,12 +114,14 @@ fun FavoriteLocationSettingDialog(
                                 )
                             }
                             IconButton(onClick = {
-                                onDeleteLocation(location)
+                                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                                editingLocation = location
+                                editLabel = location.label
                             }) {
                                 Icon(
-                                    painterResource(R.drawable.ic_delete),
-                                    contentDescription = "删除",
-                                    tint = Color.Red
+                                    painterResource(R.drawable.ic_edit),
+                                    contentDescription = "编辑简介",
+                                    tint = MaterialTheme.colorScheme.primary
                                 )
                             }
                         }
@@ -107,6 +142,123 @@ fun FavoriteLocationSettingDialog(
             )
         }
     )
+    editingLocation?.let { target ->
+        SnackbarAlertDialog(
+            onDismissRequest = {
+                editingLocation = null
+            },
+            title = { _ ->
+                Text("编辑收藏位置")
+            },
+            text = { _ ->
+                Column {
+                    OutlinedTextField(
+                        value = editLabel,
+                        onValueChange = { editLabel = it },
+                        label = { Text("简介") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        target.address,
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        "(%.4f, %.4f)".format(target.latitude, target.longitude),
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.Confirm)
+                        updateFavoriteLocationLabel(
+                            context,
+                            coroutineScope,
+                            target,
+                            editLabel.trim(),
+                            favoriteLocations,
+                            favoriteLocationMarkers
+                        )
+                        if (selected == target) {
+                            selected =
+                                favoriteLocations.find {
+                                    it.latitude == target.latitude && it.longitude == target.longitude
+                                }
+                        }
+                        editingLocation = null
+                    },
+                    enabled = editLabel.isNotBlank()
+                ) {
+                    Text("保存")
+                }
+            },
+            dismissButton = {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    TextButton(onClick = {
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                        onDeleteLocation(target)
+                        if (selected == target) selected = null
+                        editingLocation = null
+                    }) {
+                        Text("删除", color = Color.Red)
+                    }
+                    FilledTonalButton(onClick = {
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                        editingLocation = null
+                    }) {
+                        Text("取消")
+                    }
+                }
+            },
+            icon = {
+                Icon(
+                    painterResource(R.drawable.ic_edit), null,
+                    modifier = Modifier.size(40.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+        )
+    }
+}
+
+fun updateFavoriteLocationLabel(
+    context: Context,
+    coroutineScope: CoroutineScope,
+    target: ChaoxingLocation,
+    newLabel: String,
+    favoriteLocations: SnapshotStateList<ChaoxingLocation>,
+    favoriteLocationMarkers: MutableList<Marker>
+) {
+    val updated = target.toBuilder().setLabel(newLabel).build()
+    coroutineScope.launch(Dispatchers.IO) {
+        context.chaoxingDataStore.updateData { data ->
+            data.locationsList.indexOfFirst {
+                it.latitude == target.latitude && it.longitude == target.longitude
+            }.takeIf { it >= 0 }?.let { index ->
+                data.toBuilder().setLocations(index, updated).build()
+            } ?: data
+        }
+    }
+    favoriteLocations.indexOfFirst {
+        it.latitude == target.latitude && it.longitude == target.longitude
+    }.takeIf { it >= 0 }?.let { index ->
+        favoriteLocations[index] = updated
+    }
+    favoriteLocationMarkers.firstOrNull { marker ->
+        marker.position.latitude == target.latitude &&
+                marker.position.longitude == target.longitude
+    }?.let { marker ->
+        marker.extraInfo.putString(MARKER_BUNDLE_LABEL, newLabel)
+        marker.titleOptions = TitleOptions().text(newLabel)
+    }
 }
 
 fun removeFavoriteLocation(

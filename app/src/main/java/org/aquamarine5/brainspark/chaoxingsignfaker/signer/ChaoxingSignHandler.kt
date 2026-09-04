@@ -21,6 +21,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.SignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignStatus
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingQRCodeSigner.QRCodeExpiredException
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingCaptchaPredictor
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingFaceSignException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.FaceRecognitionData
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.checkIsLast
@@ -58,6 +59,8 @@ class ChaoxingSignHandler<in T>(
                     ChaoxingOtherUserHelper.markSessionObsoleted(session, context)
             }
         }.onSuccess {
+            if (it && ChaoxingCaptchaPredictor.lastResolveByModel)
+                signStatus[1 + index].markCaptchaResolvedByModel()
             if (destination.endTime != null && System.currentTimeMillis() > destination.endTime!!)
                 signStatus[1 + index].successForLate()
             else
@@ -83,6 +86,8 @@ class ChaoxingSignHandler<in T>(
                 signStatus[0].loading()
                 onSelfSigning(value).onSuccess {
                     isCaptchaSigning = it
+                    if (it && ChaoxingCaptchaPredictor.lastResolveByModel)
+                        signStatus[0].markCaptchaResolvedByModel()
                     userSelections[0] = false
                     faceRecognitionData?.markSuccess(selfPhoneNumber, otherUserSessionList)
                     faceRecognitionData?.reportUsage(context, selfPhoneNumber, false)
@@ -140,6 +145,8 @@ class ChaoxingSignHandler<in T>(
                 isFirstOtherUserForSign = false
                 onOtherUserSigning(value, session, false, index).onSuccess {
                     isCaptchaSigning = it
+                    if (it && ChaoxingCaptchaPredictor.lastResolveByModel)
+                        signStatus[1 + index].markCaptchaResolvedByModel()
                     if (destination.endTime != null && System.currentTimeMillis() > destination.endTime!!)
                         signStatus[1 + index].successForLate()
                     else

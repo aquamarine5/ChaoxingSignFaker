@@ -6,8 +6,15 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.screen
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,6 +27,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Text
@@ -50,6 +58,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -62,12 +71,14 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.SignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerParams
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.GetLocationComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NetworkExceptionComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NotReadyToSignNoticeComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.OtherUserSelectorComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SignOutRedirectTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SignPotentialWarningTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SponsorPopupDialog
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationSignEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityStatus
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignOutEntity
@@ -150,6 +161,7 @@ fun PasswordSignScreen(
     }
     var isCheckingSuccess by remember { mutableStateOf<Boolean?>(null) }
     var signoffData by remember { mutableStateOf<ChaoxingSignOutEntity?>(null) }
+    var isMapRequired by remember { mutableStateOf(false) }
     val snackbarHost = LocalSnackbarHostState.current
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -164,11 +176,13 @@ fun PasswordSignScreen(
                         destination
                     ).let {
                         signActivityStatus = it.preSign()
+                        isMapRequired = it.isPositionRequired()
                         it.getPasswordInfo()
                     }
                 }
             } else {
                 signActivityStatus = signer.preSign()
+                isMapRequired = signer.isPositionRequired()
                 signer.getPasswordInfo()
             }).apply {
                 numberCount = first
@@ -195,6 +209,7 @@ fun PasswordSignScreen(
                             numberCount = first
                             signoffData = second
                         }
+                        isMapRequired = signer.isPositionRequired()
                         signActivityStatus = signer.preSign()
                     }.onFailure {
                         it.snackbarReport(
@@ -230,6 +245,8 @@ fun PasswordSignScreen(
                 } else if (c == ChaoxingSignActivityStatus.READY_TO_SIGN) {
                     val isSigning = remember { mutableStateOf(false) }
                     var text by remember { mutableStateOf("") }
+                    var locationData by remember { mutableStateOf<ChaoxingLocationSignEntity?>(null) }
+                    var isMapGetting by remember { mutableStateOf(false) }
                     val focusManager = LocalFocusManager.current
                     val focusRequester = remember { FocusRequester() }
                     val keyboardController = LocalSoftwareKeyboardController.current
@@ -243,12 +260,12 @@ fun PasswordSignScreen(
                             destination = destination,
                             onSelfSigning = { value ->
                                 runCatching {
-                                    if (signer.sign(value)) {
+                                    if (signer.sign(value, locationData)) {
                                         suspendCancellableCoroutine { continuation ->
                                             captchaValidateParams = signer to { captchaValue ->
                                                 if (continuation.isActive)
                                                     continuation.resumeWith(captchaValue.onSuccess {
-                                                        signer.signWithCaptcha(value, it)
+                                                        signer.signWithCaptcha(value, it, locationData)
                                                     })
                                             }
                                         }
@@ -271,7 +288,7 @@ fun PasswordSignScreen(
                                                 signer.getSignInfo()
                                             ).run {
                                                 if (!(isAlwaysForceSign || bypassChecking)) checkSignStatusThrowException()
-                                                if (sign(value)) {
+                                                if (sign(value, locationData)) {
                                                     suspendCancellableCoroutine { continuation ->
                                                         captchaValidateParams =
                                                             this to { captchaValue ->
@@ -281,7 +298,8 @@ fun PasswordSignScreen(
                                                                             captchaValue.onSuccess {
                                                                                 this.signWithCaptcha(
                                                                                     value,
-                                                                                    it
+                                                                                    it,
+                                                                                    locationData
                                                                                 )
                                                                             }.getOrThrow()
                                                                         })
@@ -313,6 +331,11 @@ fun PasswordSignScreen(
                                 }
                             })
                     }
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .zIndex(0f)
+                    ) {
                     Column(modifier = Modifier.padding(8.dp, 4.dp, 8.dp, 0.dp)) {
                         OtherUserSelectorComponent(
                             navToOtherUser = { navToOtherUserDestination() },
@@ -337,6 +360,25 @@ fun PasswordSignScreen(
                                 signHandler.ignoreExceptionOtherUserSigning(session, index)
                             }, isCloneSession = destination.isCloneSession,
                             suffixContent = {
+                                if (isMapRequired) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.padding(0.dp, 6.dp)
+                                    ) {
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                "签到位置：",
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                            Text(locationData?.address ?: "尚未选择位置")
+                                        }
+                                        Button(onClick = {
+                                            isMapGetting = true
+                                        }) {
+                                            Text(if (locationData == null) "选择位置" else "重新获取位置")
+                                        }
+                                    }
+                                }
                                 var isCheckingStatus by remember { mutableStateOf<Boolean?>(null) }
                                 LaunchedEffect(isCheckingStatus) {
                                     delay(1.seconds)
@@ -517,6 +559,10 @@ fun PasswordSignScreen(
                                 }
                                 return@OtherUserSelectorComponent
                             }
+                            if (isMapRequired && locationData == null) {
+                                isMapGetting = true
+                                return@OtherUserSelectorComponent
+                            }
                             isSigning.value = true
                             signHandler.startSigning(
                                 text,
@@ -527,6 +573,40 @@ fun PasswordSignScreen(
                                 snackbarHost
                             )
                         }
+                    }
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .zIndex(1f)
+                    ) {
+                        AnimatedVisibility(
+                            isMapGetting,
+                            enter =
+                                slideInHorizontally(
+                                    initialOffsetX = { it },
+                                    animationSpec = tween(300)
+                                ) + fadeIn(
+                                    animationSpec = tween(300)
+                                ),
+                            exit =
+                                slideOutHorizontally(
+                                    animationSpec = tween(300),
+                                    targetOffsetX = { it }) +
+                                        fadeOut(animationSpec = tween(300)),
+                            modifier = Modifier.zIndex(1f)
+                        ) {
+                            GetLocationComponent(confirmButtonText = {
+                                Text("设置")
+                            }) {
+                                isMapGetting = false
+                                locationData = it
+                            }
+                            BackHandler(isMapGetting) {
+                                isSigning.value = false
+                                isMapGetting = false
+                            }
+                        }
+                    }
                     }
                 } else {
                     CenterCircularProgressIndicator()

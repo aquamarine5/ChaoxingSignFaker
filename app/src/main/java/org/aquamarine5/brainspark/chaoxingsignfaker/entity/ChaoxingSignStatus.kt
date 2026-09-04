@@ -36,8 +36,13 @@ data class ChaoxingSignStatus(
     val isSuccess: MutableState<Boolean?> = mutableStateOf(null),
     val error: MutableState<String> = mutableStateOf(""),
     val isLoading: MutableState<Boolean> = mutableStateOf(false),
-    val isObsoleteSession: MutableState<Boolean> = mutableStateOf(false)
+    val isObsoleteSession: MutableState<Boolean> = mutableStateOf(false),
+    val isCaptchaResolvedByModel: MutableState<Boolean> = mutableStateOf(false)
 ) {
+    fun markCaptchaResolvedByModel() {
+        isCaptchaResolvedByModel.value = true
+    }
+
     fun loading() {
         isLoading.value = true
     }

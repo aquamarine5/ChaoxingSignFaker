@@ -112,6 +112,7 @@ fun FavoriteLocationSettingComponent(modifier: Modifier = Modifier) {
     var isNeedLocationDescribe = remember { false }
     var clickedPosition by remember { mutableStateOf(LatLng(0.0, 0.0)) }
     var clickedName by remember { mutableStateOf("未指定") }
+    var clickedLabel by remember { mutableStateOf<String?>(null) }
     val geoCoder = remember {
         GeoCoder.newInstance().apply {
             setOnGetGeoCodeResultListener(object : OnGetGeoCoderResultListener {
@@ -126,7 +127,7 @@ fun FavoriteLocationSettingComponent(modifier: Modifier = Modifier) {
                         return
                     }
                     if (isNeedLocationDescribe) {
-                        clickedName = p0.address + clickedName
+                        clickedName = p0.address
                         isNeedLocationDescribe = false
                     } else {
                         clickedName = p0.poiList?.get(0)?.address ?: p0.address
@@ -204,6 +205,7 @@ fun FavoriteLocationSettingComponent(modifier: Modifier = Modifier) {
                                 )
                                 clickedPosition = LatLng(it.latitude, it.longitude)
                                 clickedName = it.addrStr?.removePrefix("中国") ?: ""
+                                clickedLabel = null
                             } else {
                                 map.animateMapStatus(
                                     MapStatusUpdateFactory.newLatLngZoom(
@@ -222,6 +224,7 @@ fun FavoriteLocationSettingComponent(modifier: Modifier = Modifier) {
                         p0?.let {
                             hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                             clickedPosition = it
+                            clickedLabel = null
                             geoCoder.reverseGeoCode(
                                 ReverseGeoCodeOption()
                                     .location(it)
@@ -237,6 +240,7 @@ fun FavoriteLocationSettingComponent(modifier: Modifier = Modifier) {
                             hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                             clickedPosition = it.position
                             clickedName = it.name
+                            clickedLabel = it.name
                             isNeedLocationDescribe = true
                             geoCoder.reverseGeoCode(
                                 ReverseGeoCodeOption()
@@ -256,6 +260,7 @@ fun FavoriteLocationSettingComponent(modifier: Modifier = Modifier) {
                                 return@setOnMarkerClickListener true
                             }
                             clickedPosition = favoriteMarker.position
+                            clickedLabel = it.getString(MARKER_BUNDLE_LABEL)
                             clickedName =
                                 it.getString(MARKER_BUNDLE_ADDRESS) ?: run {
                                     isNeedLocationDescribe = true
@@ -276,12 +281,13 @@ fun FavoriteLocationSettingComponent(modifier: Modifier = Modifier) {
                 map.setOnMarkerDragListener(object : BaiduMap.OnMarkerDragListener {
                     override fun onMarkerDrag(p0: Marker?) {}
 
-                    override fun onMarkerDragEnd(p0: Marker?) {
-                        Log.d("GetLocationPage", "onMarkerDragEnd: $p0")
-                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                        p0?.let {
-                            clickedPosition = it.position
-                            geoCoder.reverseGeoCode(
+                        override fun onMarkerDragEnd(p0: Marker?) {
+                            Log.d("GetLocationPage", "onMarkerDragEnd: $p0")
+                            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                            p0?.let {
+                                clickedPosition = it.position
+                                clickedLabel = null
+                                geoCoder.reverseGeoCode(
                                 ReverseGeoCodeOption()
                                     .location(it.position)
                                     .newVersion(1)
@@ -341,6 +347,7 @@ fun FavoriteLocationSettingComponent(modifier: Modifier = Modifier) {
                     LatLng(target.latitude, target.longitude).let { position ->
                         clickedPosition = position
                         clickedName = target.address
+                        clickedLabel = target.label
                         clickedMarker = baiduMap.map.addOrUpdateLocationMarker(
                             clickedMarker,
                             position,
@@ -359,6 +366,10 @@ fun FavoriteLocationSettingComponent(modifier: Modifier = Modifier) {
                         favoriteLocations,
                         favoriteLocationMarkers
                     )
+                },
+                favoriteLocationMarkers = favoriteLocationMarkers,
+                selectedLocation = favoriteLocations.find {
+                    it.latitude == clickedPosition.latitude && it.longitude == clickedPosition.longitude
                 }
             )
         }
@@ -428,7 +439,7 @@ fun FavoriteLocationSettingComponent(modifier: Modifier = Modifier) {
                         }
                         val newFavoriteLocation = ChaoxingLocation.newBuilder()
                             .setAddress(clickedName)
-                            .setLabel(clickedName)
+                            .setLabel(clickedLabel ?: clickedName)
                             .setLatitude(clickedPosition.latitude)
                             .setLongitude(clickedPosition.longitude)
                             .build()

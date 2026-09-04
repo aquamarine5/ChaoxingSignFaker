@@ -867,6 +867,16 @@ fun OtherUserSelectorComponent(
                                             )
                                         }
                                     }
+                                    if (signStatus[0].isCaptchaResolvedByModel.value) {
+                                        Icon(
+                                            painterResource(R.drawable.ic_brain_circuit),
+                                            contentDescription = "验证码由模型自动识别",
+                                            modifier = Modifier
+                                                .padding(start = 4.dp)
+                                                .size(14.dp),
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
                                 }
                                 Text(
                                     "${ChaoxingHttpClient.instance?.userEntity?.name} ($selfPhoneNumber)",
@@ -949,6 +959,16 @@ fun OtherUserSelectorComponent(
                                                         tint = it.value.color.takeOrElse { MaterialTheme.colorScheme.primary }
                                                     )
                                                 }
+                                            if (signStatus[i].isCaptchaResolvedByModel.value) {
+                                                Icon(
+                                                    painterResource(R.drawable.ic_brain_circuit),
+                                                    contentDescription = "验证码由模型自动识别",
+                                                    modifier = Modifier
+                                                        .padding(start = 4.dp)
+                                                        .size(14.dp),
+                                                    tint = MaterialTheme.colorScheme.primary
+                                                )
+                                            }
                                         }
                                         if (faceRecognitionData != null && session.phoneNumber in faceRecognitionData.failedPhoneNumbers) {
                                             Icon(

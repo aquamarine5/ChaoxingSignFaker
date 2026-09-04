@@ -27,11 +27,19 @@ object ChaoxingCaptchaPredictor {
 
     private const val EDGE_OFFSET = 4
 
+    const val CAPTCHA_VALIDATE_MAX_REUSE_COUNT = 3
+
     private var ortSession: OrtSession? = null
+
+    private var cachedValidate: String? = null
+    private var remainingValidateReuses: Int = 0
 
     @Volatile
     var isAvailable: Boolean = true
         private set
+
+    @Volatile
+    var lastResolveByModel: Boolean = false
 
     fun initialize(context: Context) {
         if (ortSession != null || !isAvailable) return
@@ -49,6 +57,33 @@ object ChaoxingCaptchaPredictor {
                 isAvailable = false
             }
         }
+    }
+
+    @Synchronized
+    fun cacheValidate(validate: String) {
+        cachedValidate = validate
+        remainingValidateReuses = CAPTCHA_VALIDATE_MAX_REUSE_COUNT - 1
+    }
+
+    @Synchronized
+    fun consumeCachedValidate(): String? {
+        val validate = cachedValidate
+        if (validate == null || remainingValidateReuses <= 0) {
+            cachedValidate = null
+            remainingValidateReuses = 0
+            return null
+        }
+        remainingValidateReuses--
+        if (remainingValidateReuses <= 0) {
+            cachedValidate = null
+        }
+        return validate
+    }
+
+    @Synchronized
+    fun invalidateCachedValidate() {
+        cachedValidate = null
+        remainingValidateReuses = 0
     }
 
     fun predictSliderXOffset(originalImage: Bitmap): Int? {

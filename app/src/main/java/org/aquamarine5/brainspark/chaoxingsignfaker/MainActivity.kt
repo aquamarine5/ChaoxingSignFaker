@@ -610,6 +610,9 @@ class MainActivity : ComponentActivity() {
                                                         it.toRoute(),
                                                         navToGroupDetail = { destination ->
                                                             navController.navigate(destination)
+                                                        },
+                                                        navBack = {
+                                                            navController.navigateUp()
                                                         }
                                                     )
                                                 }

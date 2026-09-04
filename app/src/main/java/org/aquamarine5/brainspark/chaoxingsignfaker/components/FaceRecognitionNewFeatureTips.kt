@@ -70,7 +70,13 @@ fun FaceRecognitionNewFeatureTips(isDisplayNewFeature: MutableState<Boolean>) {
         val context = LocalContext.current
         NewFeatureTipsCard(
             isDisplayNewFeature,
-            "现在随地大小签可以保存用户的人脸照片，可以不需要手动上传了。",
+            tipsContent = {
+                Text(
+                    "现在随地大小签可以保存用户的人脸照片，可以不需要手动上传了。",
+                    fontSize = 14.sp,
+                    lineHeight = 16.sp
+                )
+            },
             modifier = Modifier.padding(0.dp, 1.dp)
         ) {
             context.chaoxingDataStore.updateData {
