@@ -16,6 +16,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
@@ -49,6 +52,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingLocation
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.MARKER_BUNDLE_ADDRESS
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.MARKER_BUNDLE_LABEL
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
 
@@ -67,6 +71,7 @@ fun FavoriteLocationSettingDialog(
     var selected by remember(selectedLocation) { mutableStateOf(selectedLocation) }
     var editingLocation by remember { mutableStateOf<ChaoxingLocation?>(null) }
     var editLabel by remember { mutableStateOf("") }
+    var editAddress by remember { mutableStateOf("") }
     SnackbarAlertDialog(
         onDismissRequest = onDismiss,
         title = { _ ->
@@ -76,7 +81,7 @@ fun FavoriteLocationSettingDialog(
             if (favoriteLocations.isEmpty()) {
                 Text("还没有收藏任何签到位置，在地图上点击选择位置后即可收藏。")
             } else {
-                Column {
+                Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                     favoriteLocations.forEach { location ->
                         val onSelect = {
                             hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
@@ -105,22 +110,29 @@ fun FavoriteLocationSettingDialog(
                                 Text(
                                     location.address,
                                     fontSize = 12.sp,
+                                    lineHeight = 15.sp,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 Text(
                                     "(%.4f, %.4f)".format(location.latitude, location.longitude),
                                     fontSize = 12.sp,
+                                    lineHeight = 15.sp,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
-                            IconButton(onClick = {
-                                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                                editingLocation = location
-                                editLabel = location.label
-                            }) {
+                            IconButton(
+                                onClick = {
+                                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                                    editingLocation = location
+                                    editLabel = location.label
+                                    editAddress = location.address
+                                },
+                                modifier = Modifier.size(32.dp)
+                            ) {
                                 Icon(
                                     painterResource(R.drawable.ic_edit),
-                                    contentDescription = "编辑简介",
+                                    contentDescription = "编辑收藏位置",
+                                    modifier = Modifier.size(18.dp),
                                     tint = MaterialTheme.colorScheme.primary
                                 )
                             }
@@ -155,19 +167,39 @@ fun FavoriteLocationSettingDialog(
                     OutlinedTextField(
                         value = editLabel,
                         onValueChange = { editLabel = it },
-                        label = { Text("简介") },
+                        label = { Text("位置标签") },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        target.address,
-                        fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    OutlinedTextField(
+                        value = editAddress,
+                        onValueChange = { editAddress = it },
+                        label = { Text("位置描述") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
                     )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(verticalAlignment = Alignment.Top) {
+                        Icon(
+                            painterResource(R.drawable.ic_info),
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            "位置描述会被上传到学习通作为教师端的用户签到位置描述信息，而位置标签仅用于本应用的收藏位置名称显示。",
+                            fontSize = 12.sp,
+                            lineHeight = 16.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         "(%.4f, %.4f)".format(target.latitude, target.longitude),
                         fontSize = 12.sp,
+                        lineHeight = 15.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -176,11 +208,12 @@ fun FavoriteLocationSettingDialog(
                 Button(
                     onClick = {
                         hapticFeedback.performHapticFeedback(HapticFeedbackType.Confirm)
-                        updateFavoriteLocationLabel(
+                        updateFavoriteLocation(
                             context,
                             coroutineScope,
                             target,
                             editLabel.trim(),
+                            editAddress.trim(),
                             favoriteLocations,
                             favoriteLocationMarkers
                         )
@@ -192,7 +225,7 @@ fun FavoriteLocationSettingDialog(
                         }
                         editingLocation = null
                     },
-                    enabled = editLabel.isNotBlank()
+                    enabled = editLabel.isNotBlank() && editAddress.isNotBlank()
                 ) {
                     Text("保存")
                 }
@@ -229,15 +262,16 @@ fun FavoriteLocationSettingDialog(
     }
 }
 
-fun updateFavoriteLocationLabel(
+fun updateFavoriteLocation(
     context: Context,
     coroutineScope: CoroutineScope,
     target: ChaoxingLocation,
     newLabel: String,
+    newAddress: String,
     favoriteLocations: SnapshotStateList<ChaoxingLocation>,
     favoriteLocationMarkers: MutableList<Marker>
 ) {
-    val updated = target.toBuilder().setLabel(newLabel).build()
+    val updated = target.toBuilder().setLabel(newLabel).setAddress(newAddress).build()
     coroutineScope.launch(Dispatchers.IO) {
         context.chaoxingDataStore.updateData { data ->
             data.locationsList.indexOfFirst {
@@ -257,6 +291,7 @@ fun updateFavoriteLocationLabel(
                 marker.position.longitude == target.longitude
     }?.let { marker ->
         marker.extraInfo.putString(MARKER_BUNDLE_LABEL, newLabel)
+        marker.extraInfo.putString(MARKER_BUNDLE_ADDRESS, newAddress)
         marker.titleOptions = TitleOptions().text(newLabel)
     }
 }

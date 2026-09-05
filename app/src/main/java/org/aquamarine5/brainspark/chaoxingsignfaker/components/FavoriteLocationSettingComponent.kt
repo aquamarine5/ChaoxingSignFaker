@@ -130,7 +130,9 @@ fun FavoriteLocationSettingComponent(modifier: Modifier = Modifier) {
                         clickedName = p0.address
                         isNeedLocationDescribe = false
                     } else {
-                        clickedName = p0.poiList?.get(0)?.address ?: p0.address
+                        clickedName = p0.address
+                        clickedLabel = p0.poiList?.firstOrNull()?.name?.takeIf { it.isNotBlank() }
+                            ?: "自定义位置"
                     }
                 }
             })

@@ -356,8 +356,8 @@ fun PasswordSignScreen(
                                         destination.endTime,
                                         destination.isLate
                                     )
-                            }, onIgnoreExceptionSignAction = { index, session ->
-                                signHandler.ignoreExceptionOtherUserSigning(session, index)
+                            }, onRetrySignAction = { index, session, bypassChecking ->
+                                signHandler.retryOtherUserSigning(session, index, bypassChecking)
                             }, isCloneSession = destination.isCloneSession,
                             suffixContent = {
                                 if (isMapRequired) {

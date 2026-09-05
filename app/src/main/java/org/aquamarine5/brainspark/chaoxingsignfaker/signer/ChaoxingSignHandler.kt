@@ -21,7 +21,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.SignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignStatus
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingQRCodeSigner.QRCodeExpiredException
-import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingCaptchaPredictor
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCaptchaPredictor
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingFaceSignException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.FaceRecognitionData
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.checkIsLast
@@ -43,15 +43,16 @@ class ChaoxingSignHandler<in T>(
     private val getSignRealtimeParameter: (suspend () -> T)? = null
 ) {
     private var storedValue: T? = null
-    suspend fun ignoreExceptionOtherUserSigning(
+    suspend fun retryOtherUserSigning(
         session: ChaoxingOtherUserSession,
-        index: Int
+        index: Int,
+        bypassChecking: Boolean
     ): Result<Boolean> {
         return onOtherUserSigning(
             getSignRealtimeParameter?.invoke()
                 ?: requireNotNull(storedValue) { "Should call startSigning() first." },
             session,
-            true,
+            bypassChecking,
             index
         ).onFailure {
             (it as? ChaoxingHttpClient.ChaoxingGetUserInfoException)?.let { exception ->

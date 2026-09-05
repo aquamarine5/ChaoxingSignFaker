@@ -26,12 +26,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.text.InlineTextContent
-import androidx.compose.foundation.text.appendInlineContent
-import androidx.compose.ui.text.Placeholder
-import androidx.compose.ui.text.PlaceholderVerticalAlign
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.InlineTextContent
+import androidx.compose.foundation.text.appendInlineContent
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
@@ -59,6 +57,8 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.Placeholder
+import androidx.compose.ui.text.PlaceholderVerticalAlign
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -519,7 +519,10 @@ fun CourseListScreen(
                                             Text(
                                                 buildAnnotatedString {
                                                     append("现在验证码会通过内置的识别模型自动滑动完成了，自动完成的验证码会以")
-                                                    appendInlineContent(brainIconId, "[模型自动识别]")
+                                                    appendInlineContent(
+                                                        brainIconId,
+                                                        "[模型自动识别]"
+                                                    )
                                                     append("显示。")
                                                 },
                                                 inlineContent = mapOf(
@@ -613,9 +616,7 @@ fun CourseListScreen(
                                             placementSpec = spring(
                                                 stiffness = Spring.StiffnessVeryLow,
                                                 visibilityThreshold = IntOffset.VisibilityThreshold
-                                            ),
-                                            fadeInSpec = spring(Spring.StiffnessVeryLow),
-                                            fadeOutSpec = spring(Spring.StiffnessVeryLow)
+                                            )
                                         )
                                     ) {
                                         CourseInfoColumnCard(

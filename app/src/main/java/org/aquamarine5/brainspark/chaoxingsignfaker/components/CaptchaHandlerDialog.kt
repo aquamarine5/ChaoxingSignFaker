@@ -52,7 +52,7 @@ import kotlinx.coroutines.withContext
 import okhttp3.Request
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCaptchaDataEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSigner
-import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingCaptchaPredictor
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCaptchaPredictor
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
 import java.util.concurrent.atomic.AtomicBoolean
@@ -138,15 +138,24 @@ fun CaptchaHandlerDialog(
                     }
                 }.onFailure {
                     it.printStackTrace()
+                    it.snackbarReport(snackbar,coroutineScope,"验证码预测失败",hapticFeedback)
                 }.getOrNull()
             }
-            if (predictedOffset == null || !check(
-                    predictedOffset.toFloat(),
-                    null,
-                    isAutoCheck = true
-                )
-            )
-                isDisplayCaptchaDialog = true
+            var isAutoCheckPassed = false
+            if (predictedOffset != null) {
+                try {
+                    isAutoCheckPassed = check(
+                        predictedOffset.toFloat(),
+                        null,
+                        isAutoCheck = true
+                    )
+                } catch (e: ChaoxingSigner.CaptchaCheckException) {
+                    // 校验接口直接拒绝预测结果属于预期场景，回退到手动滑动；
+                    // 被拒绝的 check 会消耗当前验证码，需要先换一张
+                    data = signer.getCaptchaImageV2()
+                }
+            }
+            if (!isAutoCheckPassed) isDisplayCaptchaDialog = true
         }.onFailure {
             it.snackbarReport(
                 snackbar,

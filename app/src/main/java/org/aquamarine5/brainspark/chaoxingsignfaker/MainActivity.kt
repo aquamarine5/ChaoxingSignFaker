@@ -545,6 +545,16 @@ class MainActivity : ComponentActivity() {
                                                     animationSpec = tween(300)
                                                 )
                                             },
+                                            predictivePopEnterTransition = {
+                                                fadeIn(
+                                                    animationSpec = tween(300)
+                                                )
+                                            },
+                                            predictivePopExitTransition = {
+                                                fadeOut(
+                                                    animationSpec = tween(300)
+                                                )
+                                            },
                                         ) {
                                             navigation<SignGraphDestination>(startDestination = CourseListDestination()) {
                                                 composable<CourseListDestination> { entry ->

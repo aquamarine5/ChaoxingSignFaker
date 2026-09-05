@@ -51,7 +51,6 @@ fun BaiduMap.addFavoriteLocationMarker(
         MarkerOptions()
             .position(LatLng(location.latitude, location.longitude))
             .icon(starBitmap)
-            .titleOptions(TitleOptions().text(location.label))
             .extraInfo(Bundle().apply {
                 putString(MARKER_BUNDLE_TYPE, MarkerBundleType.FAVORITE.value)
                 putString(MARKER_BUNDLE_LABEL, location.label)

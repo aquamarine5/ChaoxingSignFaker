@@ -79,7 +79,6 @@ import com.baidu.mapapi.map.MapView
 import com.baidu.mapapi.map.Marker
 import com.baidu.mapapi.map.MarkerOptions
 import com.baidu.mapapi.map.MyLocationData
-import com.baidu.mapapi.map.TitleOptions
 import com.baidu.mapapi.model.CoordUtil
 import com.baidu.mapapi.model.LatLng
 import com.baidu.mapapi.search.core.SearchResult
@@ -221,12 +220,16 @@ fun GetLocationComponent(
                                 clickedPosition.latitude
                             )
                         }",
-                        maxLines = 1
+                        maxLines = 1,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold
                     )
                     Text(
                         "位置: $clickedName",
                         maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        overflow = TextOverflow.Ellipsis,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold
                     )
                 }
                 Button(onClick = {
@@ -565,7 +568,6 @@ fun GetLocationComponent(
                                 .position(LatLng(last.latitude, last.longitude))
                                 .anchor(0.5f, 0.5f)
                                 .icon(lastSignedLocationBitmap)
-                                .titleOptions(TitleOptions().text("上次签到的位置"))
                                 .extraInfo(Bundle().apply {
                                     putString(
                                         MARKER_BUNDLE_TYPE,

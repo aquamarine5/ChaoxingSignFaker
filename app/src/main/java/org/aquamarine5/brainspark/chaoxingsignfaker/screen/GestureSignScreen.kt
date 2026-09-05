@@ -477,8 +477,8 @@ fun GestureSignScreen(
                                         }
                                     }
                                 }
-                            }, onIgnoreExceptionSignAction = { index, session ->
-                                signHandler.ignoreExceptionOtherUserSigning(session, index)
+                            }, onRetrySignAction = { index, session, bypassChecking ->
+                                signHandler.retryOtherUserSigning(session, index, bypassChecking)
                             }
                         ) { isSelf, otherUserSessionList, _ ->
                             if (!isCheckingStatus) {

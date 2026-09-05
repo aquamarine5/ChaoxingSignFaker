@@ -4,7 +4,7 @@
  * Repository: https://github.com/aquamarine5/ChaoxingSignFaker
  */
 
-package org.aquamarine5.brainspark.chaoxingsignfaker.utilities
+package org.aquamarine5.brainspark.chaoxingsignfaker.api
 
 import ai.onnxruntime.OnnxTensor
 import ai.onnxruntime.OrtEnvironment
@@ -18,7 +18,6 @@ import java.nio.FloatBuffer
 import kotlin.math.max
 import kotlin.math.min
 
-
 object ChaoxingCaptchaPredictor {
     private const val MODEL_FILENAME = "captcha.ort"
     private const val MODEL_INPUT_SIZE = 640
@@ -27,7 +26,7 @@ object ChaoxingCaptchaPredictor {
 
     private const val EDGE_OFFSET = 4
 
-    const val CAPTCHA_VALIDATE_MAX_REUSE_COUNT = 3
+    const val CAPTCHA_VALIDATE_MAX_REUSE_COUNT = 1
 
     private var ortSession: OrtSession? = null
 
