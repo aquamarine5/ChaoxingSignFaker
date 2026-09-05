@@ -51,6 +51,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
@@ -71,6 +72,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.takeOrElse
@@ -1061,7 +1063,18 @@ fun OtherUserSelectorComponent(
                     onClick = {
                         if (isSigning.value.not())
                             performSign()
-                    }
+                    },
+                    containerColor = if (isSigning.value) {
+                        MaterialTheme.colorScheme.surfaceVariant
+                    } else {
+                        FloatingActionButtonDefaults.containerColor
+                    },
+                    contentColor = if (isSigning.value) {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    } else {
+                        MaterialTheme.colorScheme.onPrimaryContainer
+                    },
+                    modifier = Modifier.alpha(if (isSigning.value) 0.6f else 1f)
                 ) {
                     Icon(
                         painterResource(R.drawable.ic_clipboard_pen_line),

@@ -614,9 +614,13 @@ fun CourseListScreen(
                                     Column(
                                         modifier = Modifier.animateItem(
                                             placementSpec = spring(
-                                                stiffness = Spring.StiffnessVeryLow,
+                                                stiffness = Spring.StiffnessMediumLow,
                                                 visibilityThreshold = IntOffset.VisibilityThreshold
-                                            )
+                                            ),
+                                            fadeInSpec = spring(
+                                                stiffness = Spring.StiffnessMedium),
+                                            fadeOutSpec = spring(
+                                                stiffness = Spring.StiffnessMedium)
                                         )
                                     ) {
                                         CourseInfoColumnCard(

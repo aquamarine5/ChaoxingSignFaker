@@ -22,6 +22,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserS
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignStatus
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingQRCodeSigner.QRCodeExpiredException
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCaptchaPredictor
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingCaptchaCancelledException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingFaceSignException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.FaceRecognitionData
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.checkIsLast
@@ -125,12 +126,14 @@ class ChaoxingSignHandler<in T>(
                         onAllSigningFinished(false)
                         return@launch
                     } else {
-                        it.snackbarReport(
-                            snackbarHost,
-                            coroutineScope,
-                            "为${ChaoxingHttpClient.instance!!.userEntity.name}签到失败",
-                            hapticFeedback
-                        )
+                        if (it !is ChaoxingCaptchaCancelledException) {
+                            it.snackbarReport(
+                                snackbarHost,
+                                coroutineScope,
+                                "为${ChaoxingHttpClient.instance!!.userEntity.name}签到失败",
+                                hapticFeedback
+                            )
+                        }
                         if (otherUserSessionList.all { it == null }) {
                             onAllSigningFinished(userSelections.all { !it })
                         }
@@ -176,12 +179,14 @@ class ChaoxingSignHandler<in T>(
                         session.phoneNumber,
                         it is ChaoxingFaceSignException
                     )
-                    it.snackbarReport(
-                        snackbarHost,
-                        coroutineScope,
-                        "为${session.name}签到失败",
-                        hapticFeedback
-                    )
+                    if (it !is ChaoxingCaptchaCancelledException) {
+                        it.snackbarReport(
+                            snackbarHost,
+                            coroutineScope,
+                            "为${session.name}签到失败",
+                            hapticFeedback
+                        )
+                    }
                     it.ifShouldDeselect {
                         userSelections[index + 1] = false
                     }

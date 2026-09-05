@@ -34,6 +34,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import com.baidu.mapapi.model.CoordUtil
+import com.baidu.mapapi.model.LatLng
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
@@ -50,6 +52,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.SignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerParams
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.DONT_SAVE_NEARBY_DISTANCE
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.FaceRecognitionComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.FaceRecognitionNewFeatureTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.GetLocationComponent
@@ -57,6 +60,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.components.NetworkExceptionC
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NotReadyToSignNoticeComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.OtherUserSelectorComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SaveFaceImagesDialog
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.SaveFavoriteLocationDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SignOutRedirectTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SignPotentialWarningTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SponsorPopupDialog
@@ -242,6 +246,19 @@ fun LocationSignScreen(
                     var isFaceImageCaptured by remember { mutableStateOf(false) }
                     var showFaceSaveDialog by remember { mutableStateOf(false) }
                     var sponsorPendingAfterFaceSave by remember { mutableStateOf(false) }
+                    var signedLocation by remember { mutableStateOf<ChaoxingLocationSignEntity?>(null) }
+                    var isShowSaveFavoriteDialog by remember { mutableStateOf(false) }
+                    if (isShowSaveFavoriteDialog) {
+                        signedLocation?.let { signed ->
+                            SaveFavoriteLocationDialog(
+                                signed,
+                                label = "上次签到的位置",
+                                onDismiss = {
+                                    isShowSaveFavoriteDialog = false
+                                }
+                            )
+                        }
+                    }
                     if (showFaceSaveDialog) {
                         SaveFaceImagesDialog(
                             faceRecognitionData,
@@ -389,6 +406,31 @@ fun LocationSignScreen(
                             onAllSigningFinished = { isSuccessful ->
                                 isSigning.value = false
                                 if (isSuccessful) {
+                                    signedLocation?.let { target ->
+                                        coroutineScope.launch {
+                                            val isAlreadySaved =
+                                                context.chaoxingDataStore.data.first().let { data ->
+                                                    data.locationsList.any {
+                                                        it.latitude == target.latitude && it.longitude == target.longitude
+                                                    } || data.dontSaveNearbyPositionList.any {
+                                                        CoordUtil.getDistance(
+                                                            CoordUtil.ll2point(
+                                                                LatLng(
+                                                                    target.latitude,
+                                                                    target.longitude
+                                                                )
+                                                            ),
+                                                            CoordUtil.ll2point(
+                                                                LatLng(it.latitude, it.longitude)
+                                                            )
+                                                        ) < DONT_SAVE_NEARBY_DISTANCE
+                                                    }
+                                                }
+                                            if (isAlreadySaved.not()) {
+                                                isShowSaveFavoriteDialog = true
+                                            }
+                                        }
+                                    }
                                     if (faceRecognitionData.newImagePhones.isNotEmpty()) {
                                         sponsorPendingAfterFaceSave = true
                                         showFaceSaveDialog = true
@@ -546,6 +588,7 @@ fun LocationSignScreen(
                             Text("签到")
                         }) { result ->
                             isGetLocation = false
+                            signedLocation = result
                             signHandler.startSigning(
                                 result,
                                 isSelfForSign,

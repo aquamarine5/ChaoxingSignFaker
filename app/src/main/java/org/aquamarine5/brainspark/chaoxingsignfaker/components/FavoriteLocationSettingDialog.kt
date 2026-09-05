@@ -55,6 +55,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingLocation
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.MARKER_BUNDLE_ADDRESS
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.MARKER_BUNDLE_LABEL
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.markerTitleOptions
 
 @Composable
 fun FavoriteLocationSettingDialog(
@@ -292,7 +293,7 @@ fun updateFavoriteLocation(
     }?.let { marker ->
         marker.extraInfo.putString(MARKER_BUNDLE_LABEL, newLabel)
         marker.extraInfo.putString(MARKER_BUNDLE_ADDRESS, newAddress)
-        marker.titleOptions = TitleOptions().text(newLabel)
+        marker.titleOptions = markerTitleOptions(newLabel)
     }
 }
 

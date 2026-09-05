@@ -50,9 +50,10 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.Request
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCaptchaPredictor
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCaptchaDataEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSigner
-import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCaptchaPredictor
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingCaptchaCancelledException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
 import java.util.concurrent.atomic.AtomicBoolean
@@ -104,8 +105,7 @@ fun CaptchaHandlerDialog(
                     isCheckingCaptcha?.set(false)
                     return false
                 } else {
-                    ChaoxingCaptchaPredictor.cacheValidate(result)
-                    ChaoxingCaptchaPredictor.lastResolveByModel = isAutoCheck
+                    ChaoxingCaptchaPredictor.cacheValidate(result, isAutoCheck)
                     onResult(Result.success(result))
                     onDismiss()
                     isCheckingCaptcha?.set(false)
@@ -115,6 +115,13 @@ fun CaptchaHandlerDialog(
     }
 
     var isDisplayCaptchaDialog by remember { mutableStateOf(false) }
+
+    fun dismissWithCancel() {
+        coroutineScope.launch {
+            onResult(Result.failure(ChaoxingCaptchaCancelledException()))
+        }
+        onDismiss()
+    }
 
     LaunchedEffect(signer) {
         runCatching {
@@ -141,20 +148,17 @@ fun CaptchaHandlerDialog(
                     it.snackbarReport(snackbar,coroutineScope,"验证码预测失败",hapticFeedback)
                 }.getOrNull()
             }
-            var isAutoCheckPassed = false
-            if (predictedOffset != null) {
-                try {
-                    isAutoCheckPassed = check(
-                        predictedOffset.toFloat(),
-                        null,
-                        isAutoCheck = true
-                    )
-                } catch (e: ChaoxingSigner.CaptchaCheckException) {
+            val isAutoCheckPassed = predictedOffset?.let { offset ->
+                runCatching {
+                    check(offset.toFloat(), null, isAutoCheck = true)
+                }.getOrElse { e ->
+                    if (e !is ChaoxingSigner.CaptchaCheckException) throw e
                     // 校验接口直接拒绝预测结果属于预期场景，回退到手动滑动；
                     // 被拒绝的 check 会消耗当前验证码，需要先换一张
                     data = signer.getCaptchaImageV2()
+                    false
                 }
-            }
+            } == true
             if (!isAutoCheckPassed) isDisplayCaptchaDialog = true
         }.onFailure {
             it.snackbarReport(
@@ -170,7 +174,9 @@ fun CaptchaHandlerDialog(
 
     if (isDisplayCaptchaDialog)
         SnackbarAlertDialog(
-            onDismissRequest = onDismiss,
+            onDismissRequest = {
+                dismissWithCancel()
+            },
             title = { _ -> Text("请完成滑动验证") },
             text = { _ ->
                 if (data != null) {
@@ -291,7 +297,7 @@ fun CaptchaHandlerDialog(
             confirmButton = {
                 OutlinedButton(
                     onClick = {
-                        onDismiss()
+                        dismissWithCancel()
                     }
                 ) {
                     Text("取消")

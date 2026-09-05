@@ -162,9 +162,7 @@ fun GetLocationComponent(
             val favoriteLocations = remember { mutableStateListOf<ChaoxingLocation>() }
             val favoriteLocationMarkers = remember { mutableListOf<Marker>() }
             var isMarkerTitleVisible = remember { true }
-            var lastSignedLocation by remember { mutableStateOf<ChaoxingLocationSignEntity?>(null) }
             var lastSignedLocationMarker: Marker? = remember { null }
-            var isShowSaveFavoriteLocationDialog by remember { mutableStateOf(false) }
             val markerPositionIcon = remember {
                 BitmapDescriptorFactory.fromResource(R.drawable.ic_geo_alt_fill)
             }
@@ -575,56 +573,11 @@ fun GetLocationComponent(
                                     )
                                 })
                         ) as Marker
-                        if (locationInfo != null) {
-                            val isAlreadyFavorite = data.locationsList.any {
-                                it.latitude == last.latitude && it.longitude == last.longitude
-                            }
-                            val isNearDontSavePosition = data.dontSaveNearbyPositionList.any {
-                                CoordUtil.getDistance(
-                                    CoordUtil.ll2point(LatLng(last.latitude, last.longitude)),
-                                    CoordUtil.ll2point(LatLng(it.latitude, it.longitude))
-                                ) < DONT_SAVE_NEARBY_DISTANCE
-                            }
-                            if (isAlreadyFavorite.not() && isNearDontSavePosition.not()) {
-                                lastSignedLocation = ChaoxingLocationSignEntity(
-                                    last.latitude,
-                                    last.longitude,
-                                    last.address
-                                )
-                                isShowSaveFavoriteLocationDialog = true
-                            }
-                        }
                     }
                     baiduMap.map.updateMarkerTitlesVisibility(
                         favoriteLocationMarkers,
                         lastSignedLocationMarker,
                         isMarkerTitleVisible
-                    )
-                }
-            }
-            if (isShowSaveFavoriteLocationDialog) {
-                lastSignedLocation?.let { lastSigned ->
-                     SaveFavoriteLocationDialog(
-                         lastSigned,
-                         label = "上次签到的位置",
-                         onDismiss = {
-                            isShowSaveFavoriteLocationDialog = false
-                        },
-                         onSaveToFavorite = { savedLocation ->
-                             lastSignedLocationMarker?.remove()
-                             lastSignedLocationMarker = null
-                             savedLocation.let {
-                                 favoriteLocations.add(it)
-                                 favoriteLocationMarkers.add(
-                                     baiduMap.map.addFavoriteLocationMarker(it, starBitmap)
-                                 )
-                            }
-                            baiduMap.map.updateMarkerTitlesVisibility(
-                                favoriteLocationMarkers,
-                                lastSignedLocationMarker,
-                                isMarkerTitleVisible
-                            )
-                        }
                     )
                 }
             }

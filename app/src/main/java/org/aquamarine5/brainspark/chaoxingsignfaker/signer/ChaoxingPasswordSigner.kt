@@ -76,8 +76,8 @@ class ChaoxingPasswordSigner(
         client.newCall(
             Request.Builder().url(
                 URL_SIGN.newBuilder()
-                    .addQueryParameter("latitude", "")
-                    .addQueryParameter("longitude", "")
+                    .addQueryParameter("latitude", if(position != null) "%.6f".format(position.latitude) else "")
+                    .addQueryParameter("longitude", if(position != null)  "%.6f".format(position.longitude) else "")
                     .addQueryParameter("activeId", destination.activeId.toString())
                     .addQueryParameter("uid", client.userEntity.puid.toString())
                     .addQueryParameter("name", client.userEntity.name)

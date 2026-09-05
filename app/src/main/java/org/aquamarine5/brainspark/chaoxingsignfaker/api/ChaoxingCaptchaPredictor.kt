@@ -31,6 +31,7 @@ object ChaoxingCaptchaPredictor {
     private var ortSession: OrtSession? = null
 
     private var cachedValidate: String? = null
+    private var cachedValidateResolvedByModel: Boolean = false
     private var remainingValidateReuses: Int = 0
 
     @Volatile
@@ -44,24 +45,26 @@ object ChaoxingCaptchaPredictor {
         if (ortSession != null || !isAvailable) return
         synchronized(this) {
             if (ortSession != null || !isAvailable) return
-            try {
+            runCatching {
                 context.assets.open(MODEL_FILENAME).use { stream ->
                     ortSession = OrtEnvironment.getEnvironment().createSession(stream.readBytes())
                 }
-            } catch (e: UnsatisfiedLinkError) {
+            }.onFailure { e ->
                 e.printStackTrace()
                 isAvailable = false
-            } catch (e: Exception) {
-                e.printStackTrace()
-                isAvailable = false
+                // 标记不可用后继续抛出，让调用方（验证码弹窗）把真实原因展示出来，
+                // 而不是静默降级导致预测永远返回 null 且无任何提示
+                throw e
             }
         }
     }
 
     @Synchronized
-    fun cacheValidate(validate: String) {
+    fun cacheValidate(validate: String, resolvedByModel: Boolean) {
         cachedValidate = validate
+        cachedValidateResolvedByModel = resolvedByModel
         remainingValidateReuses = CAPTCHA_VALIDATE_MAX_REUSE_COUNT - 1
+        lastResolveByModel = resolvedByModel
     }
 
     @Synchronized
@@ -76,6 +79,9 @@ object ChaoxingCaptchaPredictor {
         if (remainingValidateReuses <= 0) {
             cachedValidate = null
         }
+        // 复用缓存的 validate 时也要还原本次的解析来源，
+        // 否则除第一次外所有签到都不会标记“由模型识别”
+        lastResolveByModel = cachedValidateResolvedByModel
         return validate
     }
 
@@ -83,6 +89,7 @@ object ChaoxingCaptchaPredictor {
     fun invalidateCachedValidate() {
         cachedValidate = null
         remainingValidateReuses = 0
+        cachedValidateResolvedByModel = false
     }
 
     fun predictSliderXOffset(originalImage: Bitmap): Int? {

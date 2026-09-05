@@ -61,6 +61,11 @@ fun BaiduMap.addFavoriteLocationMarker(
 
 const val MARKER_TITLE_VISIBLE_ZOOM = 16f
 
+const val MARKER_TITLE_FONT_SIZE = 30
+
+fun markerTitleOptions(text: String): TitleOptions =
+    TitleOptions().text(text).titleFontSize(MARKER_TITLE_FONT_SIZE)
+
 fun BaiduMap.updateMarkerTitlesVisibility(
     favoriteLocationMarkers: List<Marker>,
     lastSignedLocationMarker: Marker?,
@@ -68,13 +73,13 @@ fun BaiduMap.updateMarkerTitlesVisibility(
 ) {
     favoriteLocationMarkers.forEach { marker ->
         marker.titleOptions = if (isTitleVisible) {
-            TitleOptions().text(marker.extraInfo.getString(MARKER_BUNDLE_LABEL) ?: "收藏点")
+            markerTitleOptions(marker.extraInfo.getString(MARKER_BUNDLE_LABEL) ?: "收藏点")
         } else {
             TitleOptions()
         }
     }
     lastSignedLocationMarker?.titleOptions = if (isTitleVisible) {
-        TitleOptions().text("上次签到的位置")
+        markerTitleOptions("上次签到的位置")
     } else {
         TitleOptions()
     }
