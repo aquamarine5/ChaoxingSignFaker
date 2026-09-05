@@ -11,7 +11,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     id("org.aquamarine5.brainspark.stackbricks-gradle-plugin") version "2.2.9"
     id("com.google.protobuf") version "0.9.6"
-    id "io.sentry.android.gradle" version "6.19.0"
+    id "io.sentry.android.gradle" version "6.20.0"
     id("org.jetbrains.kotlin.plugin.serialization") version "2.4.10"
 }
 
@@ -54,8 +54,8 @@ android {
         applicationId = "org.aquamarine5.brainspark.chaoxingsignfaker"
         minSdk = 26
         targetSdk = 37
-        versionCode = 1_1701_0826
-        versionName = "1.17.1-stable-260826"
+        versionCode = 1_1800_0099
+        versionName = "1.18.0-beta2-260905"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -111,7 +111,7 @@ composeCompiler {
 
 protobuf {
     protoc {
-        artifact = "com.google.protobuf:protoc:4.35.1"
+        artifact = "com.google.protobuf:protoc:4.36.1"
     }
 
     generateProtoTasks {
@@ -155,6 +155,7 @@ dependencies {
     implementation libs.protobuf.javalite
     implementation(libs.fastjson2)
     implementation(libs.okhttp)
+    implementation(files("libs/onnxruntime-android-1.29.0-minimal-captcha.aar"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)

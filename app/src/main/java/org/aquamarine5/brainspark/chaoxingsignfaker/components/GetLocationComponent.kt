@@ -22,8 +22,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -33,7 +31,6 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.RichTooltip
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
@@ -82,7 +79,6 @@ import com.baidu.mapapi.map.MapView
 import com.baidu.mapapi.map.Marker
 import com.baidu.mapapi.map.MarkerOptions
 import com.baidu.mapapi.map.MyLocationData
-import com.baidu.mapapi.map.TitleOptions
 import com.baidu.mapapi.model.CoordUtil
 import com.baidu.mapapi.model.LatLng
 import com.baidu.mapapi.search.core.SearchResult
@@ -104,10 +100,14 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostS
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.MARKER_BUNDLE_ADDRESS
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.MARKER_BUNDLE_LABEL
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.MARKER_BUNDLE_TYPE
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.MARKER_TITLE_VISIBLE_ZOOM
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.MarkerBundleType
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.addFavoriteLocationMarker
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.addOrUpdateLocationMarker
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
-import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.disableComposableCode
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.createBitmapDescriptorFromVector
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.displaySnackbar
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.updateMarkerTitlesVisibility
 
 
 @OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
@@ -119,9 +119,12 @@ fun GetLocationComponent(
 ) {
     val hapticFeedback = LocalHapticFeedback.current
     val snackbarHost = LocalSnackbarHostState.current
-    val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
-    var isShowDialog by remember { mutableStateOf(false) }
+             val context = LocalContext.current
+             val coroutineScope = rememberCoroutineScope()
+             var isShowDialog by remember { mutableStateOf(false) }
+             var dialogLongitude by remember { mutableStateOf("") }
+             var dialogLatitude by remember { mutableStateOf("") }
+             var dialogOriginalName by remember { mutableStateOf("") }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -150,162 +153,29 @@ fun GetLocationComponent(
             }
             var marker by remember { mutableStateOf<Marker?>(null) }
             var isNeedLocationDescribe = remember { false }
-            var clickedPosition by remember { mutableStateOf(LatLng(0.0, 0.0)) }
-            var locationRange by remember { mutableStateOf<Int?>(null) }
-            var locationPosition by remember { mutableStateOf<LatLng?>(null) }
-            var selectedLocation by remember { mutableStateOf<Pair<Int, ChaoxingLocation>?>(null) }
-            var clickedName by remember { mutableStateOf("未指定") }
+             var clickedPosition by remember { mutableStateOf(LatLng(0.0, 0.0)) }
+             var locationRange by remember { mutableStateOf<Int?>(null) }
+             var locationPosition by remember { mutableStateOf<LatLng?>(null) }
+             var clickedName by remember { mutableStateOf("未指定") }
+             var clickedLabel by remember { mutableStateOf<String?>(null) }
             var isShowFavoriteLocationDialog by remember { mutableStateOf(false) }
             val favoriteLocations = remember { mutableStateListOf<ChaoxingLocation>() }
             val favoriteLocationMarkers = remember { mutableListOf<Marker>() }
-            var lastClickedFavoriteLocationMarker: Marker? = remember { null }
+            var isMarkerTitleVisible = remember { true }
+            var lastSignedLocationMarker: Marker? = remember { null }
             val markerPositionIcon = remember {
                 BitmapDescriptorFactory.fromResource(R.drawable.ic_geo_alt_fill)
             }
-            if (selectedLocation != null) {
-                SnackbarAlertDialog(onDismissRequest = {
-                    selectedLocation = null
-                }, title = { _ ->
-                    Text("设置位置 \"${selectedLocation!!.second.label}\" ")
-                }, text = { _ ->
-
-                }, confirmButton = {
-                    Button(onClick = {
-                        selectedLocation = null
-                    }) {
-                        Text("关闭")
-                    }
-                }, icon = {
-                    Icon(
-                        painterResource(R.drawable.ic_map_pin), null,
-                        modifier = Modifier.size(40.dp),
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                })
+            val starBitmap = remember {
+                BitmapDescriptorFactory.fromResource(R.drawable.ic_map_star)
             }
-            if (isShowFavoriteLocationDialog) {
-                SnackbarAlertDialog(onDismissRequest = {
-                    isShowFavoriteLocationDialog = false
-                }, title = { _ ->
-                    Text("管理收藏的签到位置")
-                }, text = { _ ->
-                    Text("暂不可用，请期待后续更新。")
-                    Column(modifier = Modifier.selectableGroup()) {
-                        favoriteLocations.forEachIndexed { index, it ->
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .selectable(
-                                        selected = (clickedPosition.latitude == it.latitude && clickedPosition.longitude == it.longitude),
-                                        onClick = {
-                                            clickedPosition = LatLng(it.latitude, it.longitude)
-                                            clickedName = it.address
-                                        }
-                                    )
-                                    .padding(16.dp, 8.dp)) {
-                                RadioButton(
-                                    selected = (clickedPosition.latitude == it.latitude && clickedPosition.longitude == it.longitude),
-                                    onClick = null
-                                )
-                                Row {
-                                    Column {
-                                        Text(
-                                            it.label,
-                                            fontSize = 16.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.onSurface
-                                        )
-                                        Text(
-                                            it.address,
-                                            fontSize = 12.sp,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                        Text(
-                                            "(%.4f, %.4f)".format(it.latitude, it.longitude),
-                                            fontSize = 12.sp,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    }
-                                    IconButton(onClick = {
-                                        selectedLocation = index to it
-                                    }) {
-                                        Icon(painterResource(R.drawable.ic_settings), null)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }, confirmButton = {
-                    Button(onClick = {
-                        isShowFavoriteLocationDialog = false
-                    }) {
-                        Text("关闭")
-                    }
-                }, icon = {
-                    Icon(
-                        painterResource(R.drawable.ic_map_pinned), null,
-                        modifier = Modifier.size(40.dp),
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                })
+            val lastSignedLocationBitmap = remember {
+                context.createBitmapDescriptorFromVector(
+                    R.drawable.ic_map_pin_check_inside,
+                    backgroundColor = 0xFF3B82F6.toInt()
+                )
             }
-            if (isShowDialog) {
-                SnackbarAlertDialog(onDismissRequest = {
-                    isShowDialog = false
-                }, confirmButton = {
-                    Button(onClick = {
-                        isShowDialog = false
-                    }) {
-                        Text("OK")
-                    }
-                }, text = { _ ->
-                    Column {
-                        TextField(value = clickedName, onValueChange = {
-                            clickedName = it
-                        }, label = {
-                            Text("位置描述")
-                        })
-                        Spacer(modifier = Modifier.height(3.dp))
-                        Card(
-                            shape = RoundedCornerShape(18.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = Color(83, 83, 83)
-                            ), modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(3.dp, 3.dp)
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(10.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Icon(
-                                    painterResource(R.drawable.ic_info),
-                                    contentDescription = "Info",
-                                    tint = Color.White
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    buildAnnotatedString {
-                                        append("位置描述和选择的签到位置")
-                                        withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
-                                            append("无关")
-                                        }
-                                        append("，并不会影响签到范围的判断，理论上位置描述可以随便填写，但老师会直接看到你填写的位置描述。")
-                                    },
-                                    color = Color.White,
-                                    fontSize = 13.sp,
-                                    lineHeight = 18.sp,
-                                    fontWeight = FontWeight.W500
-                                )
-                            }
-                        }
-                    }
-                })
-            }
-            val geoCoder = remember {
+             val geoCoder = remember {
                 GeoCoder.newInstance().apply {
                     setOnGetGeoCodeResultListener(object : OnGetGeoCoderResultListener {
                         override fun onGetGeoCodeResult(p0: GeoCodeResult?) {}
@@ -318,11 +188,16 @@ fun GetLocationComponent(
                                 )
                                 return
                             }
+                            clickedName = p0.address
                             if (isNeedLocationDescribe) {
-                                clickedName = p0.address + clickedName
+                                clickedLabel = clickedLabel
+                                    ?: p0.poiList?.firstOrNull()?.name?.takeIf { it.isNotBlank() }
+                                    ?: "自定义位置"
                                 isNeedLocationDescribe = false
                             } else {
-                                clickedName = p0.poiList?.get(0)?.address ?: p0.address
+                                clickedLabel = p0.poiList?.firstOrNull()?.name
+                                    ?.takeIf { it.isNotBlank() }
+                                    ?: "自定义位置"
                             }
                         }
                     })
@@ -343,12 +218,16 @@ fun GetLocationComponent(
                                 clickedPosition.latitude
                             )
                         }",
-                        maxLines = 1
+                        maxLines = 1,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold
                     )
                     Text(
                         "位置: $clickedName",
                         maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        overflow = TextOverflow.Ellipsis,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold
                     )
                 }
                 Button(onClick = {
@@ -391,22 +270,11 @@ fun GetLocationComponent(
                 })
                     .apply {
                         val setMarkerPositionOrCreate = { position: LatLng ->
-                            if (marker == null) {
-                                marker = map.addOverlay(
-                                    MarkerOptions()
-                                        .position(position)
-                                        .icon(markerPositionIcon)
-                                        .draggable(true)
-                                        .extraInfo(Bundle().apply {
-                                            putString(
-                                                MARKER_BUNDLE_TYPE,
-                                                MarkerBundleType.LOCATION.value
-                                            )
-                                        })
-                                ) as Marker
-                            } else {
-                                marker!!.position = position
-                            }
+                            marker = map.addOrUpdateLocationMarker(
+                                marker,
+                                position,
+                                markerPositionIcon
+                            )
                         }
                         isClickable = true
                         map.setMapStatus(
@@ -443,6 +311,7 @@ fun GetLocationComponent(
                                         )
                                         clickedPosition = LatLng(it.latitude, it.longitude)
                                         clickedName = it.addrStr?.removePrefix("中国") ?: ""
+                                        clickedLabel = null
                                     } else {
                                         map.animateMapStatus(
                                             MapStatusUpdateFactory.newLatLngZoom(
@@ -452,15 +321,16 @@ fun GetLocationComponent(
                                                 ), 18f
                                             ), 1000
                                         )
-                                    }
-                                }
-                            }
+                     }
+                 }
+             }
                         })
                         map.setOnMapClickListener(object : BaiduMap.OnMapClickListener {
                             override fun onMapClick(p0: LatLng?) {
                                 p0?.let {
                                     hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                                     clickedPosition = it
+                                    clickedLabel = null
                                     geoCoder.reverseGeoCode(
                                         ReverseGeoCodeOption()
                                             .location(it)
@@ -476,6 +346,7 @@ fun GetLocationComponent(
                                     hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                                     clickedPosition = it.position
                                     clickedName = it.name
+                                    clickedLabel = it.name
                                     isNeedLocationDescribe = true
                                     geoCoder.reverseGeoCode(
                                         ReverseGeoCodeOption()
@@ -492,9 +363,10 @@ fun GetLocationComponent(
                             p0?.let { favoriteMarker ->
                                 favoriteMarker.extraInfo.let {
                                     if (it.getString(MARKER_BUNDLE_TYPE) != MarkerBundleType.FAVORITE.toString()) {
-                                        return@setOnMarkerClickListener false
+                                        return@setOnMarkerClickListener true
                                     }
                                     clickedPosition = favoriteMarker.position
+                                    clickedLabel = it.getString(MARKER_BUNDLE_LABEL)
                                     clickedName =
                                         it.getString(MARKER_BUNDLE_ADDRESS) ?: run {
                                             isNeedLocationDescribe = true
@@ -507,11 +379,6 @@ fun GetLocationComponent(
                                             )
                                             "加载中..."
                                         }
-                                    favoriteMarker.titleOptions = TitleOptions().text(
-                                        it.getString(MARKER_BUNDLE_LABEL) ?: "收藏点"
-                                    )
-                                    lastClickedFavoriteLocationMarker?.titleOptions = TitleOptions()
-                                    lastClickedFavoriteLocationMarker = favoriteMarker
                                     setMarkerPositionOrCreate(clickedPosition)
                                 }
                             }
@@ -525,6 +392,7 @@ fun GetLocationComponent(
                                 hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                                 p0?.let {
                                     clickedPosition = it.position
+                                    clickedLabel = null
                                     geoCoder.reverseGeoCode(
                                         ReverseGeoCodeOption()
                                             .location(it.position)
@@ -535,6 +403,27 @@ fun GetLocationComponent(
                             }
 
                             override fun onMarkerDragStart(p0: Marker?) {}
+                        })
+                        map.setOnMapStatusChangeListener(object :
+                            BaiduMap.OnMapStatusChangeListener {
+                            override fun onMapStatusChangeStart(p0: MapStatus?) {}
+
+                            override fun onMapStatusChangeStart(p0: MapStatus?, p1: Int) {}
+
+                            override fun onMapStatusChange(p0: MapStatus?) {}
+
+                            override fun onMapStatusChangeFinish(p0: MapStatus?) {
+                                val isTitleVisible =
+                                    (p0?.zoom ?: 0f) >= MARKER_TITLE_VISIBLE_ZOOM
+                                if (isMarkerTitleVisible != isTitleVisible) {
+                                    isMarkerTitleVisible = isTitleVisible
+                                    map.updateMarkerTitlesVisibility(
+                                        favoriteLocationMarkers,
+                                        lastSignedLocationMarker,
+                                        isTitleVisible
+                                    )
+                                }
+                            }
                         })
                         if (locationInfo != null && locationInfo.isAvailable()) {
                             locationRange = locationInfo.locationRange
@@ -553,32 +442,180 @@ fun GetLocationComponent(
                                     .fillColor(argb(128, 255, 0, 0))
                             )
                         }
-                        locationClient.start()
-                    }
-            }
+                         locationClient.start()
+                     }
+             }
+             if (isShowDialog) {
+                 SnackbarAlertDialog(onDismissRequest = {
+                     isShowDialog = false
+                 }, confirmButton = {
+                     Button(onClick = {
+                         val longitude = dialogLongitude.toDoubleOrNull()
+                         val latitude = dialogLatitude.toDoubleOrNull()
+                         if (longitude == null || latitude == null ||
+                             longitude !in -180.0..180.0 || latitude !in -90.0..90.0
+                         ) {
+                             snackbarHost.displaySnackbar("请输入有效的经纬度", coroutineScope)
+                             hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
+                             return@Button
+                         }
+                         val newPosition = LatLng(latitude, longitude)
+                         clickedPosition = newPosition
+                         marker = baiduMap.map.addOrUpdateLocationMarker(
+                             marker,
+                             newPosition,
+                             markerPositionIcon
+                         )
+                         baiduMap.map.animateMapStatus(
+                             MapStatusUpdateFactory.newLatLngZoom(newPosition, 18f)
+                         )
+                         if (clickedName == dialogOriginalName) {
+                             clickedLabel = null
+                             isNeedLocationDescribe = false
+                             geoCoder.reverseGeoCode(
+                                 ReverseGeoCodeOption()
+                                     .location(newPosition)
+                                     .newVersion(1)
+                                     .radius(500)
+                             )
+                         }
+                         isShowDialog = false
+                         hapticFeedback.performHapticFeedback(HapticFeedbackType.Confirm)
+                     }) {
+                         Text("OK")
+                     }
+                 }, text = { _ ->
+                     Column {
+                         Row(
+                             modifier = Modifier.fillMaxWidth(),
+                             horizontalArrangement = Arrangement.spacedBy(8.dp)
+                         ) {
+                             TextField(
+                                 value = dialogLongitude,
+                                 onValueChange = { dialogLongitude = it },
+                                 label = { Text("经度") },
+                                 singleLine = true,
+                                 modifier = Modifier.weight(1f)
+                             )
+                             TextField(
+                                 value = dialogLatitude,
+                                 onValueChange = { dialogLatitude = it },
+                                 label = { Text("纬度") },
+                                 singleLine = true,
+                                 modifier = Modifier.weight(1f)
+                             )
+                         }
+                         Spacer(modifier = Modifier.height(8.dp))
+                         TextField(value = clickedName, onValueChange = {
+                             clickedName = it
+                         }, label = {
+                             Text("位置描述")
+                         })
+                         Spacer(modifier = Modifier.height(3.dp))
+                         Card(
+                             shape = RoundedCornerShape(18.dp),
+                             colors = CardDefaults.cardColors(
+                                 containerColor = Color(83, 83, 83)
+                             ), modifier = Modifier
+                                 .fillMaxWidth()
+                                 .padding(3.dp, 3.dp)
+                         ) {
+                             Row(
+                                 modifier = Modifier
+                                     .fillMaxWidth()
+                                     .padding(10.dp),
+                                 verticalAlignment = Alignment.CenterVertically
+                             ) {
+                                 Spacer(modifier = Modifier.width(4.dp))
+                                 Icon(
+                                     painterResource(R.drawable.ic_info),
+                                     contentDescription = "Info",
+                                     tint = Color.White
+                                 )
+                                 Spacer(modifier = Modifier.width(8.dp))
+                                 Text(
+                                     buildAnnotatedString {
+                                         append("位置描述和选择的签到位置")
+                                         withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
+                                             append("无关")
+                                         }
+                                         append("，并不会影响签到范围的判断，理论上位置描述可以随便填写，但老师会直接看到你填写的位置描述。")
+                                     },
+                                     color = Color.White,
+                                     fontSize = 13.sp,
+                                     lineHeight = 18.sp,
+                                     fontWeight = FontWeight.W500
+                                 )
+                             }
+                         }
+                     }
+                 })
+             }
             LaunchedEffect(Unit) {
-                val starBitmap = BitmapDescriptorFactory.fromResource(R.drawable.ic_map_star)
-                favoriteLocations.addAll(context.chaoxingDataStore.data.first().locationsList)
-                favoriteLocations.forEach {
-                    favoriteLocationMarkers.add(
-                        baiduMap.map.addOverlay(
-                            LatLng(it.latitude, it.longitude).let { pos ->
-                                MarkerOptions()
-                                    .position(pos)
-                                    .icon(starBitmap)
-                                    .titleOptions(TitleOptions().text(it.label))
-                                    .extraInfo(Bundle().apply {
-                                        putString(
-                                            MARKER_BUNDLE_TYPE,
-                                            MarkerBundleType.FAVORITE.value
-                                        )
-                                        putString(MARKER_BUNDLE_LABEL, it.label)
-                                        putString(MARKER_BUNDLE_ADDRESS, it.address)
-                                    })
-                            }
+                context.chaoxingDataStore.data.first().let { data ->
+                    favoriteLocations.addAll(data.locationsList)
+                    favoriteLocations.forEach {
+                        favoriteLocationMarkers.add(
+                            baiduMap.map.addFavoriteLocationMarker(it, starBitmap)
+                        )
+                    }
+                    if (data.preferences.hasLastSignedLocation()) {
+                        val last = data.preferences.lastSignedLocation
+                        lastSignedLocationMarker = baiduMap.map.addOverlay(
+                            MarkerOptions()
+                                .position(LatLng(last.latitude, last.longitude))
+                                .anchor(0.5f, 0.5f)
+                                .icon(lastSignedLocationBitmap)
+                                .extraInfo(Bundle().apply {
+                                    putString(
+                                        MARKER_BUNDLE_TYPE,
+                                        MarkerBundleType.LAST_SIGNED.value
+                                    )
+                                })
                         ) as Marker
+                    }
+                    baiduMap.map.updateMarkerTitlesVisibility(
+                        favoriteLocationMarkers,
+                        lastSignedLocationMarker,
+                        isMarkerTitleVisible
                     )
                 }
+            }
+            if (isShowFavoriteLocationDialog) {
+                FavoriteLocationSettingDialog(
+                    favoriteLocations,
+                    onDismiss = {
+                        isShowFavoriteLocationDialog = false
+                    },
+                    onSelectLocation = { target ->
+                        LatLng(target.latitude, target.longitude).let { position ->
+                         clickedPosition = position
+                         clickedName = target.address
+                         clickedLabel = target.label
+                            marker = baiduMap.map.addOrUpdateLocationMarker(
+                                marker,
+                                position,
+                                markerPositionIcon
+                            )
+                            baiduMap.map.animateMapStatus(
+                                MapStatusUpdateFactory.newLatLngZoom(position, 18f)
+                            )
+                        }
+                    },
+                    onDeleteLocation = { target ->
+                        removeFavoriteLocation(
+                            context,
+                            coroutineScope,
+                            target,
+                            favoriteLocations,
+                            favoriteLocationMarkers
+                        )
+                    },
+                    favoriteLocationMarkers = favoriteLocationMarkers,
+                    selectedLocation = favoriteLocations.find {
+                        it.latitude == clickedPosition.latitude && it.longitude == clickedPosition.longitude
+                    }
+                )
             }
             Box(modifier = Modifier.fillMaxSize()) {
                 Column(
@@ -597,67 +634,65 @@ fun GetLocationComponent(
                                 favoriteLocationTooltipState.show()
                         }
                     }
-                    disableComposableCode {
-                        TooltipBox(
-                            onDismissRequest = {},
-                            positionProvider = TooltipDefaults.rememberTooltipPositionProvider(
-                                TooltipAnchorPosition.Start,
-                                spacingBetweenTooltipAndAnchor = 12.dp
-                            ),
-                            hasAction = true,
-                            tooltip = {
-                                RichTooltip(
-                                    maxWidth = 200.dp, caretShape = TooltipDefaults.caretShape(
-                                        DpSize(14.dp, 7.dp)
-                                    )
+                    TooltipBox(
+                        onDismissRequest = {},
+                        positionProvider = TooltipDefaults.rememberTooltipPositionProvider(
+                            TooltipAnchorPosition.Start,
+                            spacingBetweenTooltipAndAnchor = 12.dp
+                        ),
+                        hasAction = true,
+                        tooltip = {
+                            RichTooltip(
+                                maxWidth = 200.dp, caretShape = TooltipDefaults.caretShape(
+                                    DpSize(14.dp, 7.dp)
+                                )
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center,
+                                    modifier = Modifier.padding(2.dp, 6.dp, 0.dp, 6.dp)
                                 ) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.Center,
-                                        modifier = Modifier.padding(2.dp, 6.dp, 0.dp, 6.dp)
-                                    ) {
-                                        Text(
-                                            "现在可以收藏常用的位置签到点位了。",
-                                            modifier = Modifier.weight(1f)
-                                        )
-                                        IconButton(
-                                            onClick = {
-                                                hapticFeedback.performHapticFeedback(
-                                                    HapticFeedbackType.ContextClick
-                                                )
-                                                favoriteLocationTooltipState.dismiss()
-                                                coroutineScope.launch(Dispatchers.IO) {
-                                                    context.chaoxingDataStore.updateData {
-                                                        it.toBuilder().setLearntTooltips(
-                                                            it.learntTooltips.toBuilder()
-                                                                .setSupportFavoriteLocation(
-                                                                    true
-                                                                ).build()
-                                                        ).build()
-                                                    }
-                                                }
-                                            },
-                                            modifier = Modifier.size(32.dp)
-                                        ) {
-                                            Icon(
-                                                painterResource(R.drawable.ic_x),
-                                                contentDescription = "关闭提示"
+                                    Text(
+                                        "现在可以收藏常用的签到位置了。",
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    IconButton(
+                                        onClick = {
+                                            hapticFeedback.performHapticFeedback(
+                                                HapticFeedbackType.ContextClick
                                             )
-                                        }
+                                            favoriteLocationTooltipState.dismiss()
+                                            coroutineScope.launch(Dispatchers.IO) {
+                                                context.chaoxingDataStore.updateData {
+                                                    it.toBuilder().setLearntTooltips(
+                                                        it.learntTooltips.toBuilder()
+                                                            .setSupportFavoriteLocation(
+                                                                true
+                                                            ).build()
+                                                    ).build()
+                                                }
+                                            }
+                                        },
+                                        modifier = Modifier.size(32.dp)
+                                    ) {
+                                        Icon(
+                                            painterResource(R.drawable.ic_x),
+                                            contentDescription = "关闭提示"
+                                        )
                                     }
                                 }
-                            },
-                            state = favoriteLocationTooltipState,
-                        ) {
-                            FloatingActionButton(onClick = {
-                                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                                isShowFavoriteLocationDialog = true
-                            }) {
-                                Icon(
-                                    painterResource(R.drawable.ic_map_pinned),
-                                    contentDescription = null
-                                )
                             }
+                        },
+                        state = favoriteLocationTooltipState,
+                    ) {
+                        FloatingActionButton(onClick = {
+                            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                            isShowFavoriteLocationDialog = true
+                        }) {
+                            Icon(
+                                painterResource(R.drawable.ic_map_pinned),
+                                contentDescription = null
+                            )
                         }
                     }
                     Spacer(modifier = Modifier.height(8.dp))
@@ -729,6 +764,9 @@ fun GetLocationComponent(
                     Spacer(modifier = Modifier.height(8.dp))
                     FloatingActionButton(onClick = {
                         hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                        dialogLongitude = clickedPosition.longitude.toString()
+                        dialogLatitude = clickedPosition.latitude.toString()
+                        dialogOriginalName = clickedName
                         isShowDialog = true
                     }) {
                         Icon(

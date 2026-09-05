@@ -28,18 +28,22 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.InlineTextContent
+import androidx.compose.foundation.text.appendInlineContent
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -53,6 +57,8 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.Placeholder
+import androidx.compose.ui.text.PlaceholderVerticalAlign
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -189,7 +195,7 @@ fun CourseListScreen(
                         }
                     } //TODO: Recommend preferred class
                     isCaptchaAutoResolveLearntTooltip.value =
-                        !datastoreData.learntTooltips.sliderCaptchaAutoResolveByHashMap
+                        !datastoreData.learntTooltips.sliderCaptchaAutoResolveByModel
                     preferredClassIds.addAll(
                         datastoreData.preferClassIdList.reversed()
                     )
@@ -425,6 +431,20 @@ fun CourseListScreen(
                             } //TODO: Recommend
 
                             var debouncePreviousTime by remember { mutableLongStateOf(0L) }
+                            var searchQuery by rememberSaveable { mutableStateOf("") }
+                            val filteredActivities =
+                                if (searchQuery.isBlank()) activitiesData
+                                else activitiesData.filter {
+                                    it.courseName.contains(searchQuery, ignoreCase = true) ||
+                                            (it.teacherName?.contains(
+                                                searchQuery,
+                                                ignoreCase = true
+                                            ) == true) ||
+                                            (it.schools?.contains(
+                                                searchQuery,
+                                                ignoreCase = true
+                                            ) == true)
+                                }
                             LazyColumn {
                                 item {
                                     Spacer(modifier = Modifier.height(4.dp))
@@ -494,32 +514,118 @@ fun CourseListScreen(
                                 item {
                                     NewFeatureTipsCard(
                                         isCaptchaAutoResolveLearntTooltip,
-                                        "现在部分的验证码会根据内置的数据表自动滑动完成了。"
+                                        tipsContent = {
+                                            val brainIconId = "brain_icon"
+                                            Text(
+                                                buildAnnotatedString {
+                                                    append("现在验证码会通过内置的识别模型自动滑动完成了，自动完成的验证码会以")
+                                                    appendInlineContent(
+                                                        brainIconId,
+                                                        "[模型自动识别]"
+                                                    )
+                                                    append("显示。")
+                                                },
+                                                inlineContent = mapOf(
+                                                    brainIconId to InlineTextContent(
+                                                        Placeholder(
+                                                            width = 16.sp,
+                                                            height = 16.sp,
+                                                            placeholderVerticalAlign = PlaceholderVerticalAlign.Center
+                                                        )
+                                                    ) {
+                                                        Icon(
+                                                            painterResource(R.drawable.ic_brain_circuit),
+                                                            contentDescription = "模型自动识别"
+                                                        )
+                                                    }
+                                                ),
+                                                fontSize = 14.sp,
+                                                lineHeight = 16.sp
+                                            )
+                                        }
                                     ) {
                                         context.chaoxingDataStore.updateData {
                                             it.toBuilder()
                                                 .setLearntTooltips(
                                                     it.learntTooltips.toBuilder()
-                                                        .setSliderCaptchaAutoResolveByHashMap(
+                                                        .setSliderCaptchaAutoResolveByModel(
                                                             true
                                                         ).build()
                                                 ).build()
                                         }
                                     }
                                 }
-                                items(activitiesData) { data ->
-                                    key(data.classId) {
+                                stickyHeader(key = "course_search") {
+                                    Surface(
+                                        color = MaterialTheme.colorScheme.background,
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Column(modifier = Modifier.padding(bottom = 8.dp)) {
+                                            OutlinedTextField(
+                                                value = searchQuery,
+                                                onValueChange = { searchQuery = it },
+                                                modifier = Modifier.fillMaxWidth(),
+                                                placeholder = { Text("搜索课程名称 / 老师 / 学校") },
+                                                leadingIcon = {
+                                                    Icon(
+                                                        painterResource(R.drawable.ic_search),
+                                                        contentDescription = "搜索"
+                                                    )
+                                                },
+                                                trailingIcon = {
+                                                    if (searchQuery.isNotEmpty()) {
+                                                        IconButton(onClick = {
+                                                            hapticFeedback.performHapticFeedback(
+                                                                HapticFeedbackType.ContextClick
+                                                            )
+                                                            searchQuery = ""
+                                                        }) {
+                                                            Icon(
+                                                                painterResource(R.drawable.ic_x),
+                                                                contentDescription = "清除搜索"
+                                                            )
+                                                        }
+                                                    }
+                                                },
+                                                singleLine = true,
+                                                shape = RoundedCornerShape(18.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                                if (searchQuery.isNotBlank() && filteredActivities.isEmpty()) {
+                                    item {
+                                        Column(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(vertical = 24.dp),
+                                            horizontalAlignment = Alignment.CenterHorizontally
+                                        ) {
+                                            Icon(
+                                                painterResource(R.drawable.ic_circle_question_mark),
+                                                null
+                                            )
+                                            Spacer(modifier = Modifier.height(8.dp))
+                                            Text("没有找到与“$searchQuery”匹配的课程")
+                                        }
+                                    }
+                                }
+                                items(filteredActivities, key = { it.classId }) { data ->
+                                    Column(
+                                        modifier = Modifier.animateItem(
+                                            placementSpec = spring(
+                                                stiffness = Spring.StiffnessMediumLow,
+                                                visibilityThreshold = IntOffset.VisibilityThreshold
+                                            ),
+                                            fadeInSpec = spring(
+                                                stiffness = Spring.StiffnessMedium),
+                                            fadeOutSpec = spring(
+                                                stiffness = Spring.StiffnessMedium)
+                                        )
+                                    ) {
                                         CourseInfoColumnCard(
                                             data,
                                             imageLoader,
-                                            modifier = Modifier.animateItem(
-                                                placementSpec = spring(
-                                                    stiffness = Spring.StiffnessVeryLow,
-                                                    visibilityThreshold = IntOffset.VisibilityThreshold
-                                                ),
-                                                fadeInSpec = spring(Spring.StiffnessVeryLow),
-                                                fadeOutSpec = spring(Spring.StiffnessVeryLow)
-                                            ),
                                             onPreferredResort = { isPreferred ->
                                                 hapticFeedback.performHapticFeedback(
                                                     HapticFeedbackType.ContextClick

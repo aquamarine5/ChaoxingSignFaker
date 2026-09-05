@@ -89,12 +89,13 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
-import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCaptchaHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingFaceHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClientPool
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CloneSessionTips
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.FavoriteLocationSettingComponent
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.FavoriteLocationSettingDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.initializeClientInfo
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingEasemobIMGroup
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
@@ -138,9 +139,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalImageLoader
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
-import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.displaySnackbar
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.isDevelopedMode
-import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
 import org.aquamarine5.brainspark.stackbricks.StackbricksPolicy
 import org.aquamarine5.brainspark.stackbricks.StackbricksService
 import org.aquamarine5.brainspark.stackbricks.providers.qiniu.QiniuConfiguration
@@ -151,7 +150,6 @@ import java.security.MessageDigest
 import java.util.concurrent.TimeUnit
 import kotlin.reflect.typeOf
 import kotlin.system.exitProcess
-import kotlin.time.Duration.Companion.days
 
 class MainActivity : ComponentActivity() {
     companion object {
@@ -441,25 +439,6 @@ class MainActivity : ComponentActivity() {
                                                         )
                                                         return@runCatching SignGraphDestination
                                                     }.onSuccess {
-                                                        if (System.currentTimeMillis() - datastore.captchaMemories.lastCheckRemoteMemoriesTimestamp > 1.days.inWholeMilliseconds)
-                                                            launch {
-                                                                ChaoxingCaptchaHelper.updateRemoteCaptchaMemoriesData(
-                                                                    this@MainActivity
-                                                                ) { currentVersion, supportVersion ->
-                                                                    snackbarHostState.displaySnackbar(
-                                                                        "服务器上的验证码数值记忆版本 $currentVersion 高于当前程序支持的版本 $supportVersion ，请更新程序版本",
-                                                                        this
-                                                                    )
-                                                                }.onFailure {
-                                                                    it.snackbarReport(
-                                                                        snackbarHostState,
-                                                                        this,
-                                                                        "更新验证码数值记忆数据失败",
-                                                                        hapticFeedback,
-                                                                        shouldDismiss = false
-                                                                    )
-                                                                }
-                                                            }
                                                         launch {
                                                             runCatching {
                                                                 ChaoxingAnalyser.setupStateAnalyser(
@@ -566,6 +545,16 @@ class MainActivity : ComponentActivity() {
                                                     animationSpec = tween(300)
                                                 )
                                             },
+                                            predictivePopEnterTransition = {
+                                                fadeIn(
+                                                    animationSpec = tween(300)
+                                                )
+                                            },
+                                            predictivePopExitTransition = {
+                                                fadeOut(
+                                                    animationSpec = tween(300)
+                                                )
+                                            },
                                         ) {
                                             navigation<SignGraphDestination>(startDestination = CourseListDestination()) {
                                                 composable<CourseListDestination> { entry ->
@@ -631,6 +620,9 @@ class MainActivity : ComponentActivity() {
                                                         it.toRoute(),
                                                         navToGroupDetail = { destination ->
                                                             navController.navigate(destination)
+                                                        },
+                                                        navBack = {
+                                                            navController.navigateUp()
                                                         }
                                                     )
                                                 }
@@ -750,13 +742,26 @@ class MainActivity : ComponentActivity() {
 
                                             navigation<SettingGraphDestination>(startDestination = SettingDestination) {
                                                 composable<SettingDestination> {
-                                                    SettingScreen(stackbricksService) {
-                                                        navController.navigate(LoginDestination()) {
-                                                            popUpTo<SettingDestination> {
-                                                                inclusive = true
+                                                    SettingScreen(
+                                                        stackbricksService,
+                                                        naviToLoginScreen = {
+                                                            navController.navigate(LoginDestination()) {
+                                                                popUpTo<SettingDestination> {
+                                                                    inclusive = true
+                                                                }
                                                             }
+                                                        },
+                                                        naviToFavoriteLocationSetting = {
+                                                            navController.navigate(
+                                                                FavoriteLocationSettingDestination
+                                                            )
                                                         }
-                                                    }
+                                                    )
+                                                }
+                                                composable<FavoriteLocationSettingDestination> {
+                                                    FavoriteLocationSettingComponent(
+                                                        modifier = Modifier.fillMaxSize()
+                                                    )
                                                 }
                                             }
 

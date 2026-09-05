@@ -21,6 +21,8 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.SignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignStatus
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingQRCodeSigner.QRCodeExpiredException
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCaptchaPredictor
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingCaptchaCancelledException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingFaceSignException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.FaceRecognitionData
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.checkIsLast
@@ -42,15 +44,16 @@ class ChaoxingSignHandler<in T>(
     private val getSignRealtimeParameter: (suspend () -> T)? = null
 ) {
     private var storedValue: T? = null
-    suspend fun ignoreExceptionOtherUserSigning(
+    suspend fun retryOtherUserSigning(
         session: ChaoxingOtherUserSession,
-        index: Int
+        index: Int,
+        bypassChecking: Boolean
     ): Result<Boolean> {
         return onOtherUserSigning(
             getSignRealtimeParameter?.invoke()
                 ?: requireNotNull(storedValue) { "Should call startSigning() first." },
             session,
-            true,
+            bypassChecking,
             index
         ).onFailure {
             (it as? ChaoxingHttpClient.ChaoxingGetUserInfoException)?.let { exception ->
@@ -58,6 +61,8 @@ class ChaoxingSignHandler<in T>(
                     ChaoxingOtherUserHelper.markSessionObsoleted(session, context)
             }
         }.onSuccess {
+            if (it && ChaoxingCaptchaPredictor.lastResolveByModel)
+                signStatus[1 + index].markCaptchaResolvedByModel()
             if (destination.endTime != null && System.currentTimeMillis() > destination.endTime!!)
                 signStatus[1 + index].successForLate()
             else
@@ -83,6 +88,8 @@ class ChaoxingSignHandler<in T>(
                 signStatus[0].loading()
                 onSelfSigning(value).onSuccess {
                     isCaptchaSigning = it
+                    if (it && ChaoxingCaptchaPredictor.lastResolveByModel)
+                        signStatus[0].markCaptchaResolvedByModel()
                     userSelections[0] = false
                     faceRecognitionData?.markSuccess(selfPhoneNumber, otherUserSessionList)
                     faceRecognitionData?.reportUsage(context, selfPhoneNumber, false)
@@ -119,12 +126,14 @@ class ChaoxingSignHandler<in T>(
                         onAllSigningFinished(false)
                         return@launch
                     } else {
-                        it.snackbarReport(
-                            snackbarHost,
-                            coroutineScope,
-                            "为${ChaoxingHttpClient.instance!!.userEntity.name}签到失败",
-                            hapticFeedback
-                        )
+                        if (it !is ChaoxingCaptchaCancelledException) {
+                            it.snackbarReport(
+                                snackbarHost,
+                                coroutineScope,
+                                "为${ChaoxingHttpClient.instance!!.userEntity.name}签到失败",
+                                hapticFeedback
+                            )
+                        }
                         if (otherUserSessionList.all { it == null }) {
                             onAllSigningFinished(userSelections.all { !it })
                         }
@@ -140,6 +149,8 @@ class ChaoxingSignHandler<in T>(
                 isFirstOtherUserForSign = false
                 onOtherUserSigning(value, session, false, index).onSuccess {
                     isCaptchaSigning = it
+                    if (it && ChaoxingCaptchaPredictor.lastResolveByModel)
+                        signStatus[1 + index].markCaptchaResolvedByModel()
                     if (destination.endTime != null && System.currentTimeMillis() > destination.endTime!!)
                         signStatus[1 + index].successForLate()
                     else
@@ -168,12 +179,14 @@ class ChaoxingSignHandler<in T>(
                         session.phoneNumber,
                         it is ChaoxingFaceSignException
                     )
-                    it.snackbarReport(
-                        snackbarHost,
-                        coroutineScope,
-                        "为${session.name}签到失败",
-                        hapticFeedback
-                    )
+                    if (it !is ChaoxingCaptchaCancelledException) {
+                        it.snackbarReport(
+                            snackbarHost,
+                            coroutineScope,
+                            "为${session.name}签到失败",
+                            hapticFeedback
+                        )
+                    }
                     it.ifShouldDeselect {
                         userSelections[index + 1] = false
                     }

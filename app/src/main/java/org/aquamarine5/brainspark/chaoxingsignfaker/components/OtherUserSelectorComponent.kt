@@ -51,6 +51,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
@@ -71,6 +72,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.takeOrElse
@@ -129,7 +131,7 @@ fun OtherUserSelectorComponent(
     isCurrentAlreadySigned: Boolean,
     isSigning: MutableState<Boolean>,
     userSelections: SnapshotStateList<Boolean>,
-    onIgnoreExceptionSignAction: suspend (index: Int, session: ChaoxingOtherUserSession) -> Unit,
+    onRetrySignAction: suspend (index: Int, session: ChaoxingOtherUserSession, bypassChecking: Boolean) -> Unit,
     userContent: @Composable ((index: Int) -> Unit)? = null,
     prefixTipsContent: @Composable (() -> Unit),
     suffixContent: @Composable (() -> Unit)? = null,
@@ -302,11 +304,15 @@ fun OtherUserSelectorComponent(
                 )
             }, text = {
                 Text(buildAnnotatedString {
-                    append("随地大小签会自动检测并拒绝为不在签到班级的学生进行签到操作，")
+                    append("随地大小签在签到前的检测中判断此用户不在签到班级或已签到过，因此拒绝了此次签到操作，")
                     withStyle(SpanStyle(color = Color.Red)) {
-                        append("因为强制签到会导致老师的已签名单中出现不在这个班级的学生")
+                        append("此时直接重试签到依然会被同样的检测拒绝")
                     }
-                    append("。\n同时，如果随地大小签判断此用户已经签到，那么也不会进行签到操作。\n如果你认为随地大小签的判断存在问题，请点击【强制重试签到】按钮，随地大小签会忽略所有应用内的判断条件，直接进行签到。")
+                    append("。\n如果你认为随地大小签的判断存在问题，请点击【强制重试签到】按钮，随地大小签会忽略所有应用内的判断条件，直接进行签到，")
+                    withStyle(SpanStyle(color = Color.Red)) {
+                        append("但这会导致老师的已签名单中出现不在这个班级的学生，或产生重复的签到记录")
+                    }
+                    append("。")
                 })
             }, confirmButton = {
                 OutlinedButton(onClick = {
@@ -323,9 +329,10 @@ fun OtherUserSelectorComponent(
                         isIgnoreExceptionSigning = true
                         val data = ignoreExceptionUserIndex!!
                         ignoreExceptionUserIndex = null
-                        onIgnoreExceptionSignAction(
+                        onRetrySignAction(
                             data.first,
-                            data.second
+                            data.second,
+                            true
                         )
                         isIgnoreExceptionSigning = false
                     }
@@ -835,7 +842,7 @@ fun OtherUserSelectorComponent(
                                                     .padding(start = 4.dp)
                                                     .size(14.dp)
                                                     .then(
-                                                        if (isDevelopedMode && faceRecognitionData != null) Modifier.clickable {
+                                                        if (isDevelopedMode) Modifier.clickable {
                                                             hapticFeedback.performHapticFeedback(
                                                                 HapticFeedbackType.ContextClick
                                                             )
@@ -867,6 +874,16 @@ fun OtherUserSelectorComponent(
                                             )
                                         }
                                     }
+                                    if (signStatus[0].isCaptchaResolvedByModel.value) {
+                                        Icon(
+                                            painterResource(R.drawable.ic_brain_circuit),
+                                            contentDescription = "验证码由模型自动识别",
+                                            modifier = Modifier
+                                                .padding(start = 4.dp)
+                                                .size(14.dp),
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
                                 }
                                 Text(
                                     "${ChaoxingHttpClient.instance?.userEntity?.name} ($selfPhoneNumber)",
@@ -892,8 +909,9 @@ fun OtherUserSelectorComponent(
                                 .fillMaxWidth()
                                 .padding(vertical = 4.dp)
                         ) {
-                            (1 + index).let { i ->
-                                val successForOtherUser by signStatus[i].isSuccess
+                        (1 + index).let { i ->
+                            val successForOtherUser by signStatus[i].isSuccess
+                            var isRetrying by remember { mutableStateOf(false) }
                                 Checkbox(
                                     checked = userSelections[i] && signStatus[i].isSuccess.value != true,
                                     onCheckedChange = { isChecked ->
@@ -949,6 +967,16 @@ fun OtherUserSelectorComponent(
                                                         tint = it.value.color.takeOrElse { MaterialTheme.colorScheme.primary }
                                                     )
                                                 }
+                                            if (signStatus[i].isCaptchaResolvedByModel.value) {
+                                                Icon(
+                                                    painterResource(R.drawable.ic_brain_circuit),
+                                                    contentDescription = "验证码由模型自动识别",
+                                                    modifier = Modifier
+                                                        .padding(start = 4.dp)
+                                                        .size(14.dp),
+                                                    tint = MaterialTheme.colorScheme.primary
+                                                )
+                                            }
                                         }
                                         if (faceRecognitionData != null && session.phoneNumber in faceRecognitionData.failedPhoneNumbers) {
                                             Icon(
@@ -997,7 +1025,15 @@ fun OtherUserSelectorComponent(
                                             }
                                         userContent?.invoke(1 + index)
                                         signStatus[i].ResultCard {
-                                            ignoreExceptionUserIndex = index to session
+                                            if (signStatus[i].isBypassCheckingRequired) {
+                                                ignoreExceptionUserIndex = index to session
+                                            } else if (isRetrying.not()) {
+                                                isRetrying = true
+                                                coroutineScope.launch {
+                                                    onRetrySignAction(index, session, false)
+                                                    isRetrying = false
+                                                }
+                                            }
                                         }
                                     }
                                 }
@@ -1027,7 +1063,18 @@ fun OtherUserSelectorComponent(
                     onClick = {
                         if (isSigning.value.not())
                             performSign()
-                    }
+                    },
+                    containerColor = if (isSigning.value) {
+                        MaterialTheme.colorScheme.surfaceVariant
+                    } else {
+                        FloatingActionButtonDefaults.containerColor
+                    },
+                    contentColor = if (isSigning.value) {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    } else {
+                        MaterialTheme.colorScheme.onPrimaryContainer
+                    },
+                    modifier = Modifier.alpha(if (isSigning.value) 0.6f else 1f)
                 ) {
                     Icon(
                         painterResource(R.drawable.ic_clipboard_pen_line),

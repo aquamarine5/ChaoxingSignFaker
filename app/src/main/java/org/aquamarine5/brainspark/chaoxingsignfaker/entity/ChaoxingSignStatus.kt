@@ -26,6 +26,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
+import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSigner
 import org.aquamarine5.brainspark.chaoxingsignfaker.ui.theme.Orange
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingPredictableException
@@ -36,8 +37,14 @@ data class ChaoxingSignStatus(
     val isSuccess: MutableState<Boolean?> = mutableStateOf(null),
     val error: MutableState<String> = mutableStateOf(""),
     val isLoading: MutableState<Boolean> = mutableStateOf(false),
-    val isObsoleteSession: MutableState<Boolean> = mutableStateOf(false)
+    val isObsoleteSession: MutableState<Boolean> = mutableStateOf(false),
+    val isCaptchaResolvedByModel: MutableState<Boolean> = mutableStateOf(false),
+    val errorException: MutableState<Throwable?> = mutableStateOf(null)
 ) {
+    fun markCaptchaResolvedByModel() {
+        isCaptchaResolvedByModel.value = true
+    }
+
     fun loading() {
         isLoading.value = true
     }
@@ -57,6 +64,7 @@ data class ChaoxingSignStatus(
     fun failed(e: Throwable) {
         isSuccess.value = false
         isLoading.value = false
+        errorException.value = e
         error.value = when (e) {
             is ChaoxingSigner.AlreadySignedException -> "您已签到过了"
             is ChaoxingPredictableException -> e.message ?: "签到失败"
@@ -70,8 +78,12 @@ data class ChaoxingSignStatus(
         isObsoleteSession.value = true
     }
 
+    val isBypassCheckingRequired: Boolean
+        get() = errorException.value is ChaoxingSigner.SignActivityNoPermissionException ||
+                errorException.value is ChaoxingSigner.PredictedAlreadySignedException
+
     @Composable
-    fun ResultCard(onIgnoreException: (() -> Unit)? = null) {
+    fun ResultCard(onRetry: (() -> Unit)? = null) {
         when (isSuccess.value) {
             true -> {
                 Icon(painterResource(R.drawable.ic_check), "签到成功")
@@ -82,10 +94,10 @@ data class ChaoxingSignStatus(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.End
                 ) {
-                    if (onIgnoreException != null)
+                    if (onRetry != null)
                         IconButton(onClick = {
                             hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                            onIgnoreException()
+                            onRetry()
                         }) {
                             Icon(painterResource(R.drawable.ic_refresh_rounded), null)
                         }
@@ -115,3 +127,17 @@ data class ChaoxingSignStatus(
 
     }
 }
+typealias ImportOtherUserResult = Triple<ChaoxingImportOtherUserResultStatus, String, ChaoxingOtherUserSession>
+
+enum class ChaoxingImportOtherUserResultStatus {
+    SUCCESS,
+    EXISTED_BUT_UPDATE_PASSWORD,
+    EXISTED_BUT_UPDATE_FACE_IMAGES
+}
+
+fun ImportOtherUserResult.getResultTips(): String =
+    when (this.first) {
+        ChaoxingImportOtherUserResultStatus.SUCCESS -> "$second(手机号:${third.phoneNumber}) 用户成功导入"
+        ChaoxingImportOtherUserResultStatus.EXISTED_BUT_UPDATE_PASSWORD -> "已更新 $second(手机号:${third.phoneNumber}) 密码"
+        ChaoxingImportOtherUserResultStatus.EXISTED_BUT_UPDATE_FACE_IMAGES -> "已添加 $second(手机号:${third.phoneNumber}) 的人脸照片信息"
+    }

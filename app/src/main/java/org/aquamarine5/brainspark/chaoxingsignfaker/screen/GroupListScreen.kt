@@ -8,6 +8,7 @@ package org.aquamarine5.brainspark.chaoxingsignfaker.screen
 
 import android.util.Log
 import androidx.compose.animation.Crossfade
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,10 +19,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -41,6 +44,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import kotlinx.coroutines.launch
@@ -65,7 +70,8 @@ data class GroupListDestination(
 @Composable
 fun GroupListScreen(
     destination: GroupListDestination,
-    navToGroupDetail: (GroupDetailDestination) -> Unit
+    navToGroupDetail: (GroupDetailDestination) -> Unit,
+    navBack: () -> Unit = {}
 ) {
     val imageLoader = LocalImageLoader.current
     Column(
@@ -114,6 +120,35 @@ fun GroupListScreen(
                 )
             }
         }
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(role = Role.Button) {
+                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                    navBack()
+                }
+        ) {
+            Icon(
+                painterResource(R.drawable.ic_arrow_left),
+                contentDescription = "返回"
+            )
+            Spacer(
+                modifier = Modifier
+                    .height(8.dp)
+                    .width(5.dp)
+            )
+            Icon(
+                painterResource(R.drawable.ic_users_round),
+                contentDescription = "群聊列表"
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                "当前正从群聊列表中查找签到",
+                fontWeight = FontWeight.Bold
+            )
+        }
+        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
         Crossfade(isFetchedFailure) { v ->
             when {
                 v == null -> {

@@ -7,7 +7,6 @@
 package org.aquamarine5.brainspark.chaoxingsignfaker.components
 
 import android.Manifest
-import android.os.Bundle
 import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -60,9 +60,7 @@ import com.baidu.mapapi.map.MapStatus
 import com.baidu.mapapi.map.MapStatusUpdateFactory
 import com.baidu.mapapi.map.MapView
 import com.baidu.mapapi.map.Marker
-import com.baidu.mapapi.map.MarkerOptions
 import com.baidu.mapapi.map.MyLocationData
-import com.baidu.mapapi.map.TitleOptions
 import com.baidu.mapapi.model.LatLng
 import com.baidu.mapapi.search.core.SearchResult
 import com.baidu.mapapi.search.geocode.GeoCodeResult
@@ -75,6 +73,7 @@ import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingLocation
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
@@ -82,11 +81,19 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.MARKER_BUNDLE_ADDR
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.MARKER_BUNDLE_LABEL
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.MARKER_BUNDLE_TYPE
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.MarkerBundleType
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.MARKER_TITLE_VISIBLE_ZOOM
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.addFavoriteLocationMarker
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.addOrUpdateLocationMarker
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.displaySnackbar
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.updateMarkerTitlesVisibility
+
+@Serializable
+object FavoriteLocationSettingDestination
 
 @OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
 @Composable
-fun FavoriteLocationSettingComponent() {
+fun FavoriteLocationSettingComponent(modifier: Modifier = Modifier) {
     val hapticFeedback = LocalHapticFeedback.current
     val snackbarHost = LocalSnackbarHostState.current
     val context = LocalContext.current
@@ -98,12 +105,14 @@ fun FavoriteLocationSettingComponent() {
             Manifest.permission.ACCESS_COARSE_LOCATION
         )
     )
+    var isShowFavoriteLocationDialog by remember { mutableStateOf(false) }
     val favoriteLocations = remember { mutableStateListOf<ChaoxingLocation>() }
     val favoriteLocationMarkers = remember { mutableListOf<Marker>() }
-    var lastClickedFavoriteLocationMarker: Marker? = remember { null }
+    var isMarkerTitleVisible = remember { true }
     var isNeedLocationDescribe = remember { false }
     var clickedPosition by remember { mutableStateOf(LatLng(0.0, 0.0)) }
     var clickedName by remember { mutableStateOf("未指定") }
+    var clickedLabel by remember { mutableStateOf<String?>(null) }
     val geoCoder = remember {
         GeoCoder.newInstance().apply {
             setOnGetGeoCodeResultListener(object : OnGetGeoCoderResultListener {
@@ -118,10 +127,12 @@ fun FavoriteLocationSettingComponent() {
                         return
                     }
                     if (isNeedLocationDescribe) {
-                        clickedName = p0.address + clickedName
+                        clickedName = p0.address
                         isNeedLocationDescribe = false
                     } else {
-                        clickedName = p0.poiList?.get(0)?.address ?: p0.address
+                        clickedName = p0.address
+                        clickedLabel = p0.poiList?.firstOrNull()?.name?.takeIf { it.isNotBlank() }
+                            ?: "自定义位置"
                     }
                 }
             })
@@ -155,22 +166,11 @@ fun FavoriteLocationSettingComponent() {
                 rotateGesturesEnabled(false)
             }).apply {
                 val setMarkerPositionOrCreate = { position: LatLng ->
-                    if (clickedMarker == null) {
-                        clickedMarker = map.addOverlay(
-                            MarkerOptions()
-                                .position(position)
-                                .icon(clickPointBitmap)
-                                .draggable(true)
-                                .extraInfo(Bundle().apply {
-                                    putString(
-                                        MARKER_BUNDLE_TYPE,
-                                        MarkerBundleType.LOCATION.value
-                                    )
-                                })
-                        ) as Marker
-                    } else {
-                        clickedMarker!!.position = position
-                    }
+                    clickedMarker = map.addOrUpdateLocationMarker(
+                        clickedMarker,
+                        position,
+                        clickPointBitmap
+                    )
                 }
                 isClickable = true
                 map.setMapStatus(
@@ -207,6 +207,7 @@ fun FavoriteLocationSettingComponent() {
                                 )
                                 clickedPosition = LatLng(it.latitude, it.longitude)
                                 clickedName = it.addrStr?.removePrefix("中国") ?: ""
+                                clickedLabel = null
                             } else {
                                 map.animateMapStatus(
                                     MapStatusUpdateFactory.newLatLngZoom(
@@ -225,6 +226,7 @@ fun FavoriteLocationSettingComponent() {
                         p0?.let {
                             hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                             clickedPosition = it
+                            clickedLabel = null
                             geoCoder.reverseGeoCode(
                                 ReverseGeoCodeOption()
                                     .location(it)
@@ -240,6 +242,7 @@ fun FavoriteLocationSettingComponent() {
                             hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                             clickedPosition = it.position
                             clickedName = it.name
+                            clickedLabel = it.name
                             isNeedLocationDescribe = true
                             geoCoder.reverseGeoCode(
                                 ReverseGeoCodeOption()
@@ -256,9 +259,10 @@ fun FavoriteLocationSettingComponent() {
                     p0?.let { favoriteMarker ->
                         favoriteMarker.extraInfo.let {
                             if (it.getString(MARKER_BUNDLE_TYPE) != MarkerBundleType.FAVORITE.toString()) {
-                                return@setOnMarkerClickListener false
+                                return@setOnMarkerClickListener true
                             }
                             clickedPosition = favoriteMarker.position
+                            clickedLabel = it.getString(MARKER_BUNDLE_LABEL)
                             clickedName =
                                 it.getString(MARKER_BUNDLE_ADDRESS) ?: run {
                                     isNeedLocationDescribe = true
@@ -271,11 +275,6 @@ fun FavoriteLocationSettingComponent() {
                                     )
                                     "加载中..."
                                 }
-                            favoriteMarker.titleOptions = TitleOptions().text(
-                                it.getString(MARKER_BUNDLE_LABEL) ?: "收藏点"
-                            )
-                            lastClickedFavoriteLocationMarker?.titleOptions = TitleOptions()
-                            lastClickedFavoriteLocationMarker = favoriteMarker
                             setMarkerPositionOrCreate(clickedPosition)
                         }
                     }
@@ -284,12 +283,13 @@ fun FavoriteLocationSettingComponent() {
                 map.setOnMarkerDragListener(object : BaiduMap.OnMarkerDragListener {
                     override fun onMarkerDrag(p0: Marker?) {}
 
-                    override fun onMarkerDragEnd(p0: Marker?) {
-                        Log.d("GetLocationPage", "onMarkerDragEnd: $p0")
-                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                        p0?.let {
-                            clickedPosition = it.position
-                            geoCoder.reverseGeoCode(
+                        override fun onMarkerDragEnd(p0: Marker?) {
+                            Log.d("GetLocationPage", "onMarkerDragEnd: $p0")
+                            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                            p0?.let {
+                                clickedPosition = it.position
+                                clickedLabel = null
+                                geoCoder.reverseGeoCode(
                                 ReverseGeoCodeOption()
                                     .location(it.position)
                                     .newVersion(1)
@@ -300,34 +300,82 @@ fun FavoriteLocationSettingComponent() {
 
                     override fun onMarkerDragStart(p0: Marker?) {}
                 })
+                map.setOnMapStatusChangeListener(object :
+                    BaiduMap.OnMapStatusChangeListener {
+                    override fun onMapStatusChangeStart(p0: MapStatus?) {}
+
+                    override fun onMapStatusChangeStart(p0: MapStatus?, p1: Int) {}
+
+                    override fun onMapStatusChange(p0: MapStatus?) {}
+
+                    override fun onMapStatusChangeFinish(p0: MapStatus?) {
+                        val isTitleVisible =
+                            (p0?.zoom ?: 0f) >= MARKER_TITLE_VISIBLE_ZOOM
+                        if (isMarkerTitleVisible != isTitleVisible) {
+                            isMarkerTitleVisible = isTitleVisible
+                            map.updateMarkerTitlesVisibility(
+                                favoriteLocationMarkers,
+                                null,
+                                isTitleVisible
+                            )
+                        }
+                    }
+                })
             }
         }
         LaunchedEffect(Unit) {
             locationClient.start()
-            favoriteLocations.addAll(context.chaoxingDataStore.data.first().locationsList)
-            favoriteLocations.forEach {
-                favoriteLocationMarkers.add(
-                    baiduMap.map.addOverlay(
-                        LatLng(it.latitude, it.longitude).let { pos ->
-                            MarkerOptions()
-                                .position(pos)
-                                .icon(starBitmap)
-                                .titleOptions(TitleOptions().text(it.label))
-                                .extraInfo(Bundle().apply {
-                                    putString(
-                                        MARKER_BUNDLE_TYPE,
-                                        MarkerBundleType.FAVORITE.value
-                                    )
-                                    putString(MARKER_BUNDLE_LABEL, it.label)
-                                    putString(MARKER_BUNDLE_ADDRESS, it.address)
-                                })
-                        }
-                    ) as Marker
-                )
+            context.chaoxingDataStore.data.first().let { data ->
+                favoriteLocations.addAll(data.locationsList)
+                favoriteLocations.forEach {
+                    favoriteLocationMarkers.add(
+                        baiduMap.map.addFavoriteLocationMarker(it, starBitmap)
+                    )
+                }
             }
+            baiduMap.map.updateMarkerTitlesVisibility(
+                favoriteLocationMarkers,
+                null,
+                isMarkerTitleVisible
+            )
         }
-        Column {
-            var isShowFavoriteLocationDialog by remember { mutableStateOf(false) }
+        if (isShowFavoriteLocationDialog) {
+            FavoriteLocationSettingDialog(
+                favoriteLocations,
+                onDismiss = {
+                    isShowFavoriteLocationDialog = false
+                },
+                onSelectLocation = { target ->
+                    LatLng(target.latitude, target.longitude).let { position ->
+                        clickedPosition = position
+                        clickedName = target.address
+                        clickedLabel = target.label
+                        clickedMarker = baiduMap.map.addOrUpdateLocationMarker(
+                            clickedMarker,
+                            position,
+                            clickPointBitmap
+                        )
+                        baiduMap.map.animateMapStatus(
+                            MapStatusUpdateFactory.newLatLngZoom(position, 18f)
+                        )
+                    }
+                },
+                onDeleteLocation = { target ->
+                    removeFavoriteLocation(
+                        context,
+                        coroutineScope,
+                        target,
+                        favoriteLocations,
+                        favoriteLocationMarkers
+                    )
+                },
+                favoriteLocationMarkers = favoriteLocationMarkers,
+                selectedLocation = favoriteLocations.find {
+                    it.latitude == clickedPosition.latitude && it.longitude == clickedPosition.longitude
+                }
+            )
+        }
+        Column(modifier = modifier) {
             Row(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
@@ -372,7 +420,51 @@ fun FavoriteLocationSettingComponent() {
                     }) {
                         Icon(
                             painterResource(R.drawable.ic_map_pinned),
-                            contentDescription = null
+                            contentDescription = "管理收藏的签到位置"
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+                    FloatingActionButton(onClick = {
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                        if (clickedName == "未指定") {
+                            hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
+                            snackbarHost.displaySnackbar("请先点击地图选择要收藏的位置", coroutineScope)
+                            return@FloatingActionButton
+                        }
+                        if (favoriteLocations.any {
+                                it.latitude == clickedPosition.latitude && it.longitude == clickedPosition.longitude
+                            }) {
+                            hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
+                            snackbarHost.displaySnackbar("该位置已经收藏过了", coroutineScope)
+                            return@FloatingActionButton
+                        }
+                        val newFavoriteLocation = ChaoxingLocation.newBuilder()
+                            .setAddress(clickedName)
+                            .setLabel(clickedLabel ?: clickedName)
+                            .setLatitude(clickedPosition.latitude)
+                            .setLongitude(clickedPosition.longitude)
+                            .build()
+                        coroutineScope.launch(Dispatchers.IO) {
+                            context.chaoxingDataStore.updateData {
+                                it.toBuilder().addLocations(newFavoriteLocation).build()
+                            }
+                        }
+                        favoriteLocations.add(newFavoriteLocation)
+                        favoriteLocationMarkers.add(
+                            baiduMap.map.addFavoriteLocationMarker(newFavoriteLocation, starBitmap)
+                        )
+                        baiduMap.map.updateMarkerTitlesVisibility(
+                            favoriteLocationMarkers,
+                            null,
+                            isMarkerTitleVisible
+                        )
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.Confirm)
+                        snackbarHost.displaySnackbar("已添加收藏位置：$clickedName", coroutineScope)
+                    }) {
+                        Icon(
+                            painterResource(R.drawable.ic_map_pin_check_inside),
+                            contentDescription = "添加收藏位置"
                         )
                     }
 
@@ -468,6 +560,23 @@ fun FavoriteLocationSettingComponent() {
                         it.onResume()
                     }
                 )
+            }
+        }
+    } else {
+        Column(
+            modifier = modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text("需要位置权限才能设置收藏的签到位置。")
+            Spacer(modifier = Modifier.height(8.dp))
+            Button(onClick = {
+                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                locationPermissionsState.launchMultiplePermissionRequest()
+            }) {
+                Text("授予位置权限")
             }
         }
     }
