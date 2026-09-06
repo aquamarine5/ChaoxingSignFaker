@@ -597,9 +597,10 @@ fun CourseListScreen(
                                     item {
                                         Column(
                                             modifier = Modifier
-                                                .fillMaxWidth()
+                                                .fillMaxSize()
                                                 .padding(vertical = 24.dp),
-                                            horizontalAlignment = Alignment.CenterHorizontally
+                                            horizontalAlignment = Alignment.CenterHorizontally,
+                                            verticalArrangement = Arrangement.Center
                                         ) {
                                             Icon(
                                                 painterResource(R.drawable.ic_circle_question_mark),

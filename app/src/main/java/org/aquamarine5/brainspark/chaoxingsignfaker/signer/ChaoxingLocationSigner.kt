@@ -65,11 +65,7 @@ class ChaoxingLocationSigner(
                         .addQueryParameter("name", client.userEntity.name)
                         .addQueryParameter("fid", client.userEntity.fid.toString())
                         .addQueryParameter("deviceCode", client.deviceCode)
-                        .apply {
-                            if (faceImageObjectId != null) {
-                                addFaceRecognitionParameter(faceImageObjectId)
-                            }
-                        }
+                        .addFaceRecognitionParameter(faceImageObjectId)
                         .build()
                 ).get().build()
             ).execute().use {
@@ -96,11 +92,7 @@ class ChaoxingLocationSigner(
                         .addQueryParameter("fid", client.userEntity.fid.toString())
                         .addQueryParameter("deviceCode", client.deviceCode)
                         .addQueryParameter("validate", validateValue)
-                        .apply {
-                            if (faceImageObjectId != null) {
-                                addFaceRecognitionParameter(faceImageObjectId)
-                            }
-                        }
+                        .addFaceRecognitionParameter(faceImageObjectId)
                         .build()
                 ).get().build()
             ).execute().use {

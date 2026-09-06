@@ -81,25 +81,9 @@ class ChaoxingQRCodeSigner(
                         .addQueryParameter("fid", client.userEntity.fid.toString())
                         .addQueryParameter("deviceCode", client.deviceCode)
                         .addQueryParameter("validate", captchaValidate)
-                        .apply {
-                            if (position != null) {
-                                addQueryParameter(
-                                    "location", JSONObject()
-                                        .fluentPut("result", 1)
-                                        .fluentPut("latitude", "%.6f".format(position.latitude))
-                                        .fluentPut("longitude", "%.6f".format(position.longitude))
-                                        .fluentPut("address", position.address)
-                                        .fluentPut(
-                                            "mockData",
-                                            "{\"strategy\":0,\"probability\":-1}"
-                                        )
-                                        .toString()
-                                )
-                            }
-                            if (faceImageObjectId != null) {
-                                addFaceRecognitionParameter(faceImageObjectId)
-                            }
-                        }.build()
+                        .addLocationParameter(position,true)
+                        .addFaceRecognitionParameter(faceImageObjectId)
+                        .build()
                 ).build()
             ).execute().use {
                 it.checkResponseThrowException()
@@ -125,25 +109,9 @@ class ChaoxingQRCodeSigner(
                         .addQueryParameter("name", client.userEntity.name)
                         .addQueryParameter("fid", client.userEntity.fid.toString())
                         .addQueryParameter("deviceCode", client.deviceCode)
-                        .apply {
-                            if (position != null) {
-                                addQueryParameter(
-                                    "location", JSONObject()
-                                        .fluentPut("result", 1)
-                                        .fluentPut("latitude", "%.6f".format(position.latitude))
-                                        .fluentPut("longitude", "%.6f".format(position.longitude))
-                                        .fluentPut("address", position.address)
-                                        .fluentPut(
-                                            "mockData",
-                                            "{\"strategy\":0,\"probability\":-1}"
-                                        )
-                                        .toString()
-                                )
-                            }
-                            if (faceImageObjectId != null) {
-                                addFaceRecognitionParameter(faceImageObjectId)
-                            }
-                        }.build()
+                        .addLocationParameter(position,true)
+                        .addFaceRecognitionParameter(faceImageObjectId)
+                        .build()
                 ).build()
             ).execute().use {
                 it.checkResponseThrowException()

@@ -46,7 +46,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.baidu.mapapi.map.Marker
-import com.baidu.mapapi.map.TitleOptions
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -293,6 +292,7 @@ fun updateFavoriteLocation(
     }?.let { marker ->
         marker.extraInfo.putString(MARKER_BUNDLE_LABEL, newLabel)
         marker.extraInfo.putString(MARKER_BUNDLE_ADDRESS, newAddress)
+        marker.clearRichViews()
         marker.titleOptions = markerTitleOptions(newLabel)
     }
 }

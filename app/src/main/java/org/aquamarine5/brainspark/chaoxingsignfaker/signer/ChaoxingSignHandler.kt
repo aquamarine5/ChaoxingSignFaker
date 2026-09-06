@@ -60,6 +60,7 @@ class ChaoxingSignHandler<in T>(
                 if (exception.isOtherUser)
                     ChaoxingOtherUserHelper.markSessionObsoleted(session, context)
             }
+            signStatus[1 + index].failed(it)
         }.onSuccess {
             if (it && ChaoxingCaptchaPredictor.lastResolveByModel)
                 signStatus[1 + index].markCaptchaResolvedByModel()

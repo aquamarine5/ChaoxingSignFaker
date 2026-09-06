@@ -66,22 +66,25 @@ const val MARKER_TITLE_FONT_SIZE = 30
 fun markerTitleOptions(text: String): TitleOptions =
     TitleOptions().text(text).titleFontSize(MARKER_TITLE_FONT_SIZE)
 
+// setTitleOptions 每次都会向 marker 追加一个新的标签视图而不会替换旧的，
+// 所以隐藏时不能用空 TitleOptions 覆盖，必须 clearRichViews() 移除已添加的标签
 fun BaiduMap.updateMarkerTitlesVisibility(
     favoriteLocationMarkers: List<Marker>,
     lastSignedLocationMarker: Marker?,
     isTitleVisible: Boolean
 ) {
     favoriteLocationMarkers.forEach { marker ->
-        marker.titleOptions = if (isTitleVisible) {
-            markerTitleOptions(marker.extraInfo.getString(MARKER_BUNDLE_LABEL) ?: "收藏点")
-        } else {
-            TitleOptions()
+        marker.clearRichViews()
+        if (isTitleVisible) {
+            marker.titleOptions =
+                markerTitleOptions(marker.extraInfo.getString(MARKER_BUNDLE_LABEL) ?: "收藏点")
         }
     }
-    lastSignedLocationMarker?.titleOptions = if (isTitleVisible) {
-        markerTitleOptions("上次签到的位置")
-    } else {
-        TitleOptions()
+    lastSignedLocationMarker?.let { marker ->
+        marker.clearRichViews()
+        if (isTitleVisible) {
+            marker.titleOptions = markerTitleOptions("上次签到的位置")
+        }
     }
 }
 

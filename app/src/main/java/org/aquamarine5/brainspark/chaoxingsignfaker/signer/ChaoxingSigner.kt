@@ -30,9 +30,9 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCourseHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingFaceHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCaptchaDataEntity
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationSignEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityStatus
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingQRCodeSigner.QRCodeExpiredException
-import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCaptchaPredictor
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingFaceSignException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingPredictableException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.UMengHelper
@@ -190,7 +190,46 @@ abstract class ChaoxingSigner(
         ).execute().close()
     }
 
-    protected open suspend fun HttpUrl.Builder.addFaceRecognitionParameter(faceImageObjectId: String) {
+
+    private fun HttpUrl.Builder.addLocationDataParameter(
+        position: ChaoxingLocationSignEntity,
+        parameterName: String,
+        isMockData: Boolean
+    ): HttpUrl.Builder {
+        addQueryParameter(
+            parameterName, JSONObject()
+                .fluentPut("result", 1)
+                .fluentPut("latitude", "%.6f".format(position.latitude).toDouble())
+                .fluentPut("longitude", "%.6f".format(position.longitude).toDouble())
+                .fluentPut("address", position.address)
+                .apply {
+                    if (isMockData) {
+                        fluentPut(
+                            "mockData",
+                            "{\"strategy\":0,\"probability\":-1}"
+                        )
+                    }
+                }
+                .toString()
+        )
+        return this
+    }
+
+    protected open fun HttpUrl.Builder.addLocationParameter(
+        position: ChaoxingLocationSignEntity?,
+        isMockData: Boolean
+    ): HttpUrl.Builder {
+        return addLocationDataParameter(position ?: return this, "location", isMockData)
+    }
+
+    protected open fun HttpUrl.Builder.addLocationResultParameter(
+        position: ChaoxingLocationSignEntity?
+    ): HttpUrl.Builder {
+        return addLocationDataParameter(position ?: return this, "locationResult", true)
+    }
+
+    protected open suspend fun HttpUrl.Builder.addFaceRecognitionParameter(faceImageObjectId: String?): HttpUrl.Builder {
+        if (faceImageObjectId == null) return this
         addQueryParameter("currentFaceId", faceImageObjectId)
         addQueryParameter("ifCFP", "0")
         addQueryParameter("courseId", courseId.toString())
@@ -204,6 +243,7 @@ abstract class ChaoxingSigner(
         )
         addQueryParameter("faceCode", "")
         addQueryParameter("faceEncAid", "")
+        return this
     }
 
     protected open fun Response.checkSignResult(): Boolean {
@@ -223,8 +263,6 @@ abstract class ChaoxingSigner(
             return true
         }
         if (result != "success") {
-            if (result.contains("verification error[validate]"))
-                ChaoxingCaptchaPredictor.invalidateCachedValidate()
             throw ChaoxingPredictableException(result)
         } else {
             return false

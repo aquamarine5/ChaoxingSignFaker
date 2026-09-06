@@ -6,11 +6,13 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.components
 
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -37,6 +39,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
@@ -68,7 +71,7 @@ fun CaptchaHandlerDialog(
     onDismiss: () -> Unit,
 ) {
     var data by remember { mutableStateOf<ChaoxingCaptchaDataEntity?>(null) }
-    val shadeImageUrl by remember(data) { mutableStateOf(data?.shadeImageUrl) }
+    var shadeImageBitmap by remember { mutableStateOf<Bitmap?>(null) }
     val cutoutImageUrl by remember(data) { mutableStateOf(data?.cutoutImageUrl) }
     var sliderPosition by remember(data) { mutableFloatStateOf(0f) }
     var containerWidth by remember { mutableFloatStateOf(320f) }
@@ -79,6 +82,22 @@ fun CaptchaHandlerDialog(
     val density by remember(containerWidth) { mutableFloatStateOf(containerWidth / 320) }
     val sliderMaxValue = remember(containerWidth) { containerWidth - 56f * density }
 
+    suspend fun loadShadeBitmap(captchaData: ChaoxingCaptchaDataEntity): Bitmap? =
+        withContext(Dispatchers.IO) {
+            signer.client.okHttpClient.newCall(
+                Request.Builder().get().url(captchaData.shadeImageUrl).build()
+            ).execute().use { response ->
+                BitmapFactory.decodeStream(response.body.byteStream())
+            }
+        }
+
+    suspend fun refreshCaptcha(): ChaoxingCaptchaDataEntity {
+        val captchaData = signer.getCaptchaImageV2()
+        shadeImageBitmap = loadShadeBitmap(captchaData)
+        data = captchaData
+        return captchaData
+    }
+
     suspend fun check(
         normalizedPosition: Float,
         isCheckingCaptcha: AtomicBoolean?,
@@ -88,7 +107,7 @@ fun CaptchaHandlerDialog(
             .let { result ->
                 if (result == null) {
                     if (isAutoCheck) {
-                        data = signer.getCaptchaImageV2()
+                        refreshCaptcha()
                         isCheckingCaptcha?.set(false)
                         return false
                     }
@@ -101,11 +120,11 @@ fun CaptchaHandlerDialog(
                         "验证失败，请重试",
                         Toast.LENGTH_SHORT
                     ).show()
-                    data = signer.getCaptchaImageV2()
+                    refreshCaptcha()
                     isCheckingCaptcha?.set(false)
                     return false
                 } else {
-                    ChaoxingCaptchaPredictor.cacheValidate(result, isAutoCheck)
+                    ChaoxingCaptchaPredictor.lastResolveByModel = isAutoCheck
                     onResult(Result.success(result))
                     onDismiss()
                     isCheckingCaptcha?.set(false)
@@ -126,23 +145,12 @@ fun CaptchaHandlerDialog(
     LaunchedEffect(signer) {
         runCatching {
             ChaoxingCaptchaPredictor.lastResolveByModel = false
-            ChaoxingCaptchaPredictor.consumeCachedValidate()?.let {
-                onResult(Result.success(it))
-                onDismiss()
-                return@LaunchedEffect
-            }
-            val captchaData = signer.getCaptchaImageV2()
-            data = captchaData
+            refreshCaptcha()
+            val shadeBitmap = shadeImageBitmap
             val predictedOffset = withContext(Dispatchers.IO) {
                 runCatching {
                     ChaoxingCaptchaPredictor.initialize(context)
-                    signer.client.okHttpClient.newCall(
-                        Request.Builder().get().url(captchaData.shadeImageUrl).build()
-                    ).execute().use { response ->
-                        BitmapFactory.decodeStream(response.body.byteStream())
-                    }?.let { bitmap ->
-                        ChaoxingCaptchaPredictor.predictSliderXOffset(bitmap)
-                    }
+                    shadeBitmap?.let { ChaoxingCaptchaPredictor.predictSliderXOffset(it) }
                 }.onFailure {
                     it.printStackTrace()
                     it.snackbarReport(snackbar,coroutineScope,"验证码预测失败",hapticFeedback)
@@ -153,9 +161,7 @@ fun CaptchaHandlerDialog(
                     check(offset.toFloat(), null, isAutoCheck = true)
                 }.getOrElse { e ->
                     if (e !is ChaoxingSigner.CaptchaCheckException) throw e
-                    // 校验接口直接拒绝预测结果属于预期场景，回退到手动滑动；
-                    // 被拒绝的 check 会消耗当前验证码，需要先换一张
-                    data = signer.getCaptchaImageV2()
+                    refreshCaptcha()
                     false
                 }
             } == true
@@ -177,8 +183,8 @@ fun CaptchaHandlerDialog(
             onDismissRequest = {
                 dismissWithCancel()
             },
-            title = { _ -> Text("请完成滑动验证") },
-            text = { _ ->
+            title = {Text("请完成滑动验证") },
+            text = {
                 if (data != null) {
                     Column(modifier = Modifier.fillMaxWidth()) {
                         Box(
@@ -190,13 +196,15 @@ fun CaptchaHandlerDialog(
                                 }
                                 .background(Color.Gray)
                         ) {
-                            AsyncImage(
-                                model = shadeImageUrl,
-                                contentDescription = "背景图",
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .zIndex(0f)
-                            )
+                            shadeImageBitmap?.let { shadeBitmap ->
+                                Image(
+                                    bitmap = shadeBitmap.asImageBitmap(),
+                                    contentDescription = "背景图",
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .zIndex(0f)
+                                )
+                            }
 
                             AsyncImage(
                                 model = cutoutImageUrl,
@@ -267,7 +275,7 @@ fun CaptchaHandlerDialog(
                                 coroutineScope.launch {
                                     hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                                     runCatching {
-                                        data = signer.getCaptchaImageV2()
+                                        refreshCaptcha()
                                     }.onFailure {
                                         it.snackbarReport(
                                             snackbar,
@@ -288,7 +296,7 @@ fun CaptchaHandlerDialog(
                 Button(onClick = {
                     coroutineScope.launch {
                         hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                        data = signer.getCaptchaImageV2()
+                        refreshCaptcha()
                     }
                 }) {
                     Text("刷新验证码")

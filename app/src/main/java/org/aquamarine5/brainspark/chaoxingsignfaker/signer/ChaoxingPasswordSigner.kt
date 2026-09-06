@@ -84,22 +84,8 @@ class ChaoxingPasswordSigner(
                     .addQueryParameter("fid", client.userEntity.fid.toString())
                     .addQueryParameter("signCode", signCode)
                     .addQueryParameter("deviceCode", client.deviceCode)
-                    .apply {
-                        if (position != null) {
-                            addQueryParameter(
-                                "location", JSONObject()
-                                    .fluentPut("result", 1)
-                                    .fluentPut("latitude", "%.6f".format(position.latitude))
-                                    .fluentPut("longitude", "%.6f".format(position.longitude))
-                                    .fluentPut("address", position.address)
-                                    .fluentPut(
-                                        "mockData",
-                                        "{\"strategy\":0,\"probability\":-1}"
-                                    )
-                                    .toString()
-                            )
-                        }
-                    }
+                    .addLocationResultParameter(position)
+                    .addLocationParameter(position,false)
                     .build()
             ).build()
         ).execute().use {
@@ -117,31 +103,17 @@ class ChaoxingPasswordSigner(
             client.newCall(
                 Request.Builder().url(
                     URL_SIGN.newBuilder()
-                        .addQueryParameter("latitude", "")
-                        .addQueryParameter("longitude", "")
+                        .addQueryParameter("latitude", if(position != null) "%.6f".format(position.latitude) else "")
+                        .addQueryParameter("longitude", if(position != null)  "%.6f".format(position.longitude) else "")
                         .addQueryParameter("activeId", destination.activeId.toString())
                         .addQueryParameter("uid", client.userEntity.puid.toString())
                         .addQueryParameter("name", client.userEntity.name)
                         .addQueryParameter("fid", client.userEntity.fid.toString())
                         .addQueryParameter("signCode", signCode)
                         .addQueryParameter("deviceCode", client.deviceCode)
+                        .addLocationResultParameter(position)
                         .addQueryParameter("validate", validateValue)
-                        .apply {
-                            if (position != null) {
-                                addQueryParameter(
-                                    "location", JSONObject()
-                                        .fluentPut("result", 1)
-                                        .fluentPut("latitude", "%.6f".format(position.latitude))
-                                        .fluentPut("longitude", "%.6f".format(position.longitude))
-                                        .fluentPut("address", position.address)
-                                        .fluentPut(
-                                            "mockData",
-                                            "{\"strategy\":0,\"probability\":-1}"
-                                        )
-                                        .toString()
-                                )
-                            }
-                        }
+                        .addLocationParameter(position,false)
                         .build()
                 ).build()
             ).execute().use {

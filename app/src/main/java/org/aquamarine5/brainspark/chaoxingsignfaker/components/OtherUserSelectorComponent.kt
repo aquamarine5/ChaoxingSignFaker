@@ -329,6 +329,7 @@ fun OtherUserSelectorComponent(
                         isIgnoreExceptionSigning = true
                         val data = ignoreExceptionUserIndex!!
                         ignoreExceptionUserIndex = null
+                        signStatus[data.first + 1].retrying()
                         onRetrySignAction(
                             data.first,
                             data.second,
@@ -1029,6 +1030,7 @@ fun OtherUserSelectorComponent(
                                                 ignoreExceptionUserIndex = index to session
                                             } else if (isRetrying.not()) {
                                                 isRetrying = true
+                                                signStatus[i].retrying()
                                                 coroutineScope.launch {
                                                     onRetrySignAction(index, session, false)
                                                     isRetrying = false

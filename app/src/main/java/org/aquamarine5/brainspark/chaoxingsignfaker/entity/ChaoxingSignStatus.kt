@@ -26,7 +26,6 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
-import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSigner
 import org.aquamarine5.brainspark.chaoxingsignfaker.ui.theme.Orange
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingPredictableException
@@ -46,6 +45,13 @@ data class ChaoxingSignStatus(
     }
 
     fun loading() {
+        isLoading.value = true
+    }
+
+    fun retrying() {
+        isSuccess.value = null
+        errorException.value = null
+        error.value = ""
         isLoading.value = true
     }
 
@@ -127,17 +133,3 @@ data class ChaoxingSignStatus(
 
     }
 }
-typealias ImportOtherUserResult = Triple<ChaoxingImportOtherUserResultStatus, String, ChaoxingOtherUserSession>
-
-enum class ChaoxingImportOtherUserResultStatus {
-    SUCCESS,
-    EXISTED_BUT_UPDATE_PASSWORD,
-    EXISTED_BUT_UPDATE_FACE_IMAGES
-}
-
-fun ImportOtherUserResult.getResultTips(): String =
-    when (this.first) {
-        ChaoxingImportOtherUserResultStatus.SUCCESS -> "$second(手机号:${third.phoneNumber}) 用户成功导入"
-        ChaoxingImportOtherUserResultStatus.EXISTED_BUT_UPDATE_PASSWORD -> "已更新 $second(手机号:${third.phoneNumber}) 密码"
-        ChaoxingImportOtherUserResultStatus.EXISTED_BUT_UPDATE_FACE_IMAGES -> "已添加 $second(手机号:${third.phoneNumber}) 的人脸照片信息"
-    }
