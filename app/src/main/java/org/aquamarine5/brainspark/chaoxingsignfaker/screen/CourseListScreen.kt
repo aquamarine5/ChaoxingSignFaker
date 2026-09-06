@@ -523,7 +523,7 @@ fun CourseListScreen(
                                                         brainIconId,
                                                         "[模型自动识别]"
                                                     )
-                                                    append("显示。")
+                                                    append("显示，感谢 @0x77786d 提供的模型支持。")
                                                 },
                                                 inlineContent = mapOf(
                                                     brainIconId to InlineTextContent(

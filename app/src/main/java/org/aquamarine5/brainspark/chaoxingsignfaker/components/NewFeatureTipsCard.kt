@@ -95,6 +95,7 @@ fun NewFeatureTipsCard(
                         painterResource(R.drawable.ic_sparkles),
                         null,
                         tint = Color.Gray,
+                        modifier = Modifier.padding(horizontal = 4.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Box(modifier = Modifier.weight(1f)) {

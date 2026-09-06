@@ -461,36 +461,38 @@ fun SettingScreen(
         Spacer(modifier = Modifier.height(8.dp))
         CustomizeClientCard()
         Spacer(modifier = Modifier.height(8.dp))
-        Card(
+        Button(
+            onClick = {
+                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                naviToFavoriteLocationSetting()
+            },
             shape = RoundedCornerShape(18.dp),
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable {
-                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                    naviToFavoriteLocationSetting()
-                }
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7FB0DC))
         ) {
             Row(
-                modifier = Modifier.padding(16.dp, 12.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(3.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
                     painterResource(R.drawable.ic_map_pinned),
-                    null,
+                    contentDescription = null,
                     modifier = Modifier.size(40.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Column {
                     Text(
                         "收藏的签到位置",
-                        fontSize = 17.sp,
+                        fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
-                        lineHeight = 21.sp
+                        lineHeight = 18.sp
                     )
                     Text(
                         "在地图上收藏常用的签到位置，位置签到时可以直接选用。",
-                        fontSize = 12.sp,
-                        lineHeight = 14.sp
+                        fontSize = 10.sp,
+                        lineHeight = 12.sp
                     )
                 }
             }

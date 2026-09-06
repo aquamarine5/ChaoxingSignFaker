@@ -464,7 +464,8 @@ fun FavoriteLocationSettingComponent(modifier: Modifier = Modifier) {
                     }) {
                         Icon(
                             painterResource(R.drawable.ic_map_pin_check_inside),
-                            contentDescription = "添加收藏位置"
+                            contentDescription = "添加收藏位置",
+                            modifier = Modifier.size(36.dp)
                         )
                     }
 
