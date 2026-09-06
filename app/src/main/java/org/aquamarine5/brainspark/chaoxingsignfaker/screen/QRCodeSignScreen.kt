@@ -521,8 +521,8 @@ fun QRCodeSignScreen(
                                     }
                                 },
                                 isSigning = isSigning,
-                                onIgnoreExceptionSignAction = { index, session ->
-                                    signHandler.ignoreExceptionOtherUserSigning(session, index)
+                                onRetrySignAction = { index, session, bypassChecking ->
+                                    signHandler.retryOtherUserSigning(session, index, bypassChecking)
                                 }, isCloneSession = destination.isCloneSession,
                                 suffixContent = {
                                     val tooltipState = rememberTooltipState(isPersistent = true)

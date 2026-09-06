@@ -12,6 +12,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -48,6 +49,27 @@ fun NewFeatureTipsCard(
     modifier: Modifier = Modifier,
     onDismiss: suspend () -> Unit
 ) {
+    NewFeatureTipsCard(
+        isDisplay = isDisplay,
+        tipsContent = {
+            Text(
+                tipsText,
+                fontSize = 14.sp,
+                lineHeight = 16.sp
+            )
+        },
+        modifier = modifier,
+        onDismiss = onDismiss
+    )
+}
+
+@Composable
+fun NewFeatureTipsCard(
+    isDisplay: MutableState<Boolean>,
+    tipsContent: @Composable () -> Unit,
+    modifier: Modifier = Modifier,
+    onDismiss: suspend () -> Unit
+) {
     val hapticFeedback = LocalHapticFeedback.current
     val coroutineScope = rememberCoroutineScope()
     AnimatedVisibility(
@@ -73,14 +95,12 @@ fun NewFeatureTipsCard(
                         painterResource(R.drawable.ic_sparkles),
                         null,
                         tint = Color.Gray,
+                        modifier = Modifier.padding(horizontal = 4.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        tipsText,
-                        modifier = Modifier.weight(1f),
-                        fontSize = 14.sp,
-                        lineHeight = 16.sp
-                    )
+                    Box(modifier = Modifier.weight(1f)) {
+                        tipsContent()
+                    }
                     IconButton(
                         onClick = {
                             hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)

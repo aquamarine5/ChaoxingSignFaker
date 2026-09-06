@@ -49,9 +49,13 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.InlineTextContent
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.TextAutoSize
+import androidx.compose.foundation.text.appendInlineContent
+import androidx.compose.ui.text.Placeholder
+import androidx.compose.ui.text.PlaceholderVerticalAlign
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -155,14 +159,14 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingFaceRecogn
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.OtherUserTagType
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingOtherUserSharedEntity
-import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingImportOtherUserResultStatus
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingImportOtherUserResultStatus
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingPredictableException
-import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ImportOtherUserResult
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ImportOtherUserResult
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.displaySnackbar
-import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.getResultTips
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.getResultTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
 import sh.calvin.reorderable.ReorderableColumn
 import kotlin.random.Random
@@ -2279,7 +2283,32 @@ fun OtherUserScreen(
                     val mutex = remember { Mutex() }
                     NewFeatureTipsCard(
                         isTooltipShowed,
-                        "现在可以克隆登录其他人的账号，来给其他人代签你没有的课程。",
+                        tipsContent = {
+                            val cloneIconId = "clone_icon"
+                            Text(
+                                buildAnnotatedString {
+                                    append("现在可以点击")
+                                    appendInlineContent(cloneIconId, "[克隆登录]")
+                                    append("克隆登录其他人的账号，来给其他人代签你没有的课程。")
+                                },
+                                inlineContent = mapOf(
+                                    cloneIconId to InlineTextContent(
+                                        Placeholder(
+                                            width = 16.sp,
+                                            height = 16.sp,
+                                            placeholderVerticalAlign = PlaceholderVerticalAlign.Center
+                                        )
+                                    ) {
+                                        Icon(
+                                            painterResource(R.drawable.ic_user_left_arrow),
+                                            contentDescription = "克隆登录"
+                                        )
+                                    }
+                                ),
+                                fontSize = 14.sp,
+                                lineHeight = 16.sp
+                            )
+                        },
                         modifier = Modifier.padding(8.dp, 0.dp)
                     ) {
                         context.chaoxingDataStore.updateData {

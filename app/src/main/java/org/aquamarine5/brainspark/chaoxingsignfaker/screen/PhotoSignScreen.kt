@@ -323,8 +323,8 @@ fun PhotoSignScreen(
                                         )
                                 },
                                 isCloneSession = destination.isCloneSession,
-                                onIgnoreExceptionSignAction = { index, session ->
-                                    signHandler.ignoreExceptionOtherUserSigning(session, index)
+                                onRetrySignAction = { index, session, bypassChecking ->
+                                    signHandler.retryOtherUserSigning(session, index, bypassChecking)
                                 }
                             ) { isSelf, otherUserSessionList, _ ->
                                 isSigning.value = true
@@ -537,10 +537,11 @@ fun PhotoSignScreen(
                                                             destination.endTime,
                                                             destination.isLate
                                                         )
-                                                }, onIgnoreExceptionSignAction = { index, session ->
-                                                    signHandler.ignoreExceptionOtherUserSigning(
+                                                }, onRetrySignAction = { index, session, bypassChecking ->
+                                                    signHandler.retryOtherUserSigning(
                                                         session,
-                                                        index
+                                                        index,
+                                                        bypassChecking
                                                     )
                                                 },
                                                 userContent = { index ->

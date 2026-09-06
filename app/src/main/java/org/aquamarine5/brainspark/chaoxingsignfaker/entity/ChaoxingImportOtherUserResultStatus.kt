@@ -4,7 +4,7 @@
  * Repository: https://github.com/aquamarine5/ChaoxingSignFaker
  */
 
-package org.aquamarine5.brainspark.chaoxingsignfaker.utilities
+package org.aquamarine5.brainspark.chaoxingsignfaker.entity
 
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
 

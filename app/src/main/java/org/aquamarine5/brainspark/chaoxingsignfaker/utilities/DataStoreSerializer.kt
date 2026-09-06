@@ -28,11 +28,12 @@ object DataStoreSerializer : Serializer<ChaoxingSignFakerDataStore> {
             .setAgreeTerms(false)
             .build()
 
-    override suspend fun readFrom(input: InputStream): ChaoxingSignFakerDataStore = try {
-        ChaoxingSignFakerDataStore.parseFrom(input)
-    } catch (exception: InvalidProtocolBufferException) {
-        throw CorruptionException("Cannot read proto.", exception)
-    }
+    override suspend fun readFrom(input: InputStream): ChaoxingSignFakerDataStore =
+        runCatching { ChaoxingSignFakerDataStore.parseFrom(input) }.getOrElse { exception ->
+            if (exception is InvalidProtocolBufferException)
+                throw CorruptionException("Cannot read proto.", exception)
+            throw exception
+        }
 
     override suspend fun writeTo(t: ChaoxingSignFakerDataStore, output: OutputStream) =
         t.writeTo(output)

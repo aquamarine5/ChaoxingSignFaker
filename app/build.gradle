@@ -11,7 +11,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     id("org.aquamarine5.brainspark.stackbricks-gradle-plugin") version "2.2.9"
     id("com.google.protobuf") version "0.9.6"
-    id "io.sentry.android.gradle" version "6.19.0"
+    id "io.sentry.android.gradle" version "6.20.0"
     id("org.jetbrains.kotlin.plugin.serialization") version "2.4.10"
 }
 
@@ -27,13 +27,14 @@ stackbricksConfig {
             new PossibleConfigurationPath("cdn.aquamarine5.fun", "chaoxingsignfaker_stackbricks_v2_manifest.json")
     ]
     changelog =
-            "暑假的时候作者还在积极更新！带来一个更好的随地大小签\n以下是暑假期间的新版本更新内容：" +
+            "暑假的时候作者还在积极更新！带来一个更好的随地大小签\n以下是暑假期间的新版本更新内容：\n" +
+                    "# 1.18.0 更新：\n1. *重要* 由于学习通更新，修复了需要位置信息的二维码签到无法签到的问题，同时支持了签到码和手势签到的位置信息功能。\n2. 现在的验证码会通过AI自动完成了，感谢 @0x77786d 提供的模型支持。\n3. 测试性的加入了收藏签到位置的功能。\n\n" +
                     "# 1.17.* 更新：\n1. 支持存储自己和代签用户的人脸识别照片，就不用每次自己找了。\n2. 没有代签用户的人脸识别照片时，可以自动获取一张用于签到。\n3. 现在自己的代签二维码会附带自己的人脸识别照片，重新扫描其他人的新版本二维码时会把你的照片下载到他的设备上存储。\n4. 修复了超级多Bug。\n\n"+
                     "# 1.16.* 更新：\n1. 由于学习通更新导致原接口失效，修复了获取群聊列表失败的问题。\n\n" +
                     "# 1.15.* 更新：\n1. 支持克隆登录代签用户的账号以给他有你没有的课程签到\n\n" +
-                    "lovely but not lonely, 20260826 life need dimoo, @aquamarine5 Brainspark."
+                    "lovely but not lonely, 20260906 life need pompompurin, @aquamarine5 Brainspark."
     requiredManifestVersion2MigrateForceInstall = true
-    forceInstallLessVersion = 1_1700_9999
+    forceInstallLessVersion = 1_1800_1000
     qiniuConfig {
         accessKey = project.findProperty("qiniu.accessKey") ?: ""
         secretKey = project.findProperty("qiniu.secretKey") ?: ""
@@ -54,8 +55,8 @@ android {
         applicationId = "org.aquamarine5.brainspark.chaoxingsignfaker"
         minSdk = 26
         targetSdk = 37
-        versionCode = 1_1701_0826
-        versionName = "1.17.1-stable-260826"
+        versionCode = 1_1800_2233
+        versionName = "1.18.0-stable-260906"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -111,7 +112,7 @@ composeCompiler {
 
 protobuf {
     protoc {
-        artifact = "com.google.protobuf:protoc:4.35.1"
+        artifact = "com.google.protobuf:protoc:4.36.1"
     }
 
     generateProtoTasks {
@@ -155,6 +156,7 @@ dependencies {
     implementation libs.protobuf.javalite
     implementation(libs.fastjson2)
     implementation(libs.okhttp)
+    implementation(files("libs/onnxruntime-android-1.29.0-minimal-captcha.aar"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)

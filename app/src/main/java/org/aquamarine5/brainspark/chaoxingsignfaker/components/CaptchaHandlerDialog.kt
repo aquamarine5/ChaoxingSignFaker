@@ -6,10 +6,13 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.components
 
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -29,7 +32,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -37,6 +39,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
@@ -45,30 +48,30 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import coil3.compose.AsyncImage
-import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCaptchaHelper
+import kotlinx.coroutines.withContext
+import okhttp3.Request
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCaptchaPredictor
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCaptchaDataEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSigner
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingCaptchaCancelledException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
-import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.OnlyAppDevelopedMode
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.time.Duration.Companion.seconds
 
 typealias CaptchaHandlerParams<T> = Pair<T, suspend (Result<String>) -> Unit>?
 
-@OptIn(ExperimentalCoroutinesApi::class)
 @Composable
 fun CaptchaHandlerDialog(
     signer: ChaoxingSigner,
     onResult: suspend (Result<String>) -> Unit,
     onDismiss: () -> Unit,
-    @OnlyAppDevelopedMode isRecordingCaptchaMemories: Boolean = false
 ) {
     var data by remember { mutableStateOf<ChaoxingCaptchaDataEntity?>(null) }
-    val shadeImageUrl by remember(data) { mutableStateOf(data?.shadeImageUrl) }
+    var shadeImageBitmap by remember { mutableStateOf<Bitmap?>(null) }
     val cutoutImageUrl by remember(data) { mutableStateOf(data?.cutoutImageUrl) }
     var sliderPosition by remember(data) { mutableFloatStateOf(0f) }
     var containerWidth by remember { mutableFloatStateOf(320f) }
@@ -79,8 +82,22 @@ fun CaptchaHandlerDialog(
     val density by remember(containerWidth) { mutableFloatStateOf(containerWidth / 320) }
     val sliderMaxValue = remember(containerWidth) { containerWidth - 56f * density }
 
-    @OnlyAppDevelopedMode var memoriesMatchCount by remember { mutableIntStateOf(0) }
-    @OnlyAppDevelopedMode var totalTryCount by remember { mutableIntStateOf(0) }
+    suspend fun loadShadeBitmap(captchaData: ChaoxingCaptchaDataEntity): Bitmap? =
+        withContext(Dispatchers.IO) {
+            signer.client.okHttpClient.newCall(
+                Request.Builder().get().url(captchaData.shadeImageUrl).build()
+            ).execute().use { response ->
+                BitmapFactory.decodeStream(response.body.byteStream())
+            }
+        }
+
+    suspend fun refreshCaptcha(): ChaoxingCaptchaDataEntity {
+        val captchaData = signer.getCaptchaImageV2()
+        shadeImageBitmap = loadShadeBitmap(captchaData)
+        data = captchaData
+        return captchaData
+    }
+
     suspend fun check(
         normalizedPosition: Float,
         isCheckingCaptcha: AtomicBoolean?,
@@ -90,7 +107,7 @@ fun CaptchaHandlerDialog(
             .let { result ->
                 if (result == null) {
                     if (isAutoCheck) {
-                        data = signer.getCaptchaImageV2()
+                        refreshCaptcha()
                         isCheckingCaptcha?.set(false)
                         return false
                     }
@@ -103,30 +120,13 @@ fun CaptchaHandlerDialog(
                         "验证失败，请重试",
                         Toast.LENGTH_SHORT
                     ).show()
-                    data = signer.getCaptchaImageV2()
+                    refreshCaptcha()
                     isCheckingCaptcha?.set(false)
                     return false
                 } else {
+                    ChaoxingCaptchaPredictor.lastResolveByModel = isAutoCheck
                     onResult(Result.success(result))
-                    @OnlyAppDevelopedMode if (!isRecordingCaptchaMemories) {
-                        onDismiss()
-                    } else {
-                        ChaoxingCaptchaHelper.storedCaptchaMemories.getValue(context)[data!!.imageFilename] =
-                            normalizedPosition
-                        sliderPosition = 0f
-                        var captchaData: ChaoxingCaptchaDataEntity
-                        val captchaMemories =
-                            ChaoxingCaptchaHelper.storedCaptchaMemories.getValue(context)
-                        do {
-                            captchaData = signer.getCaptchaImageV2()
-                            totalTryCount++
-                        } while (totalTryCount < 20 &&
-                            (captchaData.imageFilename in captchaMemories).also { isMatched ->
-                                if (isMatched) memoriesMatchCount++
-                            }
-                        )
-                        data = captchaData
-                    }
+                    onDismiss()
                     isCheckingCaptcha?.set(false)
                     return true
                 }
@@ -135,14 +135,37 @@ fun CaptchaHandlerDialog(
 
     var isDisplayCaptchaDialog by remember { mutableStateOf(false) }
 
+    fun dismissWithCancel() {
+        coroutineScope.launch {
+            onResult(Result.failure(ChaoxingCaptchaCancelledException()))
+        }
+        onDismiss()
+    }
+
     LaunchedEffect(signer) {
         runCatching {
-            data = signer.getCaptchaImageV2()
-            ChaoxingCaptchaHelper.storedCaptchaMemories.getValue(context)[data!!.imageFilename]
-                .let {
-                    if (it == null || !check(it, null, isAutoCheck = true))
-                        isDisplayCaptchaDialog = true
+            ChaoxingCaptchaPredictor.lastResolveByModel = false
+            refreshCaptcha()
+            val shadeBitmap = shadeImageBitmap
+            val predictedOffset = withContext(Dispatchers.IO) {
+                runCatching {
+                    ChaoxingCaptchaPredictor.initialize(context)
+                    shadeBitmap?.let { ChaoxingCaptchaPredictor.predictSliderXOffset(it) }
+                }.onFailure {
+                    it.printStackTrace()
+                    it.snackbarReport(snackbar,coroutineScope,"验证码预测失败",hapticFeedback)
+                }.getOrNull()
+            }
+            val isAutoCheckPassed = predictedOffset?.let { offset ->
+                runCatching {
+                    check(offset.toFloat(), null, isAutoCheck = true)
+                }.getOrElse { e ->
+                    if (e !is ChaoxingSigner.CaptchaCheckException) throw e
+                    refreshCaptcha()
+                    false
                 }
+            } == true
+            if (!isAutoCheckPassed) isDisplayCaptchaDialog = true
         }.onFailure {
             it.snackbarReport(
                 snackbar,
@@ -157,9 +180,11 @@ fun CaptchaHandlerDialog(
 
     if (isDisplayCaptchaDialog)
         SnackbarAlertDialog(
-            onDismissRequest = onDismiss,
-            title = { _ -> Text("请完成滑动验证") },
-            text = { _ ->
+            onDismissRequest = {
+                dismissWithCancel()
+            },
+            title = {Text("请完成滑动验证") },
+            text = {
                 if (data != null) {
                     Column(modifier = Modifier.fillMaxWidth()) {
                         Box(
@@ -171,13 +196,15 @@ fun CaptchaHandlerDialog(
                                 }
                                 .background(Color.Gray)
                         ) {
-                            AsyncImage(
-                                model = shadeImageUrl,
-                                contentDescription = "背景图",
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .zIndex(0f)
-                            )
+                            shadeImageBitmap?.let { shadeBitmap ->
+                                Image(
+                                    bitmap = shadeBitmap.asImageBitmap(),
+                                    contentDescription = "背景图",
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .zIndex(0f)
+                                )
+                            }
 
                             AsyncImage(
                                 model = cutoutImageUrl,
@@ -229,8 +256,6 @@ fun CaptchaHandlerDialog(
                             valueRange = 0f..sliderMaxValue,
                             modifier = Modifier.fillMaxWidth()
                         )
-                        if (isRecordingCaptchaMemories)
-                            Text("$memoriesMatchCount / $totalTryCount")
                     }
                 } else {
                     Column(
@@ -250,7 +275,7 @@ fun CaptchaHandlerDialog(
                                 coroutineScope.launch {
                                     hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                                     runCatching {
-                                        data = signer.getCaptchaImageV2()
+                                        refreshCaptcha()
                                     }.onFailure {
                                         it.snackbarReport(
                                             snackbar,
@@ -271,7 +296,7 @@ fun CaptchaHandlerDialog(
                 Button(onClick = {
                     coroutineScope.launch {
                         hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                        data = signer.getCaptchaImageV2()
+                        refreshCaptcha()
                     }
                 }) {
                     Text("刷新验证码")
@@ -280,7 +305,7 @@ fun CaptchaHandlerDialog(
             confirmButton = {
                 OutlinedButton(
                     onClick = {
-                        onDismiss()
+                        dismissWithCancel()
                     }
                 ) {
                     Text("取消")

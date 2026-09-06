@@ -107,3 +107,5 @@ public static final int *;
 }
 
 -keep class com.google.mlkit.** { *; }
+-keep class ai.onnxruntime.** { *; }
+-dontwarn ai.onnxruntime.**

@@ -13,6 +13,7 @@ import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Request
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingActivityHelper.NO_SIGN_OFF_EVENT
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationSignEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignOutEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.PasswordSignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.checkResponseThrowException
@@ -67,19 +68,24 @@ class ChaoxingPasswordSigner(
         }
     }
 
-    suspend fun sign(signCode: String): Boolean = withContext(Dispatchers.IO) {
+    suspend fun sign(
+        signCode: String,
+        position: ChaoxingLocationSignEntity? = null
+    ): Boolean = withContext(Dispatchers.IO) {
         if (isCaptchaRequired()) return@withContext true
         client.newCall(
             Request.Builder().url(
                 URL_SIGN.newBuilder()
-                    .addQueryParameter("latitude", "")
-                    .addQueryParameter("longitude", "")
+                    .addQueryParameter("latitude", if(position != null) "%.6f".format(position.latitude) else "")
+                    .addQueryParameter("longitude", if(position != null)  "%.6f".format(position.longitude) else "")
                     .addQueryParameter("activeId", destination.activeId.toString())
                     .addQueryParameter("uid", client.userEntity.puid.toString())
                     .addQueryParameter("name", client.userEntity.name)
                     .addQueryParameter("fid", client.userEntity.fid.toString())
                     .addQueryParameter("signCode", signCode)
                     .addQueryParameter("deviceCode", client.deviceCode)
+                    .addLocationResultParameter(position)
+                    .addLocationParameter(position,false)
                     .build()
             ).build()
         ).execute().use {
@@ -88,20 +94,26 @@ class ChaoxingPasswordSigner(
         }
     }
 
-    suspend fun signWithCaptcha(signCode: String, validateValue: String) =
+    suspend fun signWithCaptcha(
+        signCode: String,
+        validateValue: String,
+        position: ChaoxingLocationSignEntity? = null
+    ) =
         withContext(Dispatchers.IO) {
             client.newCall(
                 Request.Builder().url(
                     URL_SIGN.newBuilder()
-                        .addQueryParameter("latitude", "")
-                        .addQueryParameter("longitude", "")
+                        .addQueryParameter("latitude", if(position != null) "%.6f".format(position.latitude) else "")
+                        .addQueryParameter("longitude", if(position != null)  "%.6f".format(position.longitude) else "")
                         .addQueryParameter("activeId", destination.activeId.toString())
                         .addQueryParameter("uid", client.userEntity.puid.toString())
                         .addQueryParameter("name", client.userEntity.name)
                         .addQueryParameter("fid", client.userEntity.fid.toString())
                         .addQueryParameter("signCode", signCode)
                         .addQueryParameter("deviceCode", client.deviceCode)
+                        .addLocationResultParameter(position)
                         .addQueryParameter("validate", validateValue)
+                        .addLocationParameter(position,false)
                         .build()
                 ).build()
             ).execute().use {
