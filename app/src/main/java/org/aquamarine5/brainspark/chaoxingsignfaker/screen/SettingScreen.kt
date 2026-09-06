@@ -457,10 +457,6 @@ fun SettingScreen(
             Spacer(modifier = Modifier.height(8.dp))
         }
 
-        AnalyserCard()
-        Spacer(modifier = Modifier.height(8.dp))
-        CustomizeClientCard()
-        Spacer(modifier = Modifier.height(8.dp))
         Button(
             onClick = {
                 hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
@@ -498,6 +494,9 @@ fun SettingScreen(
             }
         }
         Spacer(modifier = Modifier.height(8.dp))
+        AnalyserCard()
+        Spacer(modifier = Modifier.height(8.dp))
+        CustomizeClientCard()
         Button(
             onClick = {
                 runCatching {
