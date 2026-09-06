@@ -247,6 +247,7 @@ fun PasswordSignScreen(
                     var text by remember { mutableStateOf("") }
                     var locationData by remember { mutableStateOf<ChaoxingLocationSignEntity?>(null) }
                     var isMapGetting by remember { mutableStateOf(false) }
+                    var pendingAutoSignAction by remember { mutableStateOf<(() -> Unit)?>(null) }
                     val focusManager = LocalFocusManager.current
                     val focusRequester = remember { FocusRequester() }
                     val keyboardController = LocalSoftwareKeyboardController.current
@@ -560,6 +561,17 @@ fun PasswordSignScreen(
                                 return@OtherUserSelectorComponent
                             }
                             if (isMapRequired && locationData == null) {
+                                pendingAutoSignAction = {
+                                    isSigning.value = true
+                                    signHandler.startSigning(
+                                        text,
+                                        isSelf,
+                                        otherUserSessionList,
+                                        hapticFeedback,
+                                        coroutineScope,
+                                        snackbarHost
+                                    )
+                                }
                                 isMapGetting = true
                                 return@OtherUserSelectorComponent
                             }
@@ -600,8 +612,11 @@ fun PasswordSignScreen(
                             }) {
                                 isMapGetting = false
                                 locationData = it
+                                pendingAutoSignAction?.invoke()
+                                pendingAutoSignAction = null
                             }
                             BackHandler(isMapGetting) {
+                                pendingAutoSignAction = null
                                 isSigning.value = false
                                 isMapGetting = false
                             }
