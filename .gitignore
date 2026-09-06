@@ -13,6 +13,7 @@
 .externalNativeBuild
 .cxx
 local.properties
+.sentryclirc
 
 app/build
 /app/release
