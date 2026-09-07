@@ -12,6 +12,7 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.VisibilityThreshold
 import androidx.compose.animation.core.spring
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -53,9 +54,11 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -85,7 +88,6 @@ fun GroupListScreen(
     navToGroupDetail: (GroupDetailDestination) -> Unit,
     navBack: () -> Unit = {}
 ) {
-    val imageLoader = LocalImageLoader.current
     Column(
         modifier = Modifier
             .padding(16.dp, 16.dp, 16.dp, 0.dp)
@@ -131,6 +133,7 @@ fun GroupListScreen(
                             .getIMConfig()
                     )
             }.onFailure {
+                if (it is CancellationException) return@onFailure
                 it.snackbarReport(
                     snackbarHostState,
                     coroutineScope,
@@ -169,7 +172,7 @@ fun GroupListScreen(
                 fontWeight = FontWeight.Bold
             )
         }
-        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+        HorizontalDivider(modifier = Modifier.padding(top = 8.dp))
         Crossfade(isFetchedFailure) { v ->
             when {
                 v == null -> {
@@ -186,6 +189,7 @@ fun GroupListScreen(
                                         .getIMConfig()
                                 )
                             }.onFailure {
+                                if (it is CancellationException) return@onFailure
                                 it.snackbarReport(
                                     snackbarHostState,
                                     coroutineScope,
@@ -211,19 +215,19 @@ fun GroupListScreen(
                 else -> {
                     val displayGroups =
                         imGroupsInfo!!.sortedByDescending { preferredGroupIds.contains(it.id) }
+                    val groupedGroups = remember(displayGroups) {
+                        displayGroups.groupBy { it.chatName }.values.toList()
+                    }
                     LazyColumn {
-                        items(displayGroups, key = {
-                            it.id
-                        }) { item ->
+                        items(groupedGroups, key = {
+                            it.first().chatName
+                        }) { group ->
+                            val item = group.first()
                             val isPreferred = preferredGroupIds.contains(item.id)
                             val starTint by animateColorAsState(
                                 targetValue = if (isPreferred) Color.Yellow else Color.Gray
                             )
-                            Button(
-                                onClick = {
-                                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                                    navToGroupDetail(GroupDetailDestination(item))
-                                }, shape = RoundedCornerShape(18.dp),
+                            Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .animateItem(
@@ -237,66 +241,99 @@ fun GroupListScreen(
                                             stiffness = Spring.StiffnessMedium)
                                     )
                             ) {
-                                Column {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.Start,
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-                                        if (item.imageUrl != null) {
-                                            AsyncImage(
-                                                model = item.imageUrl,
+                                Button(
+                                    onClick = {
+                                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                                        navToGroupDetail(GroupDetailDestination(item))
+                                    }, shape = RoundedCornerShape(18.dp),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                ) {
+                                    Column {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.Start,
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            GroupAvatar(imageUrl = item.imageUrl)
+                                            Text(
+                                                text = item.chatName,
                                                 modifier = Modifier
-                                                    .size(50.dp)
-                                                    .clip(RoundedCornerShape(3.dp)),
-                                                imageLoader = imageLoader,
-                                                contentDescription = null,
-                                                contentScale = ContentScale.FillHeight,
-                                                onError = {
-                                                    Log.w(
-                                                        "GroupListScreen",
-                                                        "Error loading image: ${it.result}"
-                                                    )
-                                                }
+                                                    .padding(start = 16.dp)
+                                                    .weight(1f)
                                             )
-                                        } else {
-                                            Spacer(modifier = Modifier.size(50.dp))
-                                        }
-                                        Text(
-                                            text = item.chatName,
-                                            modifier = Modifier
-                                                .padding(start = 16.dp)
-                                                .weight(1f)
-                                        )
-                                        Icon(
-                                            painterResource(R.drawable.ic_star_fill),
-                                            contentDescription = if (isPreferred) "取消星标" else "星标置顶",
-                                            tint = starTint,
-                                            modifier = Modifier.clickable {
-                                                hapticFeedback.performHapticFeedback(
-                                                    HapticFeedbackType.ContextClick
-                                                )
-                                                coroutineScope.launch(Dispatchers.IO) {
-                                                    if (isPreferred) {
-                                                        context.chaoxingDataStore.updateData { dataStore ->
-                                                            dataStore.toBuilder().apply {
-                                                                val newList =
-                                                                    preferGroupIdList.filterNot { it == item.id }
-                                                                clearPreferGroupId()
-                                                                addAllPreferGroupId(newList)
-                                                            }.build()
+                                            Icon(
+                                                painterResource(R.drawable.ic_star_fill),
+                                                contentDescription = if (isPreferred) "取消星标" else "星标置顶",
+                                                tint = starTint,
+                                                modifier = Modifier.clickable {
+                                                    hapticFeedback.performHapticFeedback(
+                                                        HapticFeedbackType.ContextClick
+                                                    )
+                                                    coroutineScope.launch(Dispatchers.IO) {
+                                                        if (isPreferred) {
+                                                            context.chaoxingDataStore.updateData { dataStore ->
+                                                                dataStore.toBuilder().apply {
+                                                                    val newList =
+                                                                        preferGroupIdList.filterNot { it == item.id }
+                                                                    clearPreferGroupId()
+                                                                    addAllPreferGroupId(newList)
+                                                                }.build()
+                                                            }
+                                                            preferredGroupIds.remove(item.id)
+                                                        } else {
+                                                            context.chaoxingDataStore.updateData {
+                                                                it.toBuilder()
+                                                                    .addPreferGroupId(item.id)
+                                                                    .build()
+                                                            }
+                                                            preferredGroupIds.add(item.id)
                                                         }
-                                                        preferredGroupIds.remove(item.id)
-                                                    } else {
-                                                        context.chaoxingDataStore.updateData {
-                                                            it.toBuilder()
-                                                                .addPreferGroupId(item.id)
-                                                                .build()
-                                                        }
-                                                        preferredGroupIds.add(item.id)
                                                     }
-                                                }
-                                            })
+                                                })
+                                        }
+                                    }
+                                }
+                                if (group.size > 1) {
+                                    Text(
+                                        text = "重名的群组：",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.padding(
+                                            start = 4.dp,
+                                            top = 4.dp,
+                                            bottom = 2.dp
+                                        )
+                                    )
+                                    Column(modifier = Modifier.padding(start = 16.dp)) {
+                                        group.drop(1).forEach { dupItem ->
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.Start,
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .clip(RoundedCornerShape(18.dp))
+                                                    .clickable(role = Role.Button) {
+                                                        hapticFeedback.performHapticFeedback(
+                                                            HapticFeedbackType.ContextClick
+                                                        )
+                                                        navToGroupDetail(
+                                                            GroupDetailDestination(
+                                                                dupItem
+                                                            )
+                                                        )
+                                                    }
+                                                    .padding(vertical = 4.dp)
+                                            ) {
+                                                GroupAvatar(imageUrl = dupItem.imageUrl)
+                                                Text(
+                                                    text = dupItem.chatName,
+                                                    modifier = Modifier
+                                                        .padding(start = 16.dp)
+                                                        .weight(1f)
+                                                )
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -306,6 +343,38 @@ fun GroupListScreen(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun GroupAvatar(
+    imageUrl: String?,
+    size: Dp = 50.dp
+) {
+    val imageLoader = LocalImageLoader.current
+    val shape = RoundedCornerShape(3.dp)
+    if (!imageUrl.isNullOrBlank()) {
+        AsyncImage(
+            model = imageUrl,
+            modifier = Modifier
+                .size(size)
+                .clip(shape),
+            imageLoader = imageLoader,
+            contentDescription = null,
+            contentScale = ContentScale.FillHeight,
+            onError = {
+                Log.w(
+                    "GroupListScreen",
+                    "Error loading image: ${it.result}"
+                )
+            }
+        )
+    } else {
+        Box(
+            modifier = Modifier
+                .size(size)
+                .border(1.dp, MaterialTheme.colorScheme.primary, shape)
+        )
     }
 }
 
