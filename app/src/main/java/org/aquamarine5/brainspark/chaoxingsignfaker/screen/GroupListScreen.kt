@@ -8,6 +8,10 @@ package org.aquamarine5.brainspark.chaoxingsignfaker.screen
 
 import android.util.Log
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.VisibilityThreshold
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -26,10 +30,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -39,6 +45,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -46,9 +53,13 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
@@ -60,6 +71,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.components.NetworkExceptionC
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingEasemobIMGroup
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalImageLoader
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
 
 @Serializable
@@ -102,9 +114,16 @@ fun GroupListScreen(
             )
         ) { mutableStateOf<List<ChaoxingEasemobIMGroup>?>(null) }
         var isFetchedFailure by remember { mutableStateOf<Result<*>?>(null) }
+        val preferredGroupIds = remember { mutableStateListOf<String>() }
 
         LaunchedEffect(Unit) {
             isFetchedFailure = runCatching {
+                withContext(Dispatchers.IO) {
+                    runCatching {
+                        val datastoreData = context.chaoxingDataStore.data.first()
+                        preferredGroupIds.addAll(datastoreData.preferGroupIdList)
+                    }
+                }
                 if (imGroupsInfo == null)
                     imGroupsInfo = ChaoxingIMHelper.getEasemobIMGroups(
                         ChaoxingHttpClient.getHttpInstanceOrClone(destination.isCloneSession)!!,
@@ -140,7 +159,9 @@ fun GroupListScreen(
             )
             Icon(
                 painterResource(R.drawable.ic_users_round),
-                contentDescription = "群聊列表"
+                contentDescription = "群聊列表",
+                tint= MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(24.dp)
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
@@ -188,16 +209,33 @@ fun GroupListScreen(
                 }
 
                 else -> {
+                    val displayGroups =
+                        imGroupsInfo!!.sortedByDescending { preferredGroupIds.contains(it.id) }
                     LazyColumn {
-                        items(imGroupsInfo!!, key = {
+                        items(displayGroups, key = {
                             it.id
                         }) { item ->
+                            val isPreferred = preferredGroupIds.contains(item.id)
+                            val starTint by animateColorAsState(
+                                targetValue = if (isPreferred) Color.Yellow else Color.Gray
+                            )
                             Button(
                                 onClick = {
                                     hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                                     navToGroupDetail(GroupDetailDestination(item))
                                 }, shape = RoundedCornerShape(18.dp),
-                                modifier = Modifier.fillMaxWidth()
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .animateItem(
+                                        placementSpec = spring(
+                                            stiffness = Spring.StiffnessMediumLow,
+                                            visibilityThreshold = IntOffset.VisibilityThreshold
+                                        ),
+                                        fadeInSpec = spring(
+                                            stiffness = Spring.StiffnessMedium),
+                                        fadeOutSpec = spring(
+                                            stiffness = Spring.StiffnessMedium)
+                                    )
                             ) {
                                 Column {
                                     Row(
@@ -226,8 +264,39 @@ fun GroupListScreen(
                                         }
                                         Text(
                                             text = item.chatName,
-                                            modifier = Modifier.padding(start = 16.dp)
+                                            modifier = Modifier
+                                                .padding(start = 16.dp)
+                                                .weight(1f)
                                         )
+                                        Icon(
+                                            painterResource(R.drawable.ic_star_fill),
+                                            contentDescription = if (isPreferred) "取消星标" else "星标置顶",
+                                            tint = starTint,
+                                            modifier = Modifier.clickable {
+                                                hapticFeedback.performHapticFeedback(
+                                                    HapticFeedbackType.ContextClick
+                                                )
+                                                coroutineScope.launch(Dispatchers.IO) {
+                                                    if (isPreferred) {
+                                                        context.chaoxingDataStore.updateData { dataStore ->
+                                                            dataStore.toBuilder().apply {
+                                                                val newList =
+                                                                    preferGroupIdList.filterNot { it == item.id }
+                                                                clearPreferGroupId()
+                                                                addAllPreferGroupId(newList)
+                                                            }.build()
+                                                        }
+                                                        preferredGroupIds.remove(item.id)
+                                                    } else {
+                                                        context.chaoxingDataStore.updateData {
+                                                            it.toBuilder()
+                                                                .addPreferGroupId(item.id)
+                                                                .build()
+                                                        }
+                                                        preferredGroupIds.add(item.id)
+                                                    }
+                                                }
+                                            })
                                     }
                                 }
                             }

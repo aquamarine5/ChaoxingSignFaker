@@ -11,12 +11,18 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -47,11 +53,15 @@ fun SaveFavoriteLocationDialog(
     location: ChaoxingLocationSignEntity,
     onDismiss: () -> Unit,
     onSaveToFavorite: (ChaoxingLocation) -> Unit = {},
-    label: String = "自定义位置"
+    label: String? = null
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val hapticFeedback = LocalHapticFeedback.current
+    var labelInput by remember(location) {
+        mutableStateOf(label?.takeIf { it.isNotBlank() } ?: location.address)
+    }
+    val trimmedLabel = labelInput.trim()
     SnackbarAlertDialog(
         onDismissRequest = {
             hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
@@ -70,20 +80,32 @@ fun SaveFavoriteLocationDialog(
                     }",
                     fontSize = 12.sp
                 )
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = labelInput,
+                    onValueChange = { labelInput = it },
+                    label = { Text("收藏标签") },
+                    supportingText = { Text("仅用于本应用内显示，不会上传到学习通") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         },
         confirmButton = {
-            Button(onClick = {
-                hapticFeedback.performHapticFeedback(HapticFeedbackType.Confirm)
-                val savedLocation = location.toChaoxingLocation(label)
-                coroutineScope.launch(Dispatchers.IO) {
-                    context.chaoxingDataStore.updateData {
-                        it.toBuilder().addLocations(savedLocation).build()
+            Button(
+                onClick = {
+                    hapticFeedback.performHapticFeedback(HapticFeedbackType.Confirm)
+                    val savedLocation = location.toChaoxingLocation(trimmedLabel)
+                    coroutineScope.launch(Dispatchers.IO) {
+                        context.chaoxingDataStore.updateData {
+                            it.toBuilder().addLocations(savedLocation).build()
+                        }
                     }
-                }
-                onSaveToFavorite(savedLocation)
-                onDismiss()
-            }) {
+                    onSaveToFavorite(savedLocation)
+                    onDismiss()
+                },
+                enabled = trimmedLabel.isNotBlank()
+            ) {
                 Text("是")
             }
         },
@@ -97,7 +119,7 @@ fun SaveFavoriteLocationDialog(
                     coroutineScope.launch(Dispatchers.IO) {
                         context.chaoxingDataStore.updateData {
                             it.toBuilder()
-                                .addDontSaveNearbyPosition(location.toChaoxingLocation(label))
+                                .addDontSaveNearbyPosition(location.toChaoxingLocation(trimmedLabel.ifBlank { location.address }))
                                 .build()
                         }
                     }

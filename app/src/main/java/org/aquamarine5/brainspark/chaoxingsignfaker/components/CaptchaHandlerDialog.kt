@@ -54,20 +54,22 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.Request
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCaptchaPredictor
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCaptchaPredictor.CaptchaResolution
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCaptchaDataEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSigner
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingCaptchaCancelledException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.checkResponseThrowException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.time.Duration.Companion.seconds
 
-typealias CaptchaHandlerParams<T> = Pair<T, suspend (Result<String>) -> Unit>?
+typealias CaptchaHandlerParams<T> = Pair<T, suspend (Result<CaptchaResolution>) -> Unit>?
 
 @Composable
 fun CaptchaHandlerDialog(
     signer: ChaoxingSigner,
-    onResult: suspend (Result<String>) -> Unit,
+    onResult: suspend (Result<CaptchaResolution>) -> Unit,
     onDismiss: () -> Unit,
 ) {
     var data by remember { mutableStateOf<ChaoxingCaptchaDataEntity?>(null) }
@@ -87,15 +89,17 @@ fun CaptchaHandlerDialog(
             signer.client.okHttpClient.newCall(
                 Request.Builder().get().url(captchaData.shadeImageUrl).build()
             ).execute().use { response ->
+                response.checkResponseThrowException()
                 BitmapFactory.decodeStream(response.body.byteStream())
             }
         }
 
-    suspend fun refreshCaptcha(): ChaoxingCaptchaDataEntity {
+    suspend fun refreshCaptcha(): Bitmap? {
         val captchaData = signer.getCaptchaImageV2()
-        shadeImageBitmap = loadShadeBitmap(captchaData)
+        val shadeBitmap = loadShadeBitmap(captchaData)
+        shadeImageBitmap = shadeBitmap
         data = captchaData
-        return captchaData
+        return shadeBitmap
     }
 
     suspend fun check(
@@ -124,8 +128,7 @@ fun CaptchaHandlerDialog(
                     isCheckingCaptcha?.set(false)
                     return false
                 } else {
-                    ChaoxingCaptchaPredictor.lastResolveByModel = isAutoCheck
-                    onResult(Result.success(result))
+                    onResult(Result.success(CaptchaResolution(result, isAutoCheck)))
                     onDismiss()
                     isCheckingCaptcha?.set(false)
                     return true
@@ -144,9 +147,7 @@ fun CaptchaHandlerDialog(
 
     LaunchedEffect(signer) {
         runCatching {
-            ChaoxingCaptchaPredictor.lastResolveByModel = false
-            refreshCaptcha()
-            val shadeBitmap = shadeImageBitmap
+            val shadeBitmap = refreshCaptcha()
             val predictedOffset = withContext(Dispatchers.IO) {
                 runCatching {
                     ChaoxingCaptchaPredictor.initialize(context)

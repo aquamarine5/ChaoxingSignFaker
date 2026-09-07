@@ -69,6 +69,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClientPool
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingRecommendHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingSignHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.SignDestination
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignResult
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CameraComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerParams
@@ -229,21 +230,28 @@ fun PhotoSignScreen(
                                     onSelfSigning = { _ ->
                                         runCatching {
                                             if (signer.signByClick()) {
-                                                suspendCancellableCoroutine { continuation ->
-                                                    captchaValidateParams =
-                                                        signer to { validateValue ->
-                                                            if (continuation.isActive)
-                                                                continuation.resumeWith(
-                                                                    validateValue.onSuccess {
-                                                                        signer.signByClickWithCaptcha(
-                                                                            it
-                                                                        )
-                                                                    })
-                                                        }
-                                                }
-                                                return@runCatching true
+                                                val resolution =
+                                                    suspendCancellableCoroutine { continuation ->
+                                                        captchaValidateParams =
+                                                            signer to { captchaResult ->
+                                                                if (continuation.isActive)
+                                                                    continuation.resumeWith(
+                                                                        captchaResult
+                                                                    )
+                                                            }
+                                                    }
+                                                signer.signByClickWithCaptcha(
+                                                    resolution.validate
+                                                )
+                                                return@runCatching ChaoxingSignResult(
+                                                    isCaptchaSigning = true,
+                                                    isCaptchaResolvedByModel = resolution.resolvedByModel
+                                                )
                                             } else
-                                                return@runCatching false
+                                                return@runCatching ChaoxingSignResult(
+                                                    isCaptchaSigning = false,
+                                                    isCaptchaResolvedByModel = false
+                                                )
                                         }
                                     },
                                     onOtherUserSigning = { _, session, bypassChecking, _ ->
@@ -262,23 +270,28 @@ fun PhotoSignScreen(
                                                     ).run {
                                                         if (!(isAlwaysForceSign || bypassChecking)) checkSignStatusThrowException()
                                                         if (signByClick()) {
-                                                            suspendCancellableCoroutine { continuation ->
-                                                                captchaValidateParams =
-                                                                    this to { validateValue ->
-                                                                        if (continuation.isActive) {
-                                                                            continuation.resumeWith(
-                                                                                runCatching {
-                                                                                    validateValue.onSuccess {
-                                                                                        this.signByClickWithCaptcha(
-                                                                                            it
-                                                                                        )
-                                                                                    }.getOrThrow()
-                                                                                })
+                                                            val resolution =
+                                                                suspendCancellableCoroutine { continuation ->
+                                                                    captchaValidateParams =
+                                                                        this to { captchaResult ->
+                                                                            if (continuation.isActive) {
+                                                                                continuation.resumeWith(
+                                                                                    captchaResult
+                                                                                )
+                                                                            }
                                                                         }
-                                                                    }
-                                                            }
-                                                            return@runCatching true
-                                                        } else return@runCatching false
+                                                                }
+                                                            this.signByClickWithCaptcha(
+                                                                resolution.validate
+                                                            )
+                                                            return@runCatching ChaoxingSignResult(
+                                                                isCaptchaSigning = true,
+                                                                isCaptchaResolvedByModel = resolution.resolvedByModel
+                                                            )
+                                                        } else return@runCatching ChaoxingSignResult(
+                                                            isCaptchaSigning = false,
+                                                            isCaptchaResolvedByModel = false
+                                                        )
                                                     }
                                                 }
                                         }
@@ -414,21 +427,28 @@ fun PhotoSignScreen(
                                                         value[0]
                                                     ).let { objectId ->
                                                         if (signer.signByImage(objectId)) {
-                                                            suspendCancellableCoroutine { continuation ->
-                                                                captchaValidateParams =
-                                                                    signer to { validateValue ->
-                                                                        if (continuation.isActive)
-                                                                            continuation.resumeWith(
-                                                                                validateValue.onSuccess {
-                                                                                    signer.signByImageWithCaptcha(
-                                                                                        objectId,
-                                                                                        it
-                                                                                    )
-                                                                                })
-                                                                    }
-                                                            }
-                                                            return@runCatching true
-                                                        } else return@runCatching false
+                                                            val resolution =
+                                                                suspendCancellableCoroutine { continuation ->
+                                                                    captchaValidateParams =
+                                                                        signer to { captchaResult ->
+                                                                            if (continuation.isActive)
+                                                                                continuation.resumeWith(
+                                                                                    captchaResult
+                                                                                )
+                                                                        }
+                                                                }
+                                                            signer.signByImageWithCaptcha(
+                                                                objectId,
+                                                                resolution.validate
+                                                            )
+                                                            return@runCatching ChaoxingSignResult(
+                                                                isCaptchaSigning = true,
+                                                                isCaptchaResolvedByModel = resolution.resolvedByModel
+                                                            )
+                                                        } else return@runCatching ChaoxingSignResult(
+                                                            isCaptchaSigning = false,
+                                                            isCaptchaResolvedByModel = false
+                                                        )
                                                     }
                                                 }
                                             },
@@ -457,25 +477,29 @@ fun PhotoSignScreen(
                                                                     )]
                                                                 )
                                                             if (signByImage(objectId)) {
-                                                                suspendCancellableCoroutine { continuation ->
-                                                                    captchaValidateParams =
-                                                                        this to { validateValue ->
-                                                                            if (continuation.isActive) {
-                                                                                continuation.resumeWith(
-                                                                                    runCatching {
-                                                                                        validateValue.onSuccess {
-                                                                                            this.signByImageWithCaptcha(
-                                                                                                objectId,
-                                                                                                it
-                                                                                            )
-                                                                                        }
-                                                                                            .getOrThrow()
-                                                                                    })
+                                                                val resolution =
+                                                                    suspendCancellableCoroutine { continuation ->
+                                                                        captchaValidateParams =
+                                                                            this to { captchaResult ->
+                                                                                if (continuation.isActive) {
+                                                                                    continuation.resumeWith(
+                                                                                        captchaResult
+                                                                                    )
+                                                                                }
                                                                             }
-                                                                        }
-                                                                }
-                                                                return@runCatching true
-                                                            } else return@runCatching false
+                                                                    }
+                                                                this.signByImageWithCaptcha(
+                                                                    objectId,
+                                                                    resolution.validate
+                                                                )
+                                                                return@runCatching ChaoxingSignResult(
+                                                                    isCaptchaSigning = true,
+                                                                    isCaptchaResolvedByModel = resolution.resolvedByModel
+                                                                )
+                                                            } else return@runCatching ChaoxingSignResult(
+                                                                isCaptchaSigning = false,
+                                                                isCaptchaResolvedByModel = false
+                                                            )
                                                         }
                                                     }
                                                 }
@@ -751,11 +775,11 @@ fun PhotoSignScreen(
                                                     ).let { objectId ->
                                                         if (signer.signByImage(objectId)) {
                                                             captchaValidateParams =
-                                                                signer to { validateValue ->
-                                                                    validateValue.onSuccess {
+                                                                signer to { captchaResult ->
+                                                                    captchaResult.onSuccess { resolution ->
                                                                         signer.signByImageWithCaptcha(
                                                                             objectId,
-                                                                            validateValue.getOrThrow()
+                                                                            resolution.validate
                                                                         )
                                                                         coroutineScope.launch {
                                                                             ChaoxingRecommendHelper.recordRecommendEvent(

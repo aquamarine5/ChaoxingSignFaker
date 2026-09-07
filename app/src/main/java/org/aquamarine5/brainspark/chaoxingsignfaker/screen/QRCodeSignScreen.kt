@@ -78,6 +78,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCourseHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingFaceHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClientPool
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignResult
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingSignHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.SignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerDialog
@@ -343,22 +344,28 @@ fun QRCodeSignScreen(
                                             faceImageUploadedObjectId
                                         )
                                     ) {
-                                        suspendCancellableCoroutine { continuation ->
-                                            captchaValidateParams =
-                                                signer to { validateValue ->
-                                                    if (continuation.isActive)
-                                                        continuation.resumeWith(validateValue.onSuccess {
-                                                            signer.signWithCaptcha(
-                                                                value,
-                                                                locationData,
-                                                                it,
-                                                                faceImageUploadedObjectId
-                                                            )
-                                                        })
-                                                }
-                                        }
-                                        return@runCatching true
-                                    } else return@runCatching false
+                                        val resolution =
+                                            suspendCancellableCoroutine { continuation ->
+                                                captchaValidateParams =
+                                                    signer to { captchaResult ->
+                                                        if (continuation.isActive)
+                                                            continuation.resumeWith(captchaResult)
+                                                    }
+                                            }
+                                        signer.signWithCaptcha(
+                                            value,
+                                            locationData,
+                                            resolution.validate,
+                                            faceImageUploadedObjectId
+                                        )
+                                        return@runCatching ChaoxingSignResult(
+                                            isCaptchaSigning = true,
+                                            isCaptchaResolvedByModel = resolution.resolvedByModel
+                                        )
+                                    } else return@runCatching ChaoxingSignResult(
+                                        isCaptchaSigning = false,
+                                        isCaptchaResolvedByModel = false
+                                    )
                                 }
                             },
                             onSigningFinished = { _, name, isOtherUser ->
@@ -410,26 +417,31 @@ fun QRCodeSignScreen(
                                                         faceImageUploadedObjectId
                                                     )
                                                 ) {
-                                                    suspendCancellableCoroutine { continuation ->
-                                                        captchaValidateParams =
-                                                            this to { validateValue ->
-                                                                if (continuation.isActive) {
-                                                                    continuation.resumeWith(
-                                                                        runCatching {
-                                                                            validateValue.onSuccess {
-                                                                                signWithCaptcha(
-                                                                                    value,
-                                                                                    locationData,
-                                                                                    it,
-                                                                                    faceImageUploadedObjectId
-                                                                                )
-                                                                            }.getOrThrow()
-                                                                        })
+                                                    val resolution =
+                                                        suspendCancellableCoroutine { continuation ->
+                                                            captchaValidateParams =
+                                                                this to { captchaResult ->
+                                                                    if (continuation.isActive) {
+                                                                        continuation.resumeWith(
+                                                                            captchaResult
+                                                                        )
+                                                                    }
                                                                 }
-                                                            }
-                                                    }
-                                                    return@runCatching true
-                                                } else return@runCatching false
+                                                        }
+                                                    signWithCaptcha(
+                                                        value,
+                                                        locationData,
+                                                        resolution.validate,
+                                                        faceImageUploadedObjectId
+                                                    )
+                                                    return@runCatching ChaoxingSignResult(
+                                                        isCaptchaSigning = true,
+                                                        isCaptchaResolvedByModel = resolution.resolvedByModel
+                                                    )
+                                                } else return@runCatching ChaoxingSignResult(
+                                                    isCaptchaSigning = false,
+                                                    isCaptchaResolvedByModel = false
+                                                )
                                             }
                                         }
                                 }

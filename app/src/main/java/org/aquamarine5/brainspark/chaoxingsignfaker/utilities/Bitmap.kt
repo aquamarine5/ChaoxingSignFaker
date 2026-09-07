@@ -15,6 +15,7 @@ import android.os.Build
 import androidx.compose.runtime.staticCompositionLocalOf
 import coil3.ImageLoader
 import kotlin.contracts.ExperimentalContracts
+import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
 import kotlin.math.ceil
 
@@ -63,5 +64,17 @@ fun checkThrowFaceException(value: Boolean, lazyMessage: () -> String) {
     if (!value) {
         val message = lazyMessage()
         throw ChaoxingFaceImageException(message)
+    }
+}
+
+@OptIn(ExperimentalContracts::class)
+inline fun <R> Bitmap.use(block: (Bitmap) -> R): R {
+    contract {
+        callsInPlace(block, InvocationKind.EXACTLY_ONCE)
+    }
+    try {
+        return block(this)
+    } finally {
+        if (!isRecycled) recycle()
     }
 }

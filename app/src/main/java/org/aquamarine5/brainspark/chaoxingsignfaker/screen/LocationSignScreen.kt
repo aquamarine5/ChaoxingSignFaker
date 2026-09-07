@@ -71,6 +71,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationSignE
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityStatus
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignOutEntity
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignResult
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignStatus
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingLocationSigner
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSignHandler
@@ -252,7 +253,6 @@ fun LocationSignScreen(
                         signedLocation?.let { signed ->
                             SaveFavoriteLocationDialog(
                                 signed,
-                                label = "上次签到的位置",
                                 onDismiss = {
                                     isShowSaveFavoriteDialog = false
                                 }
@@ -307,21 +307,27 @@ fun LocationSignScreen(
                                             faceImageUploadedObjectId
                                         )
                                     ) {
-                                        suspendCancellableCoroutine { continuation ->
-                                            captchaValidateParams =
-                                                signer to { captchaValidate ->
-                                                    if (continuation.isActive)
-                                                        continuation.resumeWith(captchaValidate.onSuccess {
-                                                            signer.signWithCaptcha(
-                                                                value,
-                                                                it,
-                                                                faceImageUploadedObjectId
-                                                            )
-                                                        })
-                                                }
-                                        }
-                                        return@runCatching true
-                                    } else return@runCatching false
+                                        val resolution =
+                                            suspendCancellableCoroutine { continuation ->
+                                                captchaValidateParams =
+                                                    signer to { captchaResult ->
+                                                        if (continuation.isActive)
+                                                            continuation.resumeWith(captchaResult)
+                                                    }
+                                            }
+                                        signer.signWithCaptcha(
+                                            value,
+                                            resolution.validate,
+                                            faceImageUploadedObjectId
+                                        )
+                                        return@runCatching ChaoxingSignResult(
+                                            isCaptchaSigning = true,
+                                            isCaptchaResolvedByModel = resolution.resolvedByModel
+                                        )
+                                    } else return@runCatching ChaoxingSignResult(
+                                        isCaptchaSigning = false,
+                                        isCaptchaResolvedByModel = false
+                                    )
                                 }
                             },
                             onOtherUserSigning = { value, session, bypassChecking, _ ->
@@ -360,25 +366,30 @@ fun LocationSignScreen(
                                                         }
                                                     } else null
                                                 if (sign(value, faceImageUploadedObjectId)) {
-                                                    suspendCancellableCoroutine { continuation ->
-                                                        captchaValidateParams =
-                                                            this to { captchaValidate ->
-                                                                if (continuation.isActive) {
-                                                                    continuation.resumeWith(
-                                                                        runCatching {
-                                                                            captchaValidate.onSuccess {
-                                                                                signWithCaptcha(
-                                                                                    value,
-                                                                                    it,
-                                                                                    faceImageUploadedObjectId
-                                                                                )
-                                                                            }.getOrThrow()
-                                                                        })
+                                                    val resolution =
+                                                        suspendCancellableCoroutine { continuation ->
+                                                            captchaValidateParams =
+                                                                this to { captchaResult ->
+                                                                    if (continuation.isActive) {
+                                                                        continuation.resumeWith(
+                                                                            captchaResult
+                                                                        )
+                                                                    }
                                                                 }
-                                                            }
-                                                    }
-                                                    return@runCatching true
-                                                } else return@runCatching false
+                                                        }
+                                                    signWithCaptcha(
+                                                        value,
+                                                        resolution.validate,
+                                                        faceImageUploadedObjectId
+                                                    )
+                                                    return@runCatching ChaoxingSignResult(
+                                                        isCaptchaSigning = true,
+                                                        isCaptchaResolvedByModel = resolution.resolvedByModel
+                                                    )
+                                                } else return@runCatching ChaoxingSignResult(
+                                                    isCaptchaSigning = false,
+                                                    isCaptchaResolvedByModel = false
+                                                )
                                             }
                                         }
                                 }
@@ -467,7 +478,6 @@ fun LocationSignScreen(
                                         destination.endTime,
                                         destination.isLate
                                     )
-                                ;
                                 if (isFaceRequired) {
                                     FaceRecognitionNewFeatureTips(
                                         isDisplayFaceRecognitionImageNewFeatureTips

@@ -19,9 +19,9 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingOtherUserHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.SignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignResult
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignStatus
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingQRCodeSigner.QRCodeExpiredException
-import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCaptchaPredictor
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingCaptchaCancelledException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingFaceSignException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.FaceRecognitionData
@@ -32,8 +32,8 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
 
 @Immutable
 class ChaoxingSignHandler<in T>(
-    private val onSelfSigning: suspend (value: T) -> Result<Boolean>,
-    private val onOtherUserSigning: suspend (value: T, session: ChaoxingOtherUserSession, bypassChecking: Boolean, index: Int) -> Result<Boolean>,
+    private val onSelfSigning: suspend (value: T) -> Result<ChaoxingSignResult>,
+    private val onOtherUserSigning: suspend (value: T, session: ChaoxingOtherUserSession, bypassChecking: Boolean, index: Int) -> Result<ChaoxingSignResult>,
     private val destination: SignDestination,
     private val onSigningFinished: suspend (value: T, name: String, isOtherUser: Boolean) -> Unit,
     private val onAllSigningFinished: suspend (isSuccessful: Boolean) -> Unit,
@@ -48,7 +48,7 @@ class ChaoxingSignHandler<in T>(
         session: ChaoxingOtherUserSession,
         index: Int,
         bypassChecking: Boolean
-    ): Result<Boolean> {
+    ): Result<ChaoxingSignResult> {
         return onOtherUserSigning(
             getSignRealtimeParameter?.invoke()
                 ?: requireNotNull(storedValue) { "Should call startSigning() first." },
@@ -62,7 +62,7 @@ class ChaoxingSignHandler<in T>(
             }
             signStatus[1 + index].failed(it)
         }.onSuccess {
-            if (it && ChaoxingCaptchaPredictor.lastResolveByModel)
+            if (it.isCaptchaSigning && it.isCaptchaResolvedByModel)
                 signStatus[1 + index].markCaptchaResolvedByModel()
             if (destination.endTime != null && System.currentTimeMillis() > destination.endTime!!)
                 signStatus[1 + index].successForLate()
@@ -88,8 +88,8 @@ class ChaoxingSignHandler<in T>(
             if (isSelf) {
                 signStatus[0].loading()
                 onSelfSigning(value).onSuccess {
-                    isCaptchaSigning = it
-                    if (it && ChaoxingCaptchaPredictor.lastResolveByModel)
+                    isCaptchaSigning = it.isCaptchaSigning
+                    if (it.isCaptchaSigning && it.isCaptchaResolvedByModel)
                         signStatus[0].markCaptchaResolvedByModel()
                     userSelections[0] = false
                     faceRecognitionData?.markSuccess(selfPhoneNumber, otherUserSessionList)
@@ -149,8 +149,8 @@ class ChaoxingSignHandler<in T>(
                     delay(ChaoxingOtherUserHelper.TIMEOUT_NEXT_SIGN)
                 isFirstOtherUserForSign = false
                 onOtherUserSigning(value, session, false, index).onSuccess {
-                    isCaptchaSigning = it
-                    if (it && ChaoxingCaptchaPredictor.lastResolveByModel)
+                    isCaptchaSigning = it.isCaptchaSigning
+                    if (it.isCaptchaSigning && it.isCaptchaResolvedByModel)
                         signStatus[1 + index].markCaptchaResolvedByModel()
                     if (destination.endTime != null && System.currentTimeMillis() > destination.endTime!!)
                         signStatus[1 + index].successForLate()
