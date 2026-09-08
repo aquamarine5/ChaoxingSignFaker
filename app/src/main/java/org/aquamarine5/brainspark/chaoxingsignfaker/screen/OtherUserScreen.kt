@@ -2474,22 +2474,44 @@ fun OtherUserScreen(
                                                             modifier = Modifier.size(24.dp)
                                                         )
                                                     }
-                                                else
-                                                    IconButton(onClick = {
-                                                        coroutineScope.launch {
-                                                            hapticFeedback.performHapticFeedback(
-                                                                HapticFeedbackType.ContextClick
-                                                            )
-                                                            val client =
-                                                                ChaoxingHttpClientPool.get(
-                                                                    context,
-                                                                    otherUserSessions[index].phoneNumber
-                                                                )
-                                                            ChaoxingHttpClient.cloneInstance =
-                                                                client
-                                                            naviCloneCourseListScreen()
-                                                        }
-                                                    }) {
+                                                    else
+                                                     IconButton(onClick = {
+                                                         coroutineScope.launch {
+                                                             hapticFeedback.performHapticFeedback(
+                                                                 HapticFeedbackType.ContextClick
+                                                             )
+                                                             val session = otherUserSessions[index]
+                                                             runCatching {
+                                                                 ChaoxingHttpClientPool.get(
+                                                                     context,
+                                                                     session.phoneNumber
+                                                                 )
+                                                             }.onSuccess { client ->
+                                                                 ChaoxingHttpClient.cloneInstance =
+                                                                     client
+                                                                 naviCloneCourseListScreen()
+                                                             }.onFailure { failure ->
+                                                                 (failure as? ChaoxingHttpClient.ChaoxingGetUserInfoException)
+                                                                     ?.takeIf { it.isOtherUser }
+                                                                     ?.let {
+                                                                         coroutineScope.launch {
+                                                                             runCatching {
+                                                                                 ChaoxingOtherUserHelper.markSessionObsoleted(
+                                                                                     session,
+                                                                                     context
+                                                                                 )
+                                                                             }
+                                                                         }
+                                                                     }
+                                                                 failure.snackbarReport(
+                                                                     snackbarHost,
+                                                                     coroutineScope,
+                                                                     "切换代签用户失败",
+                                                                     hapticFeedback
+                                                                 )
+                                                             }
+                                                         }
+                                                     }) {
                                                         Icon(
                                                             painterResource(R.drawable.ic_user_left_arrow),
                                                             null

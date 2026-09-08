@@ -94,7 +94,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingPredictabl
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.decodePhotoBitmap
-import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.displaySnackbar
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.scaleDownToMaxDimension
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -125,15 +125,7 @@ fun CameraComponent(
             val preview = remember { Preview.Builder().build() }
             var takeImage by remember { mutableStateOf<Bitmap?>(null) }
             val takeProcessedImage by remember(takeImage) {
-                derivedStateOf {
-                    if (takeImage == null) null
-                    else {
-                        if (takeImage!!.allocationByteCount > 104857600L) {
-                            snackbarHost.displaySnackbar("图片过大，无法显示预览", coroutineScope)
-                            null
-                        } else takeImage!!.asImageBitmap()
-                    }
-                }
+                derivedStateOf { takeImage?.asImageBitmap() }
             }
             var isBackCamera = remember { isDefaultBackCamera }
             val lifecycleOwner = LocalLifecycleOwner.current
@@ -207,6 +199,7 @@ fun CameraComponent(
                     if (uri == null) return@rememberLauncherForActivityResult
                     runCatching {
                         val image = application.contentResolver.decodePhotoBitmap(uri)
+                            ?.scaleDownToMaxDimension()
                             ?: error("无法读取图片")
                         photoList.add(image)
                         job?.cancel()
@@ -236,6 +229,7 @@ fun CameraComponent(
                     runCatching {
                         uris.forEach { uri ->
                             val image = application.contentResolver.decodePhotoBitmap(uri)
+                                ?.scaleDownToMaxDimension()
                                 ?: throw ChaoxingPredictableException("无法读取图片")
                             photoList.add(image)
                             takeImage = image
@@ -418,7 +412,7 @@ fun CameraComponent(
                             override fun onCaptureSuccess(image: ImageProxy) {
                                 super.onCaptureSuccess(image)
                                 image.use {
-                                    val bitmap = it.toBitmap()
+                                    val bitmap = it.toBitmap().scaleDownToMaxDimension()
                                     photoList.add(bitmap)
                                     job?.cancel()
                                     takeImage = bitmap

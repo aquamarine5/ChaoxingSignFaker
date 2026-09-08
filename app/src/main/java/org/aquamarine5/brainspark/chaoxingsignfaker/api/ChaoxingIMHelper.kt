@@ -277,7 +277,7 @@ object ChaoxingIMHelper {
                     val messageBody = MessageBody.parseFrom(meta.field6)
                     resultList.add(messageBody)
                 }
-                return@use parseIMMessageBody(resultList)
+                return@use parseIMMessageBody(resultList).distinctBy { it.activeId }
             }
         }
     }

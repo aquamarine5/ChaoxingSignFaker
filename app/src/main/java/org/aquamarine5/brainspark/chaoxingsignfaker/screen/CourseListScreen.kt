@@ -743,8 +743,6 @@ fun CourseListScreen(
     }
 }
 
-private val changelogTagRegex = Regex("<(/?)([biug])>", RegexOption.IGNORE_CASE)
-
 private fun parseChangelogToAnnotatedString(
     raw: String,
     gray: Color
@@ -761,7 +759,7 @@ private fun parseChangelogToAnnotatedString(
     )
     return buildAnnotatedString {
         var pos = 0
-        changelogTagRegex.findAll(raw).forEach { match ->
+        Regex("<(/?)([biug])>", RegexOption.IGNORE_CASE).findAll(raw).forEach { match ->
             if (match.range.first > pos) {
                 withStyle(currentStyle()) {
                     append(raw.substring(pos, match.range.first))

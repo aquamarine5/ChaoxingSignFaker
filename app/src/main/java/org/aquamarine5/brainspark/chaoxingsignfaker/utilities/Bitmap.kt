@@ -23,6 +23,17 @@ val LocalImageLoader = staticCompositionLocalOf<ImageLoader> { error("ImageLoade
 
 const val MAX_DECODE_DIMENSION = 3072
 
+fun Bitmap.scaleDownToMaxDimension(maxDimension: Int = MAX_DECODE_DIMENSION): Bitmap {
+    val largest = maxOf(width, height)
+    if (largest <= maxDimension || width <= 0 || height <= 0) return this
+    val ratio = maxDimension / largest.toFloat()
+    val targetWidth = (width * ratio).toInt().coerceAtLeast(1)
+    val targetHeight = (height * ratio).toInt().coerceAtLeast(1)
+    val scaled = Bitmap.createScaledBitmap(this, targetWidth, targetHeight, true)
+    if (scaled !== this && !isRecycled) recycle()
+    return scaled
+}
+
 fun ContentResolver.decodePhotoBitmap(uri: Uri): Bitmap? {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
         runCatching {
