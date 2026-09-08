@@ -39,9 +39,11 @@ import kotlin.time.Duration.Companion.milliseconds
 object ChaoxingOtherUserHelper {
     val TIMEOUT_NEXT_SIGN = 200.milliseconds
 
-    class NotAvailableQRCodeException(message: String) : ChaoxingPredictableException(message)
+    class NotAvailableQRCodeException(message: String, throwable: Throwable? = null) :
+        ChaoxingPredictableException(message, throwable)
 
-    class AlreadyExistedOtherUserException(message: String) : ChaoxingPredictableException(message)
+    class AlreadyExistedOtherUserException(message: String, throwable: Throwable? = null) :
+        ChaoxingPredictableException(message, throwable)
 
     private fun getQRCodeSize(context: Context): Int {
         val displayMetrics = context.resources.displayMetrics

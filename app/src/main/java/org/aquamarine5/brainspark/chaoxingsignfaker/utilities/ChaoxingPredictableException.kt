@@ -10,8 +10,8 @@ open class ChaoxingPredictableException(
     override val message: String?,
     throwable: Throwable? = null
 ) : Throwable(message, throwable) {
-    class ApplicationIllegalChannelException :
-        Exception("Illegal channel detected. Please check your app version and channel.")
+    class ApplicationIllegalChannelException(cause: Throwable? = null) :
+        Exception("Illegal channel detected. Please check your app version and channel.", cause)
 }
 
 open class ChaoxingParseDataException(
@@ -28,10 +28,11 @@ fun Throwable.getPredictableMessage(): String {
     }
 }
 
-class ChaoxingFaceSignException(message: String) :
-    ChaoxingPredictableException("人脸验证失败: $message")
+class ChaoxingFaceSignException(message: String, throwable: Throwable? = null) :
+    ChaoxingPredictableException("人脸验证失败: $message", throwable)
 
-class ChaoxingFaceImageException(message: String) : ChaoxingPredictableException(message)
+class ChaoxingFaceImageException(message: String, throwable: Throwable? = null) :
+    ChaoxingPredictableException(message, throwable)
 
-class ChaoxingCaptchaCancelledException :
-    ChaoxingPredictableException("已取消验证码验证")
+class ChaoxingCaptchaCancelledException(throwable: Throwable? = null) :
+    ChaoxingPredictableException("已取消验证码验证", throwable)

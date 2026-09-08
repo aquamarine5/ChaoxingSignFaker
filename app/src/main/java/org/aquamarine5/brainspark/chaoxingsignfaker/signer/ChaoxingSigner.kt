@@ -69,25 +69,32 @@ abstract class ChaoxingSigner(
 
     private var storageSignInfo: JSONObject? = baseSignInfo
 
-    class SignExpiredException : ChaoxingPredictableException("签到已截止")
+    class SignExpiredException(throwable: Throwable? = null) :
+        ChaoxingPredictableException("签到已截止", throwable)
 
-    class SignAlreadyEndedException : ChaoxingPredictableException("迟到或签到已结束")
+    class SignAlreadyEndedException(throwable: Throwable? = null) :
+        ChaoxingPredictableException("迟到或签到已结束", throwable)
 
-    class SignActivityNoPermissionException : ChaoxingPredictableException("此用户不在班级")
+    class SignActivityNoPermissionException(throwable: Throwable? = null) :
+        ChaoxingPredictableException("此用户不在班级", throwable)
 
-    class AlreadySignedException : ChaoxingPredictableException("已经签到过了")
+    class AlreadySignedException(throwable: Throwable? = null) :
+        ChaoxingPredictableException("已经签到过了", throwable)
 
-    class PredictedAlreadySignedException : ChaoxingPredictableException("重复签到")
+    class PredictedAlreadySignedException(throwable: Throwable? = null) :
+        ChaoxingPredictableException("重复签到", throwable)
 
-    class CaptchaTimeoutException : ChaoxingPredictableException("获取验证码信息超时")
+    class CaptchaTimeoutException(throwable: Throwable? = null) :
+        ChaoxingPredictableException("获取验证码信息超时", throwable)
 
-    class CaptchaException : ChaoxingPredictableException("验证码获取失败")
+    class CaptchaException(throwable: Throwable? = null) :
+        ChaoxingPredictableException("验证码获取失败", throwable)
 
-    class CaptchaCheckException(message: String) :
-        ChaoxingPredictableException("$message, 验证码校验失败")
+    class CaptchaCheckException(message: String, throwable: Throwable? = null) :
+        ChaoxingPredictableException("$message, 验证码校验失败", throwable)
 
-    class WrongPositionException(distance: Float? = null) :
-        ChaoxingPredictableException("位置不在设置范围内${if (distance != null) "，距离签到点${distance}米" else ""}")
+    class WrongPositionException(distance: Float? = null, throwable: Throwable? = null) :
+        ChaoxingPredictableException("位置不在设置范围内${if (distance != null) "，距离签到点${distance}米" else ""}", throwable)
 
     abstract suspend fun checkAlreadySign(response: String): Boolean
 

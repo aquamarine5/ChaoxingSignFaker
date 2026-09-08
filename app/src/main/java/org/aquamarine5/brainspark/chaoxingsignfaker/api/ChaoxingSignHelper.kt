@@ -46,7 +46,8 @@ object ChaoxingSignHelper {
 
     private val painterCache = ConcurrentHashMap<Int, Painter>(6)
 
-    class ChaoxingUnsupportedSignTypeException : ChaoxingPredictableException("不支持此签到类型")
+    class ChaoxingUnsupportedSignTypeException(throwable: Throwable? = null) :
+        ChaoxingPredictableException("不支持此签到类型", throwable)
 
     @Composable
     fun getSignIcon(activity: ChaoxingSignActivityEntity): Painter {

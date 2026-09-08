@@ -33,9 +33,11 @@ object ChaoxingIMHelper {
     private class ChaoxingIMConfigParseException(
         arg: String,
         message: String? = null,
-        data: String? = null
+        data: String? = null,
+        throwable: Throwable? = null
     ) : ChaoxingParseDataException(
         "IM配置解析异常: $arg 获取失败，${message ?: "未知错误"}",
+        throwable,
         data = data
     )
 
@@ -179,7 +181,7 @@ object ChaoxingIMHelper {
                     runCatching {
                         return """<span\s+id="$id"[^>]*>(.*?)</span>""".toRegex(RegexOption.DOT_MATCHES_ALL)
                             .find(responseBody)?.groupValues?.get(1)?.trim()!!
-                    }.getOrElse { throw ChaoxingIMConfigParseException(id, it.message) }
+                    }.getOrElse { throw ChaoxingIMConfigParseException(id, it.message, throwable = it) }
                 }
 
                 val tuid = extractSpan("myTuid")

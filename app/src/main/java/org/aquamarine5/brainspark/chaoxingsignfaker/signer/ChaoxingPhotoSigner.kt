@@ -30,10 +30,11 @@ class ChaoxingPhotoSigner(
     photoActivityEntity.extContent,
     baseSignInfo
 ) {
-    class ChaoxingPhotoSignException(message: String) : ChaoxingPredictableException(message)
+    class ChaoxingPhotoSignException(message: String, throwable: Throwable? = null) :
+        ChaoxingPredictableException(message, throwable)
 
-    class ChaoxingIncorrectSignTypeException :
-        ChaoxingPredictableException("签到类型不匹配，应是图片签到")
+    class ChaoxingIncorrectSignTypeException(throwable: Throwable? = null) :
+        ChaoxingPredictableException("签到类型不匹配，应是图片签到", throwable)
 
     companion object {
         const val URL_CLOUD_UPLOAD = "https://pan-yz.chaoxing.com/upload?_from=mobilelearn&_token="

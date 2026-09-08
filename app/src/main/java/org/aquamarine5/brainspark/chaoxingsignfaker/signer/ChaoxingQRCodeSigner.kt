@@ -40,10 +40,11 @@ class ChaoxingQRCodeSigner(
         }
     }
 
-    class QRCodeParseException(val rawValue: String) :
-        ChaoxingPredictableException("二维码解析失败")
+    class QRCodeParseException(val rawValue: String, throwable: Throwable? = null) :
+        ChaoxingPredictableException("二维码解析失败", throwable)
 
-    class QRCodeExpiredException : ChaoxingPredictableException("二维码已过期")
+    class QRCodeExpiredException(throwable: Throwable? = null) :
+        ChaoxingPredictableException("二维码已过期", throwable)
 
     suspend fun getQRCodeSignInfo(): Pair<ChaoxingQRCodeDetailEntity, ChaoxingSignOutEntity> {
         return getSignInfo().run {

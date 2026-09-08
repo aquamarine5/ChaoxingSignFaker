@@ -51,7 +51,8 @@ class ChaoxingHttpClient private constructor(
     val userEntity: ChaoxingUserEntity,
     val deviceCode: String = generateDeviceCode()
 ) {
-    class ChaoxingLoginException(message: String) : ChaoxingPredictableException(message)
+    class ChaoxingLoginException(message: String, throwable: Throwable? = null) :
+        ChaoxingPredictableException(message, throwable)
 
     class ChaoxingGetUserInfoException(
         message: String,
@@ -60,8 +61,8 @@ class ChaoxingHttpClient private constructor(
     ) :
         ChaoxingPredictableException(message, throwable)
 
-    class ChaoxingNetworkException(message: String? = null) :
-        ChaoxingPredictableException(message ?: "网络错误")
+    class ChaoxingNetworkException(message: String? = null, throwable: Throwable? = null) :
+        ChaoxingPredictableException(message ?: "网络错误", throwable)
 
     var storageCloudToken: String? = null
 
