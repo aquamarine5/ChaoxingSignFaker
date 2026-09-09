@@ -65,6 +65,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignResult
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerParams
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.cloneSessionGuard
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.GetLocationComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NetworkExceptionComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NotReadyToSignNoticeComponent
@@ -90,7 +91,7 @@ import kotlin.time.Duration.Companion.milliseconds
 data class GestureSignDestination(
     override val activeId: Long,
     override val classId: Int,
-    override val courseId: Int,
+    override val courseId: Long,
     val extContent: String,
     val startTime: Long?,
     override val endTime: Long?,
@@ -125,6 +126,11 @@ fun GestureSignScreen(
     navToOtherSign: (SignDestination) -> Unit,
     navToOtherUserDestination: () -> Unit
 ) {
+    if (!cloneSessionGuard(
+            destination.isCloneSession,
+            onCloneInvalid = navToCourseDetailDestination
+        )
+    ) return
     var signActivityStatus by remember { mutableStateOf<ChaoxingSignActivityStatus?>(null) }
     var isSignForOther by remember { mutableStateOf(false) }
     val signer = remember {
@@ -192,9 +198,22 @@ fun GestureSignScreen(
             NetworkExceptionComponent(v.exceptionOrNull()!!) {
                 coroutineScope.launch {
                     isFetchedFailure = runCatching {
-                        signoffData = signer.getGestureSignInfo()
-                        isMapRequired = signer.isPositionRequired()
-                        signActivityStatus = signer.preSign()
+                        signoffData = if (destination.isCloneSession) {
+                            ChaoxingHttpClient.cloneInstance!!.let { client ->
+                                ChaoxingGestureSigner(
+                                    client,
+                                    destination
+                                ).let {
+                                    signActivityStatus = it.preSign()
+                                    isMapRequired = it.isPositionRequired()
+                                    it.getGestureSignInfo()
+                                }
+                            }
+                        } else {
+                            signActivityStatus = signer.preSign()
+                            isMapRequired = signer.isPositionRequired()
+                            signer.getGestureSignInfo()
+                        }
                     }.onFailure {
                         it.snackbarReport(
                             snackbarHost,

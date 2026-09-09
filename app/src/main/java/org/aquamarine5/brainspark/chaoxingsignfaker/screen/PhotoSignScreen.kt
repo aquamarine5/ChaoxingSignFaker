@@ -60,6 +60,8 @@ import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCloudDriveHelper
@@ -69,7 +71,6 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClientPool
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingRecommendHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingSignHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.SignDestination
-import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignResult
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CameraComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerParams
@@ -81,15 +82,19 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.components.SignOutRedirectTi
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SignPotentialWarningTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SnackbarAlertDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SponsorPopupDialog
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.cloneSessionGuard
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityStatus
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignOutEntity
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignResult
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignStatus
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingPhotoSigner
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSignHandler
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.UMengHelper
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.decodePhotoBitmap
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.randomizeStylizeImage
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
 
 typealias ChaoxingPhotoActivityEntity = PhotoSignDestination
@@ -99,7 +104,7 @@ typealias ChaoxingPhotoActivityEntity = PhotoSignDestination
 data class PhotoSignDestination(
     override val activeId: Long,
     override val classId: Int,
-    override val courseId: Int,
+    override val courseId: Long,
     val extContent: String,
     val startTime: Long?,
     override val endTime: Long?,
@@ -134,6 +139,7 @@ fun PhotoSignScreen(
     navToOtherSign: (SignDestination) -> Unit,
     navToOtherUserDestination: () -> Unit
 ) {
+    if (!cloneSessionGuard(destination.isCloneSession, onCloneInvalid = navBack)) return
     val snackbarHost = LocalSnackbarHostState.current
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -199,10 +205,22 @@ fun PhotoSignScreen(
             NetworkExceptionComponent(v.exceptionOrNull()!!) {
                 coroutineScope.launch {
                     isFetchedFailure = runCatching {
-                        val data = signer.ifPhotoRequiredLogin()
+                        val data = if (destination.isCloneSession) {
+                            ChaoxingHttpClient.cloneInstance!!.let { client ->
+                                ChaoxingPhotoSigner(
+                                    client,
+                                    destination
+                                ).let {
+                                    signActivityStatus = it.preSign()
+                                    it.ifPhotoRequiredLogin()
+                                }
+                            }
+                        } else {
+                            signActivityStatus = signer.preSign()
+                            signer.ifPhotoRequiredLogin()
+                        }
                         isImage = data.first
                         signoffEntity = data.second
-                        signActivityStatus = signer.preSign()
                     }.onFailure {
                         it.snackbarReport(
                             snackbarHost,
@@ -424,7 +442,7 @@ fun PhotoSignScreen(
                                                 runCatching {
                                                     ChaoxingCloudDriveHelper.uploadImage(
                                                         ChaoxingHttpClient.instance!!,
-                                                        value[0]
+                                                        randomizeStylizeImage(value[0])
                                                     ).let { objectId ->
                                                         if (signer.signByImage(objectId)) {
                                                             val resolution =
@@ -472,9 +490,9 @@ fun PhotoSignScreen(
                                                             val objectId =
                                                                 ChaoxingCloudDriveHelper.uploadImage(
                                                                     client,
-                                                                    value[bitmapIndexList.indexOf(
+                                                                    randomizeStylizeImage(value[bitmapIndexList.indexOf(
                                                                         index + 1
-                                                                    )]
+                                                                    )])
                                                                 )
                                                             if (signByImage(objectId)) {
                                                                 val resolution =
@@ -768,11 +786,22 @@ fun PhotoSignScreen(
                                                 runCatching {
                                                     val currentHttpClient =
                                                         ChaoxingHttpClient.instance!!
-                                                    ChaoxingCloudDriveHelper.uploadImage(
-                                                        currentHttpClient,
-                                                        context,
-                                                        uri
-                                                    ).let { objectId ->
+                                                    val bitmap =
+                                                        withContext(Dispatchers.IO) {
+                                                            context.contentResolver.decodePhotoBitmap(
+                                                                uri
+                                                            )
+                                                        } ?: throw ChaoxingPhotoSigner.ChaoxingPhotoSignException(
+                                                            "无法读取照片"
+                                                        )
+                                                    randomizeStylizeImage(bitmap).also {
+                                                        bitmap.recycle()
+                                                    }.let { stylized ->
+                                                        ChaoxingCloudDriveHelper.uploadImage(
+                                                            currentHttpClient,
+                                                            stylized
+                                                        ).also { stylized.recycle() }
+                                                    }.let { objectId ->
                                                         if (signer.signByImage(objectId)) {
                                                             captchaValidateParams =
                                                                 signer to { captchaResult ->

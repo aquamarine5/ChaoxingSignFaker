@@ -64,7 +64,7 @@ object ChaoxingCourseHelper {
 
     suspend fun getClassIdFromCourseId(
         client: ChaoxingHttpClient,
-        courseId: Int
+        courseId: Long
     ): Result<Int?> = withContext(Dispatchers.IO) {
         runCatching {
             client.newCall(Request.Builder().get().url(URL_COURSE_LIST).build()).execute()
@@ -78,7 +78,7 @@ object ChaoxingCourseHelper {
                         if (!course.containsKey("cataName")) continue
                         val courseContent =
                             content.getJSONObject("course").getJSONArray("data").getJSONObject(0)
-                        if (courseContent.getInteger("id") == courseId)
+                        if (courseContent.getLong("id") == courseId)
                             return@runCatching content.getInteger("id")
                     }
                     return@runCatching null
@@ -102,7 +102,7 @@ object ChaoxingCourseHelper {
                     ChaoxingCourseEntity(
                         courseContent.getString("name"),
                         courseContent.getString("teacherfactor"),
-                        courseContent.getInteger("id"),
+                        courseContent.getLong("id"),
                         content.getInteger("id"),
                         courseContent.getString("name"),
                         courseContent.getString("imageurl")

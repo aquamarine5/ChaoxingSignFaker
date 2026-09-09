@@ -12,7 +12,7 @@ import androidx.compose.runtime.Immutable
 interface SignDestination {
     val activeId: Long
     val classId: Int
-    val courseId: Int
+    val courseId: Long
     val endTime: Long?
     val isCloneSession: Boolean
 }

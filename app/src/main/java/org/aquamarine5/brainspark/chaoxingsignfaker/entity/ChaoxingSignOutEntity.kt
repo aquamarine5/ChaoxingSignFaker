@@ -14,5 +14,5 @@ data class ChaoxingSignOutEntity(
     val signOffId: Long?,
     val signOffPublishTime: Long?,
     val classId: Int,
-    val courseId: Int,
+    val courseId: Long,
 )

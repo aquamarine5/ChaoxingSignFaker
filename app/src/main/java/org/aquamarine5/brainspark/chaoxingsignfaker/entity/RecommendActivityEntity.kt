@@ -15,6 +15,6 @@ data class RecommendActivityEntity(
     val startTime: Long,
     val className: String,
     val classId: Int,
-    val courseId: Int,
+    val courseId: Long,
     val activityName: String
 )

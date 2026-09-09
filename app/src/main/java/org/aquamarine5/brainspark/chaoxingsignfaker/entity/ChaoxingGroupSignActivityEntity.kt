@@ -15,7 +15,7 @@ data class ChaoxingGroupSignActivityEntity(
     val title: String,
     val activeId: Long,
     val classId: Int,
-    val courseId: Int,
+    val courseId: Long,
     val courseName: String,
     val startTimeTitle: String,
     val activeTypeName: String

@@ -53,7 +53,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClientPool
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingFaceImageException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
-import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.randomizeStylizeFaceImage
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.randomizeStylizeImage
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
 import java.util.concurrent.TimeUnit
 
@@ -152,7 +152,7 @@ fun FaceRecognitionComponent(
                         }
                         put(
                             phoneNumber,
-                            randomizeStylizeFaceImage(bitmap).also { bitmap.recycle() }
+                            randomizeStylizeImage(bitmap).also { bitmap.recycle() }
                         )
                         profileImageProgress = index + 1 to signUserName.size
                     }

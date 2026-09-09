@@ -14,7 +14,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingActivityHelper.N
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignOutEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.ChaoxingPhotoActivityEntity
-import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingPredictableException
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingParseDataException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.checkResponseThrowException
 
 
@@ -31,10 +31,10 @@ class ChaoxingPhotoSigner(
     baseSignInfo
 ) {
     class ChaoxingPhotoSignException(message: String, throwable: Throwable? = null) :
-        ChaoxingPredictableException(message, throwable)
+        ChaoxingParseDataException(message, throwable)
 
     class ChaoxingIncorrectSignTypeException(throwable: Throwable? = null) :
-        ChaoxingPredictableException("签到类型不匹配，应是图片签到", throwable)
+        ChaoxingParseDataException("签到类型不匹配，应是图片签到", throwable)
 
     companion object {
         const val URL_CLOUD_UPLOAD = "https://pan-yz.chaoxing.com/upload?_from=mobilelearn&_token="

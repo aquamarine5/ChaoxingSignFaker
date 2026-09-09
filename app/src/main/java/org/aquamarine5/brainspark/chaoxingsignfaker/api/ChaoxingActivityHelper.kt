@@ -37,7 +37,7 @@ object ChaoxingActivityHelper {
     suspend fun checkCourseHaveAvailableActivity(
         client: ChaoxingHttpClient,
         classId: Int,
-        courseId: Int
+        courseId: Long
     ): RecommendActivityEntity? = withContext(Dispatchers.IO) {
         client.newCall(
             Request.Builder().get().url(

@@ -59,6 +59,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
@@ -132,6 +133,7 @@ fun OtherUserSelectorComponent(
     isSigning: MutableState<Boolean>,
     userSelections: SnapshotStateList<Boolean>,
     onRetrySignAction: suspend (index: Int, session: ChaoxingOtherUserSession, bypassChecking: Boolean) -> Unit,
+    hasSignRealtimeParameter: Boolean = false,
     userContent: @Composable ((index: Int) -> Unit)? = null,
     prefixTipsContent: @Composable (() -> Unit),
     suffixContent: @Composable (() -> Unit)? = null,
@@ -154,6 +156,11 @@ fun OtherUserSelectorComponent(
             )
         }
         var repairSessionIndex by remember { mutableStateOf<Int?>(null) }
+        var repairedSessionForRetry by remember {
+            mutableStateOf<Pair<Int, ChaoxingOtherUserSession>?>(
+                null
+            )
+        }
 
         @OnlyAppDevelopedMode
         var inspectingFaceImagePhoneNumber by remember { mutableStateOf<String?>(null) }
@@ -174,6 +181,7 @@ fun OtherUserSelectorComponent(
         if (repairSessionIndex != null) {
             SnackbarAlertDialog(onDismissRequest = {
                 repairSessionIndex = null
+                repairedSessionForRetry = null
             }, title = {
                 Text("修复用户 ${signUserList[repairSessionIndex!!].name} 的登录状态")
             }, icon = {
@@ -185,107 +193,139 @@ fun OtherUserSelectorComponent(
                 )
             }, text = {
                 Column {
-                    Text("在最近一次的签到过程中检测到用户 ${signUserList[repairSessionIndex!!].name} 的登录状态异常，重新登录后可修复此问题。")
-                    var password by remember { mutableStateOf("") }
-                    OutlinedTextField(
-                        value = signUserList[repairSessionIndex!!].phoneNumber,
-                        onValueChange = { },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.fillMaxWidth(),
-                        enabled = false,
-                        label = { Text("手机号") }
-                    )
-                    var isPasswordVisible by remember { mutableStateOf(false) }
-                    var errorMessage by remember { mutableStateOf("") }
-                    OutlinedTextField(
-                        value = password,
-                        onValueChange = { password = it },
-                        label = { Text("密码") },
-                        visualTransformation = if (isPasswordVisible) {
-                            VisualTransformation.None
-                        } else {
-                            PasswordVisualTransformation()
-                        },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                        modifier = Modifier.fillMaxWidth(),
-                        trailingIcon = {
-                            Row {
-                                IconButton(onClick = {
-                                    val clip =
-                                        context.getSystemService(ClipboardManager::class.java)?.primaryClip
-                                    val result = if (clip != null && clip.itemCount > 0) {
-                                        clip.getItemAt(0).text
-                                    } else {
-                                        null
-                                    }
-                                    if (result.isNullOrEmpty()) {
-                                        hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
-                                        Toast.makeText(
-                                            context,
-                                            "读取剪切板失败",
-                                            Toast.LENGTH_SHORT
-                                        ).show()
-                                    } else {
-                                        hapticFeedback.performHapticFeedback(HapticFeedbackType.Confirm)
-                                        password = result.toString()
-                                        isPasswordVisible = true
-                                    }
-                                }) {
-                                    Icon(painterResource(R.drawable.ic_clipboard_copy), null)
-                                }
-                                IconButton(onClick = {
-                                    isPasswordVisible = !isPasswordVisible
-                                }) {
-                                    Icon(
-                                        if (isPasswordVisible) painterResource(R.drawable.ic_eye) else painterResource(
-                                            R.drawable.ic_eye_closed
-                                        ), null
-                                    )
-                                }
-                            }
-                        }
-                    )
-                    if (errorMessage.isNotBlank())
-                        Text(
-                            errorMessage,
-                            color = Color(0xFFF1441D),
-                            modifier = Modifier.padding(0.dp, 4.dp)
-                        )
-                    Button(onClick = {
-                        coroutineScope.launch {
-                            val sessionIndex = repairSessionIndex ?: return@launch
-                            val sessionToRepair = signUserList[sessionIndex]
-                            withContext(Dispatchers.IO) {
-                                runCatching {
-                                    ChaoxingOtherUserHelper.repairOtherUserSession(
-                                        context,
-                                        sessionToRepair,
-                                        password
-                                    )
-                                }
-                            }.onSuccess { repairedSession ->
-                                signUserList[sessionIndex] = repairedSession
-                                signStatus[sessionIndex].isObsoleteSession.value = false
-                                hapticFeedback.performHapticFeedback(HapticFeedbackType.Confirm)
-                                snackbarHost.displaySnackbar(
-                                    "用户 ${repairedSession.name} 已成功修复",
-                                    coroutineScope
-                                )
+                    val pendingRetry = repairedSessionForRetry
+                    if (pendingRetry != null) {
+                        Text("用户 ${pendingRetry.second.name} 已成功修复，点击重试可重新发起签到。")
+                        TextButton(
+                            onClick = {
+                                val retry = repairedSessionForRetry ?: return@TextButton
+                                repairedSessionForRetry = null
                                 repairSessionIndex = null
-                            }.onFailure {
-                                hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
-                                if (it !is ChaoxingPredictableException) {
-                                    Sentry.captureException(it)
+                                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                                signStatus[retry.first + 1].retrying()
+                                coroutineScope.launch {
+                                    onRetrySignAction(retry.first, retry.second, false)
                                 }
-                                errorMessage = "登录失败：" + (it.message ?: "未知错误")
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) { Text("重试") }
+                    } else {
+                        Text("在最近一次的签到过程中检测到用户 ${signUserList[repairSessionIndex!!].name} 的登录状态异常，重新登录后可修复此问题。")
+                        var password by remember { mutableStateOf("") }
+                        OutlinedTextField(
+                            value = signUserList[repairSessionIndex!!].phoneNumber,
+                            onValueChange = { },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = false,
+                            label = { Text("手机号") }
+                        )
+                        var isPasswordVisible by remember { mutableStateOf(false) }
+                        var errorMessage by remember { mutableStateOf("") }
+                        OutlinedTextField(
+                            value = password,
+                            onValueChange = { password = it },
+                            label = { Text("密码") },
+                            visualTransformation = if (isPasswordVisible) {
+                                VisualTransformation.None
+                            } else {
+                                PasswordVisualTransformation()
+                            },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                            modifier = Modifier.fillMaxWidth(),
+                            trailingIcon = {
+                                Row {
+                                    IconButton(onClick = {
+                                        val clip =
+                                            context.getSystemService(ClipboardManager::class.java)?.primaryClip
+                                        val result = if (clip != null && clip.itemCount > 0) {
+                                            clip.getItemAt(0).text
+                                        } else {
+                                            null
+                                        }
+                                        if (result.isNullOrEmpty()) {
+                                            hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
+                                            Toast.makeText(
+                                                context,
+                                                "读取剪切板失败",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
+                                        } else {
+                                            hapticFeedback.performHapticFeedback(HapticFeedbackType.Confirm)
+                                            password = result.toString()
+                                            isPasswordVisible = true
+                                        }
+                                    }) {
+                                        Icon(painterResource(R.drawable.ic_clipboard_copy), null)
+                                    }
+                                    IconButton(onClick = {
+                                        isPasswordVisible = !isPasswordVisible
+                                    }) {
+                                        Icon(
+                                            if (isPasswordVisible) painterResource(R.drawable.ic_eye) else painterResource(
+                                                R.drawable.ic_eye_closed
+                                            ), null
+                                        )
+                                    }
+                                }
                             }
-                        }
-                    }, modifier = Modifier.fillMaxWidth()) { Text("重新登录") }
+                        )
+                        if (errorMessage.isNotBlank())
+                            Text(
+                                errorMessage,
+                                color = Color(0xFFF1441D),
+                                modifier = Modifier.padding(0.dp, 4.dp)
+                            )
+                        Button(onClick = {
+                            coroutineScope.launch {
+                                val sessionIndex = repairSessionIndex ?: return@launch
+                                val sessionToRepair = signUserList[sessionIndex]
+                                withContext(Dispatchers.IO) {
+                                    runCatching {
+                                        ChaoxingOtherUserHelper.repairOtherUserSession(
+                                            context,
+                                            sessionToRepair,
+                                            password
+                                        )
+                                    }
+                                }.onSuccess { repairedSession ->
+                                    signUserList[sessionIndex] = repairedSession
+                                    signStatus[sessionIndex + 1].isObsoleteSession.value = false
+                                    hapticFeedback.performHapticFeedback(HapticFeedbackType.Confirm)
+                                    snackbarHost.displaySnackbar(
+                                        "用户 ${repairedSession.name} 已成功修复",
+                                        coroutineScope
+                                    )
+                                    if (hasSignRealtimeParameter) {
+                                        repairedSessionForRetry =
+                                            sessionIndex to repairedSession
+                                    } else {
+                                        repairSessionIndex = null
+                                        signStatus[sessionIndex + 1].retrying()
+                                        coroutineScope.launch {
+                                            onRetrySignAction(
+                                                sessionIndex,
+                                                repairedSession,
+                                                false
+                                            )
+                                        }
+                                    }
+                                }.onFailure {
+                                    hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
+                                    if (it !is ChaoxingPredictableException) {
+                                        Sentry.captureException(it)
+                                    }
+                                    errorMessage = "登录失败：" + (it.message ?: "未知错误")
+                                }
+                            }
+                        }, modifier = Modifier.fillMaxWidth()) { Text("重新登录") }
+                    }
                 }
             }, confirmButton = {
                 Button(onClick = {
                     hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                     repairSessionIndex = null
+                    repairedSessionForRetry = null
                 }) {
                     Text("关闭")
                 }
@@ -592,7 +632,13 @@ fun OtherUserSelectorComponent(
                 userSelections.addAll(List(data.size) { false })
                 signUserList.addAll(data.let { sessions ->
                     if (isCloneSession) {
-                        sessions.sortedBy { it.phoneNumber != ChaoxingHttpClient.cloneInstance!!.userEntity.phoneNumber }
+                        val clonePhoneNumber =
+                            ChaoxingHttpClient.cloneInstance?.userEntity?.phoneNumber
+                        if (clonePhoneNumber != null) {
+                            sessions.sortedBy { it.phoneNumber != clonePhoneNumber }
+                        } else {
+                            sessions
+                        }
                     } else {
                         sessions
                     }
@@ -1025,18 +1071,23 @@ fun OtherUserSelectorComponent(
                                                 )
                                             }
                                         userContent?.invoke(1 + index)
-                                        signStatus[i].ResultCard {
-                                            if (signStatus[i].isBypassCheckingRequired) {
-                                                ignoreExceptionUserIndex = index to session
-                                            } else if (isRetrying.not()) {
-                                                isRetrying = true
-                                                signStatus[i].retrying()
-                                                coroutineScope.launch {
-                                                    onRetrySignAction(index, session, false)
-                                                    isRetrying = false
+                                        val isSessionObsolete =
+                                            session.isObsoleteSession || signStatus[i].isObsoleteSession.value
+                                        signStatus[i].ResultCard(
+                                            onRetry = if (isSessionObsolete) null
+                                            else ({
+                                                if (signStatus[i].isBypassCheckingRequired) {
+                                                    ignoreExceptionUserIndex = index to session
+                                                } else if (isRetrying.not()) {
+                                                    isRetrying = true
+                                                    signStatus[i].retrying()
+                                                    coroutineScope.launch {
+                                                        onRetrySignAction(index, session, false)
+                                                        isRetrying = false
+                                                    }
                                                 }
-                                            }
-                                        }
+                                            })
+                                        )
                                     }
                                 }
                             }

@@ -68,7 +68,6 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClientPool
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingSignHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.SignDestination
-import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignResult
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerParams
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
@@ -79,10 +78,12 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.components.OtherUserSelector
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SignOutRedirectTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SignPotentialWarningTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SponsorPopupDialog
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.cloneSessionGuard
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationSignEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityStatus
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignOutEntity
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignResult
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignStatus
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingPasswordSigner
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSignHandler
@@ -96,7 +97,7 @@ import kotlin.time.Duration.Companion.seconds
 data class PasswordSignDestination(
     override val activeId: Long,
     override val classId: Int,
-    override val courseId: Int,
+    override val courseId: Long,
     val extContent: String,
     val startTime: Long?,
     override val endTime: Long?,
@@ -134,6 +135,11 @@ fun PasswordSignScreen(
     navToOtherSign: (SignDestination) -> Unit,
     navToOtherUserDestination: () -> Unit
 ) {
+    if (!cloneSessionGuard(
+            destination.isCloneSession,
+            onCloneInvalid = navToCourseDetailDestination
+        )
+    ) return
     var signActivityStatus by remember { mutableStateOf<ChaoxingSignActivityStatus?>(null) }
     var isSignForOther by remember { mutableStateOf(false) }
     val signer = remember {
@@ -189,7 +195,6 @@ fun PasswordSignScreen(
                 numberCount = first
                 signoffData = second
             }
-            signActivityStatus = signer.preSign()
         }.onFailure {
             it.snackbarReport(
                 snackbarHost,
@@ -206,12 +211,25 @@ fun PasswordSignScreen(
             NetworkExceptionComponent(v.exceptionOrNull()!!) {
                 coroutineScope.launch {
                     isFetchedFailure = runCatching {
-                        signer.getPasswordInfo().apply {
+                        (if (destination.isCloneSession) {
+                            ChaoxingHttpClient.cloneInstance!!.let { client ->
+                                ChaoxingPasswordSigner(
+                                    client,
+                                    destination
+                                ).let {
+                                    signActivityStatus = it.preSign()
+                                    isMapRequired = it.isPositionRequired()
+                                    it.getPasswordInfo()
+                                }
+                            }
+                        } else {
+                            signActivityStatus = signer.preSign()
+                            isMapRequired = signer.isPositionRequired()
+                            signer.getPasswordInfo()
+                        }).apply {
                             numberCount = first
                             signoffData = second
                         }
-                        isMapRequired = signer.isPositionRequired()
-                        signActivityStatus = signer.preSign()
                     }.onFailure {
                         it.snackbarReport(
                             snackbarHost,

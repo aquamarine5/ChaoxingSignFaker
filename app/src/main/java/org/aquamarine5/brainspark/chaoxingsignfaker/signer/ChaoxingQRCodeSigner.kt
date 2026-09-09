@@ -18,7 +18,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationSignE
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingQRCodeDetailEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignOutEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.QRCodeSignDestination
-import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingPredictableException
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingParseDataException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.checkResponseThrowException
 
 class ChaoxingQRCodeSigner(
@@ -41,10 +41,10 @@ class ChaoxingQRCodeSigner(
     }
 
     class QRCodeParseException(val rawValue: String, throwable: Throwable? = null) :
-        ChaoxingPredictableException("二维码解析失败", throwable)
+        ChaoxingParseDataException("二维码解析失败", throwable, rawValue)
 
     class QRCodeExpiredException(throwable: Throwable? = null) :
-        ChaoxingPredictableException("二维码已过期", throwable)
+        ChaoxingParseDataException("二维码已过期", throwable)
 
     suspend fun getQRCodeSignInfo(): Pair<ChaoxingQRCodeDetailEntity, ChaoxingSignOutEntity> {
         return getSignInfo().run {

@@ -84,6 +84,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.SignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerParams
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.cloneSessionGuard
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.FaceRecognitionComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.FaceRecognitionNewFeatureTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.GetLocationComponent
@@ -118,7 +119,7 @@ import kotlin.time.Duration.Companion.seconds
 data class QRCodeSignDestination(
     override val activeId: Long,
     override val classId: Int,
-    override val courseId: Int,
+    override val courseId: Long,
     val extContent: String,
     val startTime: Long?,
     override val endTime: Long?,
@@ -153,6 +154,7 @@ fun QRCodeSignScreen(
     navToOtherSign: (SignDestination) -> Unit,
     navBack: () -> Unit
 ) {
+    if (!cloneSessionGuard(destination.isCloneSession, onCloneInvalid = navBack)) return
     var signActivityStatus by remember { mutableStateOf<ChaoxingSignActivityStatus?>(null) }
     var isCurrentAlreadySigned by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
@@ -222,8 +224,19 @@ fun QRCodeSignScreen(
             NetworkExceptionComponent(v.exceptionOrNull()!!) {
                 coroutineScope.launch {
                     isFetchedFailure = runCatching {
-                        signActivityStatus = signer.preSign()
-                        val data = signer.getQRCodeSignInfo()
+                        val data = if (destination.isCloneSession) {
+                            ChaoxingHttpClient.cloneInstance!!.let { cloneHttpClient ->
+                                ChaoxingQRCodeSigner(cloneHttpClient, destination).let {
+                                    isFaceRequired = it.isFaceRequired()
+                                    signActivityStatus = it.preSign()
+                                    it.getQRCodeSignInfo()
+                                }
+                            }
+                        } else {
+                            isFaceRequired = signer.isFaceRequired()
+                            signActivityStatus = signer.preSign()
+                            signer.getQRCodeSignInfo()
+                        }
                         isMapRequired = data.first.isPositionRequired
                         signoffData = data.second
                     }.onFailure {
@@ -536,6 +549,7 @@ fun QRCodeSignScreen(
                                 onRetrySignAction = { index, session, bypassChecking ->
                                     signHandler.retryOtherUserSigning(session, index, bypassChecking)
                                 }, isCloneSession = destination.isCloneSession,
+                                hasSignRealtimeParameter = signHandler.hasSignRealtimeParameter,
                                 suffixContent = {
                                     val tooltipState = rememberTooltipState(isPersistent = true)
                                     LaunchedEffect(Unit) {

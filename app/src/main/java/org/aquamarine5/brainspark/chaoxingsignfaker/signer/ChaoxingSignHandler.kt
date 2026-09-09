@@ -44,6 +44,10 @@ class ChaoxingSignHandler<in T>(
     private val getSignRealtimeParameter: (suspend () -> T)? = null
 ) {
     private var storedValue: T? = null
+
+    val hasSignRealtimeParameter: Boolean
+        get() = getSignRealtimeParameter != null
+
     suspend fun retryOtherUserSigning(
         session: ChaoxingOtherUserSession,
         index: Int,

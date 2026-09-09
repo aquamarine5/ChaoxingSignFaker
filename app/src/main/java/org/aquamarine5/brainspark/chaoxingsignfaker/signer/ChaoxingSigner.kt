@@ -34,7 +34,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationSignE
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityStatus
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingQRCodeSigner.QRCodeExpiredException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingFaceSignException
-import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingPredictableException
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingParseDataException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.checkResponseThrowException
 import java.util.UUID
@@ -44,7 +44,7 @@ abstract class ChaoxingSigner(
     val client: ChaoxingHttpClient,
     val activeId: Long,
     val classId: Int,
-    val courseId: Int,
+    val courseId: Long,
     val extContent: String,
     baseSignInfo: JSONObject? = null
 ) {
@@ -70,31 +70,31 @@ abstract class ChaoxingSigner(
     private var storageSignInfo: JSONObject? = baseSignInfo
 
     class SignExpiredException(throwable: Throwable? = null) :
-        ChaoxingPredictableException("签到已截止", throwable)
+        ChaoxingParseDataException("签到已截止", throwable)
 
     class SignAlreadyEndedException(throwable: Throwable? = null) :
-        ChaoxingPredictableException("迟到或签到已结束", throwable)
+        ChaoxingParseDataException("迟到或签到已结束", throwable)
 
     class SignActivityNoPermissionException(throwable: Throwable? = null) :
-        ChaoxingPredictableException("此用户不在班级", throwable)
+        ChaoxingParseDataException("此用户不在班级", throwable)
 
     class AlreadySignedException(throwable: Throwable? = null) :
-        ChaoxingPredictableException("已经签到过了", throwable)
+        ChaoxingParseDataException("已经签到过了", throwable)
 
     class PredictedAlreadySignedException(throwable: Throwable? = null) :
-        ChaoxingPredictableException("重复签到", throwable)
+        ChaoxingParseDataException("重复签到", throwable)
 
     class CaptchaTimeoutException(throwable: Throwable? = null) :
-        ChaoxingPredictableException("获取验证码信息超时", throwable)
+        ChaoxingParseDataException("获取验证码信息超时", throwable)
 
     class CaptchaException(throwable: Throwable? = null) :
-        ChaoxingPredictableException("验证码获取失败", throwable)
+        ChaoxingParseDataException("验证码获取失败", throwable)
 
     class CaptchaCheckException(message: String, throwable: Throwable? = null) :
-        ChaoxingPredictableException("$message, 验证码校验失败", throwable)
+        ChaoxingParseDataException("$message, 验证码校验失败", throwable)
 
     class WrongPositionException(distance: Float? = null, throwable: Throwable? = null) :
-        ChaoxingPredictableException("位置不在设置范围内${if (distance != null) "，距离签到点${distance}米" else ""}", throwable)
+        ChaoxingParseDataException("位置不在设置范围内${if (distance != null) "，距离签到点${distance}米" else ""}", throwable)
 
     abstract suspend fun checkAlreadySign(response: String): Boolean
 
@@ -270,7 +270,7 @@ abstract class ChaoxingSigner(
             return true
         }
         if (result != "success") {
-            throw ChaoxingPredictableException(result)
+            throw ChaoxingParseDataException(result, data = result)
         } else {
             return false
         }

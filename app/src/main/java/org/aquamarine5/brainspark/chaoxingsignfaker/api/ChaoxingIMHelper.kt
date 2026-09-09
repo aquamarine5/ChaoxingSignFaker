@@ -131,7 +131,6 @@ object ChaoxingIMHelper {
                         }
                     }
                 }
-
             }
         }
     }
@@ -213,7 +212,7 @@ object ChaoxingIMHelper {
                         )
                             return@forEachImMessages
                         val classId = courseInfo.getInteger("classid")
-                        val courseId = courseInfo.getString("courseid").toInt()
+                        val courseId = courseInfo.getLongValue("courseid")
                         val activeTypeName = signInfo.getString("atypeName")
                         signActivities.add(
                             ChaoxingGroupSignActivityEntity(

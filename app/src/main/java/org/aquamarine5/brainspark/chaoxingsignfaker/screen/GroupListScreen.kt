@@ -31,7 +31,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -213,12 +216,72 @@ fun GroupListScreen(
                 }
 
                 else -> {
+                    var searchQuery by rememberSaveable { mutableStateOf("") }
                     val displayGroups =
-                        imGroupsInfo!!.sortedByDescending { preferredGroupIds.contains(it.id) }
+                        (if (searchQuery.isBlank()) imGroupsInfo!!
+                        else imGroupsInfo!!.filter {
+                            it.chatName.contains(searchQuery, ignoreCase = true)
+                        }).sortedByDescending { preferredGroupIds.contains(it.id) }
                     val groupedGroups = remember(displayGroups) {
                         displayGroups.groupBy { it.chatName }.values.toList()
                     }
                     LazyColumn {
+                        stickyHeader(key = "group_search") {
+                            Surface(
+                                color = MaterialTheme.colorScheme.background,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(modifier = Modifier.padding(bottom = 8.dp)) {
+                                    OutlinedTextField(
+                                        value = searchQuery,
+                                        onValueChange = { searchQuery = it },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        placeholder = { Text("搜索群聊名称") },
+                                        leadingIcon = {
+                                            Icon(
+                                                painterResource(R.drawable.ic_search),
+                                                contentDescription = "搜索"
+                                            )
+                                        },
+                                        trailingIcon = {
+                                            if (searchQuery.isNotEmpty()) {
+                                                IconButton(onClick = {
+                                                    hapticFeedback.performHapticFeedback(
+                                                        HapticFeedbackType.ContextClick
+                                                    )
+                                                    searchQuery = ""
+                                                }) {
+                                                    Icon(
+                                                        painterResource(R.drawable.ic_x),
+                                                        contentDescription = "清除搜索"
+                                                    )
+                                                }
+                                            }
+                                        },
+                                        singleLine = true,
+                                        shape = RoundedCornerShape(18.dp)
+                                    )
+                                }
+                            }
+                        }
+                        if (searchQuery.isNotBlank() && groupedGroups.isEmpty()) {
+                            item {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .padding(vertical = 24.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.Center
+                                ) {
+                                    Icon(
+                                        painterResource(R.drawable.ic_circle_question_mark),
+                                        null
+                                    )
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text("没有找到与“$searchQuery”匹配的群聊")
+                                }
+                            }
+                        }
                         items(groupedGroups, key = {
                             it.first().chatName
                         }) { group ->
@@ -353,28 +416,36 @@ private fun GroupAvatar(
 ) {
     val imageLoader = LocalImageLoader.current
     val shape = RoundedCornerShape(3.dp)
-    if (!imageUrl.isNullOrBlank()) {
-        AsyncImage(
-            model = imageUrl,
-            modifier = Modifier
-                .size(size)
-                .clip(shape),
-            imageLoader = imageLoader,
-            contentDescription = null,
-            contentScale = ContentScale.FillHeight,
-            onError = {
-                Log.w(
-                    "GroupListScreen",
-                    "Error loading image: ${it.result}"
-                )
-            }
-        )
-    } else {
-        Box(
-            modifier = Modifier
-                .size(size)
-                .border(1.dp, MaterialTheme.colorScheme.primary, shape)
-        )
+    var isLoadFailed by remember(imageUrl) { mutableStateOf(false) }
+    val showPlaceholder = imageUrl.isNullOrBlank() || isLoadFailed
+    Box(
+        modifier = Modifier
+            .size(size)
+            .then(
+                if (showPlaceholder) Modifier.border(
+                    1.dp,
+                    MaterialTheme.colorScheme.primary,
+                    shape
+                ) else Modifier
+            )
+            .clip(shape)
+    ) {
+        if (!showPlaceholder) {
+            AsyncImage(
+                model = imageUrl,
+                modifier = Modifier.fillMaxSize(),
+                imageLoader = imageLoader,
+                contentDescription = null,
+                contentScale = ContentScale.FillHeight,
+                onError = {
+                    Log.w(
+                        "GroupListScreen",
+                        "Error loading image: ${it.result}"
+                    )
+                    isLoadFailed = true
+                }
+            )
+        }
     }
 }
 
