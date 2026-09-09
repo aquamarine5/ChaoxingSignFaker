@@ -605,7 +605,7 @@ class MainActivity : ComponentActivity() {
                                                 }
                                                 composable<GroupDetailDestination>(
                                                     typeMap = mapOf(
-                                                        typeOf<ChaoxingEasemobIMGroup>() to ChaoxingEasemobIMGroup.ChaoxingEasemobIMGroupNavType
+                                                        typeOf<List<ChaoxingEasemobIMGroup>>() to ChaoxingEasemobIMGroup.ChaoxingEasemobIMGroupListNavType
                                                     )
                                                 ) {
                                                     GroupDetailScreen(

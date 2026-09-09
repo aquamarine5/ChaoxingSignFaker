@@ -9,7 +9,12 @@ package org.aquamarine5.brainspark.chaoxingsignfaker.api
 import android.util.Base64
 import com.alibaba.fastjson2.JSON
 import com.alibaba.fastjson2.JSONObject
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
 import okhttp3.FormBody
 import okhttp3.HttpUrl.Companion.toHttpUrl
@@ -180,7 +185,13 @@ object ChaoxingIMHelper {
                     runCatching {
                         return """<span\s+id="$id"[^>]*>(.*?)</span>""".toRegex(RegexOption.DOT_MATCHES_ALL)
                             .find(responseBody)?.groupValues?.get(1)?.trim()!!
-                    }.getOrElse { throw ChaoxingIMConfigParseException(id, it.message, throwable = it) }
+                    }.getOrElse {
+                        throw ChaoxingIMConfigParseException(
+                            id,
+                            it.message,
+                            throwable = it
+                        )
+                    }
                 }
 
                 val tuid = extractSpan("myTuid")
@@ -194,7 +205,10 @@ object ChaoxingIMHelper {
         }
     }
 
-    suspend fun parseIMMessageBody(imMessages: List<MessageBody>): List<ChaoxingGroupSignActivityEntity> {
+    suspend fun parseIMMessageBody(
+        scope: CoroutineScope,
+        imMessages: List<MessageBody>
+    ): List<ChaoxingGroupSignActivityEntity> {
         val signActivities = mutableListOf<ChaoxingGroupSignActivityEntity>()
         imMessages.forEach forEachImMessages@{
             it.extList?.forEach { ext ->
@@ -214,8 +228,8 @@ object ChaoxingIMHelper {
                         val classId = courseInfo.getInteger("classid")
                         val courseId = courseInfo.getLongValue("courseid")
                         val activeTypeName = signInfo.getString("atypeName")
-                        signActivities.add(
-                            ChaoxingGroupSignActivityEntity(
+                        val destination =
+                            scope.async(Dispatchers.IO, start = CoroutineStart.LAZY) {
                                 ChaoxingSignHelper.getIMSignDestination(
                                     activeTypeName,
                                     activeId,
@@ -225,7 +239,11 @@ object ChaoxingIMHelper {
                                     "atypeName",
                                     "未知签到类型: $activeTypeName",
                                     attachObject.toJSONString()
-                                ),
+                                )
+                            }
+                        signActivities.add(
+                            ChaoxingGroupSignActivityEntity(
+                                destination,
                                 signInfo.getString("title"),
                                 activeId,
                                 classId,
@@ -246,7 +264,8 @@ object ChaoxingIMHelper {
     suspend fun fetchIMHistoryMessages(
         imGroup: ChaoxingEasemobIMGroup,
         httpClient: ChaoxingHttpClient,
-        imConfig: ChaoxingEasemobIMConfig
+        imConfig: ChaoxingEasemobIMConfig,
+        scope: CoroutineScope
     ): List<ChaoxingGroupSignActivityEntity> {
         return withContext(Dispatchers.IO) {
             httpClient.newCall(
@@ -278,9 +297,48 @@ object ChaoxingIMHelper {
                     val messageBody = MessageBody.parseFrom(meta.field6)
                     resultList.add(messageBody)
                 }
-                return@use parseIMMessageBody(resultList).distinctBy { it.activeId }
+                return@use parseIMMessageBody(scope, resultList).distinctBy { it.activeId }
             }
         }
+    }
+
+    private val START_TIME_TITLE_PATTERN =
+        """(?:(\d{2,4})-)?(\d{1,2})-(\d{1,2}) (\d{1,2}):(\d{1,2})""".toRegex()
+
+    private fun startTimeTitleSortKey(title: String): List<Int>? {
+        val groups = START_TIME_TITLE_PATTERN.find(title)?.groupValues ?: return null
+        // groups[1] 为 yy（可能缺失），groups[2..5] 为 MM、dd、HH、mm
+        val year = groups[1].toIntOrNull() ?: Int.MIN_VALUE
+        val rest = groups.drop(2).map { it.toIntOrNull() ?: return null }
+        if (rest.size != 4) return null
+        return listOf(year) + rest
+    }
+
+    suspend fun fetchIMHistoryMessages(
+        imGroups: List<ChaoxingEasemobIMGroup>,
+        httpClient: ChaoxingHttpClient,
+        imConfig: ChaoxingEasemobIMConfig,
+        scope: CoroutineScope
+    ): List<ChaoxingGroupSignActivityEntity> {
+        return coroutineScope {
+            imGroups.map { group ->
+                async {
+                    fetchIMHistoryMessages(group, httpClient, imConfig, scope)
+                }
+            }.awaitAll()
+        }.flatten()
+            .distinctBy { it.activeId }
+            .sortedWith(
+                compareBy(
+                    { startTimeTitleSortKey(it.startTimeTitle) == null },
+                    { startTimeTitleSortKey(it.startTimeTitle)?.getOrNull(0) },
+                    { startTimeTitleSortKey(it.startTimeTitle)?.getOrNull(1) },
+                    { startTimeTitleSortKey(it.startTimeTitle)?.getOrNull(2) },
+                    { startTimeTitleSortKey(it.startTimeTitle)?.getOrNull(3) },
+                    { startTimeTitleSortKey(it.startTimeTitle)?.getOrNull(4) },
+                    { it.startTimeTitle }
+                )
+            )
     }
 
     @Suppress("Deprecation")
@@ -291,7 +349,8 @@ object ChaoxingIMHelper {
     suspend fun fetchIMHistoryMessages(
         imGroup: ChaoxingIMGroup,
         httpClient: ChaoxingHttpClient,
-        imConfig: ChaoxingIMConfig
+        imConfig: ChaoxingIMConfig,
+        scope: CoroutineScope
     ): List<ChaoxingGroupSignActivityEntity> {
         return withContext(Dispatchers.IO) {
             httpClient.newCall(
@@ -326,7 +385,7 @@ object ChaoxingIMHelper {
                     val messageBody = MessageBody.parseFrom(meta.field6)
                     resultList.add(messageBody)
                 }
-                return@use parseIMMessageBody(resultList)
+                return@use parseIMMessageBody(scope, resultList)
             }
         }
     }

@@ -60,6 +60,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -307,7 +308,7 @@ fun GroupListScreen(
                                 Button(
                                     onClick = {
                                         hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                                        navToGroupDetail(GroupDetailDestination(item))
+                                        navToGroupDetail(GroupDetailDestination(group))
                                     }, shape = RoundedCornerShape(18.dp),
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -321,10 +322,18 @@ fun GroupListScreen(
                                             GroupAvatar(imageUrl = item.imageUrl)
                                             Text(
                                                 text = item.chatName,
-                                                modifier = Modifier
-                                                    .padding(start = 16.dp)
-                                                    .weight(1f)
+                                                modifier = Modifier.padding(start = 16.dp)
                                             )
+                                            if (group.size > 1) {
+                                                Text(
+                                                    text = "(x${group.size})",
+                                                    fontSize = 11.sp,
+                                                    lineHeight = 14.sp,
+                                                    color = Color.Gray,
+                                                    modifier = Modifier.padding(start = 4.dp)
+                                                )
+                                            }
+                                            Spacer(modifier = Modifier.weight(1f))
                                             Icon(
                                                 painterResource(R.drawable.ic_star_fill),
                                                 contentDescription = if (isPreferred) "取消星标" else "星标置顶",
@@ -354,48 +363,6 @@ fun GroupListScreen(
                                                         }
                                                     }
                                                 })
-                                        }
-                                    }
-                                }
-                                if (group.size > 1) {
-                                    Text(
-                                        text = "重名的群组：",
-                                        style = MaterialTheme.typography.labelMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.padding(
-                                            start = 4.dp,
-                                            top = 4.dp,
-                                            bottom = 2.dp
-                                        )
-                                    )
-                                    Column(modifier = Modifier.padding(start = 16.dp)) {
-                                        group.drop(1).forEach { dupItem ->
-                                            Row(
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.Start,
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .clip(RoundedCornerShape(18.dp))
-                                                    .clickable(role = Role.Button) {
-                                                        hapticFeedback.performHapticFeedback(
-                                                            HapticFeedbackType.ContextClick
-                                                        )
-                                                        navToGroupDetail(
-                                                            GroupDetailDestination(
-                                                                dupItem
-                                                            )
-                                                        )
-                                                    }
-                                                    .padding(vertical = 4.dp)
-                                            ) {
-                                                GroupAvatar(imageUrl = dupItem.imageUrl)
-                                                Text(
-                                                    text = dupItem.chatName,
-                                                    modifier = Modifier
-                                                        .padding(start = 16.dp)
-                                                        .weight(1f)
-                                                )
-                                            }
                                         }
                                     }
                                 }

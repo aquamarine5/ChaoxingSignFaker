@@ -96,7 +96,6 @@ fun Throwable.toastReport(
     prefixTips: String? = null,
     hapticFeedback: HapticFeedback? = null
 ) {
-    // 页面已退出导致的协程取消不是真正的失败，直接透传取消，不震动、不弹 Toast、不上报 Sentry
     if (this is CancellationException) throw this
     this.cause?.printStackTrace()
     this.printStackTrace()
@@ -134,9 +133,6 @@ fun Throwable.snackbarReport(
     actionLabel: String? = null,
     onSnackbarResult: ((SnackbarResult) -> Unit)? = null
 ) {
-    // 页面已退出导致的协程取消（LaunchedEffect/rememberCoroutineScope 被 dispose）
-    // 不是真正的失败：直接透传取消，不震动、不弹 Snackbar、不上报 Sentry，
-    // 避免“打开页面没加载完就退出，等一会还震动一下 Reject”以及 ForgottenCoroutineScopeException
     if (this is CancellationException) throw this
     if (!coroutineScope.isActive) return
     this.cause?.printStackTrace()
