@@ -29,7 +29,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -57,6 +56,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -94,7 +94,7 @@ fun GroupListScreen(
 ) {
     Column(
         modifier = Modifier
-            .padding(16.dp, 16.dp, 16.dp, 0.dp)
+            .padding(16.dp, 8.dp, 16.dp, 0.dp)
             .fillMaxSize()
     ) {
         val coroutineScope = rememberCoroutineScope()
@@ -154,6 +154,7 @@ fun GroupListScreen(
                     hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                     navBack()
                 }
+                .padding(bottom = 4.dp)
         ) {
             Icon(
                 painterResource(R.drawable.ic_arrow_left),
@@ -176,7 +177,6 @@ fun GroupListScreen(
                 fontWeight = FontWeight.Bold
             )
         }
-        HorizontalDivider(modifier = Modifier.padding(top = 8.dp))
         Crossfade(isFetchedFailure) { v ->
             when {
                 v == null -> {
@@ -320,20 +320,28 @@ fun GroupListScreen(
                                             modifier = Modifier.fillMaxWidth()
                                         ) {
                                             GroupAvatar(imageUrl = item.imageUrl)
-                                            Text(
-                                                text = item.chatName,
-                                                modifier = Modifier.padding(start = 16.dp)
-                                            )
-                                            if (group.size > 1) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                modifier = Modifier.weight(1f)
+                                            ) {
                                                 Text(
-                                                    text = "(x${group.size})",
-                                                    fontSize = 11.sp,
-                                                    lineHeight = 14.sp,
-                                                    color = Color.Gray,
-                                                    modifier = Modifier.padding(start = 4.dp)
+                                                    text = item.chatName,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis,
+                                                    modifier = Modifier
+                                                        .padding(start = 16.dp)
+                                                        .weight(1f, fill = false)
                                                 )
+                                                if (group.size > 1) {
+                                                    Text(
+                                                        text = "(x${group.size})",
+                                                        fontSize = 11.sp,
+                                                        lineHeight = 14.sp,
+                                                        color = Color.Gray,
+                                                        modifier = Modifier.padding(start = 4.dp)
+                                                    )
+                                                }
                                             }
-                                            Spacer(modifier = Modifier.weight(1f))
                                             Icon(
                                                 painterResource(R.drawable.ic_star_fill),
                                                 contentDescription = if (isPreferred) "取消星标" else "星标置顶",
