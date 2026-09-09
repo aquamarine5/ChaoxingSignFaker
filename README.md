@@ -8,6 +8,16 @@
 ![GitHub License](https://img.shields.io/github/license/aquamarine5/ChaoxingSignFaker)
 [![Download count](https://img.shields.io/github/downloads/aquamarine5/ChaoxingSignFaker/total)]()
 
+<p align="center">
+ <a href="https://www.star-history.com/aquamarine5/chaoxingsignfaker">
+  <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/badge?repo=aquamarine5/ChaoxingSignFaker&type=rank&theme=dark" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/badge?repo=aquamarine5/ChaoxingSignFaker&type=rank" />
+   <img alt="Star History Rank" src="https://api.star-history.com/badge?repo=aquamarine5/ChaoxingSignFaker&type=rank" />
+  </picture>
+ </a>
+</p>
+
 > [!CAUTION]
 > ChaoxingSignFaker（随地大小签）是一个开源应用，使用AGPLv3.0许可证发布。开源代码本源为让源代码对所有人开发，保持代码的开放性并欢迎任何人参与到项目的开发中来，但**不欢迎**任何形式的修改代码、名称等进行二次分发、换皮和商业化等行为。
 
