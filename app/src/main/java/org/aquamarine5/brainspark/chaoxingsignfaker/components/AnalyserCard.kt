@@ -8,6 +8,8 @@ package org.aquamarine5.brainspark.chaoxingsignfaker.components
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
@@ -775,22 +777,28 @@ fun AnalyserCard() {
         ) {
             Row(
                 modifier = Modifier
+                    .fillMaxWidth()
                     .padding(24.dp, 8.dp)
                     .padding(3.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                CompositionLocalProvider(LocalContentColor provides if (isSystemInDarkTheme()) Color.Black else Color.White) {
+                val analyserContentColor =
+                    if (isSystemInDarkTheme()) Color.Black else Color.White
+                CompositionLocalProvider(LocalContentColor provides analyserContentColor) {
                     Icon(
                         painterResource(R.drawable.ic_chart_column),
                         contentDescription = "analyser"
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    AnimatedVisibility(
-                        analyser.isLoaded.value,
-                        enter = expandVertically(),
-                        exit = shrinkVertically()
-                    ) {
-                        Column {
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                AnimatedVisibility(
+                    visible = analyser.isLoaded.value,
+                    modifier = Modifier.weight(1f),
+                    enter = expandVertically() + fadeIn(),
+                    exit = shrinkVertically() + fadeOut()
+                ) {
+                    CompositionLocalProvider(LocalContentColor provides analyserContentColor) {
+                        Column(modifier = Modifier.fillMaxWidth()) {
                             Text("使用次数统计", fontSize = 17.sp, fontWeight = FontWeight.Bold)
                             analyser.apply {
                                 FlowRow(

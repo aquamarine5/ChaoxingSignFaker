@@ -64,6 +64,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.components.SaveFavoriteLocat
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SignOutRedirectTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SignPotentialWarningTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SponsorPopupDialog
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.cloneSessionGuard
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.toChaoxingLocation
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationDetailEntity
@@ -71,6 +72,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationSignE
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityStatus
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignOutEntity
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignResult
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignStatus
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingLocationSigner
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSignHandler
@@ -87,7 +89,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
 data class GetLocationDestination(
     override val activeId: Long,
     override val classId: Int,
-    override val courseId: Int,
+    override val courseId: Long,
     val extContent: String,
     val startTime: Long?,
     override val endTime: Long?,
@@ -121,6 +123,11 @@ fun LocationSignScreen(
     navToOtherSign: (SignDestination) -> Unit,
     navToOtherUserDestination: () -> Unit
 ) {
+    if (!cloneSessionGuard(
+            destination.isCloneSession,
+            onCloneInvalid = navToCourseDetailDestination
+        )
+    ) return
     var signActivityStatus by remember { mutableStateOf<ChaoxingSignActivityStatus?>(null) }
     var isSignForOther by remember { mutableStateOf(false) }
     var signInfo by remember { mutableStateOf<ChaoxingLocationDetailEntity?>(null) }
@@ -196,10 +203,24 @@ fun LocationSignScreen(
             NetworkExceptionComponent(f.exceptionOrNull()!!) {
                 coroutineScope.launch {
                     isFetchedFailure = runCatching {
-                        val data = signer.getLocationSignInfo()
+                        val data = if (destination.isCloneSession) {
+                            ChaoxingHttpClient.cloneInstance!!.let { client ->
+                                ChaoxingLocationSigner(
+                                    client,
+                                    destination
+                                ).let {
+                                    isFaceRequired = it.isFaceRequired()
+                                    signActivityStatus = it.preSign()
+                                    it.getLocationSignInfo()
+                                }
+                            }
+                        } else {
+                            isFaceRequired = signer.isFaceRequired()
+                            signActivityStatus = signer.preSign()
+                            signer.getLocationSignInfo()
+                        }
                         signInfo = data.first
                         signoffData = data.second
-                        signActivityStatus = signer.preSign()
                     }.onFailure {
                         it.snackbarReport(
                             snackbarHost,
@@ -252,7 +273,6 @@ fun LocationSignScreen(
                         signedLocation?.let { signed ->
                             SaveFavoriteLocationDialog(
                                 signed,
-                                label = "上次签到的位置",
                                 onDismiss = {
                                     isShowSaveFavoriteDialog = false
                                 }
@@ -307,21 +327,27 @@ fun LocationSignScreen(
                                             faceImageUploadedObjectId
                                         )
                                     ) {
-                                        suspendCancellableCoroutine { continuation ->
-                                            captchaValidateParams =
-                                                signer to { captchaValidate ->
-                                                    if (continuation.isActive)
-                                                        continuation.resumeWith(captchaValidate.onSuccess {
-                                                            signer.signWithCaptcha(
-                                                                value,
-                                                                it,
-                                                                faceImageUploadedObjectId
-                                                            )
-                                                        })
-                                                }
-                                        }
-                                        return@runCatching true
-                                    } else return@runCatching false
+                                        val resolution =
+                                            suspendCancellableCoroutine { continuation ->
+                                                captchaValidateParams =
+                                                    signer to { captchaResult ->
+                                                        if (continuation.isActive)
+                                                            continuation.resumeWith(captchaResult)
+                                                    }
+                                            }
+                                        signer.signWithCaptcha(
+                                            value,
+                                            resolution.validate,
+                                            faceImageUploadedObjectId
+                                        )
+                                        return@runCatching ChaoxingSignResult(
+                                            isCaptchaSigning = true,
+                                            isCaptchaResolvedByModel = resolution.resolvedByModel
+                                        )
+                                    } else return@runCatching ChaoxingSignResult(
+                                        isCaptchaSigning = false,
+                                        isCaptchaResolvedByModel = false
+                                    )
                                 }
                             },
                             onOtherUserSigning = { value, session, bypassChecking, _ ->
@@ -360,25 +386,30 @@ fun LocationSignScreen(
                                                         }
                                                     } else null
                                                 if (sign(value, faceImageUploadedObjectId)) {
-                                                    suspendCancellableCoroutine { continuation ->
-                                                        captchaValidateParams =
-                                                            this to { captchaValidate ->
-                                                                if (continuation.isActive) {
-                                                                    continuation.resumeWith(
-                                                                        runCatching {
-                                                                            captchaValidate.onSuccess {
-                                                                                signWithCaptcha(
-                                                                                    value,
-                                                                                    it,
-                                                                                    faceImageUploadedObjectId
-                                                                                )
-                                                                            }.getOrThrow()
-                                                                        })
+                                                    val resolution =
+                                                        suspendCancellableCoroutine { continuation ->
+                                                            captchaValidateParams =
+                                                                this to { captchaResult ->
+                                                                    if (continuation.isActive) {
+                                                                        continuation.resumeWith(
+                                                                            captchaResult
+                                                                        )
+                                                                    }
                                                                 }
-                                                            }
-                                                    }
-                                                    return@runCatching true
-                                                } else return@runCatching false
+                                                        }
+                                                    signWithCaptcha(
+                                                        value,
+                                                        resolution.validate,
+                                                        faceImageUploadedObjectId
+                                                    )
+                                                    return@runCatching ChaoxingSignResult(
+                                                        isCaptchaSigning = true,
+                                                        isCaptchaResolvedByModel = resolution.resolvedByModel
+                                                    )
+                                                } else return@runCatching ChaoxingSignResult(
+                                                    isCaptchaSigning = false,
+                                                    isCaptchaResolvedByModel = false
+                                                )
                                             }
                                         }
                                 }
@@ -467,7 +498,6 @@ fun LocationSignScreen(
                                         destination.endTime,
                                         destination.isLate
                                     )
-                                ;
                                 if (isFaceRequired) {
                                     FaceRecognitionNewFeatureTips(
                                         isDisplayFaceRecognitionImageNewFeatureTips

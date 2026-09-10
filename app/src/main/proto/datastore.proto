@@ -14,7 +14,7 @@ message ChaoxingSignFakerDataStore{
   ChaoxingAnalysis analysis = 7;
   bool agreeTerms = 3;
   string deviceCode = 5 [deprecated = true];
-  repeated uint32 preferCourse = 6;
+  repeated uint32 preferCourse = 6 [deprecated = true];
   repeated uint32 preferClassId = 8;
   map<uint32, RecommendRecordList> recommendRecords = 9;
   repeated RecommendHabit recommendHabits = 10;
@@ -35,6 +35,7 @@ message ChaoxingSignFakerDataStore{
   uint64 lastUploadAnalysisTimestamp = 25;
   string selectedAnalysisRankSchoolName = 27;
   repeated ChaoxingLocation dontSaveNearbyPosition = 28;
+  repeated string preferGroupId = 29;
 }
 
 message ChaoxingFaceRecognitionImage{
@@ -58,7 +59,7 @@ message Preferences{
 }
 
 message ChaoxingCourseClass{
-  uint32 courseId = 1;
+  uint64 courseId = 1;
   uint32 classId = 2;
 }
 
@@ -128,14 +129,14 @@ message RecommendRecordList{
 message RecommendRecord{
   uint32 dayOfWeek = 1;
   uint32 minuteOfDay = 2;
-  uint32 courseId = 3;
+  uint64 courseId = 3;
 }
 
 message RecommendHabit{
   uint32 dayOfWeek = 1;
   uint32 minuteOfDay = 2;
   uint32 classId = 3;
-  uint32 courseId = 5;
+  uint64 courseId = 5;
   uint32 recordCount = 4;
   string className = 6;
 }

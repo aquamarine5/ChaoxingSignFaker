@@ -4,15 +4,9 @@
  * Repository: https://github.com/aquamarine5/ChaoxingSignFaker
  */
 
-package org.aquamarine5.brainspark.chaoxingsignfaker.api
+package org.aquamarine5.brainspark.chaoxingsignfaker.entity
 
-import androidx.compose.runtime.Immutable
-
-@Immutable
-interface SignDestination {
-    val activeId: Long
-    val classId: Int
-    val courseId: Long
-    val endTime: Long?
-    val isCloneSession: Boolean
-}
+data class ChaoxingSignResult(
+    val isCaptchaSigning: Boolean,
+    val isCaptchaResolvedByModel: Boolean = false
+)

@@ -34,7 +34,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.HttpCookie
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingEasemobIMConfig
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingOtherUserSharedEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingUserEntity
-import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingPredictableException
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingParseDataException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.checkResponseThrowException
@@ -51,17 +51,18 @@ class ChaoxingHttpClient private constructor(
     val userEntity: ChaoxingUserEntity,
     val deviceCode: String = generateDeviceCode()
 ) {
-    class ChaoxingLoginException(message: String) : ChaoxingPredictableException(message)
+    class ChaoxingLoginException(message: String, throwable: Throwable? = null) :
+        ChaoxingParseDataException(message, throwable)
 
     class ChaoxingGetUserInfoException(
         message: String,
         throwable: Throwable? = null,
         val isOtherUser: Boolean
     ) :
-        ChaoxingPredictableException(message, throwable)
+        ChaoxingParseDataException(message, throwable)
 
-    class ChaoxingNetworkException(message: String? = null) :
-        ChaoxingPredictableException(message ?: "网络错误")
+    class ChaoxingNetworkException(message: String? = null, throwable: Throwable? = null) :
+        ChaoxingParseDataException(message ?: "网络错误", throwable)
 
     var storageCloudToken: String? = null
 

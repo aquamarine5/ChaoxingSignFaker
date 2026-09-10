@@ -14,6 +14,7 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import androidx.core.graphics.createBitmap
 import androidx.core.graphics.scale
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.use
 import java.nio.FloatBuffer
 import kotlin.math.max
 import kotlin.math.min
@@ -26,14 +27,17 @@ object ChaoxingCaptchaPredictor {
 
     private const val EDGE_OFFSET = 4
 
+    @Volatile
     private var ortSession: OrtSession? = null
 
     @Volatile
     var isAvailable: Boolean = true
         private set
 
-    @Volatile
-    var lastResolveByModel: Boolean = false
+    data class CaptchaResolution(
+        val validate: String,
+        val resolvedByModel: Boolean
+    )
 
     fun initialize(context: Context) {
         if (ortSession != null || !isAvailable) return
@@ -55,48 +59,49 @@ object ChaoxingCaptchaPredictor {
         val session = ortSession ?: return null
         val environment = OrtEnvironment.getEnvironment()
         val paddedLength = max(originalImage.width, originalImage.height)
-        val paddedImage =
-            createBitmap(paddedLength, paddedLength)
-        Canvas(paddedImage).drawBitmap(originalImage, 0f, 0f, null)
-        val scaledImage = paddedImage.scale(MODEL_INPUT_SIZE, MODEL_INPUT_SIZE)
-        val pixels = IntArray(MODEL_INPUT_SIZE * MODEL_INPUT_SIZE)
-        scaledImage.getPixels(
-            pixels, 0, MODEL_INPUT_SIZE, 0, 0, MODEL_INPUT_SIZE, MODEL_INPUT_SIZE
-        )
-        val pixelCount = pixels.size
-        val inputData = FloatArray(pixelCount * 3)
-        for ((index, pixel) in pixels.withIndex()) {
-            inputData[index] = (pixel shr 16 and 0xFF) / 255f
-            inputData[pixelCount + index] = (pixel shr 8 and 0xFF) / 255f
-            inputData[pixelCount * 2 + index] = (pixel and 0xFF) / 255f
-        }
-        OnnxTensor.createTensor(
-            environment,
-            FloatBuffer.wrap(inputData),
-            longArrayOf(1, 3, MODEL_INPUT_SIZE.toLong(), MODEL_INPUT_SIZE.toLong())
-        ).use { tensor ->
-            session.run(mapOf("images" to tensor)).use { results ->
-                @Suppress("UNCHECKED_CAST") val output =
-                    (results[0].value as Array<Array<FloatArray>>)[0]
-                val centerXs = output[0]
-                val centerYs = output[1]
-                val widths = output[2]
-                val heights = output[3]
-                val scores = output[4]
-                val candidates = centerXs.indices.mapNotNull { index ->
-                    val score = scores[index]
-                    if (score < SCORE_THRESHOLD) return@mapNotNull null
-                    SliderGapDetection(
-                        centerXs[index] - widths[index] / 2,
-                        centerYs[index] - heights[index] / 2,
-                        widths[index],
-                        heights[index],
-                        score
-                    )
+        return createBitmap(paddedLength, paddedLength).use { paddedImage ->
+            Canvas(paddedImage).drawBitmap(originalImage, 0f, 0f, null)
+            paddedImage.scale(MODEL_INPUT_SIZE, MODEL_INPUT_SIZE).use { scaledImage ->
+                val pixels = IntArray(MODEL_INPUT_SIZE * MODEL_INPUT_SIZE)
+                scaledImage.getPixels(
+                    pixels, 0, MODEL_INPUT_SIZE, 0, 0, MODEL_INPUT_SIZE, MODEL_INPUT_SIZE
+                )
+                val pixelCount = pixels.size
+                val inputData = FloatArray(pixelCount * 3)
+                for ((index, pixel) in pixels.withIndex()) {
+                    inputData[index] = (pixel shr 16 and 0xFF) / 255f
+                    inputData[pixelCount + index] = (pixel shr 8 and 0xFF) / 255f
+                    inputData[pixelCount * 2 + index] = (pixel and 0xFF) / 255f
                 }
-                val best = nonMaxSuppression(candidates).maxByOrNull { it.score }
-                best ?: return null
-                return (best.x * paddedLength / MODEL_INPUT_SIZE - EDGE_OFFSET + 0.5f).toInt()
+                OnnxTensor.createTensor(
+                    environment,
+                    FloatBuffer.wrap(inputData),
+                    longArrayOf(1, 3, MODEL_INPUT_SIZE.toLong(), MODEL_INPUT_SIZE.toLong())
+                ).use { tensor ->
+                    session.run(mapOf("images" to tensor)).use { results ->
+                        @Suppress("UNCHECKED_CAST") val output =
+                            (results[0].value as Array<Array<FloatArray>>)[0]
+                        val centerXs = output[0]
+                        val centerYs = output[1]
+                        val widths = output[2]
+                        val heights = output[3]
+                        val scores = output[4]
+                        val candidates = centerXs.indices.mapNotNull { index ->
+                            val score = scores[index]
+                            if (score < SCORE_THRESHOLD) return@mapNotNull null
+                            SliderGapDetection(
+                                centerXs[index] - widths[index] / 2,
+                                centerYs[index] - heights[index] / 2,
+                                widths[index],
+                                heights[index],
+                                score
+                            )
+                        }
+                        val best = nonMaxSuppression(candidates).maxByOrNull { it.score }
+                        best ?: return null
+                        return (best.x * paddedLength / MODEL_INPUT_SIZE - EDGE_OFFSET + 0.5f).toInt()
+                    }
+                }
             }
         }
     }

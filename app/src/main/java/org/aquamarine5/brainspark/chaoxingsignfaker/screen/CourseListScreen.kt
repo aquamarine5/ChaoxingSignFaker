@@ -53,17 +53,21 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.Placeholder
 import androidx.compose.ui.text.PlaceholderVerticalAlign
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.LineBreak
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -304,9 +308,13 @@ fun CourseListScreen(
                     append("\n更新日志：\n")
                 }
                 )
+                val changelogRaw = newestVersionData?.changelog
+                    ?: stackbricksService.internalVersionData?.changelog ?: "暂无更新日志"
+                val changelogGray = MaterialTheme.colorScheme.onSurfaceVariant
                 Text(
-                    newestVersionData?.changelog
-                        ?: stackbricksService.internalVersionData?.changelog ?: "暂无更新日志",
+                    remember(changelogRaw, changelogGray) {
+                        parseChangelogToAnnotatedString(changelogRaw, changelogGray)
+                    },
                     fontSize = 11.sp,
                     lineHeight = 12.sp
                 )
@@ -730,6 +738,46 @@ fun CourseListScreen(
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+private fun parseChangelogToAnnotatedString(
+    raw: String,
+    gray: Color
+): AnnotatedString {
+    var boldDepth = 0
+    var italicDepth = 0
+    var underlineDepth = 0
+    var grayDepth = 0
+    fun currentStyle() = SpanStyle(
+        fontWeight = if (boldDepth > 0) FontWeight.Bold else null,
+        fontStyle = if (italicDepth > 0) FontStyle.Italic else null,
+        textDecoration = if (underlineDepth > 0) TextDecoration.Underline else null,
+        color = if (grayDepth > 0) gray else Color.Unspecified
+    )
+    return buildAnnotatedString {
+        var pos = 0
+        Regex("<(/?)([biug])>", RegexOption.IGNORE_CASE).findAll(raw).forEach { match ->
+            if (match.range.first > pos) {
+                withStyle(currentStyle()) {
+                    append(raw.substring(pos, match.range.first))
+                }
+            }
+            val isClosing = match.groupValues[1] == "/"
+            val delta = if (isClosing) -1 else 1
+            when (match.groupValues[2].lowercase()) {
+                "b" -> boldDepth = (boldDepth + delta).coerceAtLeast(0)
+                "i" -> italicDepth = (italicDepth + delta).coerceAtLeast(0)
+                "u" -> underlineDepth = (underlineDepth + delta).coerceAtLeast(0)
+                "g" -> grayDepth = (grayDepth + delta).coerceAtLeast(0)
+            }
+            pos = match.range.last + 1
+        }
+        if (pos < raw.length) {
+            withStyle(currentStyle()) {
+                append(raw.substring(pos))
             }
         }
     }

@@ -60,7 +60,7 @@ object ChaoxingCloudDriveHelper {
         val bitmap = runCatching {
             context.contentResolver.decodePhotoBitmap(uri)
                 ?: throw ChaoxingPhotoSignException("无法读取照片")
-        }.getOrElse { throw ChaoxingPhotoSignException("文件转换失败") }
+        }.getOrElse { throw ChaoxingPhotoSignException("文件转换失败", it) }
         ByteArrayOutputStream().use { out ->
             bitmap.compress(Bitmap.CompressFormat.JPEG, 50, out)
             return out.toByteArray().toRequestBody("image/jpeg".toMediaType())

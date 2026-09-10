@@ -78,11 +78,13 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCourseHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingFaceHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClientPool
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignResult
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingSignHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.SignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerParams
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.cloneSessionGuard
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.FaceRecognitionComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.FaceRecognitionNewFeatureTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.GetLocationComponent
@@ -117,7 +119,7 @@ import kotlin.time.Duration.Companion.seconds
 data class QRCodeSignDestination(
     override val activeId: Long,
     override val classId: Int,
-    override val courseId: Int,
+    override val courseId: Long,
     val extContent: String,
     val startTime: Long?,
     override val endTime: Long?,
@@ -152,6 +154,7 @@ fun QRCodeSignScreen(
     navToOtherSign: (SignDestination) -> Unit,
     navBack: () -> Unit
 ) {
+    if (!cloneSessionGuard(destination.isCloneSession, onCloneInvalid = navBack)) return
     var signActivityStatus by remember { mutableStateOf<ChaoxingSignActivityStatus?>(null) }
     var isCurrentAlreadySigned by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
@@ -221,8 +224,19 @@ fun QRCodeSignScreen(
             NetworkExceptionComponent(v.exceptionOrNull()!!) {
                 coroutineScope.launch {
                     isFetchedFailure = runCatching {
-                        signActivityStatus = signer.preSign()
-                        val data = signer.getQRCodeSignInfo()
+                        val data = if (destination.isCloneSession) {
+                            ChaoxingHttpClient.cloneInstance!!.let { cloneHttpClient ->
+                                ChaoxingQRCodeSigner(cloneHttpClient, destination).let {
+                                    isFaceRequired = it.isFaceRequired()
+                                    signActivityStatus = it.preSign()
+                                    it.getQRCodeSignInfo()
+                                }
+                            }
+                        } else {
+                            isFaceRequired = signer.isFaceRequired()
+                            signActivityStatus = signer.preSign()
+                            signer.getQRCodeSignInfo()
+                        }
                         isMapRequired = data.first.isPositionRequired
                         signoffData = data.second
                     }.onFailure {
@@ -343,22 +357,28 @@ fun QRCodeSignScreen(
                                             faceImageUploadedObjectId
                                         )
                                     ) {
-                                        suspendCancellableCoroutine { continuation ->
-                                            captchaValidateParams =
-                                                signer to { validateValue ->
-                                                    if (continuation.isActive)
-                                                        continuation.resumeWith(validateValue.onSuccess {
-                                                            signer.signWithCaptcha(
-                                                                value,
-                                                                locationData,
-                                                                it,
-                                                                faceImageUploadedObjectId
-                                                            )
-                                                        })
-                                                }
-                                        }
-                                        return@runCatching true
-                                    } else return@runCatching false
+                                        val resolution =
+                                            suspendCancellableCoroutine { continuation ->
+                                                captchaValidateParams =
+                                                    signer to { captchaResult ->
+                                                        if (continuation.isActive)
+                                                            continuation.resumeWith(captchaResult)
+                                                    }
+                                            }
+                                        signer.signWithCaptcha(
+                                            value,
+                                            locationData,
+                                            resolution.validate,
+                                            faceImageUploadedObjectId
+                                        )
+                                        return@runCatching ChaoxingSignResult(
+                                            isCaptchaSigning = true,
+                                            isCaptchaResolvedByModel = resolution.resolvedByModel
+                                        )
+                                    } else return@runCatching ChaoxingSignResult(
+                                        isCaptchaSigning = false,
+                                        isCaptchaResolvedByModel = false
+                                    )
                                 }
                             },
                             onSigningFinished = { _, name, isOtherUser ->
@@ -410,26 +430,31 @@ fun QRCodeSignScreen(
                                                         faceImageUploadedObjectId
                                                     )
                                                 ) {
-                                                    suspendCancellableCoroutine { continuation ->
-                                                        captchaValidateParams =
-                                                            this to { validateValue ->
-                                                                if (continuation.isActive) {
-                                                                    continuation.resumeWith(
-                                                                        runCatching {
-                                                                            validateValue.onSuccess {
-                                                                                signWithCaptcha(
-                                                                                    value,
-                                                                                    locationData,
-                                                                                    it,
-                                                                                    faceImageUploadedObjectId
-                                                                                )
-                                                                            }.getOrThrow()
-                                                                        })
+                                                    val resolution =
+                                                        suspendCancellableCoroutine { continuation ->
+                                                            captchaValidateParams =
+                                                                this to { captchaResult ->
+                                                                    if (continuation.isActive) {
+                                                                        continuation.resumeWith(
+                                                                            captchaResult
+                                                                        )
+                                                                    }
                                                                 }
-                                                            }
-                                                    }
-                                                    return@runCatching true
-                                                } else return@runCatching false
+                                                        }
+                                                    signWithCaptcha(
+                                                        value,
+                                                        locationData,
+                                                        resolution.validate,
+                                                        faceImageUploadedObjectId
+                                                    )
+                                                    return@runCatching ChaoxingSignResult(
+                                                        isCaptchaSigning = true,
+                                                        isCaptchaResolvedByModel = resolution.resolvedByModel
+                                                    )
+                                                } else return@runCatching ChaoxingSignResult(
+                                                    isCaptchaSigning = false,
+                                                    isCaptchaResolvedByModel = false
+                                                )
                                             }
                                         }
                                 }
@@ -524,6 +549,7 @@ fun QRCodeSignScreen(
                                 onRetrySignAction = { index, session, bypassChecking ->
                                     signHandler.retryOtherUserSigning(session, index, bypassChecking)
                                 }, isCloneSession = destination.isCloneSession,
+                                hasSignRealtimeParameter = signHandler.hasSignRealtimeParameter,
                                 suffixContent = {
                                     val tooltipState = rememberTooltipState(isPersistent = true)
                                     LaunchedEffect(Unit) {

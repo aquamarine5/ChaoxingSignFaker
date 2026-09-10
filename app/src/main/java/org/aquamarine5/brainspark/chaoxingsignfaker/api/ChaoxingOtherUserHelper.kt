@@ -31,7 +31,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.HttpCookie
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingOtherUserSharedEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingUserEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingImportOtherUserResultStatus
-import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingPredictableException
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingParseDataException
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ImportOtherUserResult
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
 import kotlin.time.Duration.Companion.milliseconds
@@ -39,9 +39,11 @@ import kotlin.time.Duration.Companion.milliseconds
 object ChaoxingOtherUserHelper {
     val TIMEOUT_NEXT_SIGN = 200.milliseconds
 
-    class NotAvailableQRCodeException(message: String) : ChaoxingPredictableException(message)
+    class NotAvailableQRCodeException(message: String, throwable: Throwable? = null) :
+        ChaoxingParseDataException(message, throwable)
 
-    class AlreadyExistedOtherUserException(message: String) : ChaoxingPredictableException(message)
+    class AlreadyExistedOtherUserException(message: String, throwable: Throwable? = null) :
+        ChaoxingParseDataException(message, throwable)
 
     private fun getQRCodeSize(context: Context): Int {
         val displayMetrics = context.resources.displayMetrics

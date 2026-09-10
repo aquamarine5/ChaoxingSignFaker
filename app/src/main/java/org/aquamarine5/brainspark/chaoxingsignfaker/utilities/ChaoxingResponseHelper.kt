@@ -15,9 +15,11 @@ import androidx.compose.material3.SnackbarResult
 import androidx.compose.ui.hapticfeedback.HapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import io.sentry.Sentry
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.Response
@@ -94,6 +96,7 @@ fun Throwable.toastReport(
     prefixTips: String? = null,
     hapticFeedback: HapticFeedback? = null
 ) {
+    if (this is CancellationException) throw this
     this.cause?.printStackTrace()
     this.printStackTrace()
     hapticFeedback?.performHapticFeedback(HapticFeedbackType.Reject)
@@ -130,6 +133,8 @@ fun Throwable.snackbarReport(
     actionLabel: String? = null,
     onSnackbarResult: ((SnackbarResult) -> Unit)? = null
 ) {
+    if (this is CancellationException) throw this
+    if (!coroutineScope.isActive) return
     this.cause?.printStackTrace()
     this.printStackTrace()
     hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)

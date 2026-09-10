@@ -91,6 +91,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostS
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.decodePhotoBitmap
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.displaySnackbar
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.scaleDownToMaxDimension
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
 
 
@@ -185,7 +186,8 @@ fun FacePhotoControlComponent(
 
     fun cropAndSave(bitmap: Bitmap) {
         coroutineScope.launch {
-            when (val result = imageCropper.crop(bitmap.asImageBitmap())) {
+            val safeBitmap = bitmap.scaleDownToMaxDimension()
+            when (val result = imageCropper.crop(safeBitmap.asImageBitmap())) {
                 is CropResult.Success -> save(result.bitmap.asAndroidBitmap())
                 CropResult.Cancelled -> Unit
                 else -> snackbarHost.displaySnackbar("裁剪人脸照片失败", coroutineScope)

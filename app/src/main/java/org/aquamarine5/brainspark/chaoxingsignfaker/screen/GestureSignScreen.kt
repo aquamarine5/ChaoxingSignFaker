@@ -61,9 +61,11 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClientPool
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingSignHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.SignDestination
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignResult
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerParams
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.cloneSessionGuard
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.GetLocationComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NetworkExceptionComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NotReadyToSignNoticeComponent
@@ -89,7 +91,7 @@ import kotlin.time.Duration.Companion.milliseconds
 data class GestureSignDestination(
     override val activeId: Long,
     override val classId: Int,
-    override val courseId: Int,
+    override val courseId: Long,
     val extContent: String,
     val startTime: Long?,
     override val endTime: Long?,
@@ -124,6 +126,11 @@ fun GestureSignScreen(
     navToOtherSign: (SignDestination) -> Unit,
     navToOtherUserDestination: () -> Unit
 ) {
+    if (!cloneSessionGuard(
+            destination.isCloneSession,
+            onCloneInvalid = navToCourseDetailDestination
+        )
+    ) return
     var signActivityStatus by remember { mutableStateOf<ChaoxingSignActivityStatus?>(null) }
     var isSignForOther by remember { mutableStateOf(false) }
     val signer = remember {
@@ -191,9 +198,22 @@ fun GestureSignScreen(
             NetworkExceptionComponent(v.exceptionOrNull()!!) {
                 coroutineScope.launch {
                     isFetchedFailure = runCatching {
-                        signoffData = signer.getGestureSignInfo()
-                        isMapRequired = signer.isPositionRequired()
-                        signActivityStatus = signer.preSign()
+                        signoffData = if (destination.isCloneSession) {
+                            ChaoxingHttpClient.cloneInstance!!.let { client ->
+                                ChaoxingGestureSigner(
+                                    client,
+                                    destination
+                                ).let {
+                                    signActivityStatus = it.preSign()
+                                    isMapRequired = it.isPositionRequired()
+                                    it.getGestureSignInfo()
+                                }
+                            }
+                        } else {
+                            signActivityStatus = signer.preSign()
+                            isMapRequired = signer.isPositionRequired()
+                            signer.getGestureSignInfo()
+                        }
                     }.onFailure {
                         it.snackbarReport(
                             snackbarHost,
@@ -368,16 +388,27 @@ fun GestureSignScreen(
                             onSelfSigning = { value ->
                                 runCatching {
                                     if (signer.sign(value, locationData)) {
-                                        suspendCancellableCoroutine { continuation ->
-                                            captchaValidateParams = signer to { captchaValue ->
-                                                if (continuation.isActive)
-                                                    continuation.resumeWith(captchaValue.onSuccess {
-                                                        signer.signWithCaptcha(value, it, locationData)
-                                                    })
+                                        val resolution =
+                                            suspendCancellableCoroutine { continuation ->
+                                                captchaValidateParams =
+                                                    signer to { captchaResult ->
+                                                        if (continuation.isActive)
+                                                            continuation.resumeWith(captchaResult)
+                                                    }
                                             }
-                                        }
-                                        return@runCatching true
-                                    } else return@runCatching false
+                                        signer.signWithCaptcha(
+                                            value,
+                                            resolution.validate,
+                                            locationData
+                                        )
+                                        return@runCatching ChaoxingSignResult(
+                                            isCaptchaSigning = true,
+                                            isCaptchaResolvedByModel = resolution.resolvedByModel
+                                        )
+                                    } else return@runCatching ChaoxingSignResult(
+                                        isCaptchaSigning = false,
+                                        isCaptchaResolvedByModel = false
+                                    )
                                 }
                             }, onOtherUserSigning = { value, session, bypassChecking, _ ->
                                 runCatching {
@@ -395,25 +426,30 @@ fun GestureSignScreen(
                                             ).run {
                                                 if (!(isAlwaysForceSign || bypassChecking)) checkSignStatusThrowException()
                                                 if (sign(value, locationData)) {
-                                                    suspendCancellableCoroutine { continuation ->
-                                                        captchaValidateParams =
-                                                            this to { captchaValidate ->
-                                                                if (continuation.isActive) {
-                                                                    continuation.resumeWith(
-                                                                        runCatching {
-                                                                            captchaValidate.onSuccess {
-                                                                                signWithCaptcha(
-                                                                                    value,
-                                                                                    it,
-                                                                                    locationData
-                                                                                )
-                                                                            }.getOrThrow()
-                                                                        })
+                                                    val resolution =
+                                                        suspendCancellableCoroutine { continuation ->
+                                                            captchaValidateParams =
+                                                                this to { captchaResult ->
+                                                                    if (continuation.isActive) {
+                                                                        continuation.resumeWith(
+                                                                            captchaResult
+                                                                        )
+                                                                    }
                                                                 }
-                                                            }
-                                                    }
-                                                    return@runCatching true
-                                                } else return@runCatching false
+                                                        }
+                                                    signWithCaptcha(
+                                                        value,
+                                                        resolution.validate,
+                                                        locationData
+                                                    )
+                                                    return@runCatching ChaoxingSignResult(
+                                                        isCaptchaSigning = true,
+                                                        isCaptchaResolvedByModel = resolution.resolvedByModel
+                                                    )
+                                                } else return@runCatching ChaoxingSignResult(
+                                                    isCaptchaSigning = false,
+                                                    isCaptchaResolvedByModel = false
+                                                )
                                             }
                                         }
                                 }

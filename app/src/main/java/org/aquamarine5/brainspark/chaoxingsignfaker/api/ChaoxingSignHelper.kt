@@ -28,7 +28,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingPasswordSigne
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingPhotoSigner
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingQRCodeSigner
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSigner
-import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingPredictableException
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingParseDataException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.OnlyAppDevelopedMode
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.checkResponseThrowException
 import java.util.concurrent.ConcurrentHashMap
@@ -46,7 +46,8 @@ object ChaoxingSignHelper {
 
     private val painterCache = ConcurrentHashMap<Int, Painter>(6)
 
-    class ChaoxingUnsupportedSignTypeException : ChaoxingPredictableException("不支持此签到类型")
+    class ChaoxingUnsupportedSignTypeException(throwable: Throwable? = null) :
+        ChaoxingParseDataException("不支持此签到类型", throwable)
 
     @Composable
     fun getSignIcon(activity: ChaoxingSignActivityEntity): Painter {
@@ -159,7 +160,7 @@ object ChaoxingSignHelper {
         atypeName: String,
         activeId: Long,
         classId: Int,
-        courseId: Int
+        courseId: Long
     ): SignDestination? {
         return when (atypeName) {
             "密码签到" -> PasswordSignDestination(
@@ -220,7 +221,7 @@ object ChaoxingSignHelper {
     suspend fun getRedirectDestination(
         activeId: Long,
         classId: Int,
-        courseId: Int
+        courseId: Long
     ): SignDestination =
         withContext(Dispatchers.IO) {
             ChaoxingHttpClient.instance!!.newCall(

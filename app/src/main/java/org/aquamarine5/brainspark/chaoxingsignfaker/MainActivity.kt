@@ -35,8 +35,11 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+//noinspection UsingMaterialAndMaterial3Libraries
 import androidx.compose.material.BottomNavigation
+//noinspection UsingMaterialAndMaterial3Libraries
 import androidx.compose.material.BottomNavigationItem
+//noinspection UsingMaterialAndMaterial3Libraries
 import androidx.compose.material.ContentAlpha
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Badge
@@ -195,7 +198,7 @@ class MainActivity : ComponentActivity() {
                 "ConnectException",
                 "SSLHandshakeException"
             )
-            it.beforeSend = { event, hint ->
+            it.beforeSend = { event, _ ->
                 event.setExtra("sign", verifiedSignature)
                 if (ignoreExceptions.contains(event.throwable?.javaClass?.simpleName)) {
                     null
@@ -602,7 +605,7 @@ class MainActivity : ComponentActivity() {
                                                 }
                                                 composable<GroupDetailDestination>(
                                                     typeMap = mapOf(
-                                                        typeOf<ChaoxingEasemobIMGroup>() to ChaoxingEasemobIMGroup.ChaoxingEasemobIMGroupNavType
+                                                        typeOf<List<ChaoxingEasemobIMGroup>>() to ChaoxingEasemobIMGroup.ChaoxingEasemobIMGroupListNavType
                                                     )
                                                 ) {
                                                     GroupDetailScreen(

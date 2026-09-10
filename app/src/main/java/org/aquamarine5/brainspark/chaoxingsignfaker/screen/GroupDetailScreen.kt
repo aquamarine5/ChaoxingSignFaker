@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -62,7 +63,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
 @Immutable
 @Serializable
 data class GroupDetailDestination(
-    val groupEntity: ChaoxingEasemobIMGroup
+    val groups: List<ChaoxingEasemobIMGroup>
 )
 
 @Composable
@@ -84,9 +85,10 @@ fun GroupDetailScreen(
         LaunchedEffect(Unit) {
             isFetchedFailure = runCatching {
                 messages = ChaoxingIMHelper.fetchIMHistoryMessages(
-                    groupDetail.groupEntity,
+                    groupDetail.groups,
                     ChaoxingHttpClient.instance!!,
-                    ChaoxingHttpClient.instance!!.getIMConfig()
+                    ChaoxingHttpClient.instance!!.getIMConfig(),
+                    coroutineScope
                 )
             }.onFailure {
                 it.snackbarReport(
@@ -108,9 +110,10 @@ fun GroupDetailScreen(
                         coroutineScope.launch {
                             isFetchedFailure = runCatching {
                                 messages = ChaoxingIMHelper.fetchIMHistoryMessages(
-                                    groupDetail.groupEntity,
+                                    groupDetail.groups,
                                     ChaoxingHttpClient.instance!!,
-                                    ChaoxingHttpClient.instance!!.getIMConfig()
+                                    ChaoxingHttpClient.instance!!.getIMConfig(),
+                                    coroutineScope
                                 )
                             }.onFailure {
                                 it.snackbarReport(
@@ -126,6 +129,8 @@ fun GroupDetailScreen(
                 }
 
                 else -> {
+                    val groups = groupDetail.groups
+                    val chatName = groups.first().chatName
                     Column {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -146,12 +151,34 @@ fun GroupDetailScreen(
                                     .width(5.dp)
                             )
                             Text(
-                                "群聊名称：${groupDetail.groupEntity.chatName}",
+                                "群聊名称：${chatName}" + if (groups.size > 1) " (x${groups.size})" else "",
                                 color = if (isSystemInDarkTheme()) Color.Gray else Color.DarkGray,
                                 textAlign = TextAlign.Left,
                                 modifier = Modifier
                                     .fillMaxWidth()
                             )
+                        }
+                        if (groups.size > 1) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 8.dp)
+                            ) {
+                                Icon(
+                                    painterResource(R.drawable.ic_info),
+                                    contentDescription = null,
+                                    tint = Color.Gray,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    "此群组名称在群聊列表里面出现了${groups.size}次，已将所有群组的签到活动合并显示。",
+                                    fontSize = 12.sp,
+                                    lineHeight = 16.sp,
+                                    color = Color.Gray
+                                )
+                            }
                         }
                         if (messages!!.isEmpty()) {
                             Column(
@@ -183,7 +210,18 @@ fun GroupDetailScreen(
                                                     hapticFeedback.performHapticFeedback(
                                                         HapticFeedbackType.ContextClick
                                                     )
-                                                    onSignAction(message.signDestination)
+                                                    coroutineScope.launch {
+                                                        runCatching { message.signDestination.await() }
+                                                            .onSuccess { onSignAction(it) }
+                                                            .onFailure {
+                                                                it.snackbarReport(
+                                                                    snackbarHostState,
+                                                                    coroutineScope,
+                                                                    "获取签到信息失败",
+                                                                    hapticFeedback
+                                                                )
+                                                            }
+                                                    }
                                                 }) {
 
                                             Icon(
@@ -214,7 +252,7 @@ fun GroupDetailScreen(
                                                 fontSize = 10.sp,
                                                 lineHeight = 12.sp,
                                                 color = Color.Gray,
-                                                modifier = Modifier.padding(start = 28.dp)
+                                                modifier = Modifier.padding(start = 52.dp)
                                             )
                                         Spacer(modifier = Modifier.height(16.dp))
                                     }

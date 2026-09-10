@@ -51,8 +51,9 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingFaceHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClientPool
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingFaceImageException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
-import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.randomizeStylizeFaceImage
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.randomizeStylizeImage
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
 import java.util.concurrent.TimeUnit
 
@@ -141,14 +142,17 @@ fun FaceRecognitionComponent(
                                 Request.Builder().url(url).build()
                             ).execute().use { response ->
                                 response.body.byteStream().use { stream ->
-                                    BitmapFactory.decodeStream(stream)
-                                        ?: throw IllegalStateException("默认人脸识别照片下载失败")
+                                    val bytes = stream.readBytes()
+                                    BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                                        ?: throw ChaoxingFaceImageException(
+                                            "默认人脸识别照片下载失败, body=${bytes.toString(Charsets.UTF_8)}"
+                                        )
                                 }
                             }
                         }
                         put(
                             phoneNumber,
-                            randomizeStylizeFaceImage(bitmap).also { bitmap.recycle() }
+                            randomizeStylizeImage(bitmap).also { bitmap.recycle() }
                         )
                         profileImageProgress = index + 1 to signUserName.size
                     }

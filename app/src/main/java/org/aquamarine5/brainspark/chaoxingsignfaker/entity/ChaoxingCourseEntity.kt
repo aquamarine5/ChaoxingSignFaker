@@ -20,7 +20,7 @@ import kotlinx.serialization.Transient
 data class ChaoxingCourseEntity(
     val courseName: String,
     val teacherName: String?,
-    val courseId: Int,
+    val courseId: Long,
     val classId: Int,
     val className: String,
     val imageUrl: String,
@@ -53,7 +53,7 @@ data class ChaoxingCourseEntity(
                             ChaoxingCourseEntity(
                                 it[0] as String,
                                 it[1] as String?,
-                                it[2] as Int,
+                                it[2] as Long,
                                 it[3] as Int,
                                 it[4] as String,
                                 it[5] as String,
