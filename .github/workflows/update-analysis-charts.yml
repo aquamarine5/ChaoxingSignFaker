@@ -1,0 +1,35 @@
+name: Update Analysis Charts
+
+on:
+  schedule:
+    # GitHub Actions cron uses UTC. 16:30 UTC is 00:30 Asia/Shanghai the following day.
+    - cron: "30 16 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update-charts:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Generate analysis charts
+        run: node scripts/generate-analysis-charts.mjs
+
+      - name: Commit updated charts
+        run: |
+          if git diff --quiet -- analysis/signCount.svg analysis/userCount.svg; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add analysis/signCount.svg analysis/userCount.svg
+          git commit -m "chore: update analysis charts"
+          git push

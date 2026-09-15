@@ -43,6 +43,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateListOf
@@ -260,7 +261,7 @@ fun CourseListScreen(
         })
     }
     if (newestVersionData != null) {
-        LaunchedEffect(newestVersionData) {
+        SideEffect(newestVersionData) {
             onNewVersionAvailable()
         }
         SnackbarAlertDialog(onDismissRequest = {

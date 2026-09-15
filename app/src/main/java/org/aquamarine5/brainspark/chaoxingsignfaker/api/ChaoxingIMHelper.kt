@@ -205,7 +205,7 @@ object ChaoxingIMHelper {
         }
     }
 
-    suspend fun parseIMMessageBody(
+    fun parseIMMessageBody(
         scope: CoroutineScope,
         imMessages: List<MessageBody>
     ): List<ChaoxingGroupSignActivityEntity> {
@@ -307,7 +307,6 @@ object ChaoxingIMHelper {
 
     private fun startTimeTitleSortKey(title: String): List<Int>? {
         val groups = START_TIME_TITLE_PATTERN.find(title)?.groupValues ?: return null
-        // groups[1] 为 yy（可能缺失），groups[2..5] 为 MM、dd、HH、mm
         val year = groups[1].toIntOrNull() ?: Int.MIN_VALUE
         val rest = groups.drop(2).map { it.toIntOrNull() ?: return null }
         if (rest.size != 4) return null

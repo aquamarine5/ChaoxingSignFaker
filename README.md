@@ -60,14 +60,16 @@
 > [!TIP]
 > ChaoxingSignFaker（随地大小签） 使用 [Stackbricks](https://github.com/aquamarine5/Stackbricks) 来实现更新逻辑，同样由本作者维护。
 
-## Star History
-
 <a href="https://www.star-history.com/?repos=aquamarine5%2FChaoxingSignFaker&type=date&legend=top-left">
  <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=aquamarine5/ChaoxingSignFaker&type=date&theme=dark&legend=top-left&sealed_token=2tB39V5sIQP1AisYOMEuqkmUfMEhoBsMDca3YHTs5yegOyih3XJhbwC7s8PzwTTGA8fqlhtGfNSr1p3lWR0TjJ_Y5XndVG6Rr5VyRIcd6hk_u5yoktSPYQ" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=aquamarine5/ChaoxingSignFaker&type=date&legend=top-left&sealed_token=2tB39V5sIQP1AisYOMEuqkmUfMEhoBsMDca3YHTs5yegOyih3XJhbwC7s8PzwTTGA8fqlhtGfNSr1p3lWR0TjJ_Y5XndVG6Rr5VyRIcd6hk_u5yoktSPYQ" />
-   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=aquamarine5/ChaoxingSignFaker&type=date&legend=top-left&sealed_token=2tB39V5sIQP1AisYOMEuqkmUfMEhoBsMDca3YHTs5yegOyih3XJhbwC7s8PzwTTGA8fqlhtGfNSr1p3lWR0TjJ_Y5XndVG6Rr5VyRIcd6hk_u5yoktSPYQ" />
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=aquamarine5/ChaoxingSignFaker&type=date&theme=dark&legend=top-left" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=aquamarine5/ChaoxingSignFaker&type=date&legend=top-left" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=aquamarine5/ChaoxingSignFaker&type=date&legend=top-left" />
  </picture>
 </a>
+
+![Recorded sign counts](analysis/signCount.svg)
+
+![Analyser user counts](analysis/userCount.svg)
 
 ![Alt](https://repobeats.axiom.co/api/embed/629e66a936ab63b8d91a7dceb42437d55857900e.svg "Repobeats analytics image")
