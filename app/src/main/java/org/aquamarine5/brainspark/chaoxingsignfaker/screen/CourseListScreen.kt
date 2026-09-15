@@ -236,6 +236,7 @@ fun CourseListScreen(
             isEmergencyToSkipUpdate = false
         }, dismissButton = {
             TextButton(onClick = {
+                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                 isEmergencyToSkipUpdate = false
                 newestVersionData = null
             }) {
@@ -243,6 +244,7 @@ fun CourseListScreen(
             }
         }, confirmButton = {
             Button(onClick = {
+                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                 navToSettingDestination()
             }) {
                 Text("现在去更新")
@@ -270,11 +272,13 @@ fun CourseListScreen(
         }, confirmButton = {
             Column(horizontalAlignment = Alignment.End) {
                 Button(onClick = {
+                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                     navToSettingDestination()
                 }) {
                     Text("去更新", maxLines = 1)
                 }
                 TextButton(onClick = {
+                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                     if (isForceInstall)
                         isEmergencyToSkipUpdate = true
                     else

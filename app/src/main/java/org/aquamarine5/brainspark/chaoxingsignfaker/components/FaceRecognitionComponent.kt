@@ -37,6 +37,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
@@ -111,13 +112,19 @@ fun FaceRecognitionComponent(
         confirmButton = {
             Button(
                 enabled = !isProcessingProfileImage,
-                onClick = { useProfileImage = true }
+                onClick = {
+                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                    useProfileImage = true
+                }
             ) { Text("是") }
         },
         dismissButton = {
             OutlinedButton(
                 enabled = !isProcessingProfileImage,
-                onClick = { useProfileImage = false }
+                onClick = {
+                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                    useProfileImage = false
+                }
             ) { Text("否") }
         }
     )

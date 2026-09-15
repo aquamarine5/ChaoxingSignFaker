@@ -616,14 +616,15 @@ fun PhotoSignScreen(
                                                                 onDismissRequest = {
                                                                     isShowDialog = false
                                                                 },
-                                                                confirmButton = {
-                                                                    Button(onClick = {
-                                                                        isShowDialog =
-                                                                            false
-                                                                    }) {
-                                                                        Text("关闭")
-                                                                    }
-                                                                },
+                                                                 confirmButton = {
+                                                                     Button(onClick = {
+                                                                         hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                                                                         isShowDialog =
+                                                                             false
+                                                                     }) {
+                                                                         Text("关闭")
+                                                                     }
+                                                                 },
                                                                 text = { _ ->
                                                                     Image(
                                                                         bitmapList[it].asImageBitmap(),

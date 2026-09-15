@@ -23,7 +23,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
@@ -42,6 +44,7 @@ fun RequireLoginAlertDialog(
     var errorText by remember { mutableStateOf("") }
     val context = LocalContext.current
     val coroutineContext = rememberCoroutineScope()
+    val hapticFeedback = LocalHapticFeedback.current
     if (isShowDialog) {
         SnackbarAlertDialog(
             onDismissRequest = { },
@@ -72,6 +75,7 @@ fun RequireLoginAlertDialog(
             confirmButton = {
                 Button(
                     onClick = {
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                         coroutineContext.launch {
                             runCatching {
                                 ChaoxingHttpClient.checkSharedEntity(phoneNumber, password, context)
@@ -90,6 +94,7 @@ fun RequireLoginAlertDialog(
             dismissButton = {
                 OutlinedButton(
                     onClick = {
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                         isShowDialog = false
                         naviBack()
                     },

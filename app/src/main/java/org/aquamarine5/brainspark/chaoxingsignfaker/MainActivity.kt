@@ -814,11 +814,13 @@ class MainActivity : ComponentActivity() {
                                                         )
                                                     ) {
                                                         OutlinedButton(onClick = {
+                                                            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                                                             showExitCloneDialog = false
                                                         }) {
                                                             Text("否")
                                                         }
                                                         Button(onClick = {
+                                                            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                                                             showExitCloneDialog = false
                                                             exitCloneMode()
                                                         }) {
@@ -827,6 +829,7 @@ class MainActivity : ComponentActivity() {
                                                     }
                                                     TextButton(
                                                         onClick = {
+                                                            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                                                             showExitCloneDialog = false
                                                             finishAffinity()
                                                         },

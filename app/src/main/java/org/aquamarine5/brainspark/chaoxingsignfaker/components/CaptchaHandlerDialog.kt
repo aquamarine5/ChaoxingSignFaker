@@ -306,6 +306,7 @@ fun CaptchaHandlerDialog(
             confirmButton = {
                 OutlinedButton(
                     onClick = {
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                         dismissWithCancel()
                     }
                 ) {

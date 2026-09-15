@@ -1447,9 +1447,10 @@ fun OtherUserScreen(
                 }, enabled = !isSavingDatastore) {
                     Text(if (isSavingDatastore) "保存中" else "保存")
                 }
-            }, dismissButton = {
+            },             dismissButton = {
                 Button(
                     onClick = {
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                         requestedDeleteUserIndex = selectedUserSettingDialogIndex
                     },
                     colors = ButtonDefaults.buttonColors(Color(0xFFF1441D))
@@ -1535,8 +1536,9 @@ fun OtherUserScreen(
     if (isURLSharedDialog) {
         SnackbarAlertDialog(onDismissRequest = {
             isURLSharedDialog = false
-        }, confirmButton = {
+        },         confirmButton = {
             OutlinedButton(onClick = {
+                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                 isURLSharedDialog = false
             }) { Text("关闭") }
         }, title = {
@@ -1784,15 +1786,18 @@ fun OtherUserScreen(
                             })
                         }
                     },
-                    confirmButton = {
-                        Button(onClick = { isFaceLoadImagesTipsDialog = false }) {
-                            Text("确定")
-                        }
-                    }
-                )
-            }
+                     confirmButton = {
+                         Button(onClick = {
+                             hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                             isFaceLoadImagesTipsDialog = false
+                         }) {
+                             Text("确定")
+                         }
+                     }
+                 )
+             }
 
-            if (facePhotos.isNotEmpty()) {
+             if (facePhotos.isNotEmpty()) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -2079,16 +2084,17 @@ fun OtherUserScreen(
                             })
                         }
                     },
-                    confirmButton = {
-                        Button(onClick = {
-                            isControlFaceImageNewFeatureDialog = false
-                        }) {
-                            Text("确定")
-                        }
-                    }
-                )
-            }
-            if (isFacePhotoDialog) {
+                     confirmButton = {
+                         Button(onClick = {
+                             hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                             isControlFaceImageNewFeatureDialog = false
+                         }) {
+                             Text("确定")
+                         }
+                     }
+                 )
+             }
+             if (isFacePhotoDialog) {
                 SnackbarAlertDialog(
                     onDismissRequest = { isFacePhotoDialog = false },
                     title = {
@@ -2119,14 +2125,17 @@ fun OtherUserScreen(
                             onPendingCapturedBitmapHandled = { pendingFacePhotoBitmap = null },
                         )
                     },
-                    confirmButton = {
-                        OutlinedButton(onClick = { isFacePhotoDialog = false }) {
-                            Text("关闭")
-                        }
-                    },
-                    icon = {
-                        Icon(
-                            painterResource(R.drawable.ic_scan_face),
+                     confirmButton = {
+                         OutlinedButton(onClick = {
+                             hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                             isFacePhotoDialog = false
+                         }) {
+                             Text("关闭")
+                         }
+                     },
+                     icon = {
+                         Icon(
+                             painterResource(R.drawable.ic_scan_face),
                             null,
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(40.dp)
@@ -2574,18 +2583,19 @@ fun OtherUserScreen(
             text = {
                 Text(importQRCodeOtherUserResult!!.getResultTips())
             },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        importQRCodeOtherUserResult = null
-                    }
-                ) {
-                    Text("确定")
-                }
-            }
-        )
-    }
-    AnimatedVisibility(
+             confirmButton = {
+                 Button(
+                     onClick = {
+                         hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                         importQRCodeOtherUserResult = null
+                     }
+                 ) {
+                     Text("确定")
+                 }
+             }
+         )
+     }
+     AnimatedVisibility(
         isQRCodeScanning, enter =
             slideInHorizontally(
                 initialOffsetX = { it },
