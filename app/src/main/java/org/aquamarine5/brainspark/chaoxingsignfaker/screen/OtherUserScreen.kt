@@ -54,8 +54,6 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.foundation.text.appendInlineContent
-import androidx.compose.ui.text.Placeholder
-import androidx.compose.ui.text.PlaceholderVerticalAlign
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -80,6 +78,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -110,6 +109,8 @@ import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.Placeholder
+import androidx.compose.ui.text.PlaceholderVerticalAlign
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -158,15 +159,15 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.components.SnackbarAlertDial
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingFaceRecognitionImage
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.OtherUserTagType
-import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingOtherUserSharedEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingImportOtherUserResultStatus
-import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingPredictableException
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingOtherUserSharedEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ImportOtherUserResult
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.getResultTips
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingPredictableException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.displaySnackbar
-import org.aquamarine5.brainspark.chaoxingsignfaker.entity.getResultTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
 import sh.calvin.reorderable.ReorderableColumn
 import kotlin.random.Random
@@ -285,15 +286,24 @@ fun OtherUserScreen(
         }
     } else if (isLocalSharedEntityReady == true) {
         LaunchedEffect(importSharedEntity, attachFacePhotos, selectedSharedFaceObjectIds.toList()) {
-            qrCode = ChaoxingOtherUserHelper.generateQRCode(
-                context,
-                importSharedEntity,
-                if (attachFacePhotos) selectedSharedFaceObjectIds else emptyList(),
-            )
+            qrCode = runCatching {
+                ChaoxingOtherUserHelper.generateQRCode(
+                    context,
+                    importSharedEntity,
+                    if (attachFacePhotos) selectedSharedFaceObjectIds else emptyList(),
+                )
+            }.onFailure {
+                it.snackbarReport(
+                    snackbarHost,
+                    coroutineScope,
+                    "生成二维码失败",
+                    hapticFeedback
+                )
+            }.getOrNull()
         }
     }
 
-    LaunchedEffect(inspectedFacePhotoObjectId, facePhotos.toList()) {
+    SideEffect(inspectedFacePhotoObjectId, facePhotos.toList()) {
         if (inspectedFacePhotoObjectId != null &&
             facePhotos.none { it.objectId == inspectedFacePhotoObjectId }
         ) {
@@ -1450,6 +1460,7 @@ fun OtherUserScreen(
             }, dismissButton = {
                 Button(
                     onClick = {
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                         requestedDeleteUserIndex = selectedUserSettingDialogIndex
                     },
                     colors = ButtonDefaults.buttonColors(Color(0xFFF1441D))
@@ -1537,6 +1548,7 @@ fun OtherUserScreen(
             isURLSharedDialog = false
         }, confirmButton = {
             OutlinedButton(onClick = {
+                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                 isURLSharedDialog = false
             }) { Text("关闭") }
         }, title = {
@@ -1785,7 +1797,10 @@ fun OtherUserScreen(
                         }
                     },
                     confirmButton = {
-                        Button(onClick = { isFaceLoadImagesTipsDialog = false }) {
+                        Button(onClick = {
+                            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                            isFaceLoadImagesTipsDialog = false
+                        }) {
                             Text("确定")
                         }
                     }
@@ -2081,6 +2096,7 @@ fun OtherUserScreen(
                     },
                     confirmButton = {
                         Button(onClick = {
+                            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                             isControlFaceImageNewFeatureDialog = false
                         }) {
                             Text("确定")
@@ -2120,7 +2136,10 @@ fun OtherUserScreen(
                         )
                     },
                     confirmButton = {
-                        OutlinedButton(onClick = { isFacePhotoDialog = false }) {
+                        OutlinedButton(onClick = {
+                            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                            isFacePhotoDialog = false
+                        }) {
                             Text("关闭")
                         }
                     },
@@ -2473,44 +2492,44 @@ fun OtherUserScreen(
                                                             modifier = Modifier.size(24.dp)
                                                         )
                                                     }
-                                                    else
-                                                     IconButton(onClick = {
-                                                         coroutineScope.launch {
-                                                             hapticFeedback.performHapticFeedback(
-                                                                 HapticFeedbackType.ContextClick
-                                                             )
-                                                             val session = otherUserSessions[index]
-                                                             runCatching {
-                                                                 ChaoxingHttpClientPool.get(
-                                                                     context,
-                                                                     session.phoneNumber
-                                                                 )
-                                                             }.onSuccess { client ->
-                                                                 ChaoxingHttpClient.cloneInstance =
-                                                                     client
-                                                                 naviCloneCourseListScreen()
-                                                             }.onFailure { failure ->
-                                                                 (failure as? ChaoxingHttpClient.ChaoxingGetUserInfoException)
-                                                                     ?.takeIf { it.isOtherUser }
-                                                                     ?.let {
-                                                                         coroutineScope.launch {
-                                                                             runCatching {
-                                                                                 ChaoxingOtherUserHelper.markSessionObsoleted(
-                                                                                     session,
-                                                                                     context
-                                                                                 )
-                                                                             }
-                                                                         }
-                                                                     }
-                                                                 failure.snackbarReport(
-                                                                     snackbarHost,
-                                                                     coroutineScope,
-                                                                     "切换代签用户失败",
-                                                                     hapticFeedback
-                                                                 )
-                                                             }
-                                                         }
-                                                     }) {
+                                                else
+                                                    IconButton(onClick = {
+                                                        coroutineScope.launch {
+                                                            hapticFeedback.performHapticFeedback(
+                                                                HapticFeedbackType.ContextClick
+                                                            )
+                                                            val session = otherUserSessions[index]
+                                                            runCatching {
+                                                                ChaoxingHttpClientPool.get(
+                                                                    context,
+                                                                    session.phoneNumber
+                                                                )
+                                                            }.onSuccess { client ->
+                                                                ChaoxingHttpClient.cloneInstance =
+                                                                    client
+                                                                naviCloneCourseListScreen()
+                                                            }.onFailure { failure ->
+                                                                (failure as? ChaoxingHttpClient.ChaoxingGetUserInfoException)
+                                                                    ?.takeIf { it.isOtherUser }
+                                                                    ?.let {
+                                                                        coroutineScope.launch {
+                                                                            runCatching {
+                                                                                ChaoxingOtherUserHelper.markSessionObsoleted(
+                                                                                    session,
+                                                                                    context
+                                                                                )
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                failure.snackbarReport(
+                                                                    snackbarHost,
+                                                                    coroutineScope,
+                                                                    "切换代签用户失败",
+                                                                    hapticFeedback
+                                                                )
+                                                            }
+                                                        }
+                                                    }) {
                                                         Icon(
                                                             painterResource(R.drawable.ic_user_left_arrow),
                                                             null
@@ -2576,6 +2595,7 @@ fun OtherUserScreen(
             confirmButton = {
                 Button(
                     onClick = {
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                         importQRCodeOtherUserResult = null
                     }
                 ) {

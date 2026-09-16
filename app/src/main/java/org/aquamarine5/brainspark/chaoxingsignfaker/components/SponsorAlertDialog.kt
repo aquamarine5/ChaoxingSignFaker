@@ -120,6 +120,7 @@ fun SponsorAlertDialog(onDismissRequest: () -> Unit) {
     }, confirmButton = {
         Row {
             OutlinedButton(onClick = {
+                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                 onDismissRequest()
             }) {
                 Text("下次一定")

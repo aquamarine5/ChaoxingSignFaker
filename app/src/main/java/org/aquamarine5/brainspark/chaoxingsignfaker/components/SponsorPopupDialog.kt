@@ -74,6 +74,7 @@ fun SponsorPopupDialog() {
             }) { Text("现在就去") }
         }, dismissButton = {
             OutlinedButton(onClick = {
+                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                 isShowDialog = false
             }) { Text("下次一定") }
         })

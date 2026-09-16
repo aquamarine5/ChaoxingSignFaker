@@ -156,6 +156,7 @@ fun SettingScreen(
                 })
             }, dismissButton = {
                 OutlinedButton(onClick = {
+                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                     isUnblockDialog = false
                 }) {
                     Text("取消")
@@ -273,7 +274,10 @@ fun SettingScreen(
                     Text("当你登出时，你的签到统计数据和代签用户不会丢失。")
                 },
                 dismissButton = {
-                    OutlinedButton(onClick = { isShowSignoffDialog = false }) {
+                    OutlinedButton(onClick = {
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                        isShowSignoffDialog = false
+                    }) {
                         Text("取消")
                     }
                 },

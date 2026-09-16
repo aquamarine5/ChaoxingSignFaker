@@ -142,7 +142,10 @@ fun FavoriteLocationSettingDialog(
             }
         },
         confirmButton = {
-            Button(onClick = onDismiss) {
+            Button(onClick = {
+                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                onDismiss()
+            }) {
                 Text("关闭")
             }
         },

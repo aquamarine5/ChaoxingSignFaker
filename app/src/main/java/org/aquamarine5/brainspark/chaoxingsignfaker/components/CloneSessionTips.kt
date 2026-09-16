@@ -23,7 +23,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -133,7 +132,7 @@ fun cloneSessionGuard(
 ): Boolean {
     val context = LocalContext.current
     val isInvalid = isCloneSession && ChaoxingHttpClient.cloneInstance == null
-    LaunchedEffect(isInvalid) {
+    SideEffect(isInvalid) {
         if (isInvalid) {
             Toast.makeText(context, "克隆登录已失效，请重新进入克隆模式", Toast.LENGTH_SHORT).show()
             onCloneInvalid()

@@ -20,6 +20,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
@@ -55,6 +56,7 @@ fun SaveFaceImagesDialog(
         text = { Text("是否保存刚才拍摄的 ${faceRecognitionData.newImagePhones.size} 张人脸照片，以便下次签到使用？") },
         confirmButton = {
             Button(enabled = !isSaving, onClick = {
+                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                 isSaving = true
                 coroutineScope.launch {
                     faceRecognitionData.newImagePhones.toList().forEach { phoneNumber ->
@@ -98,6 +100,7 @@ fun SaveFaceImagesDialog(
         },
         dismissButton = {
             OutlinedButton(enabled = !isSaving, onClick = {
+                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                 faceRecognitionData.newImagePhones.clear()
                 onFinished()
             }) { Text("不保存") }

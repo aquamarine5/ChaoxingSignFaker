@@ -43,6 +43,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateListOf
@@ -236,6 +237,7 @@ fun CourseListScreen(
             isEmergencyToSkipUpdate = false
         }, dismissButton = {
             TextButton(onClick = {
+                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                 isEmergencyToSkipUpdate = false
                 newestVersionData = null
             }) {
@@ -243,6 +245,7 @@ fun CourseListScreen(
             }
         }, confirmButton = {
             Button(onClick = {
+                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                 navToSettingDestination()
             }) {
                 Text("现在去更新")
@@ -258,7 +261,7 @@ fun CourseListScreen(
         })
     }
     if (newestVersionData != null) {
-        LaunchedEffect(newestVersionData) {
+        SideEffect(newestVersionData) {
             onNewVersionAvailable()
         }
         SnackbarAlertDialog(onDismissRequest = {
@@ -270,11 +273,13 @@ fun CourseListScreen(
         }, confirmButton = {
             Column(horizontalAlignment = Alignment.End) {
                 Button(onClick = {
+                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                     navToSettingDestination()
                 }) {
                     Text("去更新", maxLines = 1)
                 }
                 TextButton(onClick = {
+                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                     if (isForceInstall)
                         isEmergencyToSkipUpdate = true
                     else
