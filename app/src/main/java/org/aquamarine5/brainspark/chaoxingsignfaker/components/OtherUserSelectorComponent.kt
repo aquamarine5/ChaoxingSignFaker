@@ -79,6 +79,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -123,6 +126,8 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.displaySnackbar
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.isDevelopedMode
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
 import java.io.File
+import kotlin.math.abs
+import kotlin.math.roundToInt
 
 @Composable
 fun OtherUserSelectorComponent(
@@ -649,6 +654,8 @@ fun OtherUserSelectorComponent(
             userSelections[0] = isCurrentAlreadySigned != true
         }
         val scrollState = rememberScrollState()
+        val scrollViewportCoordinates = remember { mutableStateOf<LayoutCoordinates?>(null) }
+        val userRowCoordinates = remember { mutableMapOf<Int, LayoutCoordinates>() }
         val density = LocalDensity.current
         val gapPx = remember { with(density) { 80.dp.toPx() } }
         val showFab by remember {
@@ -685,6 +692,21 @@ fun OtherUserSelectorComponent(
             onSignAction(
                 isSelf, otherUserSessionList, indexList
             )
+            val targetCoordinates = indexList.firstOrNull()?.let(userRowCoordinates::get)
+            val viewportCoordinates = scrollViewportCoordinates.value
+            if (targetCoordinates != null && viewportCoordinates != null) {
+                coroutineScope.launch {
+                    val targetScrollPosition = (
+                            scrollState.value + targetCoordinates.positionInRoot().y -
+                                    viewportCoordinates.positionInRoot().y
+                            ).roundToInt().coerceIn(0, scrollState.maxValue)
+                    val scrollDistance = abs(targetScrollPosition - scrollState.value)
+                    scrollState.animateScrollTo(
+                        targetScrollPosition,
+                        tween((300 + scrollDistance / 4).coerceIn(350, 900))
+                    )
+                }
+            }
         }
 
         Box(
@@ -696,6 +718,7 @@ fun OtherUserSelectorComponent(
                 modifier = Modifier
                     .padding(8.dp, 0.dp)
                     .verticalScroll(scrollState)
+                    .onGloballyPositioned { scrollViewportCoordinates.value = it }
             ) {
                 prefixTipsContent()
 
@@ -857,6 +880,7 @@ fun OtherUserSelectorComponent(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(vertical = 4.dp)
+                            .onGloballyPositioned { userRowCoordinates[0] = it }
                     ) {
                         Checkbox(
                             checked = userSelections[0] && signStatus[0].isSuccess.value != true,
@@ -955,6 +979,7 @@ fun OtherUserSelectorComponent(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(vertical = 4.dp)
+                                .onGloballyPositioned { userRowCoordinates[index + 1] = it }
                         ) {
                         (1 + index).let { i ->
                             val successForOtherUser by signStatus[i].isSuccess

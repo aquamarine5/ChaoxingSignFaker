@@ -2145,7 +2145,6 @@ fun OtherUserScreen(
                         isQRCodeScanPause.value = false
                         isQRCodeParsing.value = false
                         isQRCodeScanning = true
-
                     }, shape = SegmentedButtonDefaults.itemShape(
                         index = 0,
                         count = 3
@@ -2586,18 +2585,14 @@ fun OtherUserScreen(
         )
     }
     AnimatedVisibility(
-        isQRCodeScanning, enter =
-            slideInHorizontally(
-                initialOffsetX = { it },
-                animationSpec = tween(300)
-            ) + fadeIn(
-                animationSpec = tween(300)
-            ),
-        exit =
-            slideOutHorizontally(
-                animationSpec = tween(300),
-                targetOffsetX = { it }) +
-                    fadeOut(animationSpec = tween(300))
+        isQRCodeScanning, enter = slideInHorizontally(
+            initialOffsetX = { it },
+            animationSpec = tween(300)
+        ),
+        exit = slideOutHorizontally(
+            animationSpec = tween(400),
+            targetOffsetX = { (it * 1.5).toInt() }
+        )
     ) {
         Column(
             modifier = Modifier
