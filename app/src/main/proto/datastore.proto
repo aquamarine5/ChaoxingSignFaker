@@ -36,6 +36,26 @@ message ChaoxingSignFakerDataStore{
   string selectedAnalysisRankSchoolName = 27;
   repeated ChaoxingLocation dontSaveNearbyPosition = 28;
   repeated string preferGroupId = 29;
+  ChaoxingClassSchedule classSchedule = 30;
+}
+
+message ChaoxingClassSchedule{
+  repeated ChaoxingLesson lessons = 1;
+  uint64 lastFetchTimestamp = 2;
+  uint64 firstWeekDate = 3;
+  string contentMd5 = 4;
+}
+
+message ChaoxingLesson{
+  uint64 courseId = 1;
+  uint32 classId = 2;
+  string courseName = 3;
+  string teacherName = 4;
+  uint32 dayOfWeek = 5;
+  uint32 startMinuteOfDay = 6;
+  uint32 endMinuteOfDay = 7;
+  string location = 8;
+  string weeks = 9;
 }
 
 message ChaoxingFaceRecognitionImage{

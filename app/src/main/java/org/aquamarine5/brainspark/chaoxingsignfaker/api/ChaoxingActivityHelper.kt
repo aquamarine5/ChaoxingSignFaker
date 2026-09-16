@@ -7,7 +7,10 @@
 package org.aquamarine5.brainspark.chaoxingsignfaker.api
 
 import com.alibaba.fastjson2.JSONObject
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.withContext
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Request
@@ -57,12 +60,17 @@ object ChaoxingActivityHelper {
                         activity.getInteger("status") == 1 &&
                         activity.getLong("startTime") + AVAILABLE_INTERVAL > nowTimeMillis
             }?.let { activity ->
-                RecommendActivityEntity(
+                val destination = CoroutineScope(Dispatchers.IO).async(
+                    start = CoroutineStart.LAZY
+                ) {
                     ChaoxingSignHelper.getRedirectDestination(
                         activity.getLong("id"),
                         classId,
                         courseId
-                    ),
+                    )
+                }
+                RecommendActivityEntity(
+                    destination,
                     activity.getLong("startTime"),
                     ChaoxingCourseHelper.queryClassName(client, classId),
                     classId,

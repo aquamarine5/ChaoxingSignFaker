@@ -7,11 +7,12 @@
 package org.aquamarine5.brainspark.chaoxingsignfaker.entity
 
 import androidx.compose.runtime.Immutable
+import kotlinx.coroutines.Deferred
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.SignDestination
 
 @Immutable
 data class RecommendActivityEntity(
-    val destination: SignDestination,
+    val destination: Deferred<SignDestination>,
     val startTime: Long,
     val className: String,
     val classId: Int,

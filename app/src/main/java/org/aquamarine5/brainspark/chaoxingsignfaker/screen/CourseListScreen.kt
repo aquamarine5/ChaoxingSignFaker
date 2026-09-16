@@ -88,6 +88,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.BuildConfig
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCourseHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingLessonHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingRecommendHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.SignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.BlockedContent
@@ -149,6 +150,7 @@ fun CourseListScreen(
     var isForceInstall by rememberSaveable { mutableStateOf(false) }
     val snackbarHost = LocalSnackbarHostState.current
     var recommendActivities by remember { mutableStateOf<List<RecommendActivityEntity>?>(null) }
+    var lessonSignActivities by remember { mutableStateOf<List<RecommendActivityEntity>?>(null) }
     var isFetchedFailure by remember { mutableStateOf<Result<*>?>(null) }
     val coroutineScope = rememberCoroutineScope()
     val isCaptchaAutoResolveLearntTooltip = rememberSaveable { mutableStateOf(false) }
@@ -173,6 +175,18 @@ fun CourseListScreen(
                 recommendActivities =
                     ChaoxingRecommendHelper.checkRecommendedActivities(context)
             } //TODO: recommend
+            launch {
+                runCatching {
+                    val schedule = context.chaoxingDataStore.data.first().classSchedule
+                    if (schedule.lastFetchTimestamp +
+                        ChaoxingLessonHelper.LESSONS_CACHE_INTERVAL <
+                        System.currentTimeMillis() || schedule.lessonsList.isEmpty()
+                    ) {
+                        ChaoxingHttpClient.getHttpInstanceOrClone(destination.isCloneSession)
+                            ?.let { ChaoxingLessonHelper.refreshLessons(it, context) }
+                    }
+                }
+            }
             if (activitiesData.isEmpty()) {
                 isFetchedFailure = runCatching {
                     val datastoreData = context.chaoxingDataStore.data.first()
@@ -222,6 +236,13 @@ fun CourseListScreen(
                                         !preferredClassIds.contains(it.classId)
                                     })
                                 }
+                        }
+                    ChaoxingHttpClient.getHttpInstanceOrClone(destination.isCloneSession)
+                        ?.let {
+                            lessonSignActivities =
+                                ChaoxingLessonHelper.checkCurrentLessonSignActivities(
+                                    it, context, activitiesData.toList()
+                                )
                         }
                 }.onFailure {
                     it.snackbarReport(
@@ -373,6 +394,13 @@ fun CourseListScreen(
                                                     activitiesData.addAll(newActivities)
                                                 }
                                         }
+                                    ChaoxingHttpClient.getHttpInstanceOrClone(destination.isCloneSession)
+                                        ?.let {
+                                            lessonSignActivities =
+                                                ChaoxingLessonHelper.checkCurrentLessonSignActivities(
+                                                    it, context, activitiesData.toList()
+                                                )
+                                        }
                                 }.onFailure {
                                     it.snackbarReport(
                                         snackbarHost,
@@ -399,7 +427,18 @@ fun CourseListScreen(
                                                 hapticFeedback.performHapticFeedback(
                                                     HapticFeedbackType.ContextClick
                                                 )
-                                                navToSignActivityDestination(item.destination)
+                                                coroutineScope.launch {
+                                                    runCatching { item.destination.await() }
+                                                        .onSuccess { navToSignActivityDestination(it) }
+                                                        .onFailure {
+                                                            it.snackbarReport(
+                                                                snackbarHost,
+                                                                coroutineScope,
+                                                                "获取签到活动信息失败",
+                                                                hapticFeedback
+                                                            )
+                                                        }
+                                                }
                                             },
                                             shape = RoundedCornerShape(18.dp),
                                             modifier = Modifier.fillMaxWidth()
@@ -575,6 +614,88 @@ fun CourseListScreen(
                                         }
                                     }
                                 }
+                                item {
+                                    AnimatedVisibility(
+                                        lessonSignActivities?.isNotEmpty() == true,
+                                        enter = fadeIn() + slideInVertically(),
+                                        modifier = Modifier.padding(top = 4.dp)
+                                    ) {
+                                        Card(
+                                            shape = RoundedCornerShape(18.dp),
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            Column(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(24.dp, 8.dp)
+                                                    .padding(3.dp)
+                                            ) {
+                                                lessonSignActivities?.forEach { item ->
+                                                    Row(
+                                                        verticalAlignment = Alignment.CenterVertically,
+                                                        modifier = Modifier
+                                                            .fillMaxWidth()
+                                                            .padding(vertical = 4.dp)
+                                                    ) {
+                                                        Icon(
+                                                            painterResource(R.drawable.ic_sparkles),
+                                                            null
+                                                        )
+                                                        Spacer(modifier = Modifier.width(8.dp))
+                                                        Column(
+                                                            modifier = Modifier.weight(1f)
+                                                        ) {
+                                                            Text("当前课表推断的签到事件：")
+                                                            Text(buildAnnotatedString {
+                                                                withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+                                                                    append(item.className)
+                                                                }
+                                                                append(" 在 ")
+                                                                withStyle(
+                                                                    SpanStyle(
+                                                                        fontFamily = FontGilroy
+                                                                    )
+                                                                ) {
+                                                                    append(
+                                                                        LocalDateTime.from(
+                                                                            Instant.ofEpochMilli(
+                                                                                item.startTime
+                                                                            )
+                                                                        ).run {
+                                                                            "$hour:$minute:$second"
+                                                                        })
+                                                                }
+                                                                append(" 的 ")
+                                                                append(item.activityName)
+                                                            })
+                                                        }
+                                                        Button(onClick = {
+                                                            hapticFeedback.performHapticFeedback(
+                                                                HapticFeedbackType.ContextClick
+                                                            )
+                                                            coroutineScope.launch {
+                                                                runCatching { item.destination.await() }
+                                                                    .onSuccess {
+                                                                        navToSignActivityDestination(it)
+                                                                    }
+                                                                    .onFailure {
+                                                                        it.snackbarReport(
+                                                                            snackbarHost,
+                                                                            coroutineScope,
+                                                                            "获取签到活动信息失败",
+                                                                            hapticFeedback
+                                                                        )
+                                                                    }
+                                                            }
+                                                        }) {
+                                                            Text("前往签到")
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
                                 stickyHeader(key = "course_search") {
                                     Surface(
                                         color = MaterialTheme.colorScheme.background,
@@ -730,6 +851,13 @@ fun CourseListScreen(
                                                     !preferredClassIds.contains(it.classId)
                                                 })
                                             }
+                                    }
+                                ChaoxingHttpClient.getHttpInstanceOrClone(destination.isCloneSession)
+                                    ?.let {
+                                        lessonSignActivities =
+                                            ChaoxingLessonHelper.checkCurrentLessonSignActivities(
+                                                it, context, activitiesData.toList()
+                                            )
                                     }
                             }.onFailure {
                                 it.snackbarReport(
