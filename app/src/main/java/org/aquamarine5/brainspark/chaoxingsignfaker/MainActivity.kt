@@ -781,7 +781,32 @@ class MainActivity : ComponentActivity() {
                                                         }
                                                     )
                                                 }
-                                                composable<FavoriteLocationSettingDestination> {
+                                                composable<FavoriteLocationSettingDestination>(
+                                                    enterTransition = {
+                                                        slideInHorizontally(
+                                                            initialOffsetX = { it },
+                                                            animationSpec = tween(300)
+                                                        )
+                                                    },
+                                                    exitTransition = {
+                                                        slideOutHorizontally(
+                                                            animationSpec = tween(300),
+                                                            targetOffsetX = { -it }
+                                                        )
+                                                    },
+                                                    popEnterTransition = {
+                                                        slideInHorizontally(
+                                                            initialOffsetX = { -it },
+                                                            animationSpec = tween(300)
+                                                        )
+                                                    },
+                                                    popExitTransition = {
+                                                        slideOutHorizontally(
+                                                            animationSpec = tween(400),
+                                                            targetOffsetX = { (it * 1.5).toInt() }
+                                                        )
+                                                    }
+                                                ) {
                                                     FavoriteLocationSettingComponent(
                                                         modifier = Modifier.fillMaxSize()
                                                     )
