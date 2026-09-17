@@ -7,6 +7,7 @@
 package org.aquamarine5.brainspark.chaoxingsignfaker.api
 
 import android.content.Context
+import com.alibaba.fastjson2.JSONArray
 import com.alibaba.fastjson2.JSONObject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -16,6 +17,7 @@ import okhttp3.Request
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingLesson
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCourseEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.RecommendActivityEntity
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingParseDataException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.checkResponseThrowException
 import java.security.MessageDigest
@@ -31,71 +33,69 @@ object ChaoxingLessonHelper {
 
     val LESSONS_CACHE_INTERVAL = TimeUnit.DAYS.toMillis(7)
 
-    private fun getIntegerOrNull(jsonObject: JSONObject, vararg keys: String): Int? {
-        keys.forEach { key ->
-            runCatching { jsonObject.getInteger(key) }.getOrNull()?.let { return it }
-        }
-        return null
-    }
-
-    private fun getLongOrNull(jsonObject: JSONObject, vararg keys: String): Long? {
-        keys.forEach { key ->
-            runCatching { jsonObject.getLong(key) }.getOrNull()?.let { return it }
-        }
-        return null
-    }
-
-    private fun getStringOrNull(jsonObject: JSONObject, vararg keys: String): String? {
-        keys.forEach { key ->
-            jsonObject.getString(key)?.takeIf { it.isNotBlank() }?.let { return it }
-        }
-        return null
-    }
-
     suspend fun refreshLessons(
         client: ChaoxingHttpClient,
         context: Context
-    ): List<ChaoxingLesson> = withContext(Dispatchers.IO) {
-        val responseBody = client.newCall(
-            Request.Builder().get().url(
-                URL_MY_LESSONS.newBuilder()
-                    .addQueryParameter("curTime", System.currentTimeMillis().toString())
-                    .build()
-            ).build()
-        ).execute().use {
-            it.checkResponseThrowException()
-            it.body.string()
-        }
-        val jsonResult = runCatching { JSONObject.parseObject(responseBody) }.getOrNull()
-        val data = jsonResult?.getJSONObject("data")
-        val curriculum = data?.getJSONObject("curriculum")
-        val sectionTimes = curriculum?.getJSONArray("lessonTimeConfigArray")
-            ?.map { it.toString() } ?: emptyList()
-        val contentMd5 = data?.let {
-            val canonical = it.clone() as JSONObject
-            canonical.remove("sysTime")
-            md5Hex(canonical.toJSONString())
-        }
-        val parsedLessons =
-            parseLessons(data?.getJSONArray("lessonArray"), sectionTimes)
-        context.chaoxingDataStore.updateData { datastore ->
-            val scheduleBuilder = datastore.classSchedule.toBuilder()
-                .setLastFetchTimestamp(System.currentTimeMillis())
-            if (contentMd5 != null && contentMd5 == datastore.classSchedule.contentMd5) {
-                return@updateData datastore.toBuilder()
-                    .setClassSchedule(scheduleBuilder)
-                    .build()
+    ): Result<List<ChaoxingLesson>> = runCatching {
+        withContext(Dispatchers.IO) {
+            val responseBody = client.newCall(
+                Request.Builder().get().url(
+                    URL_MY_LESSONS.newBuilder()
+                        .addQueryParameter("curTime", System.currentTimeMillis().toString())
+                        .build()
+                ).build()
+            ).execute().use {
+                it.checkResponseThrowException()
+                it.body.string()
             }
-            datastore.toBuilder().setClassSchedule(
-                scheduleBuilder
-                    .clearLessons()
-                    .addAllLessons(parsedLessons)
-                    .setFirstWeekDate(curriculum?.getLongValue("firstWeekDate") ?: 0L)
-                    .setContentMd5(contentMd5 ?: "")
-                    .build()
-            ).build()
+            val jsonResult = JSONObject.parseObject(responseBody)
+                ?: throw ChaoxingParseDataException("课表数据解析失败", data = responseBody)
+            val data = jsonResult.getJSONObject("data")
+                ?: throw ChaoxingParseDataException(
+                    "课表数据解析失败",
+                    data = jsonResult.toJSONString()
+                )
+            val curriculum = data.getJSONObject("curriculum")
+                ?: throw ChaoxingParseDataException(
+                    "课表配置解析失败",
+                    data = data.toJSONString()
+                )
+            val sectionTimes = curriculum.getJSONArray("lessonTimeConfigArray")
+                ?.map { it.toString() }
+                ?: throw ChaoxingParseDataException(
+                    "课表节次时间解析失败",
+                    data = curriculum.toJSONString()
+                )
+            val contentMd5 = run {
+                val canonical = data.clone()
+                canonical.remove("sysTime")
+                md5Hex(canonical.toJSONString())
+            }
+            val lessonArray = data.getJSONArray("lessonArray")
+                ?: throw ChaoxingParseDataException(
+                    "课表课程列表解析失败",
+                    data = data.toJSONString()
+                )
+            val parsedLessons = parseLessons(lessonArray, sectionTimes)
+            context.chaoxingDataStore.updateData { datastore ->
+                val scheduleBuilder = datastore.classSchedule.toBuilder()
+                    .setLastFetchTimestamp(System.currentTimeMillis())
+                if (contentMd5 == datastore.classSchedule.contentMd5) {
+                    return@updateData datastore.toBuilder()
+                        .setClassSchedule(scheduleBuilder)
+                        .build()
+                }
+                datastore.toBuilder().setClassSchedule(
+                    scheduleBuilder
+                        .clearLessons()
+                        .addAllLessons(parsedLessons)
+                        .setFirstWeekDate(curriculum.getLongValue("firstWeekDate"))
+                        .setContentMd5(contentMd5)
+                        .build()
+                ).build()
+            }
+            return@withContext parsedLessons
         }
-        return@withContext parsedLessons
     }
 
     private fun md5Hex(raw: String): String =
@@ -114,39 +114,34 @@ object ChaoxingLessonHelper {
     }
 
     private fun parseLessons(
-        lessonArray: List<Any>?,
+        lessonArray: JSONArray,
         sectionTimes: List<String>
-    ): List<ChaoxingLesson> {
-        if (lessonArray == null) return emptyList()
-        return buildList {
-            for (rawItem in lessonArray) {
-                val lessonItem = (rawItem as? JSONObject) ?: continue
-                val courseName =
-                    getStringOrNull(lessonItem, "name", "nameOne", "courseName") ?: continue
-                val dayOfWeek = getIntegerOrNull(lessonItem, "dayOfWeek", "week") ?: continue
-                val beginNumber = getIntegerOrNull(lessonItem, "beginNumber") ?: continue
-                val length = getIntegerOrNull(lessonItem, "length") ?: 1
-                val endNumber = beginNumber + length - 1
-                val startMinuteOfDay = sectionTimes.getOrNull(beginNumber - 1)
-                    ?.let { parseSectionTimeToMinute(it, true) } ?: continue
-                val endMinuteOfDay = sectionTimes.getOrNull(endNumber - 1)
-                    ?.let { parseSectionTimeToMinute(it, false) } ?: continue
-                val classId = getIntegerOrNull(lessonItem, "classId") ?: 0
-                val courseId = getLongOrNull(lessonItem, "courseId") ?: 0L
-                add(
-                    ChaoxingLesson.newBuilder()
-                        .setCourseId(courseId)
-                        .setClassId(classId)
-                        .setCourseName(courseName)
-                        .setTeacherName(getStringOrNull(lessonItem, "teacherName") ?: "")
-                        .setLocation(getStringOrNull(lessonItem, "location") ?: "")
-                        .setDayOfWeek(dayOfWeek)
-                        .setStartMinuteOfDay(startMinuteOfDay)
-                        .setEndMinuteOfDay(endMinuteOfDay)
-                        .setWeeks(getStringOrNull(lessonItem, "weeks") ?: "")
-                        .build()
-                )
-            }
+    ): List<ChaoxingLesson> = buildList {
+        for (i in lessonArray.indices) {
+            val lessonItem = lessonArray.getJSONObject(i) ?: continue
+            val courseName = lessonItem.getString("name") ?: continue
+            val dayOfWeek = lessonItem.getIntValue("dayOfWeek")
+            val beginNumber = lessonItem.getIntValue("beginNumber")
+            if (dayOfWeek <= 0 || beginNumber <= 0) continue
+            val length = lessonItem.getIntValue("length").takeIf { it > 0 } ?: 1
+            val endNumber = beginNumber + length - 1
+            val startMinuteOfDay = sectionTimes.getOrNull(beginNumber - 1)
+                ?.let { parseSectionTimeToMinute(it, true) } ?: continue
+            val endMinuteOfDay = sectionTimes.getOrNull(endNumber - 1)
+                ?.let { parseSectionTimeToMinute(it, false) } ?: continue
+            add(
+                ChaoxingLesson.newBuilder()
+                    .setCourseId(lessonItem.getLongValue("courseId"))
+                    .setClassId(lessonItem.getIntValue("classId"))
+                    .setCourseName(courseName)
+                    .setTeacherName(lessonItem.getString("teacherName") ?: "")
+                    .setLocation(lessonItem.getString("location") ?: "")
+                    .setDayOfWeek(dayOfWeek)
+                    .setStartMinuteOfDay(startMinuteOfDay)
+                    .setEndMinuteOfDay(endMinuteOfDay)
+                    .setWeeks(lessonItem.getString("weeks") ?: "")
+                    .build()
+            )
         }
     }
 
