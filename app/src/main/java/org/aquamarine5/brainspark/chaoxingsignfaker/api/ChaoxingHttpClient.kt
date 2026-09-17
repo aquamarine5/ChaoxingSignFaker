@@ -89,9 +89,10 @@ class ChaoxingHttpClient private constructor(
     class ChaoxingGetUserInfoException(
         message: String,
         throwable: Throwable? = null,
-        val isOtherUser: Boolean
+        val isOtherUser: Boolean,
+        data: String? = null
     ) :
-        ChaoxingParseDataException(message, throwable)
+        ChaoxingParseDataException(message, throwable, data)
 
     class ChaoxingNetworkException(message: String? = null, throwable: Throwable? = null) :
         ChaoxingParseDataException(message ?: "网络错误", throwable)
@@ -372,6 +373,7 @@ class ChaoxingHttpClient private constructor(
             otherUserSession: ChaoxingOtherUserSession? = null,
         ): ChaoxingUserEntity =
             withContext(Dispatchers.IO) {
+                var userInfoResponse: String? = null
                 runCatching {
                     client.newCall(
                         Request.Builder()
@@ -405,8 +407,9 @@ class ChaoxingHttpClient private constructor(
                     ).execute()
                         .use { response ->
                             response.checkResponseThrowException()
+                            userInfoResponse = response.body.string()
                             val jsonResult =
-                                JSONObject.parseObject(response.body.string()).getJSONObject("msg")
+                                JSONObject.parseObject(userInfoResponse).getJSONObject("msg")
                             return@withContext ChaoxingUserEntity(
                                 jsonResult.getInteger("uid"),
                                 jsonResult.getInteger("fid"),
@@ -433,10 +436,16 @@ class ChaoxingHttpClient private constructor(
                             throw ChaoxingGetUserInfoException(
                                 "获取代签用户信息失败",
                                 throwable,
-                                true
+                                true,
+                                userInfoResponse
                             )
                         }
-                    throw ChaoxingGetUserInfoException("获取用户信息失败", throwable, false)
+                    throw ChaoxingGetUserInfoException(
+                        "获取用户信息失败",
+                        throwable,
+                        false,
+                        userInfoResponse
+                    )
                 }
             }
 

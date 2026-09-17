@@ -108,7 +108,8 @@ object ChaoxingAnalyser {
                 ).execute().use { response ->
                     response.checkResponseThrowException()
                     val responseBody = response.body.string()
-                    Json.decodeFromString<List<ChaoxingAnalyserRankRecord>>(responseBody)
+                    Json { ignoreUnknownKeys = true }
+                        .decodeFromString<List<ChaoxingAnalyserRankRecord>>(responseBody)
                 }
             }
         }

@@ -179,21 +179,21 @@ class MainActivity : ComponentActivity() {
             MessageDigest.getInstance("SHA-256").digest(it.toByteArray())
                 .joinToString("") { (it.toInt() and 0xff).toString(16).padStart(2, '0') }
         }
-        SentryAndroid.init(this) {
+        SentryAndroid.init(this) { options ->
             if (Debug.isDebuggerConnected()) {
-                it.isEnabled = false
+                options.isEnabled = false
             }
 
             val versionName = versionData.versionName!!
             if (versionName.contains("rc"))
-                it.environment = "rc"
+                options.environment = "rc"
             else if (versionName.contains("beta"))
-                it.environment = "beta"
+                options.environment = "beta"
             else if (versionName.contains("alpha")) {
-                it.environment = "alpha"
-                it.isAnrEnabled = false
+                options.environment = "alpha"
+                options.isAnrEnabled = false
             } else
-                it.environment = "stable"
+                options.environment = "stable"
             val ignoreExceptions = listOf(
                 "ForgottenCoroutineScopeException",
                 "LeftCompositionCancellationException",
@@ -202,13 +202,13 @@ class MainActivity : ComponentActivity() {
                 "ConnectException",
                 "SSLHandshakeException"
             )
-            it.beforeSend = { event, _ ->
+            options.beforeSend = { event, _ ->
                 event.setExtra("sign", verifiedSignature)
                 if (ignoreExceptions.contains(event.throwable?.javaClass?.simpleName)) {
                     null
                 } else {
                     (event.throwable as? ChaoxingParseDataException)?.let {
-                        event.setExtra("data", it.data ?: "null")
+                        event.setExtra("data", it.data ?: "empty")
                     }
                     event
                 }

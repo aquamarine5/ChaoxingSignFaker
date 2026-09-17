@@ -19,7 +19,7 @@ data class ChaoxingUserEntity(
     val name: String,
     @Deprecated(
         "Use `fidList` instead",
-        replaceWith = ReplaceWith("fidList.map{ it.second }"),
+        replaceWith = ReplaceWith("fidList.map{ it.second }.distinct()"),
         level = DeprecationLevel.ERROR
     )
     val schoolName: List<String>,
