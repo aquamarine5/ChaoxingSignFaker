@@ -24,5 +24,6 @@ data class ChaoxingAnalyserRankRecord(
     val totalSignCount: Int,
     val name: String,
     val schoolName: String,
-    val isPublic: Boolean
+    val isPublic: Boolean,
+    val versionName: String? = null
 )

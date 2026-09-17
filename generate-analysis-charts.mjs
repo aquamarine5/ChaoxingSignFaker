@@ -4,16 +4,24 @@ import { join } from "node:path";
 const projectUrl = "https://zpkavhhjdtghljleztpb.supabase.co";
 const apiKey = "sb_publishable_dFuI4bOoYPlDozMXOGKgPg_cCQ0o22B";
 
-const response = await fetch(
-  `${projectUrl}/rest/v1/daily_analyser_snapshot?select=snapshot_date,user_count,total_record_sign_count,diff_user_count,diff_total_record_sign_count&order=snapshot_date.asc`,
-  { headers: { apikey: apiKey } },
-);
+const snapshots = [];
+while (true) {
+  const response = await fetch(
+    `${projectUrl}/rest/v1/daily_analyser_snapshot?select=snapshot_date,user_count,total_record_sign_count,diff_user_count,diff_total_record_sign_count&order=snapshot_date.asc&limit=1000&offset=${snapshots.length}`,
+    { headers: { apikey: apiKey, Prefer: "count=exact" } },
+  );
 
-if (!response.ok) {
-  throw new Error(`Supabase request failed: ${response.status} ${await response.text()}`);
+  if (!response.ok) {
+    throw new Error(`Supabase request failed: ${response.status} ${await response.text()}`);
+  }
+
+  const page = await response.json();
+  snapshots.push(...page);
+  const total = response.headers.get("content-range")?.split("/")[1];
+  if (page.length === 0 || (total && total !== "*" && snapshots.length >= Number(total))) {
+    break;
+  }
 }
-
-const snapshots = await response.json();
 if (snapshots.length < 2) {
   throw new Error("At least two daily_analyser_snapshot rows are required.");
 }

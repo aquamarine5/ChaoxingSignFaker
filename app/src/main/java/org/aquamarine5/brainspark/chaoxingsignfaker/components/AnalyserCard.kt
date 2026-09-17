@@ -408,6 +408,7 @@ fun AnalyserCard() {
                     Text("代签次数: ${detail.otherSign}")
                     Text("总签到次数: ${detail.totalSignCount}")
                     Text("最新更新时间：${detail.latestDate}")
+                    detail.versionName?.let { Text("应用版本：$it") }
                 }
             }, confirmButton = {
                 Button(onClick = {
