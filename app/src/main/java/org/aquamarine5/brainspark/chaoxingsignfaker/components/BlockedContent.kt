@@ -78,7 +78,7 @@ fun BlockedContent(content: @Composable () -> Unit) {
             false
         } else {
             unblockedButtonClickCount < UNBLOCKED_BUTTON_CLICK_LIMIT && ChaoxingHttpClient.instance != null && bannedFidList.contains(
-                ChaoxingHttpClient.instance!!.userEntity.fid
+                ChaoxingHttpClient.instance!!.configuredFid
             )
         }
     ) {

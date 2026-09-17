@@ -61,11 +61,9 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClientPool
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingSignHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.SignDestination
-import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignResult
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerParams
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
-import org.aquamarine5.brainspark.chaoxingsignfaker.components.cloneSessionGuard
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.GetLocationComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NetworkExceptionComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NotReadyToSignNoticeComponent
@@ -73,10 +71,12 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.components.OtherUserSelector
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SignOutRedirectTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SignPotentialWarningTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SponsorPopupDialog
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.cloneSessionGuard
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationSignEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityStatus
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignOutEntity
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignResult
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignStatus
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingGestureSigner
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSignHandler
@@ -474,122 +474,126 @@ fun GestureSignScreen(
                             .fillMaxSize()
                             .zIndex(0f)
                     ) {
-                    Column(modifier = Modifier.padding(8.dp, 4.dp, 8.dp, 0.dp)) {
-                        OtherUserSelectorComponent(
-                            navToOtherUser = { navToOtherUserDestination() },
-                            signStatus = signStatus,
-                            isCurrentAlreadySigned = isSignForOther,
-                            userSelections = userSelections,
-                            isCloneSession = destination.isCloneSession,
-                            isSigning = isSigning,
-                            prefixTipsContent = {
-                                if (signoffData != null)
-                                    SignOutRedirectTips(
-                                        signoffData!!
-                                    ) {
-                                        navToOtherSign(it)
-                                    }
-                                if (destination.startTime != null)
-                                    SignPotentialWarningTips(
-                                        destination.startTime,
-                                        destination.endTime,
-                                        destination.isLate
-                                    )
-                                if (isMapRequired) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier.padding(0.dp, 6.dp)
-                                    ) {
-                                        Column(modifier = Modifier.weight(1f)) {
-                                            Text(
-                                                "签到位置：",
-                                                fontWeight = FontWeight.Bold
-                                            )
-                                            Text(locationData?.address ?: "尚未选择位置")
+                        Column(modifier = Modifier.padding(8.dp, 4.dp, 8.dp, 0.dp)) {
+                            OtherUserSelectorComponent(
+                                navToOtherUser = { navToOtherUserDestination() },
+                                signStatus = signStatus,
+                                isCurrentAlreadySigned = isSignForOther,
+                                userSelections = userSelections,
+                                isCloneSession = destination.isCloneSession,
+                                isSigning = isSigning,
+                                prefixTipsContent = {
+                                    if (signoffData != null)
+                                        SignOutRedirectTips(
+                                            signoffData!!
+                                        ) {
+                                            navToOtherSign(it)
                                         }
-                                        Button(onClick = {
-                                            isMapGetting = true
-                                        }) {
-                                            Text(if (locationData == null) "选择位置" else "重新获取位置")
+                                    if (destination.startTime != null)
+                                        SignPotentialWarningTips(
+                                            destination.startTime,
+                                            destination.endTime,
+                                            destination.isLate
+                                        )
+                                    if (isMapRequired) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier.padding(0.dp, 6.dp)
+                                        ) {
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Text(
+                                                    "签到位置：",
+                                                    fontWeight = FontWeight.Bold
+                                                )
+                                                Text(locationData?.address ?: "尚未选择位置")
+                                            }
+                                            Button(onClick = {
+                                                isMapGetting = true
+                                            }) {
+                                                Text(if (locationData == null) "选择位置" else "重新获取位置")
+                                            }
                                         }
                                     }
-                                }
-                            }, onRetrySignAction = { index, session, bypassChecking ->
-                                signHandler.retryOtherUserSigning(session, index, bypassChecking)
-                            }
-                        ) { isSelf, otherUserSessionList, _ ->
-                            if (!isCheckingStatus) {
-                                coroutineScope.launch {
-                                    snackbarHost.currentSnackbarData?.dismiss()
-                                    snackbarHost.showSnackbar(
-                                        "请先输入正确的图案签到码",
-                                        withDismissAction = true
+                                }, onRetrySignAction = { index, session, bypassChecking ->
+                                    signHandler.retryOtherUserSigning(
+                                        session,
+                                        index,
+                                        bypassChecking
                                     )
                                 }
-                                return@OtherUserSelectorComponent
-                            }
-                            if (isMapRequired && locationData == null) {
-                                pendingAutoSignAction = {
-                                    isSigning.value = true
-                                    signHandler.startSigning(
-                                        text,
-                                        isSelf,
-                                        otherUserSessionList,
-                                        hapticFeedback,
-                                        coroutineScope,
-                                        snackbarHost
-                                    )
+                            ) { isSelf, otherUserSessionList, _ ->
+                                if (!isCheckingStatus) {
+                                    coroutineScope.launch {
+                                        snackbarHost.currentSnackbarData?.dismiss()
+                                        snackbarHost.showSnackbar(
+                                            "请先输入正确的图案签到码",
+                                            withDismissAction = true
+                                        )
+                                    }
+                                    return@OtherUserSelectorComponent
                                 }
-                                isMapGetting = true
-                                return@OtherUserSelectorComponent
+                                if (isMapRequired && locationData == null) {
+                                    pendingAutoSignAction = {
+                                        isSigning.value = true
+                                        signHandler.startSigning(
+                                            text,
+                                            isSelf,
+                                            otherUserSessionList,
+                                            hapticFeedback,
+                                            coroutineScope,
+                                            snackbarHost
+                                        )
+                                    }
+                                    isMapGetting = true
+                                    return@OtherUserSelectorComponent
+                                }
+                                isSigning.value = true
+                                signHandler.startSigning(
+                                    text,
+                                    isSelf,
+                                    otherUserSessionList,
+                                    hapticFeedback,
+                                    coroutineScope,
+                                    snackbarHost
+                                )
                             }
-                            isSigning.value = true
-                            signHandler.startSigning(
-                                text,
-                                isSelf,
-                                otherUserSessionList,
-                                hapticFeedback,
-                                coroutineScope,
-                                snackbarHost
-                            )
                         }
-                    }
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .zIndex(1f)
-                    ) {
-                        AnimatedVisibility(
-                            isMapGetting,
-                            enter =
-                                slideInHorizontally(
-                                    initialOffsetX = { it },
-                                    animationSpec = tween(300)
-                                ) + fadeIn(
-                                    animationSpec = tween(300)
-                                ),
-                            exit =
-                                slideOutHorizontally(
-                                    animationSpec = tween(300),
-                                    targetOffsetX = { it }) +
-                                        fadeOut(animationSpec = tween(300)),
-                            modifier = Modifier.zIndex(1f)
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .zIndex(1f)
                         ) {
-                            GetLocationComponent(confirmButtonText = {
-                                Text("设置")
-                            }) {
-                                isMapGetting = false
-                                locationData = it
-                                pendingAutoSignAction?.invoke()
-                                pendingAutoSignAction = null
-                            }
-                            BackHandler(isMapGetting) {
-                                pendingAutoSignAction = null
-                                isSigning.value = false
-                                isMapGetting = false
+                            AnimatedVisibility(
+                                isMapGetting,
+                                enter =
+                                    slideInHorizontally(
+                                        initialOffsetX = { it },
+                                        animationSpec = tween(300)
+                                    ) + fadeIn(
+                                        animationSpec = tween(300)
+                                    ),
+                                exit =
+                                    slideOutHorizontally(
+                                        animationSpec = tween(300),
+                                        targetOffsetX = { it }) +
+                                            fadeOut(animationSpec = tween(300)),
+                                modifier = Modifier.zIndex(1f)
+                            ) {
+                                GetLocationComponent(confirmButtonText = {
+                                    Text("设置")
+                                }) {
+                                    isMapGetting = false
+                                    locationData = it
+                                    pendingAutoSignAction?.invoke()
+                                    pendingAutoSignAction = null
+                                }
+                                BackHandler(isMapGetting) {
+                                    pendingAutoSignAction = null
+                                    isSigning.value = false
+                                    isMapGetting = false
+                                }
                             }
                         }
-                    }
                     }
                 } else {
                     CenterCircularProgressIndicator()

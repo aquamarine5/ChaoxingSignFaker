@@ -11,13 +11,23 @@ import androidx.compose.runtime.Immutable
 @Immutable
 data class ChaoxingUserEntity(
     val uid: Int,
+    @Deprecated(
+        "Use `ChaoxingHttpClient.configuredFid`",
+        replaceWith = ReplaceWith("ChaoxingHttpClient.configuredFid")
+    )
     val fid: Int,
     val name: String,
+    @Deprecated(
+        "Use `fidList` instead",
+        replaceWith = ReplaceWith("fidList.map{ it.second }"),
+        level = DeprecationLevel.ERROR
+    )
     val schoolName: List<String>,
     val uname: String?,
     val pic: String,
     val puid: Int,
     val phoneNumber: String,
     val imEncryptedPassword: String,
-    val clientId: String? = null
+    val clientId: String? = null,
+    val fidList: List<Pair<Int, String>>
 )

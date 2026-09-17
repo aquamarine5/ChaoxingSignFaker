@@ -26,13 +26,13 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.InlineTextContent
 import androidx.compose.foundation.text.appendInlineContent
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
@@ -139,6 +139,9 @@ fun CourseListScreen(
     navToGroupDestination: (isCloneSession: Boolean) -> Unit,
 ) {
     val imageLoader = LocalImageLoader.current
+    val activeClient = ChaoxingHttpClient.getClientInstanceOrClone(destination.isCloneSession)
+    val courseCacheKey = "${activeClient?.userEntity?.phoneNumber}:${activeClient?.configuredFid}"
+    var savedCourseCacheKey by rememberSaveable { mutableStateOf(courseCacheKey) }
     val activitiesData =
         rememberSaveable(saver = ChaoxingCourseEntity.Saver) { mutableStateListOf() }
     val preferredClassIds = rememberSaveable {
@@ -154,7 +157,15 @@ fun CourseListScreen(
     var isFetchedFailure by remember { mutableStateOf<Result<*>?>(null) }
     val coroutineScope = rememberCoroutineScope()
     val isCaptchaAutoResolveLearntTooltip = rememberSaveable { mutableStateOf(false) }
-    LaunchedEffect(Unit) {
+    LaunchedEffect(courseCacheKey) {
+        if (savedCourseCacheKey != courseCacheKey) {
+            activitiesData.clear()
+            preferredClassIds.clear()
+            lessonSignActivities = null
+            recommendActivities = null
+            isFetchedFailure = null
+            savedCourseCacheKey = courseCacheKey
+        }
         withContext(Dispatchers.IO) {
             launch {
                 runCatching {
@@ -182,7 +193,7 @@ fun CourseListScreen(
                         ChaoxingLessonHelper.LESSONS_CACHE_INTERVAL <
                         System.currentTimeMillis() || schedule.lessonsList.isEmpty()
                     ) {
-                        ChaoxingHttpClient.getHttpInstanceOrClone(destination.isCloneSession)
+                        ChaoxingHttpClient.getClientInstanceOrClone(destination.isCloneSession)
                             ?.let { ChaoxingLessonHelper.refreshLessons(it, context) }
                     }
                 }
@@ -221,7 +232,7 @@ fun CourseListScreen(
                     preferredClassIds.addAll(
                         datastoreData.preferClassIdList.reversed()
                     )
-                    ChaoxingHttpClient.getHttpInstanceOrClone(destination.isCloneSession)
+                    ChaoxingHttpClient.getClientInstanceOrClone(destination.isCloneSession)
                         ?.let { httpClient ->
                             ChaoxingCourseHelper.getAllCourse(
                                 httpClient,
@@ -237,7 +248,7 @@ fun CourseListScreen(
                                     })
                                 }
                         }
-                    ChaoxingHttpClient.getHttpInstanceOrClone(destination.isCloneSession)
+                    ChaoxingHttpClient.getClientInstanceOrClone(destination.isCloneSession)
                         ?.let {
                             lessonSignActivities =
                                 ChaoxingLessonHelper.checkCurrentLessonSignActivities(
@@ -372,7 +383,7 @@ fun CourseListScreen(
                             pullToRefreshState = true
                             coroutineScope.launch(Dispatchers.IO) {
                                 isFetchedFailure = runCatching {
-                                    ChaoxingHttpClient.getHttpInstanceOrClone(destination.isCloneSession)
+                                    ChaoxingHttpClient.getClientInstanceOrClone(destination.isCloneSession)
                                         ?.let { httpClient ->
                                             ChaoxingCourseHelper.getAllCourse(
                                                 httpClient,
@@ -394,7 +405,7 @@ fun CourseListScreen(
                                                     activitiesData.addAll(newActivities)
                                                 }
                                         }
-                                    ChaoxingHttpClient.getHttpInstanceOrClone(destination.isCloneSession)
+                                    ChaoxingHttpClient.getClientInstanceOrClone(destination.isCloneSession)
                                         ?.let {
                                             lessonSignActivities =
                                                 ChaoxingLessonHelper.checkCurrentLessonSignActivities(
@@ -676,7 +687,9 @@ fun CourseListScreen(
                                                             coroutineScope.launch {
                                                                 runCatching { item.destination.await() }
                                                                     .onSuccess {
-                                                                        navToSignActivityDestination(it)
+                                                                        navToSignActivityDestination(
+                                                                            it
+                                                                        )
                                                                     }
                                                                     .onFailure {
                                                                         it.snackbarReport(
@@ -760,9 +773,11 @@ fun CourseListScreen(
                                                 visibilityThreshold = IntOffset.VisibilityThreshold
                                             ),
                                             fadeInSpec = spring(
-                                                stiffness = Spring.StiffnessMedium),
+                                                stiffness = Spring.StiffnessMedium
+                                            ),
                                             fadeOutSpec = spring(
-                                                stiffness = Spring.StiffnessMedium)
+                                                stiffness = Spring.StiffnessMedium
+                                            )
                                         )
                                     ) {
                                         CourseInfoColumnCard(
@@ -832,7 +847,7 @@ fun CourseListScreen(
                     NetworkExceptionComponent(v.exceptionOrNull()!!) {
                         coroutineScope.launch {
                             isFetchedFailure = runCatching {
-                                ChaoxingHttpClient.getHttpInstanceOrClone(destination.isCloneSession)
+                                ChaoxingHttpClient.getClientInstanceOrClone(destination.isCloneSession)
                                     ?.let { httpClient ->
                                         ChaoxingCourseHelper.getAllCourse(
                                             httpClient,
@@ -852,7 +867,7 @@ fun CourseListScreen(
                                                 })
                                             }
                                     }
-                                ChaoxingHttpClient.getHttpInstanceOrClone(destination.isCloneSession)
+                                ChaoxingHttpClient.getClientInstanceOrClone(destination.isCloneSession)
                                     ?.let {
                                         lessonSignActivities =
                                             ChaoxingLessonHelper.checkCurrentLessonSignActivities(

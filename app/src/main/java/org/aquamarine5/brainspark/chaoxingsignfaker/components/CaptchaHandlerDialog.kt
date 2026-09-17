@@ -154,7 +154,7 @@ fun CaptchaHandlerDialog(
                     shadeBitmap?.let { ChaoxingCaptchaPredictor.predictSliderXOffset(it) }
                 }.onFailure {
                     it.printStackTrace()
-                    it.snackbarReport(snackbar,coroutineScope,"验证码预测失败",hapticFeedback)
+                    it.snackbarReport(snackbar, coroutineScope, "验证码预测失败", hapticFeedback)
                 }.getOrNull()
             }
             val isAutoCheckPassed = predictedOffset?.let { offset ->
@@ -184,7 +184,7 @@ fun CaptchaHandlerDialog(
             onDismissRequest = {
                 dismissWithCancel()
             },
-            title = {Text("请完成滑动验证") },
+            title = { Text("请完成滑动验证") },
             text = {
                 if (data != null) {
                     Column(modifier = Modifier.fillMaxWidth()) {

@@ -61,7 +61,11 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -167,7 +171,9 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingPredictabl
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.checkPredictable
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.displaySnackbar
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.isDevelopedMode
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
 import sh.calvin.reorderable.ReorderableColumn
 import kotlin.random.Random
@@ -1344,6 +1350,16 @@ fun OtherUserScreen(
         })
     }
     if (selectedUserSettingDialogIndex != null) {
+        val settingsPhoneNumber = otherUserSessions[selectedUserSettingDialogIndex!!].phoneNumber
+        var settingsClient by remember(settingsPhoneNumber) {
+            mutableStateOf<ChaoxingHttpClient?>(
+                null
+            )
+        }
+        var selectedFid by remember(settingsPhoneNumber) { mutableStateOf<Int?>(null) }
+        var isSchoolExpanded by remember(settingsPhoneNumber) { mutableStateOf(false) }
+        var isLoadingSchools by remember(settingsPhoneNumber) { mutableStateOf(true) }
+        var schoolLoadAttempt by remember(settingsPhoneNumber) { mutableStateOf(0) }
         val modifiedTagIndexList = remember(selectedUserSettingDialogIndex) {
             List(tagsEntityList.size) {
                 mutableStateOf(userTagList[selectedUserSettingDialogIndex!!].value.any { tagEntity ->
@@ -1415,7 +1431,7 @@ fun OtherUserScreen(
         var isSavingDatastore by remember { mutableStateOf(false) }
         SnackbarAlertDialog(
             onDismissRequest = {
-                selectedUserSettingDialogIndex = null
+                if (!isSavingDatastore) selectedUserSettingDialogIndex = null
             },
             icon = {
                 Icon(
@@ -1425,34 +1441,56 @@ fun OtherUserScreen(
                     modifier = Modifier.size(40.dp)
                 )
             }, confirmButton = {
+                val dialogSnackbarHost = LocalSnackbarHostState.current
                 Button(onClick = {
+                    if (isSavingDatastore) return@Button
+                    isSavingDatastore = true
+                    isSchoolExpanded = false
+                    val client = settingsClient
+                    val fidToSave = selectedFid
+                    val newTagList = modifiedTagIndexList.mapIndexedNotNull { index, state ->
+                        tagsEntityList[index].id.takeIf { state.value }
+                    }
                     hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                    coroutineScope.launch(Dispatchers.IO) {
-                        isSavingDatastore = true
-                        context.chaoxingDataStore.updateData { dataStore ->
-                            dataStore.toBuilder().apply {
-                                val newTagList = modifiedTagIndexList.mapIndexed { index, state ->
-                                    if (!state.value) null
-                                    else {
-                                        tagsEntityList[index].id
-                                    }
-                                }.filterNotNull()
-                                userTagList[selectedUserSettingDialogIndex!!].value =
-                                    newTagList.map { tagId ->
-                                        tagsEntityList.first { it.id == tagId }
-                                    }
-                                setOtherUsers(
-                                    selectedUserSettingDialogIndex!!,
-                                    otherUserSessions[selectedUserSettingDialogIndex!!].toBuilder()
-                                        .apply {
-                                            clearTags()
-                                            addAllTags(newTagList)
-                                        })
-
-                            }.build()
+                    coroutineScope.launch {
+                        val result = runCatching {
+                            if (client != null && fidToSave != null && client.configuredFid != fidToSave) {
+                                client.updateConfiguredFid(context, fidToSave)
+                            }
+                            context.chaoxingDataStore.updateData { dataStore ->
+                                val index = dataStore.otherUsersList.indexOfFirst {
+                                    it.phoneNumber == settingsPhoneNumber
+                                }
+                                checkPredictable(index >= 0) { "未找到当前账号的登录会话" }
+                                dataStore.toBuilder().setOtherUsers(
+                                    index,
+                                    dataStore.getOtherUsers(index).toBuilder()
+                                        .clearTags().addAllTags(newTagList)
+                                ).build()
+                            }
                         }
                         isSavingDatastore = false
-                        selectedUserSettingDialogIndex = null
+                        result.onSuccess { dataStore ->
+                            val index = otherUserSessions.indexOfFirst {
+                                it.phoneNumber == settingsPhoneNumber
+                            }
+                            if (index >= 0) {
+                                otherUserSessions[index] = dataStore.otherUsersList.first {
+                                    it.phoneNumber == settingsPhoneNumber
+                                }
+                                userTagList[index].value = newTagList.map { tagId ->
+                                    tagsEntityList.first { it.id == tagId }
+                                }
+                            }
+                            selectedUserSettingDialogIndex = null
+                        }.onFailure {
+                            it.snackbarReport(
+                                dialogSnackbarHost,
+                                coroutineScope,
+                                "保存用户设置失败",
+                                hapticFeedback
+                            )
+                        }
                     }
                 }, enabled = !isSavingDatastore) {
                     Text(if (isSavingDatastore) "保存中" else "保存")
@@ -1463,6 +1501,7 @@ fun OtherUserScreen(
                         hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                         requestedDeleteUserIndex = selectedUserSettingDialogIndex
                     },
+                    enabled = !isSavingDatastore,
                     colors = ButtonDefaults.buttonColors(Color(0xFFF1441D))
                 ) {
                     Text("删除用户", color = Color.White)
@@ -1470,7 +1509,26 @@ fun OtherUserScreen(
             }, title = {
                 if (selectedUserSettingDialogIndex != null)
                     Text("设置 ${otherUserSessions[selectedUserSettingDialogIndex!!].name} 用户")
-            }, text = {
+            }, text = { dialogSnackbarHost ->
+                LaunchedEffect(settingsPhoneNumber, schoolLoadAttempt) {
+                    isLoadingSchools = true
+                    val result = runCatching {
+                        ChaoxingHttpClientPool.initialize(context.chaoxingDataStore.data.first().otherUsersList)
+                        ChaoxingHttpClientPool.get(context, settingsPhoneNumber)
+                    }
+                    isLoadingSchools = false
+                    result.onSuccess {
+                        settingsClient = it
+                        selectedFid = it.configuredFid
+                    }.onFailure {
+                        it.snackbarReport(
+                            dialogSnackbarHost,
+                            coroutineScope,
+                            "加载学校单位失败",
+                            hapticFeedback
+                        )
+                    }
+                }
                 Column {
                     LazyColumn {
                         if (tagsEntityList.isEmpty()) {
@@ -1529,15 +1587,89 @@ fun OtherUserScreen(
                                 modifier = Modifier.padding(0.dp, 0.dp, 0.dp, 4.dp)
                             )
                             FacePhotoControlComponent(
-                                phoneNumber = otherUserSessions[selectedUserSettingDialogIndex!!].phoneNumber,
+                                phoneNumber = settingsPhoneNumber,
                                 onStartCamera = {
-                                    facePhotoReturnToUserIndex = selectedUserSettingDialogIndex
-                                    selectedUserSettingDialogIndex = null
-                                    isFacePhotoCameraVisible = true
+                                    if (!isSavingDatastore) {
+                                        facePhotoReturnToUserIndex = selectedUserSettingDialogIndex
+                                        selectedUserSettingDialogIndex = null
+                                        isFacePhotoCameraVisible = true
+                                    }
                                 },
                                 pendingCapturedBitmap = pendingFacePhotoBitmap,
                                 onPendingCapturedBitmapHandled = { pendingFacePhotoBitmap = null },
                             )
+                        }
+                        item {
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Text("学校单位", fontWeight = FontWeight.Bold)
+                            val schools = settingsClient?.userEntity?.fidList.orEmpty()
+                            ExposedDropdownMenuBox(
+                                expanded = isSchoolExpanded,
+                                onExpandedChange = {
+                                    if (!isSavingDatastore && schools.isNotEmpty()) isSchoolExpanded =
+                                        it
+                                }
+                            ) {
+                                OutlinedTextField(
+                                    value = schools.firstOrNull { it.first == selectedFid }?.second
+                                        ?: if (isLoadingSchools) "正在加载学校单位…" else "未能加载学校单位",
+                                    onValueChange = {},
+                                    readOnly = true,
+                                    enabled = !isSavingDatastore && schools.isNotEmpty(),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .menuAnchor(
+                                            ExposedDropdownMenuAnchorType.PrimaryNotEditable
+                                        ),
+                                    trailingIcon = {
+                                        ExposedDropdownMenuDefaults.TrailingIcon(isSchoolExpanded)
+                                    },
+                                    supportingText = if (isDevelopedMode && selectedFid != null) {
+                                        {
+                                            Text(
+                                                "fid=$selectedFid",
+                                                color = Color.Gray,
+                                                fontSize = 11.sp
+                                            )
+                                        }
+                                    } else null
+                                )
+                                ExposedDropdownMenu(
+                                    expanded = isSchoolExpanded,
+                                    onDismissRequest = { isSchoolExpanded = false }
+                                ) {
+                                    schools.forEach { (fid, name) ->
+                                        DropdownMenuItem(
+                                            text = {
+                                                Column {
+                                                    Text(name)
+                                                    if (isDevelopedMode) {
+                                                        Text(
+                                                            "fid=$fid",
+                                                            color = Color.Gray,
+                                                            fontSize = 11.sp
+                                                        )
+                                                    }
+                                                }
+                                            },
+                                            onClick = {
+                                                selectedFid = fid
+                                                isSchoolExpanded = false
+                                            },
+                                            enabled = !isSavingDatastore,
+                                            contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
+                                        )
+                                    }
+                                }
+                            }
+                            if (!isLoadingSchools && settingsClient == null) {
+                                TextButton(
+                                    onClick = { schoolLoadAttempt++ },
+                                    enabled = !isSavingDatastore
+                                ) {
+                                    Text("重新加载学校单位")
+                                }
+                            }
                         }
                     }
                 }

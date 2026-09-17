@@ -172,7 +172,8 @@ object ChaoxingAnalyser {
                                             .addEncoded("latestDate", stringDate)
                                             .addEncoded(
                                                 "schoolName",
-                                                ChaoxingHttpClient.instance!!.userEntity.schoolName.let { rawList ->
+                                                ChaoxingHttpClient.instance!!.userEntity.fidList.map { it.second }
+                                                    .distinct().let { rawList ->
                                                     if (dataStore.selectedAnalysisRankSchoolName.isNotEmpty() && rawList.contains(
                                                             dataStore.selectedAnalysisRankSchoolName
                                                         )

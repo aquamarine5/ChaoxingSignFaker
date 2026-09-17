@@ -267,7 +267,11 @@ fun LocationSignScreen(
                     var isFaceImageCaptured by remember { mutableStateOf(false) }
                     var showFaceSaveDialog by remember { mutableStateOf(false) }
                     var sponsorPendingAfterFaceSave by remember { mutableStateOf(false) }
-                    var signedLocation by remember { mutableStateOf<ChaoxingLocationSignEntity?>(null) }
+                    var signedLocation by remember {
+                        mutableStateOf<ChaoxingLocationSignEntity?>(
+                            null
+                        )
+                    }
                     var isShowSaveFavoriteDialog by remember { mutableStateOf(false) }
                     if (isShowSaveFavoriteDialog) {
                         signedLocation?.let { signed ->

@@ -981,9 +981,9 @@ fun OtherUserSelectorComponent(
                                 .padding(vertical = 4.dp)
                                 .onGloballyPositioned { userRowCoordinates[index + 1] = it }
                         ) {
-                        (1 + index).let { i ->
-                            val successForOtherUser by signStatus[i].isSuccess
-                            var isRetrying by remember { mutableStateOf(false) }
+                            (1 + index).let { i ->
+                                val successForOtherUser by signStatus[i].isSuccess
+                                var isRetrying by remember { mutableStateOf(false) }
                                 Checkbox(
                                     checked = userSelections[i] && signStatus[i].isSuccess.value != true,
                                     onCheckedChange = { isChecked ->

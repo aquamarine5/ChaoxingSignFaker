@@ -94,7 +94,10 @@ abstract class ChaoxingSigner(
         ChaoxingParseDataException("$message, 验证码校验失败", throwable)
 
     class WrongPositionException(distance: Float? = null, throwable: Throwable? = null) :
-        ChaoxingParseDataException("位置不在设置范围内${if (distance != null) "，距离签到点${distance}米" else ""}", throwable)
+        ChaoxingParseDataException(
+            "位置不在设置范围内${if (distance != null) "，距离签到点${distance}米" else ""}",
+            throwable
+        )
 
     abstract suspend fun checkAlreadySign(response: String): Boolean
 

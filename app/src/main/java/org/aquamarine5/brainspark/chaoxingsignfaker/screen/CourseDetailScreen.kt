@@ -78,7 +78,7 @@ fun CourseDetailScreen(
     LaunchedEffect(Unit) {
         isFetchedFailure = runCatching {
             if (activitiesData == null) {
-                ChaoxingHttpClient.getHttpInstanceOrClone(courseEntity.isCloneSession)?.let {
+                ChaoxingHttpClient.getClientInstanceOrClone(courseEntity.isCloneSession)?.let {
                     activitiesData = ChaoxingActivityHelper.getActivitiesEntity(
                         it,
                         courseEntity
@@ -128,7 +128,7 @@ fun CourseDetailScreen(
                     coroutineScope.launch {
                         isFetchedFailure = runCatching {
                             if (activitiesData == null) {
-                                ChaoxingHttpClient.getHttpInstanceOrClone(courseEntity.isCloneSession)
+                                ChaoxingHttpClient.getClientInstanceOrClone(courseEntity.isCloneSession)
                                     ?.let {
                                         activitiesData = ChaoxingActivityHelper.getActivitiesEntity(
                                             it,
@@ -167,7 +167,7 @@ fun CourseDetailScreen(
                         pullToRefreshState = true
                         coroutineScope.launch {
                             runCatching {
-                                ChaoxingHttpClient.getHttpInstanceOrClone(courseEntity.isCloneSession)
+                                ChaoxingHttpClient.getClientInstanceOrClone(courseEntity.isCloneSession)
                                     ?.let {
                                         activitiesData = ChaoxingActivityHelper.getActivitiesEntity(
                                             it,
