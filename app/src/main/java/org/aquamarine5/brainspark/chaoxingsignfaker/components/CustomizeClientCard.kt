@@ -15,9 +15,16 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
@@ -39,9 +46,14 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.isDevelopedMode
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
 
 lateinit var chaoxingUserAgent: String
 lateinit var chaoxingApplicationPackageName: String
@@ -93,6 +105,7 @@ fun initializeClientInfo(userAgent: String, packageName: String) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CustomizeClientCard(onClose: (() -> Unit)? = null) {
     var isShowDialog by remember { mutableStateOf(false) }
@@ -100,13 +113,6 @@ fun CustomizeClientCard(onClose: (() -> Unit)? = null) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
-    var selectedOption by remember {
-        mutableStateOf(
-            chaoxingClientIdentity.let { ChaoxingClientInfo.fromIdentity(it) }
-        )
-    }
-    var customUserAgent by remember { mutableStateOf(if (selectedOption == null) chaoxingUserAgent else "") }
-    var customPackageName by remember { mutableStateOf(if (selectedOption == null) chaoxingApplicationPackageName else ChaoxingClientInfo.DEFAULT.packageName) }
     Button(
         onClick = {
             hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
@@ -130,13 +136,13 @@ fun CustomizeClientCard(onClose: (() -> Unit)? = null) {
             Spacer(modifier = Modifier.width(8.dp))
             Column {
                 Text(
-                    "自定义客户端",
+                    "自定义学校单位和客户端",
                     fontWeight = FontWeight.Bold,
                     fontSize = 16.sp,
                     lineHeight = 18.sp
                 )
                 Text(
-                    "如果你使用的学习通软件不是学校定制版，请不要点击修改相关设置",
+                    "如果你在使用时出现课程列表不匹配或者学校使用的学习通是学校定制版，请点击修改成正确的配置，否则请勿修改此设置。",
                     fontSize = 10.sp,
                     lineHeight = 12.sp
                 )
@@ -145,13 +151,87 @@ fun CustomizeClientCard(onClose: (() -> Unit)? = null) {
     }
     Spacer(modifier = Modifier.height(8.dp))
     if (isShowDialog) {
+        val client = ChaoxingHttpClient.getClientInstanceOrClone()
+        var selectedFid by remember(client) { mutableStateOf(client?.configuredFid) }
+        var isSchoolExpanded by remember(client) { mutableStateOf(false) }
+        var isSaving by remember { mutableStateOf(false) }
+        var selectedOption by remember {
+            mutableStateOf(ChaoxingClientInfo.fromIdentity(chaoxingClientIdentity))
+        }
+        var customUserAgent by remember {
+            mutableStateOf(if (selectedOption == null) chaoxingUserAgent else "")
+        }
+        var customPackageName by remember {
+            mutableStateOf(
+                if (selectedOption == null) chaoxingApplicationPackageName
+                else ChaoxingClientInfo.DEFAULT.packageName
+            )
+        }
         SnackbarAlertDialog(onDismissRequest = {
-            onClose?.invoke()
-            isShowDialog = false
+            if (!isSaving) {
+                isShowDialog = false
+                onClose?.invoke()
+            }
         }, title = {
-            Text("定制专属客户端")
+            Text("修改学校单位和客户端")
         }, text = {
-            Column {
+            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                if (client != null) {
+                    val schools = client.userEntity.fidList
+                    ExposedDropdownMenuBox(
+                        expanded = isSchoolExpanded,
+                        onExpandedChange = { if (!isSaving) isSchoolExpanded = it }
+                    ) {
+                        OutlinedTextField(
+                            value = schools.firstOrNull { it.first == selectedFid }?.second
+                                ?: "未选择学校单位",
+                            onValueChange = {},
+                            readOnly = true,
+                            enabled = !isSaving && schools.isNotEmpty(),
+                            label = { Text("学校单位") },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .menuAnchor(
+                                    ExposedDropdownMenuAnchorType.PrimaryNotEditable,
+                                    enabled = !isSaving && schools.isNotEmpty()
+                                ),
+                            trailingIcon = {
+                                ExposedDropdownMenuDefaults.TrailingIcon(isSchoolExpanded)
+                            },
+                            supportingText = if (isDevelopedMode) {
+                                { Text("fid=$selectedFid", color = Color.Gray, fontSize = 11.sp) }
+                            } else null
+                        )
+                        ExposedDropdownMenu(
+                            expanded = isSchoolExpanded,
+                            onDismissRequest = { isSchoolExpanded = false }
+                        ) {
+                            schools.forEach { (fid, name) ->
+                                DropdownMenuItem(
+                                    text = {
+                                        Column {
+                                            Text(name)
+                                            if (isDevelopedMode) {
+                                                Text(
+                                                    "fid=$fid",
+                                                    color = Color.Gray,
+                                                    fontSize = 11.sp
+                                                )
+                                            }
+                                        }
+                                    },
+                                    onClick = {
+                                        selectedFid = fid
+                                        isSchoolExpanded = false
+                                    },
+                                    enabled = !isSaving,
+                                    contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
+                                )
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
                 Text("如果你的学校使用了定制版的学习通，可以在这里选择对应的选项来模拟此客户端，或者输入完整的 UserAgent 来模拟其他版本的客户端。")
                 Spacer(modifier = Modifier.height(16.dp))
                 Row(
@@ -160,6 +240,7 @@ fun CustomizeClientCard(onClose: (() -> Unit)? = null) {
                 ) {
                     RadioButton(
                         selected = selectedOption == ChaoxingClientInfo.DEFAULT,
+                        enabled = !isSaving,
                         onClick = {
                             hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                             selectedOption = ChaoxingClientInfo.DEFAULT
@@ -167,7 +248,7 @@ fun CustomizeClientCard(onClose: (() -> Unit)? = null) {
                     )
                     Column(
                         modifier = Modifier
-                            .clickable {
+                            .clickable(enabled = !isSaving) {
                                 selectedOption = ChaoxingClientInfo.DEFAULT
                             }
                             .fillMaxWidth()) {
@@ -186,6 +267,7 @@ fun CustomizeClientCard(onClose: (() -> Unit)? = null) {
                 ) {
                     RadioButton(
                         selected = selectedOption == ChaoxingClientInfo.XUEZAIXIDIAN,
+                        enabled = !isSaving,
                         onClick = {
                             hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                             selectedOption = ChaoxingClientInfo.XUEZAIXIDIAN
@@ -193,7 +275,7 @@ fun CustomizeClientCard(onClose: (() -> Unit)? = null) {
                     )
                     Column(
                         modifier = Modifier
-                            .clickable {
+                            .clickable(enabled = !isSaving) {
                                 selectedOption = ChaoxingClientInfo.XUEZAIXIDIAN
                             }
                             .fillMaxWidth()) {
@@ -212,6 +294,7 @@ fun CustomizeClientCard(onClose: (() -> Unit)? = null) {
                 ) {
                     RadioButton(
                         selected = selectedOption == null,
+                        enabled = !isSaving,
                         onClick = {
                             hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                             selectedOption = null
@@ -219,7 +302,7 @@ fun CustomizeClientCard(onClose: (() -> Unit)? = null) {
                     )
                     Text(
                         "自定义 USER_AGENT", modifier = Modifier
-                            .clickable {
+                            .clickable(enabled = !isSaving) {
                                 selectedOption = null
                             }
                             .fillMaxWidth())
@@ -227,6 +310,7 @@ fun CustomizeClientCard(onClose: (() -> Unit)? = null) {
                 if (selectedOption == null) {
                     OutlinedTextField(
                         value = customUserAgent,
+                        enabled = !isSaving,
                         onValueChange = { customUserAgent = it },
                         label = { Text("输入自定义 UserAgent") },
                         modifier = Modifier
@@ -235,6 +319,7 @@ fun CustomizeClientCard(onClose: (() -> Unit)? = null) {
                     )
                     OutlinedTextField(
                         value = customPackageName,
+                        enabled = !isSaving,
                         onValueChange = { customPackageName = it },
                         label = { Text("输入应用包名（可选）") },
                         placeholder = {
@@ -261,32 +346,50 @@ fun CustomizeClientCard(onClose: (() -> Unit)? = null) {
                 }
             }
         }, confirmButton = {
-            Button(onClick = {
+            val snackbarHostState = LocalSnackbarHostState.current
+            Button(enabled = !isSaving, onClick = {
+                if (isSaving) return@Button
+                isSaving = true
+                isSchoolExpanded = false
                 hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                chaoxingUserAgent = selectedOption?.userAgent ?: customUserAgent.ifBlank {
-                    ChaoxingClientInfo.DEFAULT.userAgent
-                }
-                chaoxingApplicationPackageName =
-                    selectedOption?.packageName ?: customPackageName.ifBlank {
-                        ChaoxingClientInfo.DEFAULT.packageName
-                    }
-
+                // Capture the draft before suspending so one save uses one selection.
+                val fidToSave = selectedFid
+                val userAgentPreference = selectedOption?.identity
+                    ?: customUserAgent.ifBlank { ChaoxingClientInfo.DEFAULT.identity }
+                val packageNamePreference = customPackageName
                 coroutineScope.launch {
-                    context.chaoxingDataStore.updateData { dataStore ->
-                        dataStore.toBuilder().apply {
-                            preferences = preferences.toBuilder()
-                                .setCustomizedUserAgent(
-                                    selectedOption?.identity
-                                        ?: customUserAgent.ifBlank { ChaoxingClientInfo.DEFAULT.identity })
-                                .setCustomizedPackageName(customPackageName)
-                                .build()
-                        }.build()
+                    val result = runCatching {
+                        if (client != null && fidToSave != null && fidToSave != client.configuredFid) {
+                            client.updateConfiguredFid(context, fidToSave)
+                        }
+                        context.chaoxingDataStore.updateData { dataStore ->
+                            dataStore.toBuilder().apply {
+                                preferences = preferences.toBuilder()
+                                    .setCustomizedUserAgent(userAgentPreference)
+                                    .setCustomizedPackageName(packageNamePreference)
+                                    .build()
+                            }.build()
+                        }
+                        initializeClientInfo(userAgentPreference, packageNamePreference)
                     }
+                    isSaving = false
+                    result.getOrElse { exception ->
+                        if (exception is CancellationException || exception is Error) {
+                            throw exception
+                        }
+                        exception.snackbarReport(
+                            snackbarHostState,
+                            coroutineScope,
+                            prefixTips = "保存学校单位和客户端失败",
+                            hapticFeedback = hapticFeedback
+                        )
+                        return@launch
+                    }
+                    isShowDialog = false
+                    onClose?.invoke()
                 }
-                onClose?.invoke()
-                isShowDialog = false
             }) {
-                Text("确定")
+                Text(if (isSaving) "保存中…" else "确定")
             }
         })
     }

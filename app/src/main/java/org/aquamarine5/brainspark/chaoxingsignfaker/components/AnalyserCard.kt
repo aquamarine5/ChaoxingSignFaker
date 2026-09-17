@@ -123,21 +123,22 @@ fun AnalyserCard() {
                     } 用户"
                 }
                 displaySchoolName =
-                    ChaoxingHttpClient.instance!!.userEntity.schoolName.let { rawList ->
-                        if (dataStore.selectedAnalysisRankSchoolName.isNotEmpty() && rawList.contains(
-                                dataStore.selectedAnalysisRankSchoolName
+                    ChaoxingHttpClient.instance!!.userEntity.fidList.map { it.second }.distinct()
+                        .let { rawList ->
+                            if (dataStore.selectedAnalysisRankSchoolName.isNotEmpty() && rawList.contains(
+                                    dataStore.selectedAnalysisRankSchoolName
+                                )
                             )
-                        )
-                            return@let dataStore.selectedAnalysisRankSchoolName
-                        rawList.toMutableList().run {
-                            removeAll { it[0].isDigit() }
-                            removeAll { it.endsWith("图书馆") }
-                            if (isEmpty())
-                                return@let rawList[0]
-                            sortBy { it.length }
-                            return@let get(0)
+                                return@let dataStore.selectedAnalysisRankSchoolName
+                            rawList.toMutableList().run {
+                                removeAll { it[0].isDigit() }
+                                removeAll { it.endsWith("图书馆") }
+                                if (isEmpty())
+                                    return@let rawList[0]
+                                sortBy { it.length }
+                                return@let get(0)
+                            }
                         }
-                    }
                 previousSchoolName = displaySchoolName
                 lastUploadTimestamp = dataStore.lastUploadAnalysisTimestamp
                 isDisableAnalyserRank = dataStore.disableAnalysisRank
@@ -292,7 +293,10 @@ fun AnalyserCard() {
                         exit = slideOutVertically(targetOffsetY = { -it })
                     ) {
                         val schoolNames =
-                            remember { ChaoxingHttpClient.instance!!.userEntity.schoolName }
+                            remember {
+                                ChaoxingHttpClient.instance!!.userEntity.fidList.map { it.second }
+                                    .distinct()
+                            }
                         var isExpanded by remember { mutableStateOf(false) }
                         Column {
                             Text("用于展示的学校名称：")
@@ -404,6 +408,7 @@ fun AnalyserCard() {
                     Text("代签次数: ${detail.otherSign}")
                     Text("总签到次数: ${detail.totalSignCount}")
                     Text("最新更新时间：${detail.latestDate}")
+                    detail.versionName?.let { Text("应用版本：$it") }
                 }
             }, confirmButton = {
                 Button(onClick = {
@@ -660,7 +665,8 @@ fun AnalyserCard() {
                                                 userRecord!!.schoolName.let { school ->
                                                     if (school.endsWith("HIDE")) "已隐藏学校信息" else school.ifBlank { "未知学校" }
                                                 }
-                                            } else ChaoxingHttpClient.instance!!.userEntity.schoolName[0],
+                                            } else ChaoxingHttpClient.instance!!.userEntity.fidList.map { it.second }
+                                                .distinct()[0],
                                             fontSize = 10.sp,
                                             lineHeight = 11.sp,
                                             color = Color.Gray,

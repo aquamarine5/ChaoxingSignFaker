@@ -77,9 +77,9 @@ object ChaoxingFaceHelper {
                     response.checkResponseThrowException()
                     val jsonObject = JSONObject.parseObject(response.body.string())
                     return@use URL_SHARED_IMAGE.format(
-                        jsonObject.getJSONObject("data").getString("oldObjectId")
+                        jsonObject.getJSONObject("data").getString("oldObjectId").takeIf { it.isNotEmpty() }
                             ?: throw ChaoxingParseDataException(
-                                "获取人脸照片ID失败",
+                                "获取人脸照片ID失败，可能用户没有设置过人脸识别照片",
                                 data = jsonObject.toJSONString()
                             )
                     )

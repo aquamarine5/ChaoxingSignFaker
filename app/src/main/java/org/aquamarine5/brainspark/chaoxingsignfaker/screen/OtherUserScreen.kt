@@ -16,6 +16,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -28,6 +29,8 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
@@ -45,7 +48,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -61,7 +64,11 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -92,18 +99,24 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -167,9 +180,12 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingPredictabl
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.checkPredictable
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.displaySnackbar
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.isDevelopedMode
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
 import sh.calvin.reorderable.ReorderableColumn
+import sh.calvin.reorderable.DragGestureDetector
 import kotlin.random.Random
 import kotlin.time.Duration.Companion.seconds
 
@@ -192,6 +208,46 @@ private suspend fun syncFaceImagesUpdatedSession(
         context.chaoxingDataStore.data.first()
             .otherUsersList.firstOrNull { it.phoneNumber == phoneNumber }
             ?.let { otherUserSessions[index] = it }
+    }
+}
+
+@Composable
+private fun CollapsibleSettingsSection(
+    title: String,
+    expanded: Boolean,
+    enabled: Boolean = true,
+    onToggle: () -> Unit,
+    content: @Composable () -> Unit
+) {
+    val arrowRotation by animateFloatAsState(
+        targetValue = if (expanded) 180f else 0f,
+        label = "collapsibleSettingsSectionArrow"
+    )
+    Column {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(enabled = enabled, role = Role.Button, onClick = onToggle)
+                .padding(vertical = 6.dp)
+        ) {
+            Icon(
+                painterResource(R.drawable.ic_arrow_down),
+                contentDescription = if (expanded) "收起" else "展开",
+                modifier = Modifier
+                    .size(18.dp)
+                    .rotate(arrowRotation)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                title,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+        AnimatedVisibility(visible = expanded) {
+            Column { content() }
+        }
     }
 }
 
@@ -232,6 +288,44 @@ fun OtherUserScreen(
     val tagsEntityList = remember { mutableStateListOf<OtherUserTagType>() }
     val userTagList = remember { mutableStateListOf<MutableState<List<OtherUserTagType>>>() }
     val coroutineScope = rememberCoroutineScope()
+    val pageScrollState = rememberScrollState()
+    val pageScrollBounds = remember { mutableStateOf(Rect.Zero) }
+    var pageAutoScrollJob by remember { mutableStateOf<Job?>(null) }
+    var pageAutoScrollDirection by remember { mutableStateOf(0) }
+    var pageAutoScrollStartedAt by remember { mutableStateOf(0L) }
+    val pageScrollThreshold = with(LocalDensity.current) { 64.dp.toPx() }
+    fun stopPageAutoScroll() {
+        pageAutoScrollJob?.cancel()
+        pageAutoScrollJob = null
+        pageAutoScrollDirection = 0
+        pageAutoScrollStartedAt = 0L
+    }
+    fun scrollPageDuringDrag(pointerY: Float, onScrolled: (Float) -> Unit) {
+        val direction = when {
+            pointerY < pageScrollBounds.value.top + pageScrollThreshold -> -1
+            pointerY > pageScrollBounds.value.bottom - pageScrollThreshold -> 1
+            else -> 0
+        }
+        if (direction == 0) {
+            stopPageAutoScroll()
+            return
+        }
+        if (pageAutoScrollDirection == direction && pageAutoScrollJob?.isActive == true) return
+        stopPageAutoScroll()
+        pageAutoScrollDirection = direction
+        pageAutoScrollStartedAt = System.currentTimeMillis()
+        pageAutoScrollJob = coroutineScope.launch {
+            while (true) {
+                val scrollAmount = if (
+                    direction < 0 && System.currentTimeMillis() - pageAutoScrollStartedAt >= 1_500
+                ) 32f else 16f
+                val scrollDelta = pageScrollState.scrollBy(direction * scrollAmount)
+                if (scrollDelta == 0f) break
+                onScrolled(scrollDelta)
+                delay(16)
+            }
+        }
+    }
     LaunchedEffect(Unit) {
         context.chaoxingDataStore.data.first().let { datastore ->
             tagsEntityList.addAll(datastore.tagsLibraryList)
@@ -1344,6 +1438,20 @@ fun OtherUserScreen(
         })
     }
     if (selectedUserSettingDialogIndex != null) {
+        val settingsPhoneNumber = otherUserSessions[selectedUserSettingDialogIndex!!].phoneNumber
+        var settingsClient by remember(settingsPhoneNumber) {
+            mutableStateOf<ChaoxingHttpClient?>(
+                null
+            )
+        }
+        var selectedFid by remember(settingsPhoneNumber) { mutableStateOf<Int?>(null) }
+        var isSchoolSectionExpanded by remember(settingsPhoneNumber) { mutableStateOf(false) }
+        var isSchoolExpanded by remember(settingsPhoneNumber) { mutableStateOf(false) }
+        var isLoadingSchools by remember(settingsPhoneNumber) { mutableStateOf(false) }
+        var schoolLoadAttempt by remember(settingsPhoneNumber) { mutableStateOf(0) }
+        var isTagsSectionExpanded by remember(settingsPhoneNumber) { mutableStateOf(false) }
+        var isFacePhotoSectionExpanded by remember(settingsPhoneNumber) { mutableStateOf(false) }
+        val settingsLazyListState = rememberLazyListState()
         val modifiedTagIndexList = remember(selectedUserSettingDialogIndex) {
             List(tagsEntityList.size) {
                 mutableStateOf(userTagList[selectedUserSettingDialogIndex!!].value.any { tagEntity ->
@@ -1415,7 +1523,7 @@ fun OtherUserScreen(
         var isSavingDatastore by remember { mutableStateOf(false) }
         SnackbarAlertDialog(
             onDismissRequest = {
-                selectedUserSettingDialogIndex = null
+                if (!isSavingDatastore) selectedUserSettingDialogIndex = null
             },
             icon = {
                 Icon(
@@ -1425,34 +1533,56 @@ fun OtherUserScreen(
                     modifier = Modifier.size(40.dp)
                 )
             }, confirmButton = {
+                val dialogSnackbarHost = LocalSnackbarHostState.current
                 Button(onClick = {
+                    if (isSavingDatastore) return@Button
+                    isSavingDatastore = true
+                    isSchoolExpanded = false
+                    val client = settingsClient
+                    val fidToSave = selectedFid
+                    val newTagList = modifiedTagIndexList.mapIndexedNotNull { index, state ->
+                        tagsEntityList[index].id.takeIf { state.value }
+                    }
                     hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                    coroutineScope.launch(Dispatchers.IO) {
-                        isSavingDatastore = true
-                        context.chaoxingDataStore.updateData { dataStore ->
-                            dataStore.toBuilder().apply {
-                                val newTagList = modifiedTagIndexList.mapIndexed { index, state ->
-                                    if (!state.value) null
-                                    else {
-                                        tagsEntityList[index].id
-                                    }
-                                }.filterNotNull()
-                                userTagList[selectedUserSettingDialogIndex!!].value =
-                                    newTagList.map { tagId ->
-                                        tagsEntityList.first { it.id == tagId }
-                                    }
-                                setOtherUsers(
-                                    selectedUserSettingDialogIndex!!,
-                                    otherUserSessions[selectedUserSettingDialogIndex!!].toBuilder()
-                                        .apply {
-                                            clearTags()
-                                            addAllTags(newTagList)
-                                        })
-
-                            }.build()
+                    coroutineScope.launch {
+                        val result = runCatching {
+                            if (client != null && fidToSave != null && client.configuredFid != fidToSave) {
+                                client.updateConfiguredFid(context, fidToSave)
+                            }
+                            context.chaoxingDataStore.updateData { dataStore ->
+                                val index = dataStore.otherUsersList.indexOfFirst {
+                                    it.phoneNumber == settingsPhoneNumber
+                                }
+                                checkPredictable(index >= 0) { "未找到当前账号的登录会话" }
+                                dataStore.toBuilder().setOtherUsers(
+                                    index,
+                                    dataStore.getOtherUsers(index).toBuilder()
+                                        .clearTags().addAllTags(newTagList)
+                                ).build()
+                            }
                         }
                         isSavingDatastore = false
-                        selectedUserSettingDialogIndex = null
+                        result.onSuccess { dataStore ->
+                            val index = otherUserSessions.indexOfFirst {
+                                it.phoneNumber == settingsPhoneNumber
+                            }
+                            if (index >= 0) {
+                                otherUserSessions[index] = dataStore.otherUsersList.first {
+                                    it.phoneNumber == settingsPhoneNumber
+                                }
+                                userTagList[index].value = newTagList.map { tagId ->
+                                    tagsEntityList.first { it.id == tagId }
+                                }
+                            }
+                            selectedUserSettingDialogIndex = null
+                        }.onFailure {
+                            it.snackbarReport(
+                                dialogSnackbarHost,
+                                coroutineScope,
+                                "保存用户设置失败",
+                                hapticFeedback
+                            )
+                        }
                     }
                 }, enabled = !isSavingDatastore) {
                     Text(if (isSavingDatastore) "保存中" else "保存")
@@ -1463,6 +1593,7 @@ fun OtherUserScreen(
                         hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                         requestedDeleteUserIndex = selectedUserSettingDialogIndex
                     },
+                    enabled = !isSavingDatastore,
                     colors = ButtonDefaults.buttonColors(Color(0xFFF1441D))
                 ) {
                     Text("删除用户", color = Color.White)
@@ -1470,74 +1601,194 @@ fun OtherUserScreen(
             }, title = {
                 if (selectedUserSettingDialogIndex != null)
                     Text("设置 ${otherUserSessions[selectedUserSettingDialogIndex!!].name} 用户")
-            }, text = {
+            }, text = { dialogSnackbarHost ->
+                LaunchedEffect(settingsPhoneNumber, isSchoolSectionExpanded, schoolLoadAttempt) {
+                    if (!isSchoolSectionExpanded || settingsClient != null) return@LaunchedEffect
+                    isLoadingSchools = true
+                    val result = runCatching {
+                        ChaoxingHttpClientPool.initialize(context.chaoxingDataStore.data.first().otherUsersList)
+                        ChaoxingHttpClientPool.get(context, settingsPhoneNumber)
+                    }
+                    isLoadingSchools = false
+                    result.onSuccess {
+                        settingsClient = it
+                        selectedFid = it.configuredFid
+                    }.onFailure {
+                        it.snackbarReport(
+                            dialogSnackbarHost,
+                            coroutineScope,
+                            "加载学校单位失败",
+                            hapticFeedback
+                        )
+                    }
+                }
                 Column {
-                    LazyColumn {
-                        if (tagsEntityList.isEmpty()) {
-                            item {
-                                Text(
-                                    "暂无可用标签，设置用户标签前请先创建标签。",
-                                    fontStyle = FontStyle.Italic,
-                                    color = Color.Gray,
-                                    modifier = Modifier.padding(6.dp)
+                    LazyColumn(state = settingsLazyListState) {
+                        item {
+                            CollapsibleSettingsSection(
+                                title = "修改用户标签",
+                                expanded = isTagsSectionExpanded,
+                                enabled = !isSavingDatastore,
+                                onToggle = {
+                                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                                    isTagsSectionExpanded = !isTagsSectionExpanded
+                                }
+                            ) {
+                                if (tagsEntityList.isEmpty()) {
+                                    Text(
+                                        "暂无可用标签，设置用户标签前请先创建标签。",
+                                        fontStyle = FontStyle.Italic,
+                                        color = Color.Gray,
+                                        modifier = Modifier.padding(6.dp)
+                                    )
+                                } else
+                                    tagsEntityList.forEachIndexed { index, tagEntity ->
+                                        key(tagEntity.id) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(3.dp, 0.dp)
+                                            ) {
+                                                Checkbox(
+                                                    checked = modifiedTagIndexList[index].value,
+                                                    onCheckedChange = {
+                                                        modifiedTagIndexList[index].value = it
+                                                    })
+                                                Icon(
+                                                    painterResource(R.drawable.ic_tag),
+                                                    null,
+                                                    tint = if (tagEntity.color == TAG_COLOR_UNSPECIFIED)
+                                                        if (isSystemInDarkTheme()) Color.LightGray else Color.DarkGray
+                                                    else Color(tagEntity.color),
+                                                    modifier = Modifier
+                                                        .size(24.dp)
+                                                        .padding(0.dp, 2.dp)
+                                                        .clickable {
+                                                            modifiedTagIndexList[index].value =
+                                                                !modifiedTagIndexList[index].value
+                                                        }
+                                                )
+                                                Spacer(modifier = Modifier.width(4.dp))
+                                                Text(
+                                                    tagEntity.name, modifier = Modifier
+                                                        .clickable {
+                                                            modifiedTagIndexList[index].value =
+                                                                !modifiedTagIndexList[index].value
+                                                        }
+                                                        .fillMaxWidth())
+                                            }
+                                        }
+                                    }
+                            }
+                        }
+                        item {
+                            Spacer(modifier = Modifier.height(12.dp))
+                            CollapsibleSettingsSection(
+                                title = "设置用户人脸识别照片",
+                                expanded = isFacePhotoSectionExpanded,
+                                enabled = !isSavingDatastore,
+                                onToggle = {
+                                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                                    isFacePhotoSectionExpanded = !isFacePhotoSectionExpanded
+                                }
+                            ) {
+                                FacePhotoControlComponent(
+                                    phoneNumber = settingsPhoneNumber,
+                                    onStartCamera = {
+                                        if (!isSavingDatastore) {
+                                            facePhotoReturnToUserIndex = selectedUserSettingDialogIndex
+                                            selectedUserSettingDialogIndex = null
+                                            isFacePhotoCameraVisible = true
+                                        }
+                                    },
+                                    pendingCapturedBitmap = pendingFacePhotoBitmap,
+                                    onPendingCapturedBitmapHandled = { pendingFacePhotoBitmap = null },
                                 )
                             }
-                        } else
-                            itemsIndexed(tagsEntityList) { index, tagEntity ->
-                                key(tagEntity.id) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
+                        }
+                        item {
+                            Spacer(modifier = Modifier.height(12.dp))
+                            CollapsibleSettingsSection(
+                                title = "设置用户学校机构",
+                                expanded = isSchoolSectionExpanded,
+                                enabled = !isSavingDatastore,
+                                onToggle = {
+                                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                                    isSchoolSectionExpanded = !isSchoolSectionExpanded
+                                    if (!isSchoolSectionExpanded) isSchoolExpanded = false
+                                }
+                            ) {
+                                Text("学校单位", fontWeight = FontWeight.Bold)
+                                val schools = settingsClient?.userEntity?.fidList.orEmpty()
+                                ExposedDropdownMenuBox(
+                                    expanded = isSchoolExpanded,
+                                    onExpandedChange = {
+                                        if (!isSavingDatastore && schools.isNotEmpty())
+                                            isSchoolExpanded = it
+                                    }
+                                ) {
+                                    OutlinedTextField(
+                                        value = schools.firstOrNull { it.first == selectedFid }?.second
+                                            ?: if (isLoadingSchools) "正在加载学校单位…" else "未能加载学校单位",
+                                        onValueChange = {},
+                                        readOnly = true,
+                                        enabled = !isSavingDatastore && schools.isNotEmpty(),
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .padding(3.dp, 0.dp)
+                                            .menuAnchor(
+                                                ExposedDropdownMenuAnchorType.PrimaryNotEditable
+                                            ),
+                                        trailingIcon = {
+                                            ExposedDropdownMenuDefaults.TrailingIcon(isSchoolExpanded)
+                                        },
+                                        supportingText = if (isDevelopedMode && selectedFid != null) {
+                                            {
+                                                Text(
+                                                    "fid=$selectedFid",
+                                                    color = Color.Gray,
+                                                    fontSize = 11.sp
+                                                )
+                                            }
+                                        } else null
+                                    )
+                                    ExposedDropdownMenu(
+                                        expanded = isSchoolExpanded,
+                                        onDismissRequest = { isSchoolExpanded = false }
                                     ) {
-                                        Checkbox(
-                                            checked = modifiedTagIndexList[index].value,
-                                            onCheckedChange = {
-                                                modifiedTagIndexList[index].value = it
-                                            })
-                                        Icon(
-                                            painterResource(R.drawable.ic_tag),
-                                            null,
-                                            tint = if (tagEntity.color == TAG_COLOR_UNSPECIFIED)
-                                                if (isSystemInDarkTheme()) Color.LightGray else Color.DarkGray
-                                            else Color(tagEntity.color),
-                                            modifier = Modifier
-                                                .size(24.dp)
-                                                .padding(0.dp, 2.dp)
-                                                .clickable {
-                                                    modifiedTagIndexList[index].value =
-                                                        !modifiedTagIndexList[index].value
-                                                }
-                                        )
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text(
-                                            tagEntity.name, modifier = Modifier
-                                                .clickable {
-                                                    modifiedTagIndexList[index].value =
-                                                        !modifiedTagIndexList[index].value
-                                                }
-                                                .fillMaxWidth())
+                                        schools.forEach { (fid, name) ->
+                                            DropdownMenuItem(
+                                                text = {
+                                                    Column {
+                                                        Text(name)
+                                                        if (isDevelopedMode) {
+                                                            Text(
+                                                                "fid=$fid",
+                                                                color = Color.Gray,
+                                                                fontSize = 11.sp
+                                                            )
+                                                        }
+                                                    }
+                                                },
+                                                onClick = {
+                                                    selectedFid = fid
+                                                    isSchoolExpanded = false
+                                                },
+                                                enabled = !isSavingDatastore,
+                                                contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
+                                            )
+                                        }
+                                    }
+                                }
+                                if (!isLoadingSchools && settingsClient == null) {
+                                    TextButton(
+                                        onClick = { schoolLoadAttempt++ },
+                                        enabled = !isSavingDatastore
+                                    ) {
+                                        Text("重新加载学校单位")
                                     }
                                 }
                             }
-                        item {
-                            Spacer(modifier = Modifier.height(12.dp))
-                            Text(
-                                "人脸识别照片",
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier.padding(0.dp, 0.dp, 0.dp, 4.dp)
-                            )
-                            FacePhotoControlComponent(
-                                phoneNumber = otherUserSessions[selectedUserSettingDialogIndex!!].phoneNumber,
-                                onStartCamera = {
-                                    facePhotoReturnToUserIndex = selectedUserSettingDialogIndex
-                                    selectedUserSettingDialogIndex = null
-                                    isFacePhotoCameraVisible = true
-                                },
-                                pendingCapturedBitmap = pendingFacePhotoBitmap,
-                                onPendingCapturedBitmapHandled = { pendingFacePhotoBitmap = null },
-                            )
                         }
                     }
                 }
@@ -1726,11 +1977,12 @@ fun OtherUserScreen(
         modifier = Modifier
             .zIndex(0f)
             .fillMaxSize()
+            .onGloballyPositioned { pageScrollBounds.value = it.boundsInRoot() }
     ) {
         Column(
             modifier = Modifier
                 .padding(8.dp, 0.dp)
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(pageScrollState)
                 .fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -2164,7 +2416,6 @@ fun OtherUserScreen(
                         isQRCodeScanPause.value = false
                         isQRCodeParsing.value = false
                         isQRCodeScanning = true
-
                     }, shape = SegmentedButtonDefaults.itemShape(
                         index = 0,
                         count = 3
@@ -2550,8 +2801,41 @@ fun OtherUserScreen(
                                                     )
                                                 }
 
+                                                var dragHandlePositionInRoot by remember(user.phoneNumber) {
+                                                    mutableStateOf(Offset.Zero)
+                                                }
+                                                val dragGestureDetector = remember {
+                                                    DragGestureDetector { onDragStart, onDragEnd, onDragCancel, onDrag ->
+                                                        detectDragGestures(
+                                                            onDragStart = { position ->
+                                                                stopPageAutoScroll()
+                                                                onDragStart(position)
+                                                            },
+                                                            onDragEnd = {
+                                                                stopPageAutoScroll()
+                                                                onDragEnd()
+                                                            },
+                                                            onDragCancel = {
+                                                                stopPageAutoScroll()
+                                                                onDragCancel()
+                                                            },
+                                                            onDrag = { change, dragAmount ->
+                                                                onDrag(change, dragAmount)
+                                                                scrollPageDuringDrag(
+                                                                    dragHandlePositionInRoot.y + change.position.y
+                                                                ) { scrollDelta ->
+                                                                    onDrag(change, Offset(0f, scrollDelta))
+                                                                }
+                                                            }
+                                                        )
+                                                    }
+                                                }
                                                 IconButton(
-                                                    modifier = Modifier.draggableHandle(
+                                                    modifier = Modifier
+                                                        .onGloballyPositioned {
+                                                            dragHandlePositionInRoot = it.positionInRoot()
+                                                        }
+                                                        .draggableHandle(
                                                         interactionSource = interactionSource,
                                                         onDragStarted = {
                                                             hapticFeedback.performHapticFeedback(
@@ -2561,7 +2845,8 @@ fun OtherUserScreen(
                                                             hapticFeedback.performHapticFeedback(
                                                                 HapticFeedbackType.GestureEnd
                                                             )
-                                                        }
+                                                        },
+                                                        dragGestureDetector = dragGestureDetector
                                                     ), onClick = {}) {
                                                     Icon(
                                                         painterResource(R.drawable.ic_drag_handle_rounded),
@@ -2574,8 +2859,8 @@ fun OtherUserScreen(
 
                                     }
                                 }
-                            }
                         }
+                    }
                     }
                     Spacer(modifier = Modifier.height(4.dp))
                 }
@@ -2606,18 +2891,14 @@ fun OtherUserScreen(
         )
     }
     AnimatedVisibility(
-        isQRCodeScanning, enter =
-            slideInHorizontally(
-                initialOffsetX = { it },
-                animationSpec = tween(300)
-            ) + fadeIn(
-                animationSpec = tween(300)
-            ),
-        exit =
-            slideOutHorizontally(
-                animationSpec = tween(300),
-                targetOffsetX = { it }) +
-                    fadeOut(animationSpec = tween(300))
+        isQRCodeScanning, enter = slideInHorizontally(
+            initialOffsetX = { it },
+            animationSpec = tween(300)
+        ),
+        exit = slideOutHorizontally(
+            animationSpec = tween(400),
+            targetOffsetX = { (it * 1.5).toInt() }
+        )
     ) {
         Column(
             modifier = Modifier

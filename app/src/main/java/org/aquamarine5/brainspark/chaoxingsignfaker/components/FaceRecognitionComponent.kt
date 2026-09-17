@@ -36,8 +36,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
@@ -152,7 +152,11 @@ fun FaceRecognitionComponent(
                                     val bytes = stream.readBytes()
                                     BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
                                         ?: throw ChaoxingFaceImageException(
-                                            "默认人脸识别照片下载失败, body=${bytes.toString(Charsets.UTF_8)}"
+                                            "默认人脸识别照片下载失败, body=${
+                                                bytes.toString(
+                                                    Charsets.UTF_8
+                                                )
+                                            }"
                                         )
                                 }
                             }

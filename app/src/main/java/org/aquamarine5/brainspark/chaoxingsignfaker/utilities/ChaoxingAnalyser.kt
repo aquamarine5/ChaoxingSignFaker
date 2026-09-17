@@ -20,6 +20,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import okhttp3.FormBody
 import okhttp3.Request
+import org.aquamarine5.brainspark.chaoxingsignfaker.BuildConfig
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingSignFakerDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingAnalyserRankAnalysis
@@ -107,7 +108,8 @@ object ChaoxingAnalyser {
                 ).execute().use { response ->
                     response.checkResponseThrowException()
                     val responseBody = response.body.string()
-                    Json.decodeFromString<List<ChaoxingAnalyserRankRecord>>(responseBody)
+                    Json { ignoreUnknownKeys = true }
+                        .decodeFromString<List<ChaoxingAnalyserRankRecord>>(responseBody)
                 }
             }
         }
@@ -172,7 +174,8 @@ object ChaoxingAnalyser {
                                             .addEncoded("latestDate", stringDate)
                                             .addEncoded(
                                                 "schoolName",
-                                                ChaoxingHttpClient.instance!!.userEntity.schoolName.let { rawList ->
+                                                ChaoxingHttpClient.instance!!.userEntity.fidList.map { it.second }
+                                                    .distinct().let { rawList ->
                                                     if (dataStore.selectedAnalysisRankSchoolName.isNotEmpty() && rawList.contains(
                                                             dataStore.selectedAnalysisRankSchoolName
                                                         )
@@ -199,6 +202,7 @@ object ChaoxingAnalyser {
                                             )
                                             .addEncoded("isPublic", "true")
                                             .addEncoded("name", analysisName)
+                                            .addEncoded("versionName", BuildConfig.VERSION_NAME)
                                             .build()
                                     ).build()
                             )

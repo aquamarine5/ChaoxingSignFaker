@@ -4,7 +4,7 @@
  * Repository: https://github.com/aquamarine5/ChaoxingSignFaker
  */
 
-package org.aquamarine5.brainspark.chaoxingsignfaker.api
+package org.aquamarine5.brainspark.chaoxingsignfaker.entity
 
 import androidx.compose.runtime.Immutable
 

@@ -21,7 +21,7 @@ jobs:
           node-version: 22
 
       - name: Generate analysis charts
-        run: node scripts/generate-analysis-charts.mjs
+        run: node generate-analysis-charts.mjs
 
       - name: Commit updated charts
         run: |

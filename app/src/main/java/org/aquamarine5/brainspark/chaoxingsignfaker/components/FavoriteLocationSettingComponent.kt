@@ -80,8 +80,8 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostS
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.MARKER_BUNDLE_ADDRESS
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.MARKER_BUNDLE_LABEL
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.MARKER_BUNDLE_TYPE
-import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.MarkerBundleType
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.MARKER_TITLE_VISIBLE_ZOOM
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.MarkerBundleType
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.addFavoriteLocationMarker
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.addOrUpdateLocationMarker
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
@@ -283,13 +283,13 @@ fun FavoriteLocationSettingComponent(modifier: Modifier = Modifier) {
                 map.setOnMarkerDragListener(object : BaiduMap.OnMarkerDragListener {
                     override fun onMarkerDrag(p0: Marker?) {}
 
-                        override fun onMarkerDragEnd(p0: Marker?) {
-                            Log.d("GetLocationPage", "onMarkerDragEnd: $p0")
-                            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                            p0?.let {
-                                clickedPosition = it.position
-                                clickedLabel = null
-                                geoCoder.reverseGeoCode(
+                    override fun onMarkerDragEnd(p0: Marker?) {
+                        Log.d("GetLocationPage", "onMarkerDragEnd: $p0")
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                        p0?.let {
+                            clickedPosition = it.position
+                            clickedLabel = null
+                            geoCoder.reverseGeoCode(
                                 ReverseGeoCodeOption()
                                     .location(it.position)
                                     .newVersion(1)
@@ -429,7 +429,10 @@ fun FavoriteLocationSettingComponent(modifier: Modifier = Modifier) {
                         hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                         if (clickedName == "未指定") {
                             hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
-                            snackbarHost.displaySnackbar("请先点击地图选择要收藏的位置", coroutineScope)
+                            snackbarHost.displaySnackbar(
+                                "请先点击地图选择要收藏的位置",
+                                coroutineScope
+                            )
                             return@FloatingActionButton
                         }
                         if (favoriteLocations.any {

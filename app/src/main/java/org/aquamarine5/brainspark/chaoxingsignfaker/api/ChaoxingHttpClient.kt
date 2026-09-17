@@ -10,7 +10,10 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.widget.Toast
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import com.alibaba.fastjson2.JSONObject
 import io.sentry.Sentry
 import kotlinx.coroutines.CoroutineScope
@@ -37,8 +40,10 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingUserEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingParseDataException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.checkPredictable
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.checkResponseThrowException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.displaySnackbar
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.requirePredictable
 import java.security.MessageDigest
 import java.util.Base64
 import java.util.UUID
@@ -49,17 +54,45 @@ import javax.crypto.spec.SecretKeySpec
 class ChaoxingHttpClient private constructor(
     val okHttpClient: OkHttpClient,
     val userEntity: ChaoxingUserEntity,
-    val deviceCode: String = generateDeviceCode()
+    val deviceCode: String = generateDeviceCode(),
+    initialConfiguredFid: Int = userEntity.fidList.firstOrNull()?.first ?: 0
 ) {
+    var configuredFid by mutableIntStateOf(initialConfiguredFid)
+        private set
+
+    suspend fun updateConfiguredFid(context: Context, fid: Int) {
+        requirePredictable(userEntity.fidList.any { it.first == fid }) { "请选择账号所属的学校单位" }
+        context.chaoxingDataStore.updateData { dataStore ->
+            dataStore.toBuilder().apply {
+                if (loginSession.phoneNumber == userEntity.phoneNumber) {
+                    setLoginSession(loginSession.toBuilder().setConfiguredFid(fid))
+                } else {
+                    val index = otherUsersList.indexOfFirst {
+                        it.phoneNumber == userEntity.phoneNumber
+                    }
+                    checkPredictable(index >= 0) { "未找到当前账号的登录会话" }
+                    setOtherUsers(index, getOtherUsers(index).toBuilder().setConfiguredFid(fid))
+                }
+            }.build()
+        }
+        configuredFid = fid
+        instance?.takeIf { it.userEntity.phoneNumber == userEntity.phoneNumber }
+            ?.configuredFid = fid
+        cloneInstance?.takeIf { it.userEntity.phoneNumber == userEntity.phoneNumber }
+            ?.configuredFid = fid
+        ChaoxingHttpClientPool.initialize(context.chaoxingDataStore.data.first().otherUsersList)
+    }
+
     class ChaoxingLoginException(message: String, throwable: Throwable? = null) :
         ChaoxingParseDataException(message, throwable)
 
     class ChaoxingGetUserInfoException(
         message: String,
         throwable: Throwable? = null,
-        val isOtherUser: Boolean
+        val isOtherUser: Boolean,
+        data: String? = null
     ) :
-        ChaoxingParseDataException(message, throwable)
+        ChaoxingParseDataException(message, throwable, data)
 
     class ChaoxingNetworkException(message: String? = null, throwable: Throwable? = null) :
         ChaoxingParseDataException(message ?: "网络错误", throwable)
@@ -93,7 +126,7 @@ class ChaoxingHttpClient private constructor(
                 cloneInstanceState.value = value
             }
 
-        fun getHttpInstanceOrClone(isCloneSession: Boolean) =
+        fun getClientInstanceOrClone(isCloneSession: Boolean = true) =
             if (isCloneSession && cloneInstance != null) cloneInstance else instance
 
         @Deprecated("Should use ChaoxingHttpClient().deviceCode not ChaoxingHttpClient.Companion.deviceCode")
@@ -188,7 +221,10 @@ class ChaoxingHttpClient private constructor(
             val userInfo = getInfo(okHttpClient, context, session)
             return ChaoxingHttpClient(
                 okHttpClient,
-                userInfo
+                userInfo,
+                initialConfiguredFid = session.configuredFid.takeIf {
+                    session.hasConfiguredFid() && userInfo.fidList.any { school -> school.first == it }
+                } ?: userInfo.fidList.first().first
             )
         }
 
@@ -240,9 +276,13 @@ class ChaoxingHttpClient private constructor(
             val userInfo = getInfo(client, context, phoneNumber).apply {
                 UMengHelper.profileSignIn(this, phoneNumber)
             }
+            val session = context.chaoxingDataStore.data.first().loginSession
             return@withContext ChaoxingHttpClient(
                 client,
-                userInfo
+                userInfo,
+                initialConfiguredFid = session.configuredFid.takeIf {
+                    session.hasConfiguredFid() && userInfo.fidList.any { school -> school.first == it }
+                } ?: userInfo.fidList.first().first
             ).apply {
                 instance = this
                 ChaoxingHttpClientPool.put(this)
@@ -302,7 +342,11 @@ class ChaoxingHttpClient private constructor(
             val userInfo = getInfo(okHttpClient, context, dataStore.loginSession)
             return ChaoxingHttpClient(
                 okHttpClient,
-                userInfo
+                userInfo,
+                initialConfiguredFid = dataStore.loginSession.configuredFid.takeIf {
+                    dataStore.loginSession.hasConfiguredFid() &&
+                            userInfo.fidList.any { school -> school.first == it }
+                } ?: userInfo.fidList.first().first
             ).apply {
                 instance = this
                 ChaoxingHttpClientPool.put(this)
@@ -329,6 +373,7 @@ class ChaoxingHttpClient private constructor(
             otherUserSession: ChaoxingOtherUserSession? = null,
         ): ChaoxingUserEntity =
             withContext(Dispatchers.IO) {
+                var userInfoResponse: String? = null
                 runCatching {
                     client.newCall(
                         Request.Builder()
@@ -362,29 +407,14 @@ class ChaoxingHttpClient private constructor(
                     ).execute()
                         .use { response ->
                             response.checkResponseThrowException()
+                            userInfoResponse = response.body.string()
                             val jsonResult =
-                                JSONObject.parseObject(response.body.string()).getJSONObject("msg")
+                                JSONObject.parseObject(userInfoResponse).getJSONObject("msg")
                             return@withContext ChaoxingUserEntity(
                                 jsonResult.getInteger("uid"),
                                 jsonResult.getInteger("fid"),
                                 jsonResult.getString("name"),
-                                buildList {
-                                    val defaultSchoolName = jsonResult.getString("schoolname", "")
-                                    if (!defaultSchoolName.isBlank())
-                                        add(defaultSchoolName)
-                                    jsonResult.getJSONArray("unitConfigInfos")
-                                        ?.let { schoolConfigs ->
-                                            schoolConfigs.forEachIndexed { index, _ ->
-                                                schoolConfigs.getJSONObject(index)
-                                                    .getString("schoolname").let {
-                                                        if (!it.isNullOrBlank() && it != defaultSchoolName)
-                                                            add(it)
-                                                    }
-                                            }
-                                        }
-                                    if (isEmpty())
-                                        add("未知学校")
-                                },
+                                listOf(),
                                 jsonResult.getString("uname"),
                                 jsonResult.getString("pic").replace("http://", "https://"),
                                 jsonResult.getInteger("puid"),
@@ -392,7 +422,8 @@ class ChaoxingHttpClient private constructor(
                                 jsonResult.getJSONObject("accountInfo")
                                     .getJSONObject("imAccount")
                                     .getString("password"),
-                                jsonResult.getString("clientId")?.takeIf { it.isNotEmpty() }
+                                jsonResult.getString("clientId")?.takeIf { it.isNotEmpty() },
+                                parseFidList(jsonResult)
                             )
                         }
                 }.getOrElse { throwable ->
@@ -405,12 +436,36 @@ class ChaoxingHttpClient private constructor(
                             throw ChaoxingGetUserInfoException(
                                 "获取代签用户信息失败",
                                 throwable,
-                                true
+                                true,
+                                userInfoResponse
                             )
                         }
-                    throw ChaoxingGetUserInfoException("获取用户信息失败", throwable, false)
+                    throw ChaoxingGetUserInfoException(
+                        "获取用户信息失败",
+                        throwable,
+                        false,
+                        userInfoResponse
+                    )
                 }
             }
+
+        private fun parseFidList(jsonResult: JSONObject): List<Pair<Int, String>> {
+            val schools = linkedMapOf<Int, String>()
+            val defaultFid = jsonResult.getIntValue("fid")
+            schools[defaultFid] = jsonResult.getString("schoolname")
+                ?.takeIf { it.isNotBlank() } ?: "未知学校"
+            jsonResult.getJSONArray("unitConfigInfos")?.let { configs ->
+                for (index in configs.indices) {
+                    val config = configs.getJSONObject(index) ?: continue
+                    val fid = config.getInteger("fid") ?: continue
+                    val name = config.getString("schoolname")?.takeIf { it.isNotBlank() }
+                    if (fid !in schools || schools[fid] == "未知学校") {
+                        schools[fid] = name ?: "未知学校"
+                    }
+                }
+            }
+            return schools.map { it.key to it.value }
+        }
 
         private suspend fun reLoginFromOtherSession(
             client: OkHttpClient,
@@ -431,7 +486,7 @@ class ChaoxingHttpClient private constructor(
                         it.phoneNumber == otherUserSession.phoneNumber
                     }.takeIf { it >= 0 }?.let { index ->
                         setOtherUsers(
-                            index, otherUserSession.toBuilder()
+                            index, getOtherUsers(index).toBuilder()
                                 .clearCookies()
                                 .addAllCookies(
                                     client.cookieJar.loadForRequest(
@@ -576,18 +631,20 @@ class ChaoxingHttpClient private constructor(
                 if (isSaveToDataStore) {
                     context.chaoxingDataStore.updateData {
                         it.toBuilder().setLoginSession(
-                            ChaoxingLoginSession.newBuilder().addAllCookies(
-                                client.cookieJar.loadForRequest(
-                                    HttpUrl.Builder()
-                                        .scheme("https")
-                                        .host("chaoxing.com").build()
-                                ).map { cookie ->
-                                    HttpCookie.newBuilder()
-                                        .setValue(cookie.value)
-                                        .setName(cookie.name)
-                                        .setHost(cookie.domain).build()
-                                }
-                            )
+                            (if (it.loginSession.phoneNumber == phoneNumber)
+                                it.loginSession.toBuilder() else ChaoxingLoginSession.newBuilder())
+                                .clearCookies().addAllCookies(
+                                    client.cookieJar.loadForRequest(
+                                        HttpUrl.Builder()
+                                            .scheme("https")
+                                            .host("chaoxing.com").build()
+                                    ).map { cookie ->
+                                        HttpCookie.newBuilder()
+                                            .setValue(cookie.value)
+                                            .setName(cookie.name)
+                                            .setHost(cookie.domain).build()
+                                    }
+                                )
                                 .setPassword(encryptedPassword)
                                 .setPhoneNumber(phoneNumber)
                                 .build()

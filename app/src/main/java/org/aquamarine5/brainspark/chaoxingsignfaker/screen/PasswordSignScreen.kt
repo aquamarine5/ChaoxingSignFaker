@@ -67,7 +67,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCourseHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClientPool
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingSignHelper
-import org.aquamarine5.brainspark.chaoxingsignfaker.api.SignDestination
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.SignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerParams
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
@@ -372,291 +372,297 @@ fun PasswordSignScreen(
                             .fillMaxSize()
                             .zIndex(0f)
                     ) {
-                    Column(modifier = Modifier.padding(8.dp, 4.dp, 8.dp, 0.dp)) {
-                        OtherUserSelectorComponent(
-                            navToOtherUser = { navToOtherUserDestination() },
-                            signStatus = signStatus,
-                            isCurrentAlreadySigned = isSignForOther,
-                            userSelections = userSelections,
-                            isSigning = isSigning,
-                            prefixTipsContent = {
-                                if (signoffData != null)
-                                    SignOutRedirectTips(
-                                        signoffData!!
-                                    ) {
-                                        navToOtherSign(it)
-                                    }
-                                if (destination.startTime != null)
-                                    SignPotentialWarningTips(
-                                        destination.startTime,
-                                        destination.endTime,
-                                        destination.isLate
-                                    )
-                            }, onRetrySignAction = { index, session, bypassChecking ->
-                                signHandler.retryOtherUserSigning(session, index, bypassChecking)
-                            }, isCloneSession = destination.isCloneSession,
-                            suffixContent = {
-                                if (isMapRequired) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier.padding(0.dp, 6.dp)
-                                    ) {
-                                        Column(modifier = Modifier.weight(1f)) {
-                                            Text(
-                                                "签到位置：",
-                                                fontWeight = FontWeight.Bold
-                                            )
-                                            Text(locationData?.address ?: "尚未选择位置")
+                        Column(modifier = Modifier.padding(8.dp, 4.dp, 8.dp, 0.dp)) {
+                            OtherUserSelectorComponent(
+                                navToOtherUser = { navToOtherUserDestination() },
+                                signStatus = signStatus,
+                                isCurrentAlreadySigned = isSignForOther,
+                                userSelections = userSelections,
+                                isSigning = isSigning,
+                                prefixTipsContent = {
+                                    if (signoffData != null)
+                                        SignOutRedirectTips(
+                                            signoffData!!
+                                        ) {
+                                            navToOtherSign(it)
                                         }
-                                        Button(onClick = {
-                                            isMapGetting = true
-                                        }) {
-                                            Text(if (locationData == null) "选择位置" else "重新获取位置")
+                                    if (destination.startTime != null)
+                                        SignPotentialWarningTips(
+                                            destination.startTime,
+                                            destination.endTime,
+                                            destination.isLate
+                                        )
+                                }, onRetrySignAction = { index, session, bypassChecking ->
+                                    signHandler.retryOtherUserSigning(
+                                        session,
+                                        index,
+                                        bypassChecking
+                                    )
+                                }, isCloneSession = destination.isCloneSession,
+                                suffixContent = {
+                                    if (isMapRequired) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier.padding(0.dp, 6.dp)
+                                        ) {
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Text(
+                                                    "签到位置：",
+                                                    fontWeight = FontWeight.Bold
+                                                )
+                                                Text(locationData?.address ?: "尚未选择位置")
+                                            }
+                                            Button(onClick = {
+                                                isMapGetting = true
+                                            }) {
+                                                Text(if (locationData == null) "选择位置" else "重新获取位置")
+                                            }
                                         }
                                     }
-                                }
-                                var isCheckingStatus by remember { mutableStateOf<Boolean?>(null) }
-                                LaunchedEffect(isCheckingStatus) {
-                                    delay(1.seconds)
-                                    if (isCheckingStatus == false) {
-                                        isCheckingStatus = null
-                                        text = ""
+                                    var isCheckingStatus by remember { mutableStateOf<Boolean?>(null) }
+                                    LaunchedEffect(isCheckingStatus) {
+                                        delay(1.seconds)
+                                        if (isCheckingStatus == false) {
+                                            isCheckingStatus = null
+                                            text = ""
+                                        }
                                     }
-                                }
-                                Column {
-                                    Text(
-                                        "请输入数字签到码：",
-                                        fontWeight = FontWeight.Bold,
-                                        modifier = Modifier.padding(0.dp, 6.dp)
-                                    )
-                                    Column(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        verticalArrangement = Arrangement.Center,
-                                        horizontalAlignment = Alignment.CenterHorizontally
-                                    ) {
-                                        BasicTextField(
-                                            value = text,
-                                            singleLine = true,
-                                            onValueChange = { newText ->
-                                                if (newText.length <= numberCount && newText.all { it.isDigit() }) {
-                                                    text = newText
-                                                    if (newText.length == numberCount) {
-                                                        coroutineScope.launch {
-                                                            runCatching {
-                                                                signer.checkSignCode(text)
-                                                                    .let {
-                                                                        isCheckingSuccess = it
-                                                                        if (it) {
-                                                                            isCheckingStatus = true
-                                                                            hapticFeedback.performHapticFeedback(
-                                                                                HapticFeedbackType.Confirm
-                                                                            )
-                                                                            focusManager.clearFocus()
-                                                                        } else {
-                                                                            isCheckingStatus = false
-                                                                            hapticFeedback.performHapticFeedback(
-                                                                                HapticFeedbackType.Reject
+                                    Column {
+                                        Text(
+                                            "请输入数字签到码：",
+                                            fontWeight = FontWeight.Bold,
+                                            modifier = Modifier.padding(0.dp, 6.dp)
+                                        )
+                                        Column(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            verticalArrangement = Arrangement.Center,
+                                            horizontalAlignment = Alignment.CenterHorizontally
+                                        ) {
+                                            BasicTextField(
+                                                value = text,
+                                                singleLine = true,
+                                                onValueChange = { newText ->
+                                                    if (newText.length <= numberCount && newText.all { it.isDigit() }) {
+                                                        text = newText
+                                                        if (newText.length == numberCount) {
+                                                            coroutineScope.launch {
+                                                                runCatching {
+                                                                    signer.checkSignCode(text)
+                                                                        .let {
+                                                                            isCheckingSuccess = it
+                                                                            if (it) {
+                                                                                isCheckingStatus =
+                                                                                    true
+                                                                                hapticFeedback.performHapticFeedback(
+                                                                                    HapticFeedbackType.Confirm
+                                                                                )
+                                                                                focusManager.clearFocus()
+                                                                            } else {
+                                                                                isCheckingStatus =
+                                                                                    false
+                                                                                hapticFeedback.performHapticFeedback(
+                                                                                    HapticFeedbackType.Reject
+                                                                                )
+                                                                            }
+                                                                        }
+                                                                }.onFailure {
+                                                                    isCheckingStatus = false
+                                                                    it.snackbarReport(
+                                                                        snackbarHost,
+                                                                        coroutineScope,
+                                                                        "签到码校验失败",
+                                                                        hapticFeedback
+                                                                    )
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                keyboardOptions = KeyboardOptions(
+                                                    keyboardType = KeyboardType.Number
+                                                ),
+                                                modifier = Modifier
+                                                    .align(Alignment.CenterHorizontally)
+                                                    .fillMaxWidth()
+                                                    .focusRequester(focusRequester)
+                                                    .onFocusChanged {
+                                                        if (it.isFocused)
+                                                            keyboardController?.show()
+                                                    }
+                                                    .wrapContentHeight(),
+                                                readOnly = isCheckingSuccess == true,
+                                                decorationBox = {
+                                                    Row(
+                                                        modifier = Modifier
+                                                            .fillMaxWidth()
+                                                            .background(Color.Transparent),
+                                                        horizontalArrangement = Arrangement.SpaceAround
+                                                    ) {
+                                                        for (i in 0 until numberCount) {
+                                                            key(i) {
+                                                                val codeState by remember(
+                                                                    isCheckingStatus,
+                                                                    i,
+                                                                    text
+                                                                ) {
+                                                                    mutableStateOf(
+                                                                        when {
+                                                                            isCheckingStatus == true -> PasswordCodeStatus.CORRECT
+                                                                            isCheckingStatus == false -> PasswordCodeStatus.INCORRECT
+                                                                            i < text.length -> PasswordCodeStatus.ENTERED
+                                                                            i == text.length -> PasswordCodeStatus.INPUTTING
+                                                                            else -> PasswordCodeStatus.PENDING
+                                                                        }
+                                                                    )
+                                                                }
+                                                                val animatedContainerColor by animateColorAsState(
+                                                                    when (codeState) {
+                                                                        PasswordCodeStatus.ENTERED -> Color(
+                                                                            0xFF2196F3
+                                                                        )
+
+                                                                        PasswordCodeStatus.CORRECT -> Color(
+                                                                            0xFF43B244
+                                                                        )
+
+                                                                        PasswordCodeStatus.INCORRECT -> Color(
+                                                                            0xFFF43E06
+                                                                        )
+
+                                                                        PasswordCodeStatus.INPUTTING -> Color.White
+                                                                        PasswordCodeStatus.PENDING -> Color(
+                                                                            0xFF9E9E9E
+                                                                        )
+                                                                    }
+                                                                )
+                                                                val animatedElevation by remember(
+                                                                    codeState
+                                                                ) {
+                                                                    mutableStateOf(
+                                                                        when (codeState) {
+                                                                            PasswordCodeStatus.INPUTTING -> 15.dp
+                                                                            PasswordCodeStatus.PENDING -> 0.dp
+                                                                            else -> 7.dp
+                                                                        }
+                                                                    )
+                                                                }
+                                                                val animatedTextColor by animateColorAsState(
+                                                                    when (codeState) {
+                                                                        PasswordCodeStatus.ENTERED, PasswordCodeStatus.CORRECT, PasswordCodeStatus.INCORRECT -> Color.White
+                                                                        else -> Color.Gray
+                                                                    }
+                                                                )
+                                                                val cardElevation =
+                                                                    CardDefaults.cardElevation(
+                                                                        defaultElevation = animatedElevation
+                                                                    )
+                                                                val cardColors =
+                                                                    CardDefaults.cardColors(
+                                                                        containerColor = animatedContainerColor
+                                                                    )
+                                                                Card(
+                                                                    modifier = Modifier.size((276 / numberCount).dp),
+                                                                    colors = cardColors,
+                                                                    elevation = cardElevation
+                                                                ) {
+                                                                    Box(
+                                                                        modifier = Modifier.fillMaxSize(),
+                                                                        contentAlignment = Alignment.Center
+                                                                    ) {
+                                                                        if (codeState != PasswordCodeStatus.PENDING) {
+                                                                            Text(
+                                                                                text.getOrElse(i) { '_' }
+                                                                                    .toString(),
+                                                                                style = TextStyle(
+                                                                                    fontSize = (144 / numberCount).sp,
+                                                                                    color = animatedTextColor,
+                                                                                    textAlign = TextAlign.Center
+                                                                                )
                                                                             )
                                                                         }
                                                                     }
-                                                            }.onFailure {
-                                                                isCheckingStatus = false
-                                                                it.snackbarReport(
-                                                                    snackbarHost,
-                                                                    coroutineScope,
-                                                                    "签到码校验失败",
-                                                                    hapticFeedback
-                                                                )
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            },
-                                            keyboardOptions = KeyboardOptions(
-                                                keyboardType = KeyboardType.Number
-                                            ),
-                                            modifier = Modifier
-                                                .align(Alignment.CenterHorizontally)
-                                                .fillMaxWidth()
-                                                .focusRequester(focusRequester)
-                                                .onFocusChanged {
-                                                    if (it.isFocused)
-                                                        keyboardController?.show()
-                                                }
-                                                .wrapContentHeight(),
-                                            readOnly = isCheckingSuccess == true,
-                                            decorationBox = {
-                                                Row(
-                                                    modifier = Modifier
-                                                        .fillMaxWidth()
-                                                        .background(Color.Transparent),
-                                                    horizontalArrangement = Arrangement.SpaceAround
-                                                ) {
-                                                    for (i in 0 until numberCount) {
-                                                        key(i) {
-                                                            val codeState by remember(
-                                                                isCheckingStatus,
-                                                                i,
-                                                                text
-                                                            ) {
-                                                                mutableStateOf(
-                                                                    when {
-                                                                        isCheckingStatus == true -> PasswordCodeStatus.CORRECT
-                                                                        isCheckingStatus == false -> PasswordCodeStatus.INCORRECT
-                                                                        i < text.length -> PasswordCodeStatus.ENTERED
-                                                                        i == text.length -> PasswordCodeStatus.INPUTTING
-                                                                        else -> PasswordCodeStatus.PENDING
-                                                                    }
-                                                                )
-                                                            }
-                                                            val animatedContainerColor by animateColorAsState(
-                                                                when (codeState) {
-                                                                    PasswordCodeStatus.ENTERED -> Color(
-                                                                        0xFF2196F3
-                                                                    )
-
-                                                                    PasswordCodeStatus.CORRECT -> Color(
-                                                                        0xFF43B244
-                                                                    )
-
-                                                                    PasswordCodeStatus.INCORRECT -> Color(
-                                                                        0xFFF43E06
-                                                                    )
-
-                                                                    PasswordCodeStatus.INPUTTING -> Color.White
-                                                                    PasswordCodeStatus.PENDING -> Color(
-                                                                        0xFF9E9E9E
-                                                                    )
-                                                                }
-                                                            )
-                                                            val animatedElevation by remember(
-                                                                codeState
-                                                            ) {
-                                                                mutableStateOf(
-                                                                    when (codeState) {
-                                                                        PasswordCodeStatus.INPUTTING -> 15.dp
-                                                                        PasswordCodeStatus.PENDING -> 0.dp
-                                                                        else -> 7.dp
-                                                                    }
-                                                                )
-                                                            }
-                                                            val animatedTextColor by animateColorAsState(
-                                                                when (codeState) {
-                                                                    PasswordCodeStatus.ENTERED, PasswordCodeStatus.CORRECT, PasswordCodeStatus.INCORRECT -> Color.White
-                                                                    else -> Color.Gray
-                                                                }
-                                                            )
-                                                            val cardElevation =
-                                                                CardDefaults.cardElevation(
-                                                                    defaultElevation = animatedElevation
-                                                                )
-                                                            val cardColors =
-                                                                CardDefaults.cardColors(
-                                                                    containerColor = animatedContainerColor
-                                                                )
-                                                            Card(
-                                                                modifier = Modifier.size((276 / numberCount).dp),
-                                                                colors = cardColors,
-                                                                elevation = cardElevation
-                                                            ) {
-                                                                Box(
-                                                                    modifier = Modifier.fillMaxSize(),
-                                                                    contentAlignment = Alignment.Center
-                                                                ) {
-                                                                    if (codeState != PasswordCodeStatus.PENDING) {
-                                                                        Text(
-                                                                            text.getOrElse(i) { '_' }
-                                                                                .toString(),
-                                                                            style = TextStyle(
-                                                                                fontSize = (144 / numberCount).sp,
-                                                                                color = animatedTextColor,
-                                                                                textAlign = TextAlign.Center
-                                                                            )
-                                                                        )
-                                                                    }
                                                                 }
                                                             }
                                                         }
                                                     }
                                                 }
-                                            }
-                                        )
+                                            )
+                                        }
                                     }
                                 }
-                            }
-                        ) { isSelf, otherUserSessionList, _ ->
-                            if (isCheckingSuccess != true) {
-                                coroutineScope.launch {
-                                    snackbarHost.currentSnackbarData?.dismiss()
-                                    snackbarHost.showSnackbar(
-                                        "请先输入正确的数字签到码",
-                                        withDismissAction = true
-                                    )
+                            ) { isSelf, otherUserSessionList, _ ->
+                                if (isCheckingSuccess != true) {
+                                    coroutineScope.launch {
+                                        snackbarHost.currentSnackbarData?.dismiss()
+                                        snackbarHost.showSnackbar(
+                                            "请先输入正确的数字签到码",
+                                            withDismissAction = true
+                                        )
+                                    }
+                                    return@OtherUserSelectorComponent
                                 }
-                                return@OtherUserSelectorComponent
-                            }
-                            if (isMapRequired && locationData == null) {
-                                pendingAutoSignAction = {
-                                    isSigning.value = true
-                                    signHandler.startSigning(
-                                        text,
-                                        isSelf,
-                                        otherUserSessionList,
-                                        hapticFeedback,
-                                        coroutineScope,
-                                        snackbarHost
-                                    )
+                                if (isMapRequired && locationData == null) {
+                                    pendingAutoSignAction = {
+                                        isSigning.value = true
+                                        signHandler.startSigning(
+                                            text,
+                                            isSelf,
+                                            otherUserSessionList,
+                                            hapticFeedback,
+                                            coroutineScope,
+                                            snackbarHost
+                                        )
+                                    }
+                                    isMapGetting = true
+                                    return@OtherUserSelectorComponent
                                 }
-                                isMapGetting = true
-                                return@OtherUserSelectorComponent
+                                isSigning.value = true
+                                signHandler.startSigning(
+                                    text,
+                                    isSelf,
+                                    otherUserSessionList,
+                                    hapticFeedback,
+                                    coroutineScope,
+                                    snackbarHost
+                                )
                             }
-                            isSigning.value = true
-                            signHandler.startSigning(
-                                text,
-                                isSelf,
-                                otherUserSessionList,
-                                hapticFeedback,
-                                coroutineScope,
-                                snackbarHost
-                            )
                         }
-                    }
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .zIndex(1f)
-                    ) {
-                        AnimatedVisibility(
-                            isMapGetting,
-                            enter =
-                                slideInHorizontally(
-                                    initialOffsetX = { it },
-                                    animationSpec = tween(300)
-                                ) + fadeIn(
-                                    animationSpec = tween(300)
-                                ),
-                            exit =
-                                slideOutHorizontally(
-                                    animationSpec = tween(300),
-                                    targetOffsetX = { it }) +
-                                        fadeOut(animationSpec = tween(300)),
-                            modifier = Modifier.zIndex(1f)
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .zIndex(1f)
                         ) {
-                            GetLocationComponent(confirmButtonText = {
-                                Text("设置")
-                            }) {
-                                isMapGetting = false
-                                locationData = it
-                                pendingAutoSignAction?.invoke()
-                                pendingAutoSignAction = null
-                            }
-                            BackHandler(isMapGetting) {
-                                pendingAutoSignAction = null
-                                isSigning.value = false
-                                isMapGetting = false
+                            AnimatedVisibility(
+                                isMapGetting,
+                                enter =
+                                    slideInHorizontally(
+                                        initialOffsetX = { it },
+                                        animationSpec = tween(300)
+                                    ) + fadeIn(
+                                        animationSpec = tween(300)
+                                    ),
+                                exit =
+                                    slideOutHorizontally(
+                                        animationSpec = tween(300),
+                                        targetOffsetX = { it }) +
+                                            fadeOut(animationSpec = tween(300)),
+                                modifier = Modifier.zIndex(1f)
+                            ) {
+                                GetLocationComponent(confirmButtonText = {
+                                    Text("设置")
+                                }) {
+                                    isMapGetting = false
+                                    locationData = it
+                                    pendingAutoSignAction?.invoke()
+                                    pendingAutoSignAction = null
+                                }
+                                BackHandler(isMapGetting) {
+                                    pendingAutoSignAction = null
+                                    isSigning.value = false
+                                    isMapGetting = false
+                                }
                             }
                         }
-                    }
                     }
                 } else {
                     CenterCircularProgressIndicator()

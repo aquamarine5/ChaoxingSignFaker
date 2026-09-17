@@ -29,6 +29,20 @@ import java.net.ConnectException
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
 import javax.net.ssl.SSLHandshakeException
+import kotlin.contracts.ExperimentalContracts
+import kotlin.contracts.contract
+
+@OptIn(ExperimentalContracts::class)
+inline fun checkPredictable(value: Boolean, lazyMessage: () -> Any = { "Check failed." }) {
+    contract { returns() implies value }
+    if (!value) throw ChaoxingPredictableException(lazyMessage().toString())
+}
+
+@OptIn(ExperimentalContracts::class)
+inline fun requirePredictable(value: Boolean, lazyMessage: () -> Any = { "Failed requirement." }) {
+    contract { returns() implies value }
+    if (!value) throw ChaoxingPredictableException(lazyMessage().toString())
+}
 
 fun Throwable.getNetworkExceptionMessage(): String? = when (this) {
     is UnknownHostException -> "网络连接异常"

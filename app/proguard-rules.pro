@@ -39,6 +39,12 @@
    <fields>;
 }
 
+-keepclassmembers class * extends com.google.protobuf.GeneratedMessageLite {
+   *** get*();
+   boolean has*();
+   void set*(...);
+}
+
 -keep class com.umeng.** {*;}
 -dontwarn com.umeng.**
 -dontnote com.umeng.**

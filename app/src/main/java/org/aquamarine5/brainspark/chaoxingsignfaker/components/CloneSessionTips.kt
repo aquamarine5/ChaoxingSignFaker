@@ -43,7 +43,8 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalImageLoader
 
 @Composable
-fun CloneSessionTips(onExitCloning: () -> Unit) {    val latestEntity = ChaoxingHttpClient.cloneInstance?.userEntity
+fun CloneSessionTips(onExitCloning: () -> Unit) {
+    val latestEntity = ChaoxingHttpClient.cloneInstance?.userEntity
     val userEntityState = remember { mutableStateOf(latestEntity) }
     SideEffect {
         if (latestEntity != null) {
@@ -98,7 +99,7 @@ fun CloneSessionTips(onExitCloning: () -> Unit) {    val latestEntity = Chaoxing
                         modifier = Modifier.alignByBaseline()
                     )
                     Text(
-                        " (${userEntity?.schoolName?.firstOrNull() ?: "未知学校"})",
+                        " (${userEntity?.fidList?.firstOrNull()?.second ?: "未知学校"})",
                         color = Color.Gray,
                         style = MaterialTheme.typography.labelSmall,
                         maxLines = 1,

@@ -94,7 +94,7 @@ fun GroupListScreen(
 ) {
     Column(
         modifier = Modifier
-            .padding(16.dp, 8.dp, 16.dp, 0.dp)
+            .padding(16.dp, 16.dp, 16.dp, 0.dp)
             .fillMaxSize()
     ) {
         val coroutineScope = rememberCoroutineScope()
@@ -132,8 +132,8 @@ fun GroupListScreen(
                 }
                 if (imGroupsInfo == null)
                     imGroupsInfo = ChaoxingIMHelper.getEasemobIMGroups(
-                        ChaoxingHttpClient.getHttpInstanceOrClone(destination.isCloneSession)!!,
-                        ChaoxingHttpClient.getHttpInstanceOrClone(destination.isCloneSession)!!
+                        ChaoxingHttpClient.getClientInstanceOrClone(destination.isCloneSession)!!,
+                        ChaoxingHttpClient.getClientInstanceOrClone(destination.isCloneSession)!!
                             .getIMConfig()
                     )
             }.onFailure {
@@ -168,7 +168,7 @@ fun GroupListScreen(
             Icon(
                 painterResource(R.drawable.ic_users_round),
                 contentDescription = "群聊列表",
-                tint= MaterialTheme.colorScheme.primary,
+                tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(24.dp)
             )
             Spacer(modifier = Modifier.width(8.dp))
@@ -188,8 +188,8 @@ fun GroupListScreen(
                         coroutineScope.launch {
                             isFetchedFailure = runCatching {
                                 imGroupsInfo = ChaoxingIMHelper.getEasemobIMGroups(
-                                    ChaoxingHttpClient.getHttpInstanceOrClone(destination.isCloneSession)!!,
-                                    ChaoxingHttpClient.getHttpInstanceOrClone(destination.isCloneSession)!!
+                                    ChaoxingHttpClient.getClientInstanceOrClone(destination.isCloneSession)!!,
+                                    ChaoxingHttpClient.getClientInstanceOrClone(destination.isCloneSession)!!
                                         .getIMConfig()
                                 )
                             }.onFailure {
@@ -300,9 +300,11 @@ fun GroupListScreen(
                                             visibilityThreshold = IntOffset.VisibilityThreshold
                                         ),
                                         fadeInSpec = spring(
-                                            stiffness = Spring.StiffnessMedium),
+                                            stiffness = Spring.StiffnessMedium
+                                        ),
                                         fadeOutSpec = spring(
-                                            stiffness = Spring.StiffnessMedium)
+                                            stiffness = Spring.StiffnessMedium
+                                        )
                                     )
                             ) {
                                 Button(

@@ -16,6 +16,7 @@ import android.provider.Settings
 import android.util.Base64
 import com.alibaba.fastjson2.JSONObject
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.chaoxingApplicationPackageName
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.requirePredictable
 import java.io.ByteArrayOutputStream
 import java.math.BigInteger
 import java.security.KeyFactory
@@ -52,9 +53,9 @@ object ChaoxingDeviceInfoHelper {
                 ).modPow(publicKey.publicExponent, publicKey.modulus)
                     .toByteArray()
                     .toFixedBlock(blockSize)
-                require(block.size > 2 && block[0] == 0.toByte() && block[1] == 1.toByte())
+                requirePredictable(block.size > 2 && block[0] == 0.toByte() && block[1] == 1.toByte())
                 val separator = block.indexOf(0.toByte(), 2)
-                require(separator > 2)
+                requirePredictable(separator > 2)
                 output.write(block, separator + 1, block.size - separator - 1)
             }
             JSONObject.parseObject(output.toString(Charsets.UTF_8.name()))

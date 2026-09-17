@@ -48,7 +48,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingFaceHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClientPool
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingSignHelper
-import org.aquamarine5.brainspark.chaoxingsignfaker.api.SignDestination
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.SignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerParams
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
@@ -267,7 +267,11 @@ fun LocationSignScreen(
                     var isFaceImageCaptured by remember { mutableStateOf(false) }
                     var showFaceSaveDialog by remember { mutableStateOf(false) }
                     var sponsorPendingAfterFaceSave by remember { mutableStateOf(false) }
-                    var signedLocation by remember { mutableStateOf<ChaoxingLocationSignEntity?>(null) }
+                    var signedLocation by remember {
+                        mutableStateOf<ChaoxingLocationSignEntity?>(
+                            null
+                        )
+                    }
                     var isShowSaveFavoriteDialog by remember { mutableStateOf(false) }
                     if (isShowSaveFavoriteDialog) {
                         signedLocation?.let { signed ->

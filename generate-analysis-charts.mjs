@@ -4,16 +4,24 @@ import { join } from "node:path";
 const projectUrl = "https://zpkavhhjdtghljleztpb.supabase.co";
 const apiKey = "sb_publishable_dFuI4bOoYPlDozMXOGKgPg_cCQ0o22B";
 
-const response = await fetch(
-  `${projectUrl}/rest/v1/daily_analyser_snapshot?select=snapshot_date,user_count,total_record_sign_count,diff_user_count,diff_total_record_sign_count&order=snapshot_date.asc`,
-  { headers: { apikey: apiKey } },
-);
+const snapshots = [];
+while (true) {
+  const response = await fetch(
+    `${projectUrl}/rest/v1/daily_analyser_snapshot?select=snapshot_date,user_count,total_record_sign_count,diff_user_count,diff_total_record_sign_count&order=snapshot_date.asc&limit=1000&offset=${snapshots.length}`,
+    { headers: { apikey: apiKey, Prefer: "count=exact" } },
+  );
 
-if (!response.ok) {
-  throw new Error(`Supabase request failed: ${response.status} ${await response.text()}`);
+  if (!response.ok) {
+    throw new Error(`Supabase request failed: ${response.status} ${await response.text()}`);
+  }
+
+  const page = await response.json();
+  snapshots.push(...page);
+  const total = response.headers.get("content-range")?.split("/")[1];
+  if (page.length === 0 || (total && total !== "*" && snapshots.length >= Number(total))) {
+    break;
+  }
 }
-
-const snapshots = await response.json();
 if (snapshots.length < 2) {
   throw new Error("At least two daily_analyser_snapshot rows are required.");
 }
@@ -107,6 +115,14 @@ function gridLines() {
   }).join("\n");
 }
 
+function weekLines(points) {
+  return snapshots.map((row, index) => {
+    if (new Date(`${row.snapshot_date}T00:00:00Z`).getUTCDay() !== 2) return null;
+    const point = points[index];
+    return `<line x1="${point.x}" y1="${chart.top}" x2="${point.x}" y2="${chart.bottom}" class="week"/>`;
+  }).filter(Boolean).join("\n");
+}
+
 function xAxis(points) {
   const positions = [0, 0.2, 0.4, 0.6, 0.8, 1];
   return positions.map((position) => {
@@ -144,6 +160,7 @@ function createChart({ title, totalKey, diffKey, totalLegend, diffLegend }) {
     .subtitle { fill: ${colors.muted}; font-size: 13px; }
     .axis-label { fill: ${colors.axis}; font-size: 12px; }
     .grid { stroke: ${colors.grid}; stroke-width: 1; }
+    .week { stroke: ${colors.muted}; stroke-width: 1; stroke-dasharray: 4 4; opacity: 0.45; }
     .axis { stroke: ${colors.axis}; stroke-width: 1; }
     .legend { fill: ${colors.text}; font-size: 13px; }
     .value { font-size: 13px; font-weight: 700; }
@@ -156,6 +173,7 @@ function createChart({ title, totalKey, diffKey, totalLegend, diffLegend }) {
   <line x1="${chart.right - 135}" y1="33" x2="${chart.right - 111}" y2="33" stroke="${colors.diff}" stroke-width="3" stroke-linecap="round"/>
   <text x="${chart.right - 102}" y="37" class="legend">${escapeXml(diffLegend)} (right)</text>
   ${gridLines()}
+  ${weekLines(totalPoints)}
   <line x1="${chart.left}" y1="${chart.top}" x2="${chart.left}" y2="${chart.bottom}" class="axis"/>
   <line x1="${chart.right}" y1="${chart.top}" x2="${chart.right}" y2="${chart.bottom}" class="axis"/>
   <line x1="${chart.left}" y1="${chart.bottom}" x2="${chart.right}" y2="${chart.bottom}" class="axis"/>
