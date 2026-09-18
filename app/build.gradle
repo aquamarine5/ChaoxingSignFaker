@@ -27,8 +27,9 @@ stackbricksConfig {
             new PossibleConfigurationPath("cdn.aquamarine5.fun", "chaoxingsignfaker_stackbricks_v2_manifest.json")
     ]
     changelog =
-            "暑假的时候作者还在积极更新！带来一个更好的随地大小签\n以下是暑假期间以及最近的新版本更新内容：\n" +
-                    "# 1.18.3 更新：\n1. 支持修改学校机构。\n2. 测试性的会根据学习通账号关联的课程表来推断签到事件。\n3. 优化并修复了已知问题。\n\n"+
+            "由于最近学习通更新频繁，导致随地大小签也需要频繁更新，请大家及时更新哦！以下是更新日志：\n" +
+                    "# 1.19.0 更新：\n1. <b><u>非！常！抱！歉！昨天晚上的更新导致部分用户在打开应用时直接卡死崩溃！更新此版本即可修复！如果你现在打不开设置页进行更新，可以等待下课后打开即可正常更新，本次问题造成的不便作者深表歉意。</u></b>\n\n" +
+                    "# 1.18.3 更新：\n1. 支持修改学校机构。\n2. 测试性的会根据学习通账号关联的课程表来推断签到事件。\n3. 优化并修复了已知问题。\n\n" +
                     "# 1.18.2 更新：\n1. 因为拍照签到时重复上传同一张照片在教师端会被检测出来并警告，现将拍照签到的图片统一进行风格化处理后再上传，感谢 <u>@crispypotatocake</u> 发现问题。\n2. 修复了极少数设备上打开设置页崩溃的问题。\n3. 优化了群组签到列表页。\n4. 修复了克隆用户时返回页面可能导致异常或崩溃的问题。\n\n" +
                     "# 1.18.1 更新：\n1. <b>重要 由于学习通更新，修复了需要位置信息的二维码签到无法签到的问题，同时支持了签到码和手势签到的位置信息功能。</b>\n2. 现在的验证码会通过AI自动完成了，感谢 <u>@0x77786d</u> 提供的模型支持。\n3. 测试性的加入了收藏签到位置的功能。\n\n" +
                     "# 1.17.* 更新：\n1. 支持存储自己和代签用户的人脸识别照片，就不用每次自己找了。\n2. 没有代签用户的人脸识别照片时，可以自动获取一张用于签到。\n3. 现在自己的代签二维码会附带自己的人脸识别照片，重新扫描其他人的新版本二维码时会把你的照片下载到他的设备上存储。\n4. 修复了超级多Bug。\n\n" +
@@ -36,7 +37,7 @@ stackbricksConfig {
                     "# 1.15.* 更新：\n1. 支持克隆登录代签用户的账号以给他有你没有的课程签到。\n\n" +
                     "<g>lovely but not lonely, 20260910 life need pompompurin, @aquamarine5 Brainspark.</g>"
     requiredManifestVersion2MigrateForceInstall = true
-    forceInstallLessVersion = 1_1803_5555
+    forceInstallLessVersion = 1_1900_6000
     qiniuConfig {
         accessKey = project.findProperty("qiniu.accessKey") ?: ""
         secretKey = project.findProperty("qiniu.secretKey") ?: ""
@@ -57,8 +58,8 @@ android {
         applicationId = "org.aquamarine5.brainspark.chaoxingsignfaker"
         minSdk = 26
         targetSdk = 37
-        versionCode = 1_1803_6666
-        versionName = "1.18.3-stable-260918"
+        versionCode = 1_1900_6766
+        versionName = "1.19.0-stable-260918"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
