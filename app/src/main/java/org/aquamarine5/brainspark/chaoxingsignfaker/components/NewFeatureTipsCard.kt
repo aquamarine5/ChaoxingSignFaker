@@ -88,14 +88,13 @@ fun NewFeatureTipsCard(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween,
                     modifier = Modifier.padding(
-                        11.dp, 8.dp
+                        16.dp, 8.dp
                     )
                 ) {
                     Icon(
                         painterResource(R.drawable.ic_sparkles),
                         null,
-                        tint = Color.Gray,
-                        modifier = Modifier.padding(horizontal = 4.dp)
+                        tint = Color.Gray
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Box(modifier = Modifier.weight(1f)) {
