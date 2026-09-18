@@ -18,7 +18,7 @@
  </a>
 </p>
 
-> [!CAUTION]
+> [!NOTE]
 > 很抱歉在2026-9-18凌晨发布的`1.18.3-stable`在打开主页面时遇到的崩溃问题，影响了程序的正常使用，请所有还在使用`1.18.3-stable`的版本更新到[`1.19.0-stable`](https://github.com/aquamarine5/ChaoxingSignFaker/releases/tag/1.19.0-stable)。为此造成的不便作者深表歉意，在后续的版本更新中会加强代码测试环境，避免此类恶性事件的再次发生。
 
 > [!CAUTION]
