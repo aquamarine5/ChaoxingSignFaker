@@ -37,6 +37,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingFaceSignEx
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingParseDataException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.checkResponseThrowException
+import java.util.Locale
 import java.util.UUID
 import kotlin.time.Duration.Companion.seconds
 
@@ -209,8 +210,14 @@ abstract class ChaoxingSigner(
         addQueryParameter(
             parameterName, JSONObject()
                 .fluentPut("result", 1)
-                .fluentPut("latitude", "%.6f".format(position.latitude).toDouble())
-                .fluentPut("longitude", "%.6f".format(position.longitude).toDouble())
+                .fluentPut(
+                    "latitude",
+                    "%.6f".format(Locale.US, position.latitude).toDouble()
+                )
+                .fluentPut(
+                    "longitude",
+                    "%.6f".format(Locale.US, position.longitude).toDouble()
+                )
                 .fluentPut("address", position.address)
                 .apply {
                     if (isMockData) {

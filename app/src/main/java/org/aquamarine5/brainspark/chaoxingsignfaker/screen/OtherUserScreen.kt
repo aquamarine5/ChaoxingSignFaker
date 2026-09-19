@@ -89,6 +89,7 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -184,9 +185,10 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.checkPredictable
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.displaySnackbar
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.isDevelopedMode
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
-import sh.calvin.reorderable.ReorderableColumn
 import sh.calvin.reorderable.DragGestureDetector
+import sh.calvin.reorderable.ReorderableColumn
 import kotlin.random.Random
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
 @Serializable
@@ -291,8 +293,8 @@ fun OtherUserScreen(
     val pageScrollState = rememberScrollState()
     val pageScrollBounds = remember { mutableStateOf(Rect.Zero) }
     var pageAutoScrollJob by remember { mutableStateOf<Job?>(null) }
-    var pageAutoScrollDirection by remember { mutableStateOf(0) }
-    var pageAutoScrollStartedAt by remember { mutableStateOf(0L) }
+    var pageAutoScrollDirection by remember { mutableIntStateOf(0) }
+    var pageAutoScrollStartedAt by remember { androidx.compose.runtime.mutableLongStateOf(0L) }
     val pageScrollThreshold = with(LocalDensity.current) { 64.dp.toPx() }
     fun stopPageAutoScroll() {
         pageAutoScrollJob?.cancel()
@@ -322,7 +324,7 @@ fun OtherUserScreen(
                 val scrollDelta = pageScrollState.scrollBy(direction * scrollAmount)
                 if (scrollDelta == 0f) break
                 onScrolled(scrollDelta)
-                delay(16)
+                delay(16.milliseconds)
             }
         }
     }
@@ -1448,10 +1450,31 @@ fun OtherUserScreen(
         var isSchoolSectionExpanded by remember(settingsPhoneNumber) { mutableStateOf(false) }
         var isSchoolExpanded by remember(settingsPhoneNumber) { mutableStateOf(false) }
         var isLoadingSchools by remember(settingsPhoneNumber) { mutableStateOf(false) }
-        var schoolLoadAttempt by remember(settingsPhoneNumber) { mutableStateOf(0) }
+        var schoolLoadAttempt by remember(settingsPhoneNumber) { androidx.compose.runtime.mutableIntStateOf(0) }
         var isTagsSectionExpanded by remember(settingsPhoneNumber) { mutableStateOf(false) }
         var isFacePhotoSectionExpanded by remember(settingsPhoneNumber) { mutableStateOf(false) }
+        var isShareOtherUserExpanded by remember(settingsPhoneNumber) { mutableStateOf(false) }
+        var shareOtherUserQrCode by remember(settingsPhoneNumber) { mutableStateOf<Bitmap?>(null) }
         val settingsLazyListState = rememberLazyListState()
+        LaunchedEffect(settingsPhoneNumber, isShareOtherUserExpanded) {
+            if (!isShareOtherUserExpanded) return@LaunchedEffect
+            if (shareOtherUserQrCode != null) return@LaunchedEffect
+            val sessionIndex = selectedUserSettingDialogIndex ?: return@LaunchedEffect
+            val session = otherUserSessions.getOrNull(sessionIndex) ?: return@LaunchedEffect
+            shareOtherUserQrCode = runCatching {
+                ChaoxingOtherUserHelper.generateQRCode(
+                    context,
+                    ChaoxingOtherUserSharedEntity(
+                        session.phoneNumber,
+                        session.password,
+                        session.name
+                    ),
+                    emptyList()
+                )
+            }.onFailure {
+                it.snackbarReport(snackbarHost, coroutineScope, "生成二维码失败", hapticFeedback)
+            }.getOrNull()
+        }
         val modifiedTagIndexList = remember(selectedUserSettingDialogIndex) {
             List(tagsEntityList.size) {
                 mutableStateOf(userTagList[selectedUserSettingDialogIndex!!].value.any { tagEntity ->
@@ -1787,6 +1810,53 @@ fun OtherUserScreen(
                                     ) {
                                         Text("重新加载学校单位")
                                     }
+                                }
+                            }
+                        }
+                        item {
+                            Spacer(modifier = Modifier.height(12.dp))
+                            CollapsibleSettingsSection(
+                                title = "分享此代签用户",
+                                expanded = isShareOtherUserExpanded,
+                                enabled = !isSavingDatastore,
+                                onToggle = {
+                                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                                    isShareOtherUserExpanded = !isShareOtherUserExpanded
+                                }
+                            ) {
+                                Column(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .aspectRatio(1f)
+                                            .border(
+                                                BorderStroke(2.dp, MaterialTheme.colorScheme.primary),
+                                                shape = RoundedCornerShape(9.dp)
+                                            )
+                                            .padding(9.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Crossfade(shareOtherUserQrCode) { v ->
+                                            if (v != null) {
+                                                Image(
+                                                    bitmap = v.asImageBitmap(),
+                                                    contentDescription = "QR Code",
+                                                    modifier = Modifier.fillMaxSize()
+                                                )
+                                            }
+                                        }
+                                    }
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        "使用其他设备打开随地大小签扫描二维码以添加该代签用户",
+                                        fontSize = 12.sp,
+                                        lineHeight = 14.sp,
+                                        textAlign = TextAlign.Center,
+                                        color = Color.Gray
+                                    )
                                 }
                             }
                         }

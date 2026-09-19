@@ -32,6 +32,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.ImageLoader
@@ -83,12 +84,18 @@ fun CourseInfoColumnCard(
                         fontWeight = FontWeight.Bold
                     )
                     if (!course.teacherName.isNullOrBlank()) {
-                        Text(remember(course) { course.teacherName.replace("\n", "") })
+                        Text(
+                            remember(course) { course.teacherName.replace("\n", "") },
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
                     }
                     if (!course.schools.isNullOrBlank()) {
                         Text(
                             remember(course) { course.schools.replace("\n", "") },
-                            fontSize = 12.sp
+                            fontSize = 12.sp,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                 }

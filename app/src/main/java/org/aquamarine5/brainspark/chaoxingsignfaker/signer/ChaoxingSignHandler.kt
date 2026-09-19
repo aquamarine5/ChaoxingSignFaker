@@ -91,9 +91,9 @@ class ChaoxingSignHandler<in T>(
         coroutineScope.launch {
             if (isSelf) {
                 signStatus[0].loading()
-                onSelfSigning(value).onSuccess {
-                    isCaptchaSigning = it.isCaptchaSigning
-                    if (it.isCaptchaSigning && it.isCaptchaResolvedByModel)
+                onSelfSigning(value).onSuccess { signResult ->
+                    isCaptchaSigning = signResult.isCaptchaSigning
+                    if (signResult.isCaptchaSigning && signResult.isCaptchaResolvedByModel)
                         signStatus[0].markCaptchaResolvedByModel()
                     userSelections[0] = false
                     faceRecognitionData?.markSuccess(selfPhoneNumber, otherUserSessionList)
@@ -106,22 +106,22 @@ class ChaoxingSignHandler<in T>(
                         onAllSigningFinished(true)
                     }
                     onSigningFinished(value, ChaoxingHttpClient.instance!!.userEntity.name, false)
-                }.onFailure {
-                    if (it is ChaoxingFaceSignException)
+                }.onFailure { throwable ->
+                    if (throwable is ChaoxingFaceSignException)
                         faceRecognitionData?.markFailure(selfPhoneNumber, otherUserSessionList)
                     faceRecognitionData?.reportUsage(
                         context,
                         selfPhoneNumber,
-                        it is ChaoxingFaceSignException
+                        throwable is ChaoxingFaceSignException
                     )
-                    signStatus[0].failed(it)
-                    it.ifShouldDeselect {
+                    signStatus[0].failed(throwable)
+                    throwable.ifShouldDeselect {
                         userSelections[0] = false
                     }
-                    if (it is QRCodeExpiredException) {
+                    if (throwable is QRCodeExpiredException) {
                         for (i in otherUserSessionList.indices) {
                             if (otherUserSessionList[i] != null)
-                                signStatus[i + 1].failed(it)
+                                signStatus[i + 1].failed(throwable)
                         }
                         snackbarHost.displaySnackbar(
                             "签到二维码已过期，请重新扫码",
@@ -131,8 +131,8 @@ class ChaoxingSignHandler<in T>(
                         onAllSigningFinished(false)
                         return@launch
                     } else {
-                        if (it !is ChaoxingCaptchaCancelledException) {
-                            it.snackbarReport(
+                        if (throwable !is ChaoxingCaptchaCancelledException) {
+                            throwable.snackbarReport(
                                 snackbarHost,
                                 coroutineScope,
                                 "为${ChaoxingHttpClient.instance!!.userEntity.name}签到失败",

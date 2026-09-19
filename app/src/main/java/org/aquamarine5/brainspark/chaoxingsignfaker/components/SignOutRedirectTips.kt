@@ -52,8 +52,8 @@ fun SignOutRedirectTips(
             ChaoxingActivityHelper.SignRedirectStatus.SIGN_OUT
         } else if (signOffPublishTime != null) {
             if (signOffId == null)
-                ChaoxingActivityHelper.SignRedirectStatus.SIGN_IN_UNPUBLISHED
-            else ChaoxingActivityHelper.SignRedirectStatus.SIGN_IN_PUBLISHED
+                ChaoxingActivityHelper.SignRedirectStatus.SIGN_IN_BUT_SIGN_OUT_UNPUBLISHED
+            else ChaoxingActivityHelper.SignRedirectStatus.SIGN_IN_AND_SIGN_OUT_PUBLISHED
         } else {
             ChaoxingActivityHelper.SignRedirectStatus.COMMON
         }
@@ -82,7 +82,7 @@ fun SignOutRedirectTips(
                         }
                     }
                 },
-                enabled = status != ChaoxingActivityHelper.SignRedirectStatus.SIGN_IN_UNPUBLISHED,
+                enabled = status != ChaoxingActivityHelper.SignRedirectStatus.SIGN_IN_BUT_SIGN_OUT_UNPUBLISHED,
                 shape = RoundedCornerShape(18.dp),
                 colors = CardDefaults.cardColors(
                     containerColor = Color(0xFF813C85),
@@ -117,8 +117,8 @@ fun SignOutRedirectTips(
                     Text(
                         when (status) {
                             ChaoxingActivityHelper.SignRedirectStatus.SIGN_OUT -> "这是一个签退活动，请确保已经签到了本签退活动的主签到活动。\n点击跳转到主签到活动进行签到。"
-                            ChaoxingActivityHelper.SignRedirectStatus.SIGN_IN_PUBLISHED -> "此签到已发布签退活动。\n点击跳转到签退活动进行签退。"
-                            ChaoxingActivityHelper.SignRedirectStatus.SIGN_IN_UNPUBLISHED -> "此签到活动设置了签退活动，将在${
+                            ChaoxingActivityHelper.SignRedirectStatus.SIGN_IN_AND_SIGN_OUT_PUBLISHED -> "此签到已发布签退活动。\n点击跳转到签退活动进行签退。"
+                            ChaoxingActivityHelper.SignRedirectStatus.SIGN_IN_BUT_SIGN_OUT_UNPUBLISHED -> "此签到活动设置了签退活动，将在${
                                 dateFormatter.format(Date(signOffPublishTime!!))
                             }发布，请发布后及时签退。"
                         }, color = Color.White,

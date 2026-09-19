@@ -86,6 +86,8 @@ object ChaoxingAnalyser {
         }
     }
 
+    private val jsonParser = Json { ignoreUnknownKeys = true }
+
     suspend fun getAnalyserTopRank(topCount: Int): Result<List<ChaoxingAnalyserRankRecord>> {
         return withContext(Dispatchers.IO) {
             runCatching {
@@ -108,7 +110,7 @@ object ChaoxingAnalyser {
                 ).execute().use { response ->
                     response.checkResponseThrowException()
                     val responseBody = response.body.string()
-                    Json { ignoreUnknownKeys = true }
+                    jsonParser
                         .decodeFromString<List<ChaoxingAnalyserRankRecord>>(responseBody)
                 }
             }

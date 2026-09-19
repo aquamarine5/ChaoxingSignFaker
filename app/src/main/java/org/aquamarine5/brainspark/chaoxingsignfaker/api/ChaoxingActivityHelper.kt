@@ -25,9 +25,9 @@ import kotlin.time.Duration.Companion.minutes
 object ChaoxingActivityHelper {
     enum class SignRedirectStatus {
         COMMON,
-        SIGN_IN_PUBLISHED,
+        SIGN_IN_AND_SIGN_OUT_PUBLISHED,
         SIGN_OUT,
-        SIGN_IN_UNPUBLISHED
+        SIGN_IN_BUT_SIGN_OUT_UNPUBLISHED
     }
 
     private val URL_ACTIVITY_LOAD =
@@ -52,25 +52,24 @@ object ChaoxingActivityHelper {
         ).execute().use {
             it.checkResponseThrowException()
             val jsonResult = JSONObject.parseObject(it.body.string()).getJSONObject("data")
-            val nowTimeMillis = System.currentTimeMillis()
-            jsonResult.getJSONArray("activeList").asSequence().map { activity ->
-                activity as JSONObject
-            }.firstOrNull { activity ->
+            (jsonResult.getJSONArray("activeList") ?: return@withContext null).asSequence()
+                .map { activity ->
+                    activity as JSONObject
+                }.firstOrNull { activity ->
                 (activity.getInteger("type") == 2 || activity.getInteger("type") == 74) &&
                         activity.getInteger("status") == 1 &&
-                        activity.getLong("startTime") + AVAILABLE_INTERVAL > nowTimeMillis
+                        activity.getLong("startTime") + AVAILABLE_INTERVAL > System.currentTimeMillis()
             }?.let { activity ->
-                val destination = CoroutineScope(Dispatchers.IO).async(
-                    start = CoroutineStart.LAZY
-                ) {
-                    ChaoxingSignHelper.getRedirectDestination(
-                        activity.getLong("id"),
-                        classId,
-                        courseId
-                    )
-                }
                 RecommendActivityEntity(
-                    destination,
+                    CoroutineScope(Dispatchers.IO).async(
+                        start = CoroutineStart.LAZY
+                    ) {
+                        ChaoxingSignHelper.getRedirectDestination(
+                            activity.getLong("id"),
+                            classId,
+                            courseId
+                        )
+                    },
                     activity.getLong("startTime"),
                     ChaoxingCourseHelper.queryClassName(client, classId),
                     classId,
