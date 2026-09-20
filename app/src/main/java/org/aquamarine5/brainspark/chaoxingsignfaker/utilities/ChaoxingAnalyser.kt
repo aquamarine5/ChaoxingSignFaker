@@ -13,7 +13,6 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.listSaver
 import com.alibaba.fastjson2.JSONArray
-import io.sentry.Sentry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
@@ -25,6 +24,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingSignFakerDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingAnalyserRankAnalysis
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingAnalyserRankRecord
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.sentryReport
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import kotlin.uuid.ExperimentalUuidApi
@@ -216,7 +216,7 @@ object ChaoxingAnalyser {
                             setLastUploadAnalysisTimestamp(System.currentTimeMillis())
                         }.onFailure {
                             it.printStackTrace()
-                            Sentry.captureException(it)
+                            it.sentryReport()
                             withContext(Dispatchers.Main) {
                                 Toast.makeText(
                                     context,

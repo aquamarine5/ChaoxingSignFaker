@@ -202,6 +202,8 @@ fun CourseListScreen(
                         ChaoxingHttpClient.getClientInstanceOrClone(destination.isCloneSession)
                             ?.let { ChaoxingLessonHelper.refreshLessons(it, context) }
                     }
+                }.onFailure {
+                    it.snackbarReport(snackbarHost, coroutineScope, "刷新课表失败", hapticFeedback)
                 }
             }
             if (activitiesData.isEmpty()) {

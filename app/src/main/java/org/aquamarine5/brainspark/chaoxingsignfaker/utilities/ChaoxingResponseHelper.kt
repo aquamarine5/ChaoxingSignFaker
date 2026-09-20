@@ -6,6 +6,7 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.utilities
 
+import android.content.ActivityNotFoundException
 import android.content.Context
 import android.os.NetworkOnMainThreadException
 import android.widget.Toast
@@ -122,7 +123,7 @@ fun Throwable.toastReport(
             Toast.LENGTH_LONG
         ).show()
     } else if (this !is ChaoxingPredictableException) {
-        Sentry.captureException(this)
+        sentryReport()
         Toast.makeText(
             context,
             "${prefixTips?.plus(" ") ?: ""}预期外错误:${this.getPredictableMessage()}",
@@ -167,7 +168,7 @@ fun Throwable.snackbarReport(
             }
         }
     } else if (this !is ChaoxingPredictableException) {
-        Sentry.captureException(this)
+        sentryReport()
         if (shouldDismiss)
             snackbarHostState?.currentSnackbarData?.dismiss()
         coroutineScope.launch {
@@ -210,6 +211,14 @@ fun Throwable.snackbarReport(
             }
         }
     }
+}
+
+fun Throwable.sentryReport() {
+    if (this is CancellationException) throw this
+    if (this is ChaoxingPredictableException) return
+    if (this is ActivityNotFoundException) return
+    if (getNetworkExceptionMessage() != null) return
+    Sentry.captureException(this)
 }
 
 fun Throwable.ifShouldDeselect(action: () -> Unit) {

@@ -89,7 +89,6 @@ import coil3.request.crossfade
 import com.baidu.location.LocationClient
 import com.baidu.mapapi.SDKInitializer
 import com.umeng.analytics.MobclickAgent
-import io.sentry.Sentry
 import io.sentry.android.core.SentryAndroid
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -147,6 +146,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostS
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.isDevelopedMode
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.sentryReport
 import org.aquamarine5.brainspark.stackbricks.StackbricksPolicy
 import org.aquamarine5.brainspark.stackbricks.StackbricksService
 import org.aquamarine5.brainspark.stackbricks.providers.qiniu.QiniuConfiguration
@@ -299,7 +299,7 @@ class MainActivity : ComponentActivity() {
                                                             }
                                                         }
                                                     }.onFailure {
-                                                        Sentry.captureException(it)
+                                                        it.sentryReport()
                                                         it.printStackTrace()
                                                     }
                                                 }
@@ -454,6 +454,8 @@ class MainActivity : ComponentActivity() {
                                                                 ChaoxingAnalyser.checkAndUploadAnalyserRankData(
                                                                     applicationContext
                                                                 )
+                                                            }.onFailure {
+                                                                it.sentryReport()
                                                             }
                                                         }
                                                         launch {

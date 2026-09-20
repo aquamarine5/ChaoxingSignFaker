@@ -15,7 +15,6 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.alibaba.fastjson2.JSONObject
-import io.sentry.Sentry
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -44,6 +43,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.checkPredictable
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.checkResponseThrowException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.displaySnackbar
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.requirePredictable
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.sentryReport
 import java.security.MessageDigest
 import java.util.Base64
 import java.util.UUID
@@ -399,7 +399,7 @@ class ChaoxingHttpClient private constructor(
                                         ).show()
                                     }
                                     if (it !is PackageManager.NameNotFoundException)
-                                        Sentry.captureException(it)
+                                        it.sentryReport()
                                     get()
                                 }
                             }
@@ -679,6 +679,7 @@ class ChaoxingHttpClient private constructor(
             }
             return true
         }.getOrElse {
+            it.sentryReport()
             return false
         }
     }

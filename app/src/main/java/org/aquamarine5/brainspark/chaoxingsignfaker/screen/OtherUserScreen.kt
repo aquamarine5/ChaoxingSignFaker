@@ -146,7 +146,6 @@ import androidx.compose.ui.zIndex
 import coil3.compose.AsyncImage
 import com.github.skydoves.colorpicker.compose.HsvColorPicker
 import com.github.skydoves.colorpicker.compose.rememberColorPickerController
-import io.sentry.Sentry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -177,13 +176,13 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingImportOtherUs
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingOtherUserSharedEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ImportOtherUserResult
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.getResultTips
-import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingPredictableException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.checkPredictable
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.displaySnackbar
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.isDevelopedMode
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.sentryReport
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
 import sh.calvin.reorderable.DragGestureDetector
 import sh.calvin.reorderable.ReorderableColumn
@@ -1422,9 +1421,7 @@ fun OtherUserScreen(
                             repairSessionIndex = null
                         }.onFailure {
                             hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
-                            if (it !is ChaoxingPredictableException) {
-                                Sentry.captureException(it)
-                            }
+                            it.sentryReport()
                             errorMessage = "登录失败：" + (it.message ?: "未知错误")
                         }
                     }
@@ -2987,6 +2984,7 @@ fun OtherUserScreen(
                             isQRCodeScanPause.value = true
                             return@runCatching ChaoxingOtherUserSharedEntity.parseFromQRCode(qr)
                         }.onFailure { failure ->
+                            failure.sentryReport()
                             isQRCodeIllegal = true
                             isQRCodeParsing.value = false
                             hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
@@ -3035,6 +3033,7 @@ fun OtherUserScreen(
                                         }
                                     }
                                 }.onFailure { failure ->
+                                    failure.sentryReport()
                                     isQRCodeIllegal = true
                                     isQRCodeParsing.value = false
                                     hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)

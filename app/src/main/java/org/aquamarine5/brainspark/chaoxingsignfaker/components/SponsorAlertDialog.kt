@@ -66,6 +66,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.ui.theme.FontGilroy
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.displaySnackbar
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.sentryReport
 import java.io.File
 
 
@@ -105,6 +106,7 @@ fun SponsorAlertDialog(onDismissRequest: () -> Unit) {
                     }
                 }
             }.onFailure {
+                it.sentryReport()
                 snackbarState.displaySnackbar("加载捐赠列表失败", coroutineScope)
             }
         }
@@ -222,6 +224,7 @@ fun SponsorAlertDialog(onDismissRequest: () -> Unit) {
                                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                                 })
                         }.onFailure {
+                            it.sentryReport()
                             snackbarState.displaySnackbar(
                                 "无法打开微信，请确保已安装微信",
                                 coroutineScope

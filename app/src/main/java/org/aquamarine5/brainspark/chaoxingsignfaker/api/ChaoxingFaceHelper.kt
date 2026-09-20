@@ -9,7 +9,6 @@ package org.aquamarine5.brainspark.chaoxingsignfaker.api
 import android.content.Context
 import android.graphics.Bitmap
 import com.alibaba.fastjson2.JSONObject
-import io.sentry.Sentry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
@@ -24,6 +23,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.StoredData
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.checkResponseThrowException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.checkThrowFaceException
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.sentryReport
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.storedData
 import java.io.File
 import java.security.MessageDigest
@@ -104,7 +104,7 @@ object ChaoxingFaceHelper {
                         addSignToken(clientId, fields, cxtime)
                     }
                 }.onFailure {
-                    Sentry.captureException(it)
+                    it.sentryReport()
                 }
             }
     }
