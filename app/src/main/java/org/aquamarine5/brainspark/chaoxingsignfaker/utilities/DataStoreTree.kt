@@ -33,8 +33,11 @@ sealed interface DataStoreTreeNode {
         val isDeprecated: Boolean = false
     ) : DataStoreTreeNode
 
-    data class Group(override val title: String, val children: List<DataStoreTreeNode>) :
-        DataStoreTreeNode
+    data class Group(
+        override val title: String,
+        val children: List<DataStoreTreeNode>,
+        val isDeprecated: Boolean = false
+    ) : DataStoreTreeNode
 }
 
 private const val LIST_SUFFIX = "List"
@@ -57,6 +60,11 @@ fun buildDataStoreTree(message: MessageLite): List<DataStoreTreeNode> {
         else if (method.name.startsWith("get")) getters[method.name] = method
     }
     val nodes = mutableListOf<DataStoreTreeNode>()
+    val deprecatedMethods = message.javaClass.declaredMethods
+        .asSequence()
+        .filter { it.isAnnotationPresent(Deprecated::class.java) }
+        .map { it.name }
+        .toSet()
     getters.forEach { (getterName, getter) ->
         val suffix = getterName.substring(3)
         val value = invokeGetter(getter, message) ?: return@forEach
@@ -65,27 +73,42 @@ fun buildDataStoreTree(message: MessageLite): List<DataStoreTreeNode> {
                     !suffix.endsWith(OR_BUILDER_LIST_SUFFIX) &&
                     suffix != LIST_SUFFIX &&
                     value is List<*> -> {
-                val name = fieldName(suffix.dropLast(LIST_SUFFIX.length))
+                val base = suffix.dropLast(LIST_SUFFIX.length)
+                val name = fieldName(base)
+                val isDeprecated = deprecatedMethods.contains("get${base}List") ||
+                        deprecatedMethods.contains("get${base}Count") ||
+                        deprecatedMethods.contains("get$base")
                 val children = value.mapIndexed { index, element ->
                     element.toDataStoreTreeNode(index.toString(), isElement = true)
                 }
                 nodes.add(
-                    if (children.isEmpty()) DataStoreTreeNode.Value(name, "[]")
-                    else DataStoreTreeNode.Group("$name[${children.size}]", children)
+                    if (children.isEmpty()) DataStoreTreeNode.Value(name, "[]", isDeprecated)
+                    else DataStoreTreeNode.Group(
+                        "$name[${children.size}]",
+                        children,
+                        isDeprecated
+                    )
                 )
             }
 
             suffix.endsWith(MAP_SUFFIX) &&
                     suffix != MAP_SUFFIX &&
-                    !getter.isAnnotationPresent(Deprecated::class.java) &&
                     value is Map<*, *> -> {
-                val name = fieldName(suffix.dropLast(MAP_SUFFIX.length))
+                val base = suffix.dropLast(MAP_SUFFIX.length)
+                val name = fieldName(base)
+                val isDeprecated = deprecatedMethods.contains("get${base}Map") ||
+                        deprecatedMethods.contains("get${base}Count") ||
+                        deprecatedMethods.contains("get$base")
                 val children = value.entries.map { (key, entryValue) ->
                     entryValue.toDataStoreTreeNode(key.toString(), isElement = true)
                 }
                 nodes.add(
-                    if (children.isEmpty()) DataStoreTreeNode.Value(name, "{}")
-                    else DataStoreTreeNode.Group("$name[${children.size}]", children)
+                    if (children.isEmpty()) DataStoreTreeNode.Value(name, "{}", isDeprecated)
+                    else DataStoreTreeNode.Group(
+                        "$name[${children.size}]",
+                        children,
+                        isDeprecated
+                    )
                 )
             }
 
@@ -97,7 +120,7 @@ fun buildDataStoreTree(message: MessageLite): List<DataStoreTreeNode> {
                 if (isPresent) nodes.add(
                     value.toDataStoreTreeNode(
                         fieldName(suffix),
-                        isDeprecated = getter.isAnnotationPresent(Deprecated::class.java)
+                        isDeprecated = deprecatedMethods.contains(getter.name)
                     )
                 )
             }
@@ -114,9 +137,9 @@ private fun Any?.toDataStoreTreeNode(
     if (this is MessageLite) {
         val children = buildDataStoreTree(this)
         when {
-            children.isEmpty() -> DataStoreTreeNode.Value(title, "{}")
-            isElement -> DataStoreTreeNode.Group(title, children)
-            else -> DataStoreTreeNode.Group("$title {...}", children)
+            children.isEmpty() -> DataStoreTreeNode.Value(title, "{}", isDeprecated)
+            isElement -> DataStoreTreeNode.Group(title, children, isDeprecated)
+            else -> DataStoreTreeNode.Group("$title {...}", children, isDeprecated)
         }
     } else {
         DataStoreTreeNode.Value(title, this.toString(), isDeprecated)

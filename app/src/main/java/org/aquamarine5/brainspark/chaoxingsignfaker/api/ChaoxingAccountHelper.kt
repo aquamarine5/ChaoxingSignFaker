@@ -6,8 +6,43 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.api
 
+import android.content.Context
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.requirePredictable
+import java.io.File
+
 object ChaoxingAccountHelper {
     fun getAvatarUrl(uid: Int): String {
         return "https://photo.chaoxing.com/p/${uid}_120?flag=1&psize=120_120c&ext=jpg&t=${System.currentTimeMillis()}"
     }
+
+    private const val AVATAR_CACHE_TIMEOUT = 24L * 60L * 60L * 1000L
+
+    suspend fun getCachedAvatar(context: Context, key: String, url: String): Any =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val avatarFile = File(context.cacheDir.resolve("avatar_cache"), "$key.jpg")
+                if (avatarFile.exists() &&
+                    avatarFile.length() > 0 &&
+                    System.currentTimeMillis() - avatarFile.lastModified() < AVATAR_CACHE_TIMEOUT
+                ) {
+                    return@withContext avatarFile
+                }
+                avatarFile.parentFile?.mkdirs()
+                val client = ChaoxingHttpClient.instance?.okHttpClient ?: OkHttpClient()
+                client.newCall(Request.Builder().url(url).build()).execute().use { response ->
+                    requirePredictable(response.isSuccessful) { "Fetch avatar failed: ${response.code}" }
+                    response.body.byteStream().use { input ->
+                        avatarFile.outputStream().use { output ->
+                            input.copyTo(output)
+                        }
+                    }
+                }
+                avatarFile.setLastModified(System.currentTimeMillis())
+                avatarFile
+            }.getOrNull() ?: url
+        }
 }

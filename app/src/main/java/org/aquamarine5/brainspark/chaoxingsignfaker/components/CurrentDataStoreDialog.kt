@@ -174,7 +174,7 @@ private fun DataStoreTreeNodeGroupRow(
             Spacer(modifier = Modifier.width(INDENTATION_WIDTH - INDICATOR_SIZE))
             Text(
                 text = node.title,
-                style = textStyle,
+                style = textStyle.copy(textDecoration = if (node.isDeprecated) TextDecoration.LineThrough else TextDecoration.None),
                 softWrap = false,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

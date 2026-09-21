@@ -905,8 +905,22 @@ fun OtherUserSelectorComponent(
                             )
                             userSelections[0] = userSelections[0].not()
                         }, verticalAlignment = Alignment.CenterVertically) {
+                            val selfEntity = ChaoxingHttpClient.instance?.userEntity
+                            var selfAvatarModel by remember {
+                                mutableStateOf<Any?>(
+                                    null
+                                )
+                            }
+                            LaunchedEffect(selfEntity?.uid, selfEntity?.pic) {
+                                val entity = selfEntity ?: return@LaunchedEffect
+                                selfAvatarModel = ChaoxingAccountHelper.getCachedAvatar(
+                                    context,
+                                    "self_${entity.uid}",
+                                    entity.pic
+                                )
+                            }
                             AsyncImage(
-                                model = ChaoxingHttpClient.instance?.userEntity?.pic,
+                                model = selfAvatarModel,
                                 imageLoader = imageLoader,
                                 contentDescription = "头像",
                                 contentScale = ContentScale.Crop,
@@ -1026,19 +1040,23 @@ fun OtherUserSelectorComponent(
                                     userSelections[i] = userSelections[i].not()
                                     updateTagClickState()
                                 }, verticalAlignment = Alignment.CenterVertically) {
-                                    var otherUserAvatarUrl by remember {
-                                        mutableStateOf<String?>(
+                                    var otherUserAvatarModel by remember {
+                                        mutableStateOf<Any?>(
                                             null
                                         )
                                     }
                                     LaunchedEffect(session) {
                                         session.getSessionUid(context)?.let { uid ->
-                                            otherUserAvatarUrl =
-                                                ChaoxingAccountHelper.getAvatarUrl(uid)
+                                            otherUserAvatarModel =
+                                                ChaoxingAccountHelper.getCachedAvatar(
+                                                    context,
+                                                    uid.toString(),
+                                                    ChaoxingAccountHelper.getAvatarUrl(uid)
+                                                )
                                         }
                                     }
                                     AsyncImage(
-                                        model = otherUserAvatarUrl,
+                                        model = otherUserAvatarModel,
                                         imageLoader = imageLoader,
                                         contentDescription = "头像",
                                         contentScale = ContentScale.Crop,
