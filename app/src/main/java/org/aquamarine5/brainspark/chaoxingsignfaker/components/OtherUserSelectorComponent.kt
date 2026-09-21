@@ -788,7 +788,7 @@ fun OtherUserSelectorComponent(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(0.dp, 1.dp, 8.dp, 16.dp)
+                        .padding(0.dp, 1.dp, 8.dp, 11.dp)
                 ) {
                     Row {
                         if (tagEntities != null && tagContainedUserIndexList != null)
@@ -893,9 +893,9 @@ fun OtherUserSelectorComponent(
                                 enabled = (success == true).not(),
                                 modifier = Modifier.padding(
                                     start = 3.dp,
-                                    end = 12.dp,
-                                    top = 9.dp,
-                                    bottom = 9.dp
+                                    end = 14.dp,
+                                    top = 11.dp,
+                                    bottom = 11.dp
                                 )
                             )
                         }
@@ -928,7 +928,7 @@ fun OtherUserSelectorComponent(
                                     .size(30.dp)
                                     .clip(RoundedCornerShape(5.dp))
                             )
-                            Spacer(modifier = Modifier.width(8.dp))
+                            Spacer(modifier = Modifier.width(10.dp))
                             Column {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Text(
@@ -1027,9 +1027,9 @@ fun OtherUserSelectorComponent(
                                         enabled = (successForOtherUser == true).not(),
                                         modifier = Modifier.padding(
                                             start = 3.dp,
-                                            end = 12.dp,
-                                            top = 9.dp,
-                                            bottom = 9.dp
+                                            end = 14.dp,
+                                            top = 11.dp,
+                                            bottom = 11.dp
                                         )
                                     )
                                 }
@@ -1064,7 +1064,7 @@ fun OtherUserSelectorComponent(
                                             .size(30.dp)
                                             .clip(RoundedCornerShape(5.dp))
                                     )
-                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Spacer(modifier = Modifier.width(10.dp))
                                     Column {
                                         Row(verticalAlignment = Alignment.CenterVertically) {
                                             Text(
