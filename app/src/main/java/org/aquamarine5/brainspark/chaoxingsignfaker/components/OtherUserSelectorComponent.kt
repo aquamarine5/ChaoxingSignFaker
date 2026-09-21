@@ -55,12 +55,14 @@ import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.derivedStateOf
@@ -94,6 +96,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
@@ -779,14 +782,13 @@ fun OtherUserSelectorComponent(
                 Spacer(modifier = Modifier.height(6.dp))
 
                 Text(
-                    "选择要进行签到的用户：",
-                    modifier = Modifier.padding(start = 3.dp),
+                    "选择要签到的用户：",
                     fontWeight = FontWeight.Bold
                 )
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(0.dp, 4.dp, 8.dp, 16.dp)
+                        .padding(0.dp, 1.dp, 8.dp, 16.dp)
                 ) {
                     Row {
                         if (tagEntities != null && tagContainedUserIndexList != null)
@@ -881,21 +883,28 @@ fun OtherUserSelectorComponent(
                             .padding(vertical = 4.dp)
                             .onGloballyPositioned { userRowCoordinates[0] = it }
                     ) {
-                        Checkbox(
-                            checked = userSelections[0] && signStatus[0].isSuccess.value != true,
-                            onCheckedChange = { isChecked ->
-                                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                                userSelections[0] = isChecked
-                            },
-                            enabled = (success == true).not()
-                        )
+                        CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
+                            Checkbox(
+                                checked = userSelections[0] && signStatus[0].isSuccess.value != true,
+                                onCheckedChange = { isChecked ->
+                                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                                    userSelections[0] = isChecked
+                                },
+                                enabled = (success == true).not(),
+                                modifier = Modifier.padding(
+                                    start = 3.dp,
+                                    end = 12.dp,
+                                    top = 9.dp,
+                                    bottom = 9.dp
+                                )
+                            )
+                        }
                         Row(modifier = Modifier.clickable((success == true).not()) {
                             hapticFeedback.performHapticFeedback(
                                 HapticFeedbackType.ContextClick
                             )
                             userSelections[0] = userSelections[0].not()
                         }, verticalAlignment = Alignment.CenterVertically) {
-                            Spacer(modifier = Modifier.width(8.dp))
                             AsyncImage(
                                 model = ChaoxingHttpClient.instance?.userEntity?.pic,
                                 imageLoader = imageLoader,
@@ -993,15 +1002,23 @@ fun OtherUserSelectorComponent(
                             (1 + index).let { i ->
                                 val successForOtherUser by signStatus[i].isSuccess
                                 var isRetrying by remember { mutableStateOf(false) }
-                                Checkbox(
-                                    checked = userSelections[i] && signStatus[i].isSuccess.value != true,
-                                    onCheckedChange = { isChecked ->
-                                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                                        userSelections[i] = isChecked
-                                        updateTagClickState()
-                                    },
-                                    enabled = (successForOtherUser == true).not()
-                                )
+                                CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
+                                    Checkbox(
+                                        checked = userSelections[i] && signStatus[i].isSuccess.value != true,
+                                        onCheckedChange = { isChecked ->
+                                            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                                            userSelections[i] = isChecked
+                                            updateTagClickState()
+                                        },
+                                        enabled = (successForOtherUser == true).not(),
+                                        modifier = Modifier.padding(
+                                            start = 3.dp,
+                                            end = 12.dp,
+                                            top = 9.dp,
+                                            bottom = 9.dp
+                                        )
+                                    )
+                                }
                                 Row(modifier = Modifier.clickable((successForOtherUser == true).not()) {
                                     hapticFeedback.performHapticFeedback(
                                         HapticFeedbackType.ContextClick
@@ -1009,7 +1026,6 @@ fun OtherUserSelectorComponent(
                                     userSelections[i] = userSelections[i].not()
                                     updateTagClickState()
                                 }, verticalAlignment = Alignment.CenterVertically) {
-                                    Spacer(modifier = Modifier.width(8.dp))
                                     var otherUserAvatarUrl by remember {
                                         mutableStateOf<String?>(
                                             null

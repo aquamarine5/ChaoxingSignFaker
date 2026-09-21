@@ -56,27 +56,27 @@ object ChaoxingActivityHelper {
                 .map { activity ->
                     activity as JSONObject
                 }.firstOrNull { activity ->
-                (activity.getInteger("type") == 2 || activity.getInteger("type") == 74) &&
-                        activity.getInteger("status") == 1 &&
-                        activity.getLong("startTime") + AVAILABLE_INTERVAL > System.currentTimeMillis()
-            }?.let { activity ->
-                RecommendActivityEntity(
-                    CoroutineScope(Dispatchers.IO).async(
-                        start = CoroutineStart.LAZY
-                    ) {
-                        ChaoxingSignHelper.getRedirectDestination(
-                            activity.getLong("id"),
-                            classId,
-                            courseId
-                        )
-                    },
-                    activity.getLong("startTime"),
-                    ChaoxingCourseHelper.queryClassName(client, classId),
-                    classId,
-                    courseId,
-                    activity.getString("nameOne")
-                )
-            }
+                    (activity.getInteger("type") == 2 || activity.getInteger("type") == 74) &&
+                            activity.getInteger("status") == 1 &&
+                            activity.getLong("startTime") + AVAILABLE_INTERVAL > System.currentTimeMillis()
+                }?.let { activity ->
+                    RecommendActivityEntity(
+                        CoroutineScope(Dispatchers.IO).async(
+                            start = CoroutineStart.LAZY
+                        ) {
+                            ChaoxingSignHelper.getRedirectDestination(
+                                activity.getLong("id"),
+                                classId,
+                                courseId
+                            )
+                        },
+                        activity.getLong("startTime"),
+                        ChaoxingCourseHelper.queryClassName(client, classId),
+                        classId,
+                        courseId,
+                        activity.getString("nameOne")
+                    )
+                }
         }
     }
 

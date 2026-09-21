@@ -90,6 +90,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -293,7 +294,7 @@ fun OtherUserScreen(
     val pageScrollBounds = remember { mutableStateOf(Rect.Zero) }
     var pageAutoScrollJob by remember { mutableStateOf<Job?>(null) }
     var pageAutoScrollDirection by remember { mutableIntStateOf(0) }
-    var pageAutoScrollStartedAt by remember { androidx.compose.runtime.mutableLongStateOf(0L) }
+    var pageAutoScrollStartedAt by remember { mutableLongStateOf(0L) }
     val pageScrollThreshold = with(LocalDensity.current) { 64.dp.toPx() }
     fun stopPageAutoScroll() {
         pageAutoScrollJob?.cancel()
@@ -301,6 +302,7 @@ fun OtherUserScreen(
         pageAutoScrollDirection = 0
         pageAutoScrollStartedAt = 0L
     }
+
     fun scrollPageDuringDrag(pointerY: Float, onScrolled: (Float) -> Unit) {
         val direction = when {
             pointerY < pageScrollBounds.value.top + pageScrollThreshold -> -1
@@ -1447,7 +1449,7 @@ fun OtherUserScreen(
         var isSchoolSectionExpanded by remember(settingsPhoneNumber) { mutableStateOf(false) }
         var isSchoolExpanded by remember(settingsPhoneNumber) { mutableStateOf(false) }
         var isLoadingSchools by remember(settingsPhoneNumber) { mutableStateOf(false) }
-        var schoolLoadAttempt by remember(settingsPhoneNumber) { androidx.compose.runtime.mutableIntStateOf(0) }
+        var schoolLoadAttempt by remember(settingsPhoneNumber) { mutableIntStateOf(0) }
         var isTagsSectionExpanded by remember(settingsPhoneNumber) { mutableStateOf(false) }
         var isFacePhotoSectionExpanded by remember(settingsPhoneNumber) { mutableStateOf(false) }
         var isShareOtherUserExpanded by remember(settingsPhoneNumber) { mutableStateOf(false) }
@@ -1717,13 +1719,16 @@ fun OtherUserScreen(
                                     phoneNumber = settingsPhoneNumber,
                                     onStartCamera = {
                                         if (!isSavingDatastore) {
-                                            facePhotoReturnToUserIndex = selectedUserSettingDialogIndex
+                                            facePhotoReturnToUserIndex =
+                                                selectedUserSettingDialogIndex
                                             selectedUserSettingDialogIndex = null
                                             isFacePhotoCameraVisible = true
                                         }
                                     },
                                     pendingCapturedBitmap = pendingFacePhotoBitmap,
-                                    onPendingCapturedBitmapHandled = { pendingFacePhotoBitmap = null },
+                                    onPendingCapturedBitmapHandled = {
+                                        pendingFacePhotoBitmap = null
+                                    },
                                 )
                             }
                         }
@@ -1760,7 +1765,9 @@ fun OtherUserScreen(
                                                 ExposedDropdownMenuAnchorType.PrimaryNotEditable
                                             ),
                                         trailingIcon = {
-                                            ExposedDropdownMenuDefaults.TrailingIcon(isSchoolExpanded)
+                                            ExposedDropdownMenuDefaults.TrailingIcon(
+                                                isSchoolExpanded
+                                            )
                                         },
                                         supportingText = if (isDevelopedMode && selectedFid != null) {
                                             {
@@ -1830,7 +1837,10 @@ fun OtherUserScreen(
                                             .fillMaxWidth()
                                             .aspectRatio(1f)
                                             .border(
-                                                BorderStroke(2.dp, MaterialTheme.colorScheme.primary),
+                                                BorderStroke(
+                                                    2.dp,
+                                                    MaterialTheme.colorScheme.primary
+                                                ),
                                                 shape = RoundedCornerShape(9.dp)
                                             )
                                             .padding(9.dp),
@@ -2891,7 +2901,10 @@ fun OtherUserScreen(
                                                                 scrollPageDuringDrag(
                                                                     dragHandlePositionInRoot.y + change.position.y
                                                                 ) { scrollDelta ->
-                                                                    onDrag(change, Offset(0f, scrollDelta))
+                                                                    onDrag(
+                                                                        change,
+                                                                        Offset(0f, scrollDelta)
+                                                                    )
                                                                 }
                                                             }
                                                         )
@@ -2900,21 +2913,22 @@ fun OtherUserScreen(
                                                 IconButton(
                                                     modifier = Modifier
                                                         .onGloballyPositioned {
-                                                            dragHandlePositionInRoot = it.positionInRoot()
+                                                            dragHandlePositionInRoot =
+                                                                it.positionInRoot()
                                                         }
                                                         .draggableHandle(
-                                                        interactionSource = interactionSource,
-                                                        onDragStarted = {
-                                                            hapticFeedback.performHapticFeedback(
-                                                                HapticFeedbackType.GestureThresholdActivate
-                                                            )
-                                                        }, onDragStopped = {
-                                                            hapticFeedback.performHapticFeedback(
-                                                                HapticFeedbackType.GestureEnd
-                                                            )
-                                                        },
-                                                        dragGestureDetector = dragGestureDetector
-                                                    ), onClick = {}) {
+                                                            interactionSource = interactionSource,
+                                                            onDragStarted = {
+                                                                hapticFeedback.performHapticFeedback(
+                                                                    HapticFeedbackType.GestureThresholdActivate
+                                                                )
+                                                            }, onDragStopped = {
+                                                                hapticFeedback.performHapticFeedback(
+                                                                    HapticFeedbackType.GestureEnd
+                                                                )
+                                                            },
+                                                            dragGestureDetector = dragGestureDetector
+                                                        ), onClick = {}) {
                                                     Icon(
                                                         painterResource(R.drawable.ic_drag_handle_rounded),
                                                         "",
@@ -2926,8 +2940,8 @@ fun OtherUserScreen(
 
                                     }
                                 }
+                            }
                         }
-                    }
                     }
                     Spacer(modifier = Modifier.height(4.dp))
                 }

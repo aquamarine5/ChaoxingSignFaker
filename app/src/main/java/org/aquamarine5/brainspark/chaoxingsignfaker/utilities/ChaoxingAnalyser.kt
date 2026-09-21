@@ -24,7 +24,6 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingSignFakerDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingAnalyserRankAnalysis
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingAnalyserRankRecord
-import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.sentryReport
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import kotlin.uuid.ExperimentalUuidApi
@@ -178,24 +177,24 @@ object ChaoxingAnalyser {
                                                 "schoolName",
                                                 ChaoxingHttpClient.instance!!.userEntity.fidList.map { it.second }
                                                     .distinct().let { rawList ->
-                                                    if (dataStore.selectedAnalysisRankSchoolName.isNotEmpty() && rawList.contains(
-                                                            dataStore.selectedAnalysisRankSchoolName
+                                                        if (dataStore.selectedAnalysisRankSchoolName.isNotEmpty() && rawList.contains(
+                                                                dataStore.selectedAnalysisRankSchoolName
+                                                            )
                                                         )
-                                                    )
-                                                        return@let dataStore.selectedAnalysisRankSchoolName
-                                                    rawList.toMutableList().run {
-                                                        removeAll { it[0].isDigit() }
-                                                        removeAll { it.endsWith("图书馆") }
-                                                        if (isEmpty())
-                                                            return@let rawList[0]
-                                                        sortBy { it.length }
-                                                        return@let get(0)
+                                                            return@let dataStore.selectedAnalysisRankSchoolName
+                                                        rawList.toMutableList().run {
+                                                            removeAll { it[0].isDigit() }
+                                                            removeAll { it.endsWith("图书馆") }
+                                                            if (isEmpty())
+                                                                return@let rawList[0]
+                                                            sortBy { it.length }
+                                                            return@let get(0)
+                                                        }
+                                                    }.let { str ->
+                                                        if (dataStore.hideAnalysisRankSchoolName) str.plus(
+                                                            "HIDE"
+                                                        ) else str
                                                     }
-                                                }.let { str ->
-                                                    if (dataStore.hideAnalysisRankSchoolName) str.plus(
-                                                        "HIDE"
-                                                    ) else str
-                                                }
                                             )
                                             .addEncoded("uuid", analysisDatabaseUUID)
                                             .addEncoded(

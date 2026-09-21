@@ -8,15 +8,33 @@ package org.aquamarine5.brainspark.chaoxingsignfaker.utilities
 
 import com.google.protobuf.ByteString
 import com.google.protobuf.MessageLite
+import java.lang.Deprecated
 import java.lang.reflect.Method
 import java.lang.reflect.Modifier
+import kotlin.Any
+import kotlin.Boolean
+import kotlin.Double
+import kotlin.Enum
+import kotlin.Float
+import kotlin.Int
+import kotlin.Long
+import kotlin.String
+import kotlin.let
+import kotlin.runCatching
+import kotlin.toRawBits
+import kotlin.toString
 
 sealed interface DataStoreTreeNode {
     val title: String
 
-    data class Value(override val title: String, val value: String) : DataStoreTreeNode
+    data class Value(
+        override val title: String,
+        val value: String,
+        val isDeprecated: Boolean = false
+    ) : DataStoreTreeNode
 
-    data class Group(override val title: String, val children: List<DataStoreTreeNode>) : DataStoreTreeNode
+    data class Group(override val title: String, val children: List<DataStoreTreeNode>) :
+        DataStoreTreeNode
 }
 
 private const val LIST_SUFFIX = "List"
@@ -76,14 +94,23 @@ fun buildDataStoreTree(message: MessageLite): List<DataStoreTreeNode> {
                             getters.containsKey("get${suffix.dropLast(BYTES_SUFFIX.length)}")) -> {
                 val isPresent = hazzers["has$suffix"]?.let { invokeGetter(it, message) as? Boolean }
                     ?: !isDefaultValue(value)
-                if (isPresent) nodes.add(value.toDataStoreTreeNode(fieldName(suffix)))
+                if (isPresent) nodes.add(
+                    value.toDataStoreTreeNode(
+                        fieldName(suffix),
+                        isDeprecated = getter.isAnnotationPresent(Deprecated::class.java)
+                    )
+                )
             }
         }
     }
     return nodes
 }
 
-private fun Any?.toDataStoreTreeNode(title: String, isElement: Boolean = false): DataStoreTreeNode =
+private fun Any?.toDataStoreTreeNode(
+    title: String,
+    isElement: Boolean = false,
+    isDeprecated: Boolean = false
+): DataStoreTreeNode =
     if (this is MessageLite) {
         val children = buildDataStoreTree(this)
         when {
@@ -92,7 +119,7 @@ private fun Any?.toDataStoreTreeNode(title: String, isElement: Boolean = false):
             else -> DataStoreTreeNode.Group("$title {...}", children)
         }
     } else {
-        DataStoreTreeNode.Value(title, this.toString())
+        DataStoreTreeNode.Value(title, this.toString(), isDeprecated)
     }
 
 private fun fieldName(suffix: String): String = suffix.replaceFirstChar { it.lowercaseChar() }

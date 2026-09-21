@@ -42,6 +42,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -136,7 +137,7 @@ private fun DataStoreTreeNodeValueRow(
         Spacer(modifier = Modifier.width(INDENTATION_WIDTH))
         Text(
             text = "${node.title}=${node.value}",
-            style = textStyle,
+            style = textStyle.copy(textDecoration = if (node.isDeprecated) TextDecoration.LineThrough else TextDecoration.None),
             softWrap = false,
             color = MaterialTheme.colorScheme.onSurface
         )

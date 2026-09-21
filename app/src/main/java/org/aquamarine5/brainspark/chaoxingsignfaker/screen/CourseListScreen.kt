@@ -537,7 +537,9 @@ fun CourseListScreen(
                                             Icon(
                                                 painterResource(R.drawable.ic_circle_question_mark),
                                                 null,
-                                                modifier = Modifier.size(36.dp).padding(2.dp)
+                                                modifier = Modifier
+                                                    .size(36.dp)
+                                                    .padding(2.dp)
                                             )
                                             Column(
                                                 modifier = Modifier.padding(
@@ -611,7 +613,9 @@ fun CourseListScreen(
                                                         Icon(
                                                             painterResource(R.drawable.ic_lightbulb),
                                                             null,
-                                                            modifier = Modifier.size(36.dp).padding(2.dp)
+                                                            modifier = Modifier
+                                                                .size(36.dp)
+                                                                .padding(2.dp)
                                                         )
                                                         Column(
                                                             modifier = Modifier
@@ -624,34 +628,35 @@ fun CourseListScreen(
                                                                 lineHeight = 17.sp,
                                                                 fontWeight = FontWeight.Bold
                                                             )
-                                                            Text(buildAnnotatedString {
-                                                                withStyle(
-                                                                    SpanStyle(
-                                                                        fontWeight = FontWeight.Bold,
-                                                                        color = MaterialTheme.colorScheme.primary
-                                                                    )
-                                                                ) {
-                                                                    append(item.className)
-                                                                }
-                                                                append(" 在 ")
-                                                                withStyle(
-                                                                    SpanStyle(
-                                                                        fontFamily = FontGilroy
-                                                                    )
-                                                                ) {
-                                                                    append(
-                                                                        activityTimeFormatter.format(
-                                                                            Instant.ofEpochMilli(
-                                                                                item.startTime
+                                                            Text(
+                                                                buildAnnotatedString {
+                                                                    withStyle(
+                                                                        SpanStyle(
+                                                                            fontWeight = FontWeight.Bold,
+                                                                            color = MaterialTheme.colorScheme.primary
+                                                                        )
+                                                                    ) {
+                                                                        append(item.className)
+                                                                    }
+                                                                    append(" 在 ")
+                                                                    withStyle(
+                                                                        SpanStyle(
+                                                                            fontFamily = FontGilroy
+                                                                        )
+                                                                    ) {
+                                                                        append(
+                                                                            activityTimeFormatter.format(
+                                                                                Instant.ofEpochMilli(
+                                                                                    item.startTime
+                                                                                )
                                                                             )
                                                                         )
-                                                                    )
-                                                                }
-                                                                append(" 的 ")
-                                                                withStyle(SpanStyle(color = MaterialTheme.colorScheme.primary)) {
-                                                                    append(item.activityName)
-                                                                }
-                                                            },
+                                                                    }
+                                                                    append(" 的 ")
+                                                                    withStyle(SpanStyle(color = MaterialTheme.colorScheme.primary)) {
+                                                                        append(item.activityName)
+                                                                    }
+                                                                },
                                                                 fontSize = 14.sp,
                                                                 lineHeight = 17.sp,
                                                                 style = TextStyle.Default.copy(
@@ -697,7 +702,11 @@ fun CourseListScreen(
                                                                         null,
                                                                         modifier = Modifier.size(18.dp)
                                                                     )
-                                                                    Spacer(modifier = Modifier.width(10.dp))
+                                                                    Spacer(
+                                                                        modifier = Modifier.width(
+                                                                            10.dp
+                                                                        )
+                                                                    )
                                                                     Text("前往签到")
                                                                 }
                                                             }

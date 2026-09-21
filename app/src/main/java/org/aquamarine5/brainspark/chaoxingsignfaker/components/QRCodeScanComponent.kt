@@ -133,7 +133,7 @@ fun QRCodeScanComponent(
                 )
             }
             val qrCodeDrawable = remember { QRCodeDrawable() }
-            val qrCodeOverlayAdded = remember { mutableStateOf(false) }
+            val isQrCodeOverlayAdded = remember { mutableStateOf(false) }
             val photoPickerLauncher = rememberLauncherForActivityResult(
                 contract = ActivityResultContracts.PickVisualMedia()
             ) { uri: Uri? ->
@@ -183,17 +183,17 @@ fun QRCodeScanComponent(
                             it?.let { result ->
                                 val barcodeResult = result.getValue(barcodeScanner)
                                 if (barcodeResult.isNullOrEmpty()) {
-                                    if (qrCodeOverlayAdded.value) {
+                                    if (isQrCodeOverlayAdded.value) {
                                         previewView.overlay.clear()
-                                        qrCodeOverlayAdded.value = false
+                                        isQrCodeOverlayAdded.value = false
                                     }
                                     return@MlKitAnalyzer
                                 }
                                 val barcode = barcodeResult[0]
                                 qrCodeDrawable.updateBoundingBox(barcode.boundingBox)
-                                if (!qrCodeOverlayAdded.value) {
+                                if (!isQrCodeOverlayAdded.value) {
                                     previewView.overlay.add(qrCodeDrawable)
-                                    qrCodeOverlayAdded.value = true
+                                    isQrCodeOverlayAdded.value = true
                                 }
                                 if (!isPause.value) {
                                     hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
@@ -303,7 +303,10 @@ fun QRCodeScanComponent(
                         .zIndex(0f)
                 )
                 Button(
-                    onClick = onClose,
+                    onClick = {
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                        onClose()
+                    },
                     modifier = Modifier
                         .align(Alignment.TopStart)
                         .padding(8.dp)

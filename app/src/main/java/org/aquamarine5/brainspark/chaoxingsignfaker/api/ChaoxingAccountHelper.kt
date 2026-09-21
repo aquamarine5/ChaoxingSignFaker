@@ -7,7 +7,7 @@
 package org.aquamarine5.brainspark.chaoxingsignfaker.api
 
 object ChaoxingAccountHelper {
-    fun getAvatarUrl(uid:Int):String{
-        return "http://photo.chaoxing.com/p/${uid}_120?flag=1&psize=120_120c&ext=jpg&t=${System.currentTimeMillis()}"
+    fun getAvatarUrl(uid: Int): String {
+        return "https://photo.chaoxing.com/p/${uid}_120?flag=1&psize=120_120c&ext=jpg&t=${System.currentTimeMillis()}"
     }
 }
