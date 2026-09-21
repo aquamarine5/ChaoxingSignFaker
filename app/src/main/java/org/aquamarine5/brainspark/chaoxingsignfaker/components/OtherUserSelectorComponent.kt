@@ -107,9 +107,11 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.Request
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingAccountHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingFaceHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingOtherUserHelper
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingOtherUserHelper.getSessionUid
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.OtherUserTagType
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignStatus
@@ -894,6 +896,16 @@ fun OtherUserSelectorComponent(
                             userSelections[0] = userSelections[0].not()
                         }, verticalAlignment = Alignment.CenterVertically) {
                             Spacer(modifier = Modifier.width(8.dp))
+                            AsyncImage(
+                                model = ChaoxingHttpClient.instance?.userEntity?.pic,
+                                imageLoader = imageLoader,
+                                contentDescription = "头像",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier
+                                    .size(30.dp)
+                                    .clip(RoundedCornerShape(5.dp))
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
                             Column {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Text(
@@ -998,6 +1010,27 @@ fun OtherUserSelectorComponent(
                                     updateTagClickState()
                                 }, verticalAlignment = Alignment.CenterVertically) {
                                     Spacer(modifier = Modifier.width(8.dp))
+                                    var otherUserAvatarUrl by remember {
+                                        mutableStateOf<String?>(
+                                            null
+                                        )
+                                    }
+                                    LaunchedEffect(session) {
+                                        session.getSessionUid(context)?.let { uid ->
+                                            otherUserAvatarUrl =
+                                                ChaoxingAccountHelper.getAvatarUrl(uid)
+                                        }
+                                    }
+                                    AsyncImage(
+                                        model = otherUserAvatarUrl,
+                                        imageLoader = imageLoader,
+                                        contentDescription = "头像",
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier
+                                            .size(30.dp)
+                                            .clip(RoundedCornerShape(5.dp))
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
                                     Column {
                                         Row(verticalAlignment = Alignment.CenterVertically) {
                                             Text(
@@ -1007,7 +1040,7 @@ fun OtherUserSelectorComponent(
                                                 ) else Color.Unspecified,
                                                 textDecoration = if (successForOtherUser != true) TextDecoration.None else TextDecoration.LineThrough
                                             )
-                                            if (isCloneSession)
+                                            if (isCloneSession && ChaoxingHttpClient.cloneInstance?.userEntity?.phoneNumber == session.phoneNumber)
                                                 Icon(
                                                     painterResource(R.drawable.ic_square_stack),
                                                     null,

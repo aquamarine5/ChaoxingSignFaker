@@ -233,7 +233,8 @@ fun PhotoSignScreen(
         } else {
             Crossfade(signActivityStatus) { c ->
                 if (c == ChaoxingSignActivityStatus.READY_TO_SIGN) {
-                    if (isImage == false) {
+                    Crossfade(isImage) { image ->
+                        if (image == false) {
                         Column(
                             modifier = Modifier.padding(8.dp, 4.dp, 8.dp, 0.dp)
                         ) {
@@ -373,9 +374,9 @@ fun PhotoSignScreen(
                                 )
                             }
                         }
-                    } else if (isImage == true) {
-                        var isSignForOther by remember { mutableStateOf<Boolean?>(null) }
-                        Crossfade(isSignForOther) { value ->
+                        } else if (image == true) {
+                            var isSignForOther by remember { mutableStateOf<Boolean?>(null) }
+                            Crossfade(isSignForOther) { value ->
                             when (value) {
                                 null -> {
                                     Column(
@@ -900,6 +901,9 @@ fun PhotoSignScreen(
                                     }
                                 }
                             }
+                            }
+                        } else {
+                            CenterCircularProgressIndicator()
                         }
                     }
                 } else if (c != null) {

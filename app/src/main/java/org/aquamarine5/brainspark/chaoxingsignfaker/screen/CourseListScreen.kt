@@ -947,7 +947,10 @@ fun CourseListScreen(
                     }
                 } else {
                     Box(modifier = Modifier.fillMaxSize()) {
-                        Column(modifier = Modifier.align(Alignment.Center)) {
+                        Column(
+                            modifier = Modifier.align(Alignment.Center),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
                             Icon(painterResource(R.drawable.ic_circle_question_mark), null)
                             Text("暂无课程，请检查登录的学习通账号是否正确。")
                         }

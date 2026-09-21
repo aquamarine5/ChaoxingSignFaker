@@ -34,11 +34,8 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingUserEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ImportOtherUserResult
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingParseDataException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
-import kotlin.time.Duration.Companion.milliseconds
 
 object ChaoxingOtherUserHelper {
-    val TIMEOUT_NEXT_SIGN = 200.milliseconds
-
     class NotAvailableQRCodeException(message: String, throwable: Throwable? = null) :
         ChaoxingParseDataException(message, throwable)
 
@@ -361,4 +358,22 @@ object ChaoxingOtherUserHelper {
                 datastore.toBuilder().clearOtherUsers().addAllOtherUsers(updatedSessions).build()
             }
         }
+
+    suspend fun ChaoxingOtherUserSession.getSessionUid(context: Context): Int? {
+        return if (this.hasUid()) this.uid else this.cookiesList.firstOrNull { it.name == "_uid" }?.value?.toIntOrNull()
+            ?.also {
+                context.chaoxingDataStore.updateData { datastore ->
+                    val index =
+                        datastore.otherUsersList.indexOfFirst { it.phoneNumber == this@getSessionUid.phoneNumber }
+                    if (index != -1) {
+                        datastore.toBuilder().removeOtherUsers(index).addOtherUsers(
+                            index,
+                            this@getSessionUid.toBuilder().setUid(it).build()
+                        ).build()
+                    } else {
+                        datastore
+                    }
+                }
+            }
+    }
 }

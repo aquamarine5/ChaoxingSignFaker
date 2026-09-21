@@ -125,6 +125,7 @@ message ChaoxingLoginSession{
   string password = 3;
   string faceImageObjectId = 4 [deprecated = true];
   optional uint32 configuredFid = 5;
+  optional uint32 uid = 6;
 }
 
 message ChaoxingOtherUserSession{
@@ -136,6 +137,7 @@ message ChaoxingOtherUserSession{
   string faceImageObjectId = 6 [deprecated = true];
   bool isObsoleteSession = 7;
   optional uint32 configuredFid = 8;
+  optional uint32 uid = 9;
 }
 
 message HttpCookie{

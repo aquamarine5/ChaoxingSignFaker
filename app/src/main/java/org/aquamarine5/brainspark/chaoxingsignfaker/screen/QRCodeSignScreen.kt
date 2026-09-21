@@ -78,7 +78,6 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingFaceHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClientPool
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingSignHelper
-import org.aquamarine5.brainspark.chaoxingsignfaker.entity.SignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerParams
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
@@ -101,6 +100,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityS
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignOutEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignResult
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignStatus
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.SignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingQRCodeSigner
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSignHandler
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingPredictableException
@@ -113,6 +113,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.isDevelopedMode
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.rememberFaceRecognitionData
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.sentryReport
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
 @Serializable
@@ -316,10 +317,10 @@ fun QRCodeSignScreen(
                             showFaceSaveDialog = false
                         }
                     }
-
                     val signHandler = remember(isFaceRequired) {
                         ChaoxingSignHandler(
                             context = context,
+                            signTimeSpan = 50.milliseconds,
                             getSignRealtimeParameter = {
                                 suspendCancellableCoroutine { continuation ->
                                     getQRCodeContinuation?.cancel()
@@ -390,7 +391,7 @@ fun QRCodeSignScreen(
                                     )
                                 }
                             },
-                            onOtherUserSigning = { value, session, bypassChecking, index ->
+                            onOtherUserSigning = { value, session, bypassChecking, _ ->
                                 runCatching {
                                     ChaoxingHttpClientPool.get(context, session.phoneNumber)
                                         .let { client ->

@@ -29,6 +29,8 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.checkIsLast
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.displaySnackbar
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ifShouldDeselect
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
 
 @Immutable
 class ChaoxingSignHandler<in T>(
@@ -41,7 +43,8 @@ class ChaoxingSignHandler<in T>(
     private val signStatus: MutableList<ChaoxingSignStatus>,
     private val context: Context,
     private val faceRecognitionData: FaceRecognitionData? = null,
-    private val getSignRealtimeParameter: (suspend () -> T)? = null
+    private val getSignRealtimeParameter: (suspend () -> T)? = null,
+    private val signTimeSpan: Duration = 200.milliseconds
 ) {
     private var storedValue: T? = null
 
@@ -150,7 +153,7 @@ class ChaoxingSignHandler<in T>(
                 if (session == null) continue
                 signStatus[index + 1].loading()
                 if (!isCaptchaSigning || (isSelf && isFirstOtherUserForSign))
-                    delay(ChaoxingOtherUserHelper.TIMEOUT_NEXT_SIGN)
+                    delay(signTimeSpan)
                 isFirstOtherUserForSign = false
                 onOtherUserSigning(value, session, false, index).onSuccess {
                     isCaptchaSigning = it.isCaptchaSigning
