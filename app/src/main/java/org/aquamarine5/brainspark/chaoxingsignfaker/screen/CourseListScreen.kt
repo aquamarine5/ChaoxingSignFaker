@@ -14,7 +14,6 @@ import androidx.compose.animation.core.VisibilityThreshold
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -58,7 +57,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
@@ -774,7 +772,7 @@ fun CourseListScreen(
                                                 onValueChange = { searchQuery = it },
                                                 modifier = Modifier
                                                     .fillMaxWidth()
-                                                    .padding(top = 4.dp, bottom = 8.dp),
+                                                    .padding(top = 4.dp, bottom = 3.dp),
                                                 placeholder = { Text("搜索课程名称 / 老师 / 学校") },
                                                 leadingIcon = {
                                                     Icon(
@@ -801,19 +799,6 @@ fun CourseListScreen(
                                                 shape = RoundedCornerShape(18.dp)
                                             )
                                         }
-                                        Box(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .height(8.dp)
-                                                .background(
-                                                    Brush.verticalGradient(
-                                                        colors = listOf(
-                                                            MaterialTheme.colorScheme.background,
-                                                            Color.Transparent
-                                                        )
-                                                    )
-                                                )
-                                        )
                                     }
                                 }
                                 if (searchQuery.isNotBlank() && filteredActivities.isEmpty()) {
@@ -833,6 +818,9 @@ fun CourseListScreen(
                                             Text("没有找到与“$searchQuery”匹配的课程")
                                         }
                                     }
+                                }
+                                item {
+                                    Spacer(modifier = Modifier.height(5.dp))
                                 }
                                 items(filteredActivities, key = { it.classId }) { data ->
                                     Column(

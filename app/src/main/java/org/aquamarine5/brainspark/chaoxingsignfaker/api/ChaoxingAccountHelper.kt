@@ -13,13 +13,14 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.requirePredictable
 import java.io.File
+import kotlin.time.Duration.Companion.days
 
 object ChaoxingAccountHelper {
     fun getAvatarUrl(uid: Int): String {
         return "https://photo.chaoxing.com/p/${uid}_120?flag=1&psize=120_120c&ext=jpg&t=${System.currentTimeMillis()}"
     }
 
-    private const val AVATAR_CACHE_TIMEOUT = 24L * 60L * 60L * 1000L
+    private val AVATAR_CACHE_TIMEOUT = 1.days.inWholeMicroseconds
 
     suspend fun getCachedAvatar(context: Context, key: String, url: String): Any =
         withContext(Dispatchers.IO) {

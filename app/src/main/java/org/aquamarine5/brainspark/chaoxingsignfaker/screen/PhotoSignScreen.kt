@@ -231,7 +231,7 @@ fun PhotoSignScreen(
                 }
             }
         } else {
-            Crossfade(signActivityStatus) { c ->
+            Crossfade(signActivityStatus, animationSpec = tween(700)) { c ->
                 if (c == ChaoxingSignActivityStatus.READY_TO_SIGN) {
                     Crossfade(isImage) { image ->
                         if (image == false) {
