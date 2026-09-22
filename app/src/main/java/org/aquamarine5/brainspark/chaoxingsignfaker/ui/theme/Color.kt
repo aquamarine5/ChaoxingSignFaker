@@ -21,4 +21,7 @@ val Pink40 = Color(0xFF7D5260)
 val Orange = Color(0xFFFCC307)
 
 @Composable
-fun getLightOrDarkGray() = if (isSystemInDarkTheme()) Color.DarkGray else Color.LightGray
+fun getLowAttentionGrayColor() = if (isSystemInDarkTheme()) Color.DarkGray else Color.LightGray
+
+@Composable
+fun getHighAttentionGrayColor() = if (isSystemInDarkTheme()) Color.LightGray else Color.DarkGray

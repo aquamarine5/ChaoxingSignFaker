@@ -38,7 +38,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingSignHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.SignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.ui.theme.Orange
-import org.aquamarine5.brainspark.chaoxingsignfaker.ui.theme.getLightOrDarkGray
+import org.aquamarine5.brainspark.chaoxingsignfaker.ui.theme.getLowAttentionGrayColor
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.isDevelopedMode
 
@@ -48,6 +48,7 @@ fun CourseSignActivityColumnCard(
     activity: ChaoxingSignActivityEntity,
     getFormattedStartTime: (Long) -> String,
     isCloneSession: Boolean,
+    isMerged: Boolean = false,
     onSignAction: (SignDestination) -> Unit
 ) {
     val isAvailable = remember(activity) { activity.status == 1 }
@@ -93,7 +94,7 @@ fun CourseSignActivityColumnCard(
                 Icon(
                     painter = ChaoxingSignHelper.getSignIcon(activity),
                     contentDescription = null,
-                    tint = if (isAvailable) MaterialTheme.colorScheme.primary else getLightOrDarkGray()
+                    tint = if (isAvailable) MaterialTheme.colorScheme.primary else getLowAttentionGrayColor()
                 )
             }
             Spacer(modifier = Modifier.width(4.dp))
@@ -115,7 +116,11 @@ fun CourseSignActivityColumnCard(
         }
         if (isDevelopedMode)
             Text(
-                "activeId：${activity.id}, otherId：${activity.otherId}",
+                if (isMerged) {
+                    "activeId：${activity.id}, otherId：${activity.otherId},\nclassId：${activity.course.classId}"
+                } else {
+                    "activeId：${activity.id}, otherId：${activity.otherId}"
+                },
                 fontSize = 10.sp,
                 lineHeight = 12.sp,
                 color = Color.Gray,

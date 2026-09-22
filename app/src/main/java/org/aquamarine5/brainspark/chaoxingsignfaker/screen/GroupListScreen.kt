@@ -78,6 +78,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingIMHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NetworkExceptionComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingEasemobIMGroup
+import org.aquamarine5.brainspark.chaoxingsignfaker.ui.theme.getLowAttentionGrayColor
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalImageLoader
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
@@ -252,8 +253,6 @@ fun GroupListScreen(
                             Column(modifier = Modifier.fillMaxWidth()) {
                                 Surface(
                                     color = MaterialTheme.colorScheme.background,
-                                    shadowElevation = 2.dp,
-                                    tonalElevation = 1.dp,
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
                                     OutlinedTextField(
@@ -368,8 +367,8 @@ fun GroupListScreen(
                                                         text = "(x${group.size})",
                                                         fontSize = 11.sp,
                                                         lineHeight = 14.sp,
-                                                        color = Color.Gray,
-                                                        modifier = Modifier.padding(start = 4.dp)
+                                                        color = getLowAttentionGrayColor(),
+                                                        modifier = Modifier.padding(start = 2.dp)
                                                     )
                                                 }
                                             }

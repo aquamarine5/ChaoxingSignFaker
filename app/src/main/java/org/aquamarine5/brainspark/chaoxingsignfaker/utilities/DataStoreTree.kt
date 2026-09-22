@@ -145,7 +145,7 @@ fun buildDataStoreTree(message: MessageLite): List<DataStoreTreeNode> {
                     nodes.add(
                         DataStoreTreeNode.Value(
                             name,
-                            "[${value}]",
+                            value.toString(),
                             isDeprecated,
                             isInitialized = false
                         )

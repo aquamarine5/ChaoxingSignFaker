@@ -39,6 +39,7 @@ import coil3.ImageLoader
 import coil3.compose.AsyncImage
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCourseEntity
+import org.aquamarine5.brainspark.chaoxingsignfaker.ui.theme.getLowAttentionGrayColor
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.isDevelopedMode
 
 @Composable
@@ -46,6 +47,8 @@ fun CourseInfoColumnCard(
     course: ChaoxingCourseEntity,
     imageLoader: ImageLoader,
     modifier: Modifier = Modifier,
+    mergedCount: Int = 1,
+    mergedClassIds: List<Int>? = null,
     onPreferredResort: (Boolean) -> Unit,
     onClick: () -> Unit,
 ) {
@@ -78,11 +81,25 @@ fun CourseInfoColumnCard(
                 )
                 Spacer(modifier = Modifier.width(14.dp))
                 Column(horizontalAlignment = Alignment.Start, modifier = Modifier.weight(1f)) {
-                    Text(
-                        remember(course) { course.courseName.replace("\n", "") },
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            remember(course) { course.courseName.replace("\n", "") },
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f, fill = false)
+                        )
+                        if (mergedCount > 1) {
+                            Text(
+                                "(x$mergedCount)",
+                                fontSize = 11.sp,
+                                lineHeight = 14.sp,
+                                color = getLowAttentionGrayColor(),
+                                modifier = Modifier.padding(start = 2.dp)
+                            )
+                        }
+                    }
                     if (!course.teacherName.isNullOrBlank()) {
                         Text(
                             remember(course) { course.teacherName.replace("\n", "") },
@@ -118,7 +135,13 @@ fun CourseInfoColumnCard(
             }
             if (isDevelopedMode)
                 Text(
-                    "classId: ${course.classId}, courseId：${course.courseId}",
+                    remember(course, mergedClassIds) {
+                        if (mergedClassIds != null && mergedClassIds.size > 1) {
+                            "classId: [${mergedClassIds.joinToString(", ")}], courseId：${course.courseId}"
+                        } else {
+                            "classId: ${course.classId}, courseId：${course.courseId}"
+                        }
+                    },
                     fontSize = 10.sp,
                     lineHeight = 10.sp,
                     color = Color.Gray,

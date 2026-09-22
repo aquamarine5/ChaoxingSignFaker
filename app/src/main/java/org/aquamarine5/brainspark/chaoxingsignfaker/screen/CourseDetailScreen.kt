@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -35,13 +36,16 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingActivityHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
@@ -59,11 +63,14 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlin.time.Duration.Companion.milliseconds
 
-typealias CourseDetailDestination = ChaoxingCourseEntity
+@Serializable
+data class CourseDetailDestination(
+    val courses: List<ChaoxingCourseEntity>
+)
 
 @Composable
 fun CourseDetailScreen(
-    courseEntity: ChaoxingCourseEntity,
+    destination: CourseDetailDestination,
     navToSignerDestination: (Any) -> Unit,
     navToNonCloningListDestination: () -> Unit,
     navToListDestination: () -> Unit
@@ -75,13 +82,16 @@ fun CourseDetailScreen(
     val coroutineScope = rememberCoroutineScope()
     val activitiesListState = rememberLazyListState()
     var isFetchedFailure by remember { mutableStateOf<Result<*>?>(null) }
+    val courses = destination.courses
+    val courseEntity = courses.first()
+    val isCloneSession = courseEntity.isCloneSession
     LaunchedEffect(Unit) {
         isFetchedFailure = runCatching {
             if (activitiesData == null) {
-                ChaoxingHttpClient.getClientInstanceOrClone(courseEntity.isCloneSession)?.let {
+                ChaoxingHttpClient.getClientInstanceOrClone(isCloneSession)?.let {
                     activitiesData = ChaoxingActivityHelper.getActivitiesEntity(
                         it,
-                        courseEntity
+                        courses
                     )
                 }
             }
@@ -115,9 +125,31 @@ fun CourseDetailScreen(
                     .width(5.dp)
             )
             Text(
-                "课程名称：${courseEntity.courseName}",
+                "课程名称：${courseEntity.courseName}" + if (courses.size > 1) " (x${courses.size})" else "",
                 style = MaterialTheme.typography.titleMedium
             )
+        }
+        if (courses.size > 1) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp)
+            ) {
+                Icon(
+                    painterResource(R.drawable.ic_info),
+                    contentDescription = null,
+                    tint = Color.Gray,
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    "此课程名称在课程列表里面出现了${courses.size}次，已将所有班级的签到活动合并显示。",
+                    fontSize = 12.sp,
+                    lineHeight = 16.sp,
+                    color = Color.Gray
+                )
+            }
         }
         Spacer(modifier = Modifier.height(12.dp))
         Crossfade(isFetchedFailure, modifier = Modifier.weight(1f)) { v ->
@@ -128,11 +160,11 @@ fun CourseDetailScreen(
                     coroutineScope.launch {
                         isFetchedFailure = runCatching {
                             if (activitiesData == null) {
-                                ChaoxingHttpClient.getClientInstanceOrClone(courseEntity.isCloneSession)
+                                ChaoxingHttpClient.getClientInstanceOrClone(isCloneSession)
                                     ?.let {
                                         activitiesData = ChaoxingActivityHelper.getActivitiesEntity(
                                             it,
-                                            courseEntity
+                                            courses
                                         )
                                         activitiesListState.animateScrollToItem(0)
                                     }
@@ -167,11 +199,11 @@ fun CourseDetailScreen(
                         pullToRefreshState = true
                         coroutineScope.launch {
                             runCatching {
-                                ChaoxingHttpClient.getClientInstanceOrClone(courseEntity.isCloneSession)
+                                ChaoxingHttpClient.getClientInstanceOrClone(isCloneSession)
                                     ?.let {
                                         activitiesData = ChaoxingActivityHelper.getActivitiesEntity(
                                             it,
-                                            courseEntity
+                                            courses
                                         )
                                     }
                             }.onFailure {
@@ -221,7 +253,7 @@ fun CourseDetailScreen(
                                                 yearDateFormatter.format(it)
                                             }
                                         }
-                                }, courseEntity.isCloneSession) { destination ->
+                                }, isCloneSession, isMerged = courses.size > 1) { destination ->
                                     navToSignerDestination(destination)
                                 }
                             }

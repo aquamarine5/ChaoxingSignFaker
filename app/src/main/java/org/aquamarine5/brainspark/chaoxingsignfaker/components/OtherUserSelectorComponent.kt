@@ -944,15 +944,13 @@ fun OtherUserSelectorComponent(
                                                 modifier = Modifier
                                                     .padding(start = 4.dp)
                                                     .size(14.dp)
-                                                    .then(
-                                                        if (isDevelopedMode) Modifier.clickable {
-                                                            hapticFeedback.performHapticFeedback(
-                                                                HapticFeedbackType.ContextClick
-                                                            )
-                                                            inspectingFaceImagePhoneNumber =
-                                                                ChaoxingHttpClient.instance!!.userEntity.phoneNumber
-                                                        } else Modifier
-                                                    ),
+                                                    .clickable {
+                                                        hapticFeedback.performHapticFeedback(
+                                                            HapticFeedbackType.ContextClick
+                                                        )
+                                                        inspectingFaceImagePhoneNumber =
+                                                            ChaoxingHttpClient.instance!!.userEntity.phoneNumber
+                                                    },
                                                 tint = it.value.color.takeOrElse { MaterialTheme.colorScheme.primary }
                                             )
                                         }
@@ -1091,15 +1089,13 @@ fun OtherUserSelectorComponent(
                                                         modifier = Modifier
                                                             .padding(start = 4.dp)
                                                             .size(14.dp)
-                                                            .then(
-                                                                if (isDevelopedMode) Modifier.clickable {
-                                                                    hapticFeedback.performHapticFeedback(
-                                                                        HapticFeedbackType.ContextClick
-                                                                    )
-                                                                    inspectingFaceImagePhoneNumber =
-                                                                        session.phoneNumber
-                                                                } else Modifier
-                                                            ),
+                                                            .clickable {
+                                                                hapticFeedback.performHapticFeedback(
+                                                                    HapticFeedbackType.ContextClick
+                                                                )
+                                                                inspectingFaceImagePhoneNumber =
+                                                                    session.phoneNumber
+                                                            },
                                                         tint = it.value.color.takeOrElse { MaterialTheme.colorScheme.primary }
                                                     )
                                                 }

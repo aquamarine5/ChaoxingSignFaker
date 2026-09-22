@@ -11,6 +11,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Request
@@ -79,6 +81,28 @@ object ChaoxingActivityHelper {
                 }
         }
     }
+
+    suspend fun getActivitiesEntity(
+        client: ChaoxingHttpClient,
+        courses: List<ChaoxingCourseEntity>
+    ): ChaoxingCourseActivitiesEntity =
+        coroutineScope {
+            courses.map { course ->
+                async {
+                    getActivitiesEntity(client, course)
+                }
+            }.awaitAll()
+        }.let { entities ->
+            val representative = courses.first()
+            val mergedActivities = entities.flatMap { it.signActivities }
+                .distinctBy { it.id }
+                .sortedByDescending { it.startTime }
+            ChaoxingCourseActivitiesEntity(
+                entities.firstOrNull()?.ext ?: "",
+                representative,
+                mergedActivities
+            )
+        }
 
     suspend fun getActivitiesEntity(
         client: ChaoxingHttpClient,

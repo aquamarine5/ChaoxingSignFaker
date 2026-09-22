@@ -103,6 +103,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.components.CloneSessionTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.FavoriteLocationSettingComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.FavoriteLocationSettingDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.initializeClientInfo
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCourseEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingEasemobIMGroup
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.NavigationBarItemData
@@ -685,7 +686,11 @@ class MainActivity : ComponentActivity() {
                                                     }
                                                 }
 
-                                                composable<CourseDetailDestination> {
+                                                composable<CourseDetailDestination>(
+                                                    typeMap = mapOf(
+                                                        typeOf<List<ChaoxingCourseEntity>>() to ChaoxingCourseEntity.Companion.ChaoxingCourseEntityListNavType
+                                                    )
+                                                ) {
                                                     CourseDetailScreen(
                                                         it.toRoute(),
                                                         navToSignerDestination = { destination ->
