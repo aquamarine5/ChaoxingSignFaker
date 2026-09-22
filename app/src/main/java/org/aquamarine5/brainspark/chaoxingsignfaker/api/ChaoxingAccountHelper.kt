@@ -20,7 +20,7 @@ object ChaoxingAccountHelper {
         return "https://photo.chaoxing.com/p/${uid}_120?flag=1&psize=120_120c&ext=jpg&t=${System.currentTimeMillis()}"
     }
 
-    private val AVATAR_CACHE_TIMEOUT = 1.days.inWholeMicroseconds
+    private val AVATAR_CACHE_TIMEOUT = 1.days.inWholeMilliseconds
 
     suspend fun getCachedAvatar(context: Context, key: String, url: String): Any =
         withContext(Dispatchers.IO) {

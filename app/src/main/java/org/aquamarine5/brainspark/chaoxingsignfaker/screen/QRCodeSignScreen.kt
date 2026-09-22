@@ -301,6 +301,7 @@ fun QRCodeSignScreen(
                     var latestEnc by remember { mutableStateOf<String?>(null) }
                     var latestEncSeq by remember { mutableIntStateOf(0) }
                     var lastConsumedEncSeq by remember { mutableIntStateOf(-1) }
+                    var expiredEnc by remember { mutableStateOf<String?>(null) }
                     var encWaiter: CancellableContinuation<String>? by remember {
                         mutableStateOf(null)
                     }
@@ -404,6 +405,9 @@ fun QRCodeSignScreen(
                                         isCaptchaSigning = false,
                                         isCaptchaResolvedByModel = false
                                     )
+                                }.onFailure {
+                                    if (it is ChaoxingQRCodeSigner.QRCodeExpiredException)
+                                        expiredEnc = value
                                 }
                             },
                             onSigningFinished = { _, name, isOtherUser ->
@@ -482,6 +486,9 @@ fun QRCodeSignScreen(
                                                 )
                                             }
                                         }
+                                }.onFailure {
+                                    if (it is ChaoxingQRCodeSigner.QRCodeExpiredException)
+                                        expiredEnc = value
                                 }
 
                             },
@@ -521,6 +528,7 @@ fun QRCodeSignScreen(
                         latestEnc = null
                         latestEncSeq = 0
                         lastConsumedEncSeq = -1
+                        expiredEnc = null
                         val targets = buildList {
                             if (isSelfForSign) add(-1)
                             signUserList.forEachIndexed { index, session ->
@@ -568,20 +576,25 @@ fun QRCodeSignScreen(
                             coroutineScope,
                             snackbarHost,
                             getFreshEnc = {
-                                if (latestEnc != null && latestEncSeq > lastConsumedEncSeq) {
-                                    lastConsumedEncSeq = latestEncSeq
-                                    latestEnc!!
-                                } else {
-                                    suspendCancellableCoroutine { continuation ->
-                                        encWaiter?.cancel()
-                                        encWaiter = continuation
-                                        continuation.invokeOnCancellation {
-                                            if (encWaiter == continuation) encWaiter = null
-                                        }
-                                    }.also {
+                                var enc: String
+                                do {
+                                    enc = if (latestEnc != null && latestEncSeq > lastConsumedEncSeq) {
                                         lastConsumedEncSeq = latestEncSeq
+                                        latestEnc!!
+                                    } else {
+                                        suspendCancellableCoroutine<String> { continuation ->
+                                            encWaiter?.cancel()
+                                            encWaiter = continuation
+                                            continuation.invokeOnCancellation {
+                                                if (encWaiter == continuation) encWaiter = null
+                                            }
+                                        }.also {
+                                            lastConsumedEncSeq = latestEncSeq
+                                        }
                                     }
-                                }
+                                    if (enc == expiredEnc) delay(200.milliseconds)
+                                } while (enc == expiredEnc)
+                                enc
                             },
                             onCurrentTargetChanged = {
                                 qrCurrentTarget = it

@@ -30,6 +30,7 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -82,6 +83,7 @@ fun CourseDetailScreen(
     val coroutineScope = rememberCoroutineScope()
     val activitiesListState = rememberLazyListState()
     var isFetchedFailure by remember { mutableStateOf<Result<*>?>(null) }
+    var partialFailureCount by remember { mutableIntStateOf(0) }
     val courses = destination.courses
     val courseEntity = courses.first()
     val isCloneSession = courseEntity.isCloneSession
@@ -89,9 +91,11 @@ fun CourseDetailScreen(
         isFetchedFailure = runCatching {
             if (activitiesData == null) {
                 ChaoxingHttpClient.getClientInstanceOrClone(isCloneSession)?.let {
+                    partialFailureCount = 0
                     activitiesData = ChaoxingActivityHelper.getActivitiesEntity(
                         it,
-                        courses
+                        courses,
+                        onPartialFailure = { partialFailureCount = it }
                     )
                 }
             }
@@ -151,6 +155,28 @@ fun CourseDetailScreen(
                 )
             }
         }
+        if (partialFailureCount > 0) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp)
+            ) {
+                Icon(
+                    painterResource(R.drawable.ic_x),
+                    contentDescription = null,
+                    tint = Color.Gray,
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    "有${partialFailureCount}个班级的签到活动获取失败，已显示其余班级的签到活动。",
+                    fontSize = 12.sp,
+                    lineHeight = 16.sp,
+                    color = Color.Gray
+                )
+            }
+        }
         Spacer(modifier = Modifier.height(12.dp))
         Crossfade(isFetchedFailure, modifier = Modifier.weight(1f)) { v ->
             if (v == null) {
@@ -162,9 +188,11 @@ fun CourseDetailScreen(
                             if (activitiesData == null) {
                                 ChaoxingHttpClient.getClientInstanceOrClone(isCloneSession)
                                     ?.let {
+                                        partialFailureCount = 0
                                         activitiesData = ChaoxingActivityHelper.getActivitiesEntity(
                                             it,
-                                            courses
+                                            courses,
+                                            onPartialFailure = { partialFailureCount = it }
                                         )
                                         activitiesListState.animateScrollToItem(0)
                                     }
@@ -201,9 +229,11 @@ fun CourseDetailScreen(
                             runCatching {
                                 ChaoxingHttpClient.getClientInstanceOrClone(isCloneSession)
                                     ?.let {
+                                        partialFailureCount = 0
                                         activitiesData = ChaoxingActivityHelper.getActivitiesEntity(
                                             it,
-                                            courses
+                                            courses,
+                                            onPartialFailure = { partialFailureCount = it }
                                         )
                                     }
                             }.onFailure {

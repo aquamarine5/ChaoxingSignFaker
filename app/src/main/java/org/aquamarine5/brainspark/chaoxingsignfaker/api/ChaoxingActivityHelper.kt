@@ -7,6 +7,7 @@
 package org.aquamarine5.brainspark.chaoxingsignfaker.api
 
 import com.alibaba.fastjson2.JSONObject
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
@@ -22,6 +23,8 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityE
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.RecommendActivityEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingParseDataException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.checkResponseThrowException
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.requirePredictable
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.sentryReport
 import kotlin.time.Duration.Companion.minutes
 
 object ChaoxingActivityHelper {
@@ -84,25 +87,40 @@ object ChaoxingActivityHelper {
 
     suspend fun getActivitiesEntity(
         client: ChaoxingHttpClient,
-        courses: List<ChaoxingCourseEntity>
-    ): ChaoxingCourseActivitiesEntity =
-        coroutineScope {
+        courses: List<ChaoxingCourseEntity>,
+        onPartialFailure: (Int) -> Unit = {}
+    ): ChaoxingCourseActivitiesEntity {
+        requirePredictable(courses.isNotEmpty()) { "Courses should not be empty." }
+        val results = coroutineScope {
             courses.map { course ->
                 async {
-                    getActivitiesEntity(client, course)
+                    runCatching {
+                        getActivitiesEntity(client, course)
+                    }.onFailure {
+                        if (it is CancellationException) throw it
+                    }
                 }
             }.awaitAll()
-        }.let { entities ->
-            val representative = courses.first()
-            val mergedActivities = entities.flatMap { it.signActivities }
-                .distinctBy { it.id }
-                .sortedByDescending { it.startTime }
-            ChaoxingCourseActivitiesEntity(
-                entities.firstOrNull()?.ext ?: "",
-                representative,
-                mergedActivities
-            )
         }
+        val failures = results.filter { it.isFailure }
+        if (failures.size == results.size) {
+            failures.first().getOrThrow()
+        }
+        failures.forEach { it.exceptionOrNull()?.sentryReport() }
+        if (failures.isNotEmpty()) {
+            onPartialFailure(failures.size)
+        }
+        val entities = results.mapNotNull { it.getOrNull() }
+        val representative = courses.first()
+        val mergedActivities = entities.flatMap { it.signActivities }
+            .distinctBy { it.id }
+            .sortedByDescending { it.startTime }
+        return ChaoxingCourseActivitiesEntity(
+            entities.first().ext,
+            representative,
+            mergedActivities
+        )
+    }
 
     suspend fun getActivitiesEntity(
         client: ChaoxingHttpClient,

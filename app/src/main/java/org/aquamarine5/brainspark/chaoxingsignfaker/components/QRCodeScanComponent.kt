@@ -134,6 +134,7 @@ fun QRCodeScanComponent(
             }
             val qrCodeDrawable = remember { QRCodeDrawable() }
             val isQrCodeOverlayAdded = remember { mutableStateOf(false) }
+            val lastScannedValue = remember { mutableStateOf<String?>(null) }
             val photoPickerLauncher = rememberLauncherForActivityResult(
                 contract = ActivityResultContracts.PickVisualMedia()
             ) { uri: Uri? ->
@@ -196,7 +197,11 @@ fun QRCodeScanComponent(
                                     isQrCodeOverlayAdded.value = true
                                 }
                                 if (!isPause.value) {
-                                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                                    val rawValue = barcode.rawValue
+                                    if (rawValue != null && rawValue != lastScannedValue.value) {
+                                        lastScannedValue.value = rawValue
+                                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                                    }
                                     onScanResult(barcode)
                                 }
                             }
