@@ -16,6 +16,7 @@ import com.alibaba.fastjson2.JSONObject
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingActivityHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCourseHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
@@ -51,8 +52,20 @@ class ExternalCourseProvider : ContentProvider() {
                 ChaoxingHttpClient.loadFromDataStore(datastore, context)
             }
             val courses = runBlocking { ChaoxingCourseHelper.getAllCourse(client) }
+            val picked = runBlocking {
+                courses.groupBy { it.courseName }.values.map { group ->
+                    if (group.size == 1) group.first()
+                    else group.maxByOrNull { candidate ->
+                        runCatching {
+                            ChaoxingActivityHelper.getActivitiesEntity(client, candidate)
+                                .signActivities.maxOfOrNull { activity -> activity.startTime }
+                                ?: Long.MIN_VALUE
+                        }.getOrDefault(Long.MIN_VALUE)
+                    } ?: group.first()
+                }
+            }
             val array = JSONArray()
-            courses.forEach { course ->
+            picked.forEach { course ->
                 array.add(
                     JSONObject().apply {
                         put("name", course.courseName)

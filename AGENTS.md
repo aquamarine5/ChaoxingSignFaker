@@ -22,4 +22,5 @@
   - exported ContentProvider，authority `org.aquamarine5.brainspark.chaoxingsignfaker.courses`，仅实现 `call("getCourses")`。
   - 复用当前登录态（`instance` 为空时从 DataStore 恢复会话，未登录/过期返回 error Bundle，不抛异常跨进程）。
   - 返回 Bundle：`json` = `{"fid":配置学校ID,"courses":[{"name","teacher","classId","courseId"}]}`，供课表类 App 按课程名匹配回填 ID；错误时返回 `error`。
+  - 同名课程多门时，按各门最近一次签到活动的 startTime 取最大者（查询失败按无活动处理），只暴露近期有签到的那门。
   - 不含任何签到能力，不代提交。
