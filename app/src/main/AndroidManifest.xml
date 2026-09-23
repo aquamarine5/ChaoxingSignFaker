@@ -85,6 +85,11 @@
             android:enabled="true"
             android:process=":remote" />
 
+        <provider
+            android:name=".ExternalCourseProvider"
+            android:authorities="org.aquamarine5.brainspark.chaoxingsignfaker.courses"
+            android:exported="true" />
+
         <meta-data
             android:name="com.baidu.lbsapi.API_KEY"
             android:value="vPf3wCC9gDszB86rRqrXxo2BYRoTM2DR" />

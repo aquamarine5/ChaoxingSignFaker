@@ -18,3 +18,8 @@
   - 签到列表：`courseName` 缺省时用 `queryClassName(classId)` 补课程名，构造 `ChaoxingCourseEntity` 导航到课程签到活动列表页。
   - 签到事件：映射 Destination 直接导航，签到按钮与主观操作仍由用户在随地大小签页面内完成。
   - 所有失败路径走 `toastReport`，不静默。
+- 新增 `ExternalCourseProvider.kt`（静默获取，不弹任何界面）：
+  - exported ContentProvider，authority `org.aquamarine5.brainspark.chaoxingsignfaker.courses`，仅实现 `call("getCourses")`。
+  - 复用当前登录态（`instance` 为空时从 DataStore 恢复会话，未登录/过期返回 error Bundle，不抛异常跨进程）。
+  - 返回 Bundle：`json` = `{"fid":配置学校ID,"courses":[{"name","teacher","classId","courseId"}]}`，供课表类 App 按课程名匹配回填 ID；错误时返回 `error`。
+  - 不含任何签到能力，不代提交。
