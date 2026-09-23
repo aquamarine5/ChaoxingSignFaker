@@ -57,6 +57,11 @@
 
                 <data android:scheme="um.67d42c1c48ac1b4f87e7edae" />
             </intent-filter>
+            <intent-filter>
+                <action android:name="org.aquamarine5.brainspark.chaoxingsignfaker.action.OPEN_SIGN" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
         </activity>
         <activity
             android:name=".ImportOtherUserActivity"
