@@ -13,7 +13,6 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.listSaver
 import com.alibaba.fastjson2.JSONArray
-import io.sentry.Sentry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
@@ -86,6 +85,8 @@ object ChaoxingAnalyser {
         }
     }
 
+    private val jsonParser = Json { ignoreUnknownKeys = true }
+
     suspend fun getAnalyserTopRank(topCount: Int): Result<List<ChaoxingAnalyserRankRecord>> {
         return withContext(Dispatchers.IO) {
             runCatching {
@@ -108,7 +109,7 @@ object ChaoxingAnalyser {
                 ).execute().use { response ->
                     response.checkResponseThrowException()
                     val responseBody = response.body.string()
-                    Json { ignoreUnknownKeys = true }
+                    jsonParser
                         .decodeFromString<List<ChaoxingAnalyserRankRecord>>(responseBody)
                 }
             }
@@ -176,24 +177,24 @@ object ChaoxingAnalyser {
                                                 "schoolName",
                                                 ChaoxingHttpClient.instance!!.userEntity.fidList.map { it.second }
                                                     .distinct().let { rawList ->
-                                                    if (dataStore.selectedAnalysisRankSchoolName.isNotEmpty() && rawList.contains(
-                                                            dataStore.selectedAnalysisRankSchoolName
+                                                        if (dataStore.selectedAnalysisRankSchoolName.isNotEmpty() && rawList.contains(
+                                                                dataStore.selectedAnalysisRankSchoolName
+                                                            )
                                                         )
-                                                    )
-                                                        return@let dataStore.selectedAnalysisRankSchoolName
-                                                    rawList.toMutableList().run {
-                                                        removeAll { it[0].isDigit() }
-                                                        removeAll { it.endsWith("图书馆") }
-                                                        if (isEmpty())
-                                                            return@let rawList[0]
-                                                        sortBy { it.length }
-                                                        return@let get(0)
+                                                            return@let dataStore.selectedAnalysisRankSchoolName
+                                                        rawList.toMutableList().run {
+                                                            removeAll { it[0].isDigit() }
+                                                            removeAll { it.endsWith("图书馆") }
+                                                            if (isEmpty())
+                                                                return@let rawList[0]
+                                                            sortBy { it.length }
+                                                            return@let get(0)
+                                                        }
+                                                    }.let { str ->
+                                                        if (dataStore.hideAnalysisRankSchoolName) str.plus(
+                                                            "HIDE"
+                                                        ) else str
                                                     }
-                                                }.let { str ->
-                                                    if (dataStore.hideAnalysisRankSchoolName) str.plus(
-                                                        "HIDE"
-                                                    ) else str
-                                                }
                                             )
                                             .addEncoded("uuid", analysisDatabaseUUID)
                                             .addEncoded(
@@ -214,7 +215,7 @@ object ChaoxingAnalyser {
                             setLastUploadAnalysisTimestamp(System.currentTimeMillis())
                         }.onFailure {
                             it.printStackTrace()
-                            Sentry.captureException(it)
+                            it.sentryReport()
                             withContext(Dispatchers.Main) {
                                 Toast.makeText(
                                     context,

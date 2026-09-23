@@ -89,7 +89,7 @@ class ChaoxingQRCodeSigner(
                 ).build()
             ).execute().use {
                 it.checkResponseThrowException()
-                return@use it.checkSignResult()
+                return@use it.checkSignResult(position)
             }
         }
 
@@ -118,7 +118,7 @@ class ChaoxingQRCodeSigner(
                 ).build()
             ).execute().use {
                 it.checkResponseThrowException()
-                return@use it.checkSignResult()
+                return@use it.checkSignResult(position)
             }
         }
 

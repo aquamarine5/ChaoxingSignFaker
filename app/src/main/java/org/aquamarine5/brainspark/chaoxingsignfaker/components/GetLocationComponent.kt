@@ -430,7 +430,7 @@ fun GetLocationComponent(
                                     (p0?.zoom ?: 0f) >= MARKER_TITLE_VISIBLE_ZOOM
                                 if (isMarkerTitleVisible != isTitleVisible) {
                                     isMarkerTitleVisible = isTitleVisible
-                                    map.updateMarkerTitlesVisibility(
+                                    updateMarkerTitlesVisibility(
                                         favoriteLocationMarkers,
                                         lastSignedLocationMarker,
                                         isTitleVisible
@@ -587,7 +587,7 @@ fun GetLocationComponent(
                                 })
                         ) as Marker
                     }
-                    baiduMap.map.updateMarkerTitlesVisibility(
+                    updateMarkerTitlesVisibility(
                         favoriteLocationMarkers,
                         lastSignedLocationMarker,
                         isMarkerTitleVisible

@@ -87,6 +87,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.disableComposableCode
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.displaySnackbar
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.isDevelopedMode
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.sentryReport
 import org.aquamarine5.brainspark.stackbricks.StackbricksComponent
 import org.aquamarine5.brainspark.stackbricks.StackbricksEventTrigger
 import org.aquamarine5.brainspark.stackbricks.StackbricksService
@@ -511,6 +512,9 @@ fun SettingScreen(
                             "https://github.com/aquamarine5/ChaoxingSignFaker".toUri()
                         )
                     )
+                }.onFailure {
+                    snackbarHostState.displaySnackbar("无法打开链接", coroutineScope)
+                    it.sentryReport()
                 }
             },
             shape = RoundedCornerShape(18.dp),
@@ -563,6 +567,9 @@ fun SettingScreen(
                         putExtra(Intent.EXTRA_SUBJECT, "Send to ChaoxingSignFaker:\n")
                         putExtra(Intent.EXTRA_TEXT, "Your content:")
                     })
+                }.onFailure {
+                    snackbarHostState.displaySnackbar("无法打开邮件应用", coroutineScope)
+                    it.sentryReport()
                 }
             },
             shape = RoundedCornerShape(18.dp),

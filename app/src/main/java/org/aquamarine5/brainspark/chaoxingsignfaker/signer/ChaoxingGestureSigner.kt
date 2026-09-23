@@ -72,11 +72,11 @@ class ChaoxingGestureSigner(
                 URL_SIGN.newBuilder()
                     .addQueryParameter(
                         "latitude",
-                        if (position != null) "%.6f".format(position.latitude) else ""
+                        if (position != null) "%.6f".format(position.randomizedLatitude) else ""
                     )
                     .addQueryParameter(
                         "longitude",
-                        if (position != null) "%.6f".format(position.longitude) else ""
+                        if (position != null) "%.6f".format(position.randomizedLongitude) else ""
                     )
                     .addQueryParameter("activeId", destination.activeId.toString())
                     .addQueryParameter("uid", client.userEntity.puid.toString())
@@ -90,7 +90,7 @@ class ChaoxingGestureSigner(
             ).build()
         ).execute().use {
             it.checkResponseThrowException()
-            return@use it.checkSignResult()
+            return@use it.checkSignResult(position)
         }
     }
 
@@ -105,11 +105,11 @@ class ChaoxingGestureSigner(
                     URL_SIGN.newBuilder()
                         .addQueryParameter(
                             "latitude",
-                            if (position != null) "%.6f".format(position.latitude) else ""
+                            if (position != null) "%.6f".format(position.randomizedLatitude) else ""
                         )
                         .addQueryParameter(
                             "longitude",
-                            if (position != null) "%.6f".format(position.longitude) else ""
+                            if (position != null) "%.6f".format(position.randomizedLongitude) else ""
                         )
                         .addQueryParameter("activeId", destination.activeId.toString())
                         .addQueryParameter("uid", client.userEntity.puid.toString())
@@ -124,7 +124,7 @@ class ChaoxingGestureSigner(
                 ).build()
             ).execute().use {
                 it.checkResponseThrowException()
-                return@use it.checkSignResult()
+                return@use it.checkSignResult(position)
             }
         }
 

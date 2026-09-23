@@ -6,14 +6,19 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.entity
 
+import android.net.Uri
+import android.os.Bundle
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.runtime.snapshots.SnapshotStateList
+import androidx.navigation.NavType
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
+import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.json.Json
 
 @Serializable
 @Stable
@@ -30,6 +35,25 @@ data class ChaoxingCourseEntity(
     val isCloneSession: Boolean = false
 ) {
     companion object {
+        object ChaoxingCourseEntityListNavType : NavType<List<ChaoxingCourseEntity>>(false) {
+            private val listSerializer = ListSerializer(serializer())
+            override fun get(bundle: Bundle, key: String): List<ChaoxingCourseEntity>? {
+                return Json.decodeFromString(listSerializer, bundle.getString(key) ?: return null)
+            }
+
+            override fun parseValue(value: String): List<ChaoxingCourseEntity> {
+                return Json.decodeFromString(listSerializer, Uri.decode(value))
+            }
+
+            override fun serializeAsValue(value: List<ChaoxingCourseEntity>): String {
+                return Uri.encode(Json.encodeToString(listSerializer, value))
+            }
+
+            override fun put(bundle: Bundle, key: String, value: List<ChaoxingCourseEntity>) {
+                bundle.putString(key, Json.encodeToString(listSerializer, value))
+            }
+        }
+
         val Saver: Saver<SnapshotStateList<ChaoxingCourseEntity>, *> = listSaver(
             save = { saver ->
                 saver.map {

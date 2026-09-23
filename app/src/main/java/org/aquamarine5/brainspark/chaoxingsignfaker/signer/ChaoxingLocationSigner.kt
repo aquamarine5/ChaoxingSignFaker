@@ -57,8 +57,8 @@ class ChaoxingLocationSigner(
             client.newCall(
                 Request.Builder().url(
                     URL_SIGN.newBuilder()
-                        .addQueryParameter("latitude", signLocation.latitude.toString())
-                        .addQueryParameter("longitude", signLocation.longitude.toString())
+                        .addQueryParameter("latitude", signLocation.randomizedLatitude.toString())
+                        .addQueryParameter("longitude", signLocation.randomizedLongitude.toString())
                         .addQueryParameter("address", signLocation.address)
                         .addQueryParameter("activeId", destination.activeId.toString())
                         .addQueryParameter("uid", client.userEntity.puid.toString())
@@ -70,7 +70,7 @@ class ChaoxingLocationSigner(
                 ).get().build()
             ).execute().use {
                 it.checkResponseThrowException()
-                return@use it.checkSignResult()
+                return@use it.checkSignResult(signLocation)
             }
         }
 
@@ -83,8 +83,8 @@ class ChaoxingLocationSigner(
             client.newCall(
                 Request.Builder().url(
                     URL_SIGN.newBuilder()
-                        .addQueryParameter("latitude", signLocation.latitude.toString())
-                        .addQueryParameter("longitude", signLocation.longitude.toString())
+                        .addQueryParameter("latitude", signLocation.randomizedLatitude.toString())
+                        .addQueryParameter("longitude", signLocation.randomizedLongitude.toString())
                         .addQueryParameter("address", signLocation.address)
                         .addQueryParameter("activeId", destination.activeId.toString())
                         .addQueryParameter("uid", client.userEntity.puid.toString())
@@ -97,7 +97,7 @@ class ChaoxingLocationSigner(
                 ).get().build()
             ).execute().use {
                 it.checkResponseThrowException()
-                return@use it.checkSignResult()
+                return@use it.checkSignResult(signLocation)
             }
         }
 

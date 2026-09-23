@@ -16,13 +16,13 @@ message ChaoxingSignFakerDataStore{
   string deviceCode = 5 [deprecated = true];
   repeated uint32 preferCourse = 6 [deprecated = true];
   repeated uint32 preferClassId = 8;
-  map<uint32, RecommendRecordList> recommendRecords = 9;
-  repeated RecommendHabit recommendHabits = 10;
-  bool disableRecommend = 11;
-  uint32 version = 12;
-  repeated ChaoxingCourseClass preferCourseClass = 13;
+  map<uint32, RecommendRecordList> recommendRecords = 9 [deprecated = true];
+  repeated RecommendHabit recommendHabits = 10 [deprecated = true];
+  bool disableRecommend = 11 [deprecated = true];
+  uint32 version = 12 [deprecated = true];
+  repeated ChaoxingCourseClass preferCourseClass = 13 [deprecated = true];
   bool bypassBlockedChecking = 14;
-  uint32 tagsIncreaseId = 16;
+  uint32 tagsIncreaseId = 16 [deprecated = true];
   repeated OtherUserTagType tagsLibrary = 15;
   LearntTooltip learntTooltips = 17;
   Preferences preferences = 18;
@@ -125,6 +125,7 @@ message ChaoxingLoginSession{
   string password = 3;
   string faceImageObjectId = 4 [deprecated = true];
   optional uint32 configuredFid = 5;
+  optional uint32 uid = 6;
 }
 
 message ChaoxingOtherUserSession{
@@ -136,6 +137,7 @@ message ChaoxingOtherUserSession{
   string faceImageObjectId = 6 [deprecated = true];
   bool isObsoleteSession = 7;
   optional uint32 configuredFid = 8;
+  optional uint32 uid = 9;
 }
 
 message HttpCookie{

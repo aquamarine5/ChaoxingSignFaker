@@ -27,6 +27,7 @@ import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
@@ -43,6 +44,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -257,7 +259,8 @@ fun CustomizeClientCard(onClose: (() -> Unit)? = null) {
                             ChaoxingClientInfo.DEFAULT.packageName,
                             fontSize = 11.sp,
                             color = Color.Gray,
-                            lineHeight = 12.sp
+                            lineHeight = 12.sp,
+                            fontFamily = FontFamily.Monospace
                         )
                     }
                 }
@@ -284,7 +287,8 @@ fun CustomizeClientCard(onClose: (() -> Unit)? = null) {
                             ChaoxingClientInfo.XUEZAIXIDIAN.packageName,
                             fontSize = 11.sp,
                             color = Color.Gray,
-                            lineHeight = 12.sp
+                            lineHeight = 12.sp,
+                            fontFamily = FontFamily.Monospace
                         )
                     }
                 }
@@ -315,7 +319,8 @@ fun CustomizeClientCard(onClose: (() -> Unit)? = null) {
                         label = { Text("输入自定义 UserAgent") },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(top = 8.dp)
+                            .padding(top = 8.dp),
+                        textStyle = LocalTextStyle.current.copy(fontFamily = FontFamily.Monospace)
                     )
                     OutlinedTextField(
                         value = customPackageName,
@@ -327,7 +332,8 @@ fun CustomizeClientCard(onClose: (() -> Unit)? = null) {
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(top = 8.dp)
+                            .padding(top = 8.dp),
+                        textStyle = LocalTextStyle.current.copy(fontFamily = FontFamily.Monospace)
                     )
                     HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -352,7 +358,6 @@ fun CustomizeClientCard(onClose: (() -> Unit)? = null) {
                 isSaving = true
                 isSchoolExpanded = false
                 hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                // Capture the draft before suspending so one save uses one selection.
                 val fidToSave = selectedFid
                 val userAgentPreference = selectedOption?.identity
                     ?: customUserAgent.ifBlank { ChaoxingClientInfo.DEFAULT.identity }

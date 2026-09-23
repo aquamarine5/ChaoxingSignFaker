@@ -89,7 +89,6 @@ import coil3.request.crossfade
 import com.baidu.location.LocationClient
 import com.baidu.mapapi.SDKInitializer
 import com.umeng.analytics.MobclickAgent
-import io.sentry.Sentry
 import io.sentry.android.core.SentryAndroid
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -151,6 +150,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.isDevelopedMode
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.requirePredictable
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.toastReport
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.sentryReport
 import org.aquamarine5.brainspark.stackbricks.StackbricksPolicy
 import org.aquamarine5.brainspark.stackbricks.StackbricksService
 import org.aquamarine5.brainspark.stackbricks.providers.qiniu.QiniuConfiguration
@@ -306,7 +306,7 @@ class MainActivity : ComponentActivity() {
                                                             }
                                                         }
                                                     }.onFailure {
-                                                        Sentry.captureException(it)
+                                                        it.sentryReport()
                                                         it.printStackTrace()
                                                     }
                                                 }
@@ -461,6 +461,8 @@ class MainActivity : ComponentActivity() {
                                                                 ChaoxingAnalyser.checkAndUploadAnalyserRankData(
                                                                     applicationContext
                                                                 )
+                                                            }.onFailure {
+                                                                it.sentryReport()
                                                             }
                                                         }
                                                         launch {
@@ -690,7 +692,11 @@ class MainActivity : ComponentActivity() {
                                                     }
                                                 }
 
-                                                composable<CourseDetailDestination> {
+                                                composable<CourseDetailDestination>(
+                                                    typeMap = mapOf(
+                                                        typeOf<List<ChaoxingCourseEntity>>() to ChaoxingCourseEntity.Companion.ChaoxingCourseEntityListNavType
+                                                    )
+                                                ) {
                                                     CourseDetailScreen(
                                                         it.toRoute(),
                                                         navToSignerDestination = { destination ->

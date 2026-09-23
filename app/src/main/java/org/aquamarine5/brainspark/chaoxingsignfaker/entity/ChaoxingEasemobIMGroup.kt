@@ -40,7 +40,7 @@ data class ChaoxingEasemobIMGroup(
     }
 
     object ChaoxingEasemobIMGroupListNavType : NavType<List<ChaoxingEasemobIMGroup>>(false) {
-        private val listSerializer = ListSerializer(ChaoxingEasemobIMGroup.serializer())
+        private val listSerializer = ListSerializer(serializer())
         override fun get(bundle: Bundle, key: String): List<ChaoxingEasemobIMGroup>? {
             return Json.decodeFromString(listSerializer, bundle.getString(key) ?: return null)
         }

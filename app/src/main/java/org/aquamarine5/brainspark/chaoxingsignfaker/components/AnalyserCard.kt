@@ -89,6 +89,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.ui.theme.FontGilroy
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingAnalyser
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.isDevelopedMode
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
 import java.time.Instant
 import java.time.ZoneId
@@ -408,7 +409,9 @@ fun AnalyserCard() {
                     Text("代签次数: ${detail.otherSign}")
                     Text("总签到次数: ${detail.totalSignCount}")
                     Text("最新更新时间：${detail.latestDate}")
-                    detail.versionName?.let { Text("应用版本：$it") }
+                    if (detail.versionName != null && isDevelopedMode) {
+                        Text("应用版本：${detail.versionName}")
+                    }
                 }
             }, confirmButton = {
                 Button(onClick = {
@@ -533,6 +536,7 @@ fun AnalyserCard() {
                                             fontFamily = FontGilroy,
                                             fontWeight = FontWeight.Bold,
                                             fontSize = 18.sp,
+                                            maxLines = 1,
                                             color = MaterialTheme.colorScheme.primary,
                                             autoSize = TextAutoSize.StepBased(
                                                 maxFontSize = 18.sp,
@@ -805,8 +809,13 @@ fun AnalyserCard() {
                 ) {
                     CompositionLocalProvider(LocalContentColor provides analyserContentColor) {
                         Column(modifier = Modifier.fillMaxWidth()) {
-                            Text("使用次数统计", fontSize = 17.sp, fontWeight = FontWeight.Bold)
-                            analyser.apply {
+                            Text(
+                                "使用次数统计",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp,
+                                lineHeight = 18.sp
+                            )
+                            with(analyser) {
                                 FlowRow(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.spacedBy(9.dp),

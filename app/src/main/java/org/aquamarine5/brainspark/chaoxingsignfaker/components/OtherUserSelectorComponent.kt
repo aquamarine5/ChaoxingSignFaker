@@ -55,12 +55,14 @@ import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.derivedStateOf
@@ -94,6 +96,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
@@ -101,21 +104,21 @@ import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.SuccessResult
 import coil3.toBitmap
-import io.sentry.Sentry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.Request
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingAccountHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingFaceHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingOtherUserHelper
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingOtherUserHelper.getSessionUid
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.OtherUserTagType
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignStatus
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.TAG_COLOR_UNSPECIFIED
-import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingPredictableException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.FaceRecognitionData
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.FaceRecognitionImageStatus
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalImageLoader
@@ -124,6 +127,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.OnlyAppDevelopedMo
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.displaySnackbar
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.isDevelopedMode
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.sentryReport
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
 import java.io.File
 import kotlin.math.abs
@@ -317,9 +321,7 @@ fun OtherUserSelectorComponent(
                                     }
                                 }.onFailure {
                                     hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
-                                    if (it !is ChaoxingPredictableException) {
-                                        Sentry.captureException(it)
-                                    }
+                                    it.sentryReport()
                                     errorMessage = "登录失败：" + (it.message ?: "未知错误")
                                 }
                             }
@@ -780,14 +782,13 @@ fun OtherUserSelectorComponent(
                 Spacer(modifier = Modifier.height(6.dp))
 
                 Text(
-                    "选择要进行签到的用户：",
-                    modifier = Modifier.padding(start = 3.dp),
+                    "选择要签到的用户：",
                     fontWeight = FontWeight.Bold
                 )
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(0.dp, 4.dp, 8.dp, 16.dp)
+                        .padding(0.dp, 1.dp, 8.dp, 11.dp)
                 ) {
                     Row {
                         if (tagEntities != null && tagContainedUserIndexList != null)
@@ -882,21 +883,52 @@ fun OtherUserSelectorComponent(
                             .padding(vertical = 4.dp)
                             .onGloballyPositioned { userRowCoordinates[0] = it }
                     ) {
-                        Checkbox(
-                            checked = userSelections[0] && signStatus[0].isSuccess.value != true,
-                            onCheckedChange = { isChecked ->
-                                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                                userSelections[0] = isChecked
-                            },
-                            enabled = (success == true).not()
-                        )
+                        CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
+                            Checkbox(
+                                checked = userSelections[0] && signStatus[0].isSuccess.value != true,
+                                onCheckedChange = { isChecked ->
+                                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                                    userSelections[0] = isChecked
+                                },
+                                enabled = (success == true).not(),
+                                modifier = Modifier.padding(
+                                    start = 3.dp,
+                                    end = 14.dp,
+                                    top = 11.dp,
+                                    bottom = 11.dp
+                                )
+                            )
+                        }
                         Row(modifier = Modifier.clickable((success == true).not()) {
                             hapticFeedback.performHapticFeedback(
                                 HapticFeedbackType.ContextClick
                             )
                             userSelections[0] = userSelections[0].not()
                         }, verticalAlignment = Alignment.CenterVertically) {
-                            Spacer(modifier = Modifier.width(8.dp))
+                            val selfEntity = ChaoxingHttpClient.instance?.userEntity
+                            var selfAvatarModel by remember {
+                                mutableStateOf<Any?>(
+                                    null
+                                )
+                            }
+                            LaunchedEffect(selfEntity?.uid, selfEntity?.pic) {
+                                val entity = selfEntity ?: return@LaunchedEffect
+                                selfAvatarModel = ChaoxingAccountHelper.getCachedAvatar(
+                                    context,
+                                    "self_${entity.uid}",
+                                    entity.pic
+                                )
+                            }
+                            AsyncImage(
+                                model = selfAvatarModel,
+                                imageLoader = imageLoader,
+                                contentDescription = "头像",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier
+                                    .size(30.dp)
+                                    .clip(RoundedCornerShape(5.dp))
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
                             Column {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Text(
@@ -912,15 +944,13 @@ fun OtherUserSelectorComponent(
                                                 modifier = Modifier
                                                     .padding(start = 4.dp)
                                                     .size(14.dp)
-                                                    .then(
-                                                        if (isDevelopedMode) Modifier.clickable {
-                                                            hapticFeedback.performHapticFeedback(
-                                                                HapticFeedbackType.ContextClick
-                                                            )
-                                                            inspectingFaceImagePhoneNumber =
-                                                                ChaoxingHttpClient.instance!!.userEntity.phoneNumber
-                                                        } else Modifier
-                                                    ),
+                                                    .clickable {
+                                                        hapticFeedback.performHapticFeedback(
+                                                            HapticFeedbackType.ContextClick
+                                                        )
+                                                        inspectingFaceImagePhoneNumber =
+                                                            ChaoxingHttpClient.instance!!.userEntity.phoneNumber
+                                                    },
                                                 tint = it.value.color.takeOrElse { MaterialTheme.colorScheme.primary }
                                             )
                                         }
@@ -984,15 +1014,23 @@ fun OtherUserSelectorComponent(
                             (1 + index).let { i ->
                                 val successForOtherUser by signStatus[i].isSuccess
                                 var isRetrying by remember { mutableStateOf(false) }
-                                Checkbox(
-                                    checked = userSelections[i] && signStatus[i].isSuccess.value != true,
-                                    onCheckedChange = { isChecked ->
-                                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                                        userSelections[i] = isChecked
-                                        updateTagClickState()
-                                    },
-                                    enabled = (successForOtherUser == true).not()
-                                )
+                                CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
+                                    Checkbox(
+                                        checked = userSelections[i] && signStatus[i].isSuccess.value != true,
+                                        onCheckedChange = { isChecked ->
+                                            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                                            userSelections[i] = isChecked
+                                            updateTagClickState()
+                                        },
+                                        enabled = (successForOtherUser == true).not(),
+                                        modifier = Modifier.padding(
+                                            start = 3.dp,
+                                            end = 14.dp,
+                                            top = 11.dp,
+                                            bottom = 11.dp
+                                        )
+                                    )
+                                }
                                 Row(modifier = Modifier.clickable((successForOtherUser == true).not()) {
                                     hapticFeedback.performHapticFeedback(
                                         HapticFeedbackType.ContextClick
@@ -1000,7 +1038,31 @@ fun OtherUserSelectorComponent(
                                     userSelections[i] = userSelections[i].not()
                                     updateTagClickState()
                                 }, verticalAlignment = Alignment.CenterVertically) {
-                                    Spacer(modifier = Modifier.width(8.dp))
+                                    var otherUserAvatarModel by remember {
+                                        mutableStateOf<Any?>(
+                                            null
+                                        )
+                                    }
+                                    LaunchedEffect(session) {
+                                        session.getSessionUid(context)?.let { uid ->
+                                            otherUserAvatarModel =
+                                                ChaoxingAccountHelper.getCachedAvatar(
+                                                    context,
+                                                    uid.toString(),
+                                                    ChaoxingAccountHelper.getAvatarUrl(uid)
+                                                )
+                                        }
+                                    }
+                                    AsyncImage(
+                                        model = otherUserAvatarModel,
+                                        imageLoader = imageLoader,
+                                        contentDescription = "头像",
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier
+                                            .size(30.dp)
+                                            .clip(RoundedCornerShape(5.dp))
+                                    )
+                                    Spacer(modifier = Modifier.width(10.dp))
                                     Column {
                                         Row(verticalAlignment = Alignment.CenterVertically) {
                                             Text(
@@ -1010,7 +1072,7 @@ fun OtherUserSelectorComponent(
                                                 ) else Color.Unspecified,
                                                 textDecoration = if (successForOtherUser != true) TextDecoration.None else TextDecoration.LineThrough
                                             )
-                                            if (isCloneSession)
+                                            if (isCloneSession && ChaoxingHttpClient.cloneInstance?.userEntity?.phoneNumber == session.phoneNumber)
                                                 Icon(
                                                     painterResource(R.drawable.ic_square_stack),
                                                     null,
@@ -1027,15 +1089,13 @@ fun OtherUserSelectorComponent(
                                                         modifier = Modifier
                                                             .padding(start = 4.dp)
                                                             .size(14.dp)
-                                                            .then(
-                                                                if (isDevelopedMode) Modifier.clickable {
-                                                                    hapticFeedback.performHapticFeedback(
-                                                                        HapticFeedbackType.ContextClick
-                                                                    )
-                                                                    inspectingFaceImagePhoneNumber =
-                                                                        session.phoneNumber
-                                                                } else Modifier
-                                                            ),
+                                                            .clickable {
+                                                                hapticFeedback.performHapticFeedback(
+                                                                    HapticFeedbackType.ContextClick
+                                                                )
+                                                                inspectingFaceImagePhoneNumber =
+                                                                    session.phoneNumber
+                                                            },
                                                         tint = it.value.color.takeOrElse { MaterialTheme.colorScheme.primary }
                                                     )
                                                 }

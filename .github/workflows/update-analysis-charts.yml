@@ -2,8 +2,8 @@ name: Update Analysis Charts
 
 on:
   schedule:
-    # GitHub Actions cron uses UTC. 16:30 UTC is 00:30 Asia/Shanghai the following day.
-    - cron: "30 16 * * *"
+    # GitHub Actions cron uses UTC. 00:05 UTC is 08:05 Asia/Shanghai.
+    - cron: "5 0 * * *"
   workflow_dispatch:
 
 permissions:
