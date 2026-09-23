@@ -90,13 +90,11 @@ android {
             signingConfig signingConfigs.chaoxingsignfaker
             buildConfigField("String", "releaseDate", "\"${new Date().format('yyyy-MM-dd HH:mm:ss')}\"")
             buildConfigField("String", "umengChannel", "\"${System.getenv("UMENG_CHANNEL")}\"" ?: '"Stackbricks"')
-            buildConfigField("String", "imEncryptedKey", "\"${project.findProperty("imEncryptedKey") ?: System.getenv("imEncryptedKey") ?: ""}\"")
         }
         debug {
             signingConfig signingConfigs.chaoxingsignfaker
             buildConfigField("String", "releaseDate", "\"${new Date().format('yyyy-MM-dd HH:mm:ss')}\"")
             buildConfigField("String", "umengChannel", "\"${System.getenv("UMENG_CHANNEL")}\"" ?: '"Stackbricks"')
-            buildConfigField("String", "imEncryptedKey", "\"${project.findProperty("imEncryptedKey") ?: System.getenv("imEncryptedKey") ?: ""}\"")
         }
     }
 

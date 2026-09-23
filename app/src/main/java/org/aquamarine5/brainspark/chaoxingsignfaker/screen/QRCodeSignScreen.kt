@@ -123,7 +123,6 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.isDevelopedMode
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.rememberFaceRecognitionData
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.sentryReport
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
-import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
 @Serializable
@@ -343,7 +342,7 @@ fun QRCodeSignScreen(
                     val signHandler = remember(isFaceRequired) {
                         ChaoxingSignHandler(
                             context = context,
-                            signTimeSpan = 50.milliseconds,
+                            signTimeSpan = ChaoxingSignHandler.SHORT_SIGN_TIME_SPAN,
                             getSignRealtimeParameter = {
                                 suspendCancellableCoroutine { continuation ->
                                     getQRCodeContinuation?.cancel()
@@ -592,7 +591,7 @@ fun QRCodeSignScreen(
                                             lastConsumedEncSeq = latestEncSeq
                                         }
                                     }
-                                    if (enc == expiredEnc) delay(200.milliseconds)
+                                    if (enc == expiredEnc) delay(ChaoxingSignHandler.LONG_SIGN_TIME_SPAN)
                                 } while (enc == expiredEnc)
                                 enc
                             },

@@ -46,8 +46,13 @@ class ChaoxingSignHandler<in T>(
     private val context: Context,
     private val faceRecognitionData: FaceRecognitionData? = null,
     private val getSignRealtimeParameter: (suspend () -> T)? = null,
-    private val signTimeSpan: Duration = 200.milliseconds
+    private val signTimeSpan: Duration = LONG_SIGN_TIME_SPAN
 ) {
+    companion object {
+        val SHORT_SIGN_TIME_SPAN = 50.milliseconds
+        val LONG_SIGN_TIME_SPAN = 200.milliseconds
+    }
+
     private var storedValue: T? = null
 
     val hasSignRealtimeParameter: Boolean
@@ -93,6 +98,7 @@ class ChaoxingSignHandler<in T>(
     ): Job {
         return coroutineScope.launch {
             var isCaptchaSigning = false
+            var isCaptchaResolvedByModel = false
             val selfPhoneNumber = ChaoxingHttpClient.instance!!.userEntity.phoneNumber
             val queue = buildList {
                 if (isSelf) add(-1)
@@ -115,6 +121,8 @@ class ChaoxingSignHandler<in T>(
                         if (result.isSuccess) {
                             val signResult = result.getOrNull()!!
                             isCaptchaSigning = signResult.isCaptchaSigning
+                            isCaptchaResolvedByModel =
+                                signResult.isCaptchaSigning && signResult.isCaptchaResolvedByModel
                             if (signResult.isCaptchaSigning && signResult.isCaptchaResolvedByModel)
                                 signStatus[0].markCaptchaResolvedByModel()
                             userSelections[0] = false
@@ -132,7 +140,6 @@ class ChaoxingSignHandler<in T>(
                             break
                         } else {
                             val throwable = failure!!
-                            if (throwable is CancellationException) throw throwable
                             if (throwable is QRCodeExpiredException) {
                                 delay(500.milliseconds)
                                 continue
@@ -168,6 +175,7 @@ class ChaoxingSignHandler<in T>(
                     val session = otherUserSessionList[target]!!
                     signStatus[target + 1].loading()
                     if (!isCaptchaSigning) delay(signTimeSpan)
+                    else if (isCaptchaResolvedByModel) delay(SHORT_SIGN_TIME_SPAN)
                     while (true) {
                         val value = getFreshEnc()
                         storedValue = value
@@ -177,6 +185,8 @@ class ChaoxingSignHandler<in T>(
                         if (result.isSuccess) {
                             val signResult = result.getOrNull()!!
                             isCaptchaSigning = signResult.isCaptchaSigning
+                            isCaptchaResolvedByModel =
+                                signResult.isCaptchaSigning && signResult.isCaptchaResolvedByModel
                             if (signResult.isCaptchaSigning && signResult.isCaptchaResolvedByModel)
                                 signStatus[1 + target].markCaptchaResolvedByModel()
                             if (destination.endTime != null && System.currentTimeMillis() > destination.endTime!!)
@@ -193,7 +203,6 @@ class ChaoxingSignHandler<in T>(
                             break
                         } else {
                             val throwable = failure!!
-                            if (throwable is CancellationException) throw throwable
                             if (throwable is QRCodeExpiredException) {
                                 delay(500.milliseconds)
                                 continue
@@ -247,6 +256,7 @@ class ChaoxingSignHandler<in T>(
         snackbarHost: SnackbarHostState
     ) {
         var isCaptchaSigning = false
+        var isCaptchaResolvedByModel = false
         storedValue = value
         val selfPhoneNumber = ChaoxingHttpClient.instance!!.userEntity.phoneNumber
         coroutineScope.launch {
@@ -254,7 +264,9 @@ class ChaoxingSignHandler<in T>(
                 signStatus[0].loading()
                 onSelfSigning(value).onSuccess { signResult ->
                     isCaptchaSigning = signResult.isCaptchaSigning
-                    if (signResult.isCaptchaSigning && signResult.isCaptchaResolvedByModel)
+                    isCaptchaResolvedByModel =
+                        signResult.isCaptchaSigning && signResult.isCaptchaResolvedByModel
+                    if (isCaptchaResolvedByModel)
                         signStatus[0].markCaptchaResolvedByModel()
                     userSelections[0] = false
                     faceRecognitionData?.markSuccess(selfPhoneNumber, otherUserSessionList)
@@ -291,6 +303,20 @@ class ChaoxingSignHandler<in T>(
                         hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
                         onAllSigningFinished(false)
                         return@launch
+                    } else if (throwable is ChaoxingSigner.WrongPositionException &&
+                        throwable.isAlreadyDisabledRandomizedLocation
+                    ) {
+                        for (i in otherUserSessionList.indices) {
+                            if (otherUserSessionList[i] != null)
+                                signStatus[i + 1].failed(throwable)
+                        }
+                        snackbarHost.displaySnackbar(
+                            "签到位置超出范围，请重新选择位置",
+                            coroutineScope
+                        )
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
+                        onAllSigningFinished(false)
+                        return@launch
                     } else {
                         if (throwable !is ChaoxingCaptchaCancelledException) {
                             throwable.snackbarReport(
@@ -310,12 +336,14 @@ class ChaoxingSignHandler<in T>(
             for ((index, session) in otherUserSessionList.withIndex()) {
                 if (session == null) continue
                 signStatus[index + 1].loading()
-                if (!isCaptchaSigning || (isSelf && isFirstOtherUserForSign))
-                    delay(signTimeSpan)
+                if (!isCaptchaSigning) delay(signTimeSpan)
+                else if (isCaptchaResolvedByModel) delay(SHORT_SIGN_TIME_SPAN)
+                else if (isSelf && isFirstOtherUserForSign) delay(signTimeSpan)
                 isFirstOtherUserForSign = false
                 onOtherUserSigning(value, session, false, index).onSuccess {
                     isCaptchaSigning = it.isCaptchaSigning
-                    if (it.isCaptchaSigning && it.isCaptchaResolvedByModel)
+                    isCaptchaResolvedByModel = it.isCaptchaSigning && it.isCaptchaResolvedByModel
+                    if (isCaptchaResolvedByModel)
                         signStatus[1 + index].markCaptchaResolvedByModel()
                     if (destination.endTime != null && System.currentTimeMillis() > destination.endTime!!)
                         signStatus[1 + index].successForLate()
@@ -364,6 +392,20 @@ class ChaoxingSignHandler<in T>(
                         }
                         snackbarHost.displaySnackbar(
                             "签到二维码已过期，请重新扫码",
+                            coroutineScope
+                        )
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
+                        onAllSigningFinished(false)
+                        return@launch
+                    } else if (it is ChaoxingSigner.WrongPositionException &&
+                        it.isAlreadyDisabledRandomizedLocation
+                    ) {
+                        for (i in (index + 1)..<otherUserSessionList.size) {
+                            if (otherUserSessionList[i] != null)
+                                signStatus[i + 1].failed(it)
+                        }
+                        snackbarHost.displaySnackbar(
+                            "签到位置超出范围，请重新选择位置",
                             coroutineScope
                         )
                         hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)

@@ -78,11 +78,11 @@ class ChaoxingPasswordSigner(
                 URL_SIGN.newBuilder()
                     .addQueryParameter(
                         "latitude",
-                        if (position != null) "%.6f".format(position.latitude) else ""
+                        if (position != null) "%.6f".format(position.randomizedLatitude) else ""
                     )
                     .addQueryParameter(
                         "longitude",
-                        if (position != null) "%.6f".format(position.longitude) else ""
+                        if (position != null) "%.6f".format(position.randomizedLongitude) else ""
                     )
                     .addQueryParameter("activeId", destination.activeId.toString())
                     .addQueryParameter("uid", client.userEntity.puid.toString())
@@ -96,7 +96,7 @@ class ChaoxingPasswordSigner(
             ).build()
         ).execute().use {
             it.checkResponseThrowException()
-            return@use it.checkSignResult()
+            return@use it.checkSignResult(position)
         }
     }
 
@@ -111,11 +111,11 @@ class ChaoxingPasswordSigner(
                     URL_SIGN.newBuilder()
                         .addQueryParameter(
                             "latitude",
-                            if (position != null) "%.6f".format(position.latitude) else ""
+                            if (position != null) "%.6f".format(position.randomizedLatitude) else ""
                         )
                         .addQueryParameter(
                             "longitude",
-                            if (position != null) "%.6f".format(position.longitude) else ""
+                            if (position != null) "%.6f".format(position.randomizedLongitude) else ""
                         )
                         .addQueryParameter("activeId", destination.activeId.toString())
                         .addQueryParameter("uid", client.userEntity.puid.toString())
@@ -130,7 +130,7 @@ class ChaoxingPasswordSigner(
                 ).build()
             ).execute().use {
                 it.checkResponseThrowException()
-                return@use it.checkSignResult()
+                return@use it.checkSignResult(position)
             }
         }
 }
