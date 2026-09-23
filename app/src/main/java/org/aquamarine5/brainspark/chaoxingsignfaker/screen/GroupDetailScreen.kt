@@ -196,8 +196,10 @@ fun GroupDetailScreen(
                                 Text("该群聊暂无可用签到活动")
                             }
                         } else {
-                            Spacer(modifier = Modifier.height(12.dp))
                             LazyColumn {
+                                item {
+                                    Spacer(modifier = Modifier.height(12.dp))
+                                }
                                 items(messages!!, key = {
                                     it.activeId
                                 }) { message ->

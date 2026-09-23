@@ -94,6 +94,7 @@ message LearntTooltip{
   bool supportCloneOtherUserSession = 8;
   bool sliderCaptchaAutoResolveByModel = 9;
   bool saveFaceRecognitionImagesToLocal = 10;
+  bool qrCodeSupportKeepScanning = 11;
 }
 
 message OtherUserTagType{

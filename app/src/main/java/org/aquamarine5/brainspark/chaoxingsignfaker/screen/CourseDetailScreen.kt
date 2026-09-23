@@ -177,7 +177,7 @@ fun CourseDetailScreen(
                 )
             }
         }
-        Spacer(modifier = Modifier.height(12.dp))
+
         Crossfade(isFetchedFailure, modifier = Modifier.weight(1f)) { v ->
             if (v == null) {
                 CenterCircularProgressIndicator()
@@ -270,6 +270,9 @@ fun CourseDetailScreen(
                             state = activitiesListState,
                             modifier = Modifier.fillMaxSize()
                         ) {
+                            item {
+                                Spacer(modifier = Modifier.height(12.dp))
+                            }
                             items(
                                 items = activitiesData!!.signActivities,
                                 key = { it.id }

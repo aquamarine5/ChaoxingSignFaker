@@ -94,6 +94,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.components.FaceRecognitionCo
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.FaceRecognitionNewFeatureTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.GetLocationComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NetworkExceptionComponent
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.NewFeatureTipsCard
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NotReadyToSignNoticeComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.OtherUserSelectorComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.QRCodeScanComponent
@@ -189,6 +190,7 @@ fun QRCodeSignScreen(
     val hapticFeedback = LocalHapticFeedback.current
     var isFetchedFailure by remember { mutableStateOf<Result<*>?>(null) }
     val isDisplayFaceRecognitionImageNewFeatureTips = remember { mutableStateOf(false) }
+    val isDisplayQRCodeKeepScanningNewFeatureTips = remember { mutableStateOf(false) }
     if (captchaValidateParams != null) {
         CaptchaHandlerDialog(
             captchaValidateParams!!.first,
@@ -202,6 +204,8 @@ fun QRCodeSignScreen(
         context.chaoxingDataStore.data.first().let {
             isDisplayFaceRecognitionImageNewFeatureTips.value =
                 !it.learntTooltips.saveFaceRecognitionImagesToLocal
+            isDisplayQRCodeKeepScanningNewFeatureTips.value =
+                !it.learntTooltips.qrCodeSupportKeepScanning
         }
         isFetchedFailure = runCatching {
             val data = if (destination.isCloneSession) {
@@ -577,20 +581,21 @@ fun QRCodeSignScreen(
                             getFreshEnc = {
                                 var enc: String
                                 do {
-                                    enc = if (latestEnc != null && latestEncSeq > lastConsumedEncSeq) {
-                                        lastConsumedEncSeq = latestEncSeq
-                                        latestEnc!!
-                                    } else {
-                                        suspendCancellableCoroutine<String> { continuation ->
-                                            encWaiter?.cancel()
-                                            encWaiter = continuation
-                                            continuation.invokeOnCancellation {
-                                                if (encWaiter == continuation) encWaiter = null
-                                            }
-                                        }.also {
+                                    enc =
+                                        if (latestEnc != null && latestEncSeq > lastConsumedEncSeq) {
                                             lastConsumedEncSeq = latestEncSeq
+                                            latestEnc!!
+                                        } else {
+                                            suspendCancellableCoroutine<String> { continuation ->
+                                                encWaiter?.cancel()
+                                                encWaiter = continuation
+                                                continuation.invokeOnCancellation {
+                                                    if (encWaiter == continuation) encWaiter = null
+                                                }
+                                            }.also {
+                                                lastConsumedEncSeq = latestEncSeq
+                                            }
                                         }
-                                    }
                                     if (enc == expiredEnc) delay(ChaoxingSignHandler.LONG_SIGN_TIME_SPAN)
                                 } while (enc == expiredEnc)
                                 enc
@@ -663,7 +668,7 @@ fun QRCodeSignScreen(
                                             )
                                             Spacer(modifier = Modifier.width(9.dp))
                                             Text(
-                                                "自己不在课堂现场时，必须需要另一名在场的用户为你代签，随地大小签不支持破解二维码签到。\n在新版本中，如果需要为很多人进行动态的二维码签到，请手持手机保持在扫描二维码界面，等待为所有用户签到完毕后扫描页面会自动退出，无需担心二维码已过期的问题。",
+                                                "自己不在课堂现场时，必须需要另一名在场的用户为你代签，随地大小签不支持破解二维码签到。",
                                                 color = Color.White,
                                                 fontSize = 13.sp,
                                                 lineHeight = 18.sp,
@@ -773,6 +778,18 @@ fun QRCodeSignScreen(
                                                     Text("重新获取位置")
                                                 }
                                             }
+                                        }
+                                    }
+                                    NewFeatureTipsCard(
+                                        isDisplayQRCodeKeepScanningNewFeatureTips,
+                                        tipsText = "在新版本中，如果需要为很多人进行动态的二维码签到，请手持手机保持在扫描二维码界面，等待为所有用户签到完毕后扫描页面会自动退出，无需担心二维码已过期的问题。"
+                                    ) {
+                                        context.chaoxingDataStore.updateData {
+                                            it.toBuilder().setLearntTooltips(
+                                                it.learntTooltips.toBuilder()
+                                                    .setQrCodeSupportKeepScanning(true)
+                                                    .build()
+                                            ).build()
                                         }
                                     }
                                 }

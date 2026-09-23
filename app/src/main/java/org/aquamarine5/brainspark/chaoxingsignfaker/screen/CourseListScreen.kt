@@ -854,9 +854,10 @@ fun CourseListScreen(
                                                 )
                                                 if (isPreferred)
                                                     coroutineScope.launch {
-                                                        val classIdsToAdd = groupClassIds.filterNot {
-                                                            preferredClassIds.contains(it)
-                                                        }
+                                                        val classIdsToAdd =
+                                                            groupClassIds.filterNot {
+                                                                preferredClassIds.contains(it)
+                                                            }
                                                         context.chaoxingDataStore.updateData {
                                                             it.toBuilder()
                                                                 .addAllPreferClassId(classIdsToAdd)

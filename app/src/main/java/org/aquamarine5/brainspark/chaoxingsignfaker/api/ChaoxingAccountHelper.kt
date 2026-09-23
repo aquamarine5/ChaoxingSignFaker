@@ -9,7 +9,6 @@ package org.aquamarine5.brainspark.chaoxingsignfaker.api
 import android.content.Context
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.requirePredictable
 import java.io.File
@@ -33,8 +32,9 @@ object ChaoxingAccountHelper {
                     return@withContext avatarFile
                 }
                 avatarFile.parentFile?.mkdirs()
-                val client = ChaoxingHttpClient.instance?.okHttpClient ?: OkHttpClient()
-                client.newCall(Request.Builder().url(url).build()).execute().use { response ->
+                (ChaoxingHttpClient.instance ?: return@runCatching null).newCall(
+                    Request.Builder().url(url).build()
+                ).execute().use { response ->
                     requirePredictable(response.isSuccessful) { "Fetch avatar failed: ${response.code}" }
                     response.body.byteStream().use { input ->
                         avatarFile.outputStream().use { output ->

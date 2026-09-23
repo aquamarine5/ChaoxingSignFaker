@@ -36,7 +36,7 @@ stackbricksConfig {
                     "# 1.17.* 更新：\n1. 支持存储自己和代签用户的人脸识别照片，就不用每次自己找了。\n2. 没有代签用户的人脸识别照片时，可以自动获取一张用于签到。\n3. 现在自己的代签二维码会附带自己的人脸识别照片，重新扫描其他人的新版本二维码时会把你的照片下载到他的设备上存储。\n4. 修复了超级多Bug。\n\n" +
                     "# 1.16.* 更新：\n1. 由于学习通更新导致原接口失效，修复了获取群聊列表失败的问题。\n\n" +
                     "# 1.15.* 更新：\n1. 支持克隆登录代签用户的账号以给他有你没有的课程签到。\n\n" +
-                    "<g>lovely but not lonely, 20260910 life need pompompurin, @aquamarine5 Brainspark.</g>"
+                    "<g>lovely but not lonely, 20260923 life need pompompurin, @aquamarine5 Brainspark.</g>"
     requiredManifestVersion2MigrateForceInstall = true
     forceInstallLessVersion = 1_1900_6000
     qiniuConfig {
@@ -59,8 +59,8 @@ android {
         applicationId = "org.aquamarine5.brainspark.chaoxingsignfaker"
         minSdk = 26
         targetSdk = 37
-        versionCode = 1_1901_0609
-        versionName = "1.19.1-rc2-260922"
+        versionCode = 1_1901_6699
+        versionName = "1.19.1-rc3-260923"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
