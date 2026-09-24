@@ -70,7 +70,15 @@ object ChaoxingDeviceInfoHelper {
     suspend fun getLocalMachineDeviceCode(context: Context): String {
         val uniqueId = getLocalMachineUniqueId(context)
         if (uniqueId.isEmpty()) return ""
-        return encryptFlagInfo(uniqueId)
+        val cipher = Cipher.getInstance("AES/ECB/PKCS5Padding")
+        cipher.init(
+            Cipher.ENCRYPT_MODE,
+            SecretKeySpec(DEVICE_FLAG_INFO_KEY.toByteArray(Charsets.UTF_8), "AES")
+        )
+        return Base64.encodeToString(
+            cipher.doFinal(uniqueId.toByteArray(Charsets.UTF_8)),
+            Base64.NO_WRAP
+        )
     }
 
     fun randomizedDeviceCode(): String {
@@ -88,18 +96,6 @@ object ChaoxingDeviceInfoHelper {
         } else {
             UUID.randomUUID().toString().replace("-", "")
         }
-    }
-
-    private fun encryptFlagInfo(uniqueId: String): String {
-        val cipher = Cipher.getInstance("AES/ECB/PKCS5Padding")
-        cipher.init(
-            Cipher.ENCRYPT_MODE,
-            SecretKeySpec(DEVICE_FLAG_INFO_KEY.toByteArray(Charsets.UTF_8), "AES")
-        )
-        return Base64.encodeToString(
-            cipher.doFinal(uniqueId.toByteArray(Charsets.UTF_8)),
-            Base64.NO_WRAP
-        )
     }
 
     private fun isValidUniqueId(uniqueId: String?): Boolean =

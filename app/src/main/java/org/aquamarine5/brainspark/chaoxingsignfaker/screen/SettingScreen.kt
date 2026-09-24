@@ -64,12 +64,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
 import coil3.compose.AsyncImage
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import org.aquamarine5.brainspark.chaoxingsignfaker.BuildConfig
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingDeviceInfoHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingRecommendHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.AnalyserCard
@@ -502,6 +504,42 @@ fun SettingScreen(
         AnalyserCard()
         Spacer(modifier = Modifier.height(8.dp))
         CustomizeClientCard()
+        Button(
+            onClick = {
+                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                coroutineScope.launch(Dispatchers.IO) {
+                    runCatching {
+                        val deviceCode =
+                            ChaoxingDeviceInfoHelper.getLocalMachineDeviceCode(context)
+                        context.chaoxingDataStore.updateData { dataStore ->
+                            dataStore.toBuilder().setLoginSession(
+                                dataStore.loginSession.toBuilder()
+                                    .setDeviceCode(deviceCode)
+                                    .setIsNotRandomizedDeviceCode(true)
+                                    .build()
+                            ).build()
+                        }
+                        deviceCode
+                    }.onSuccess { deviceCode ->
+                        snackbarHostState.displaySnackbar(
+                            "已更新deviceCode：$deviceCode",
+                            coroutineScope
+                        )
+                    }.onFailure { failure ->
+                        if (failure is CancellationException) throw failure
+                        snackbarHostState.displaySnackbar(
+                            failure.message ?: "获取deviceCode失败",
+                            coroutineScope
+                        )
+                        failure.sentryReport()
+                    }
+                }
+            },
+            shape = RoundedCornerShape(18.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("GetLocalMachineDeviceCode")
+        }
         Button(
             onClick = {
                 runCatching {
