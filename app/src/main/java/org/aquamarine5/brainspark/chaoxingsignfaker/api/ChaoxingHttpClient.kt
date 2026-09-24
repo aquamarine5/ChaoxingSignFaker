@@ -54,7 +54,7 @@ import javax.crypto.spec.SecretKeySpec
 class ChaoxingHttpClient private constructor(
     val okHttpClient: OkHttpClient,
     val userEntity: ChaoxingUserEntity,
-    val deviceCode: String = generateDeviceCode(),
+    val deviceCode: String = ChaoxingDeviceInfoHelper.randomizedDeviceCode(),
     initialConfiguredFid: Int = userEntity.fidList.firstOrNull()?.first ?: 0
 ) {
     var configuredFid by mutableIntStateOf(initialConfiguredFid)
@@ -153,13 +153,7 @@ class ChaoxingHttpClient private constructor(
             }
         }
 
-        fun generateDeviceCode(): String {
-            val rawData = MessageDigest.getInstance("SHA-256").digest(
-                (UUID.randomUUID().toString().replace("-", "") + UUID.randomUUID().toString()
-                    .replace("-", "")).toByteArray()
-            )
-            return Base64.getEncoder().encodeToString(rawData + rawData)
-        }
+        fun generateDeviceCode(): String = ChaoxingDeviceInfoHelper.randomizedDeviceCode()
 
         private fun checkPasswordIllegalThrowException(password: String) {
             if (password.isEmpty())
@@ -167,6 +161,41 @@ class ChaoxingHttpClient private constructor(
             if (password.length !in 8..16)
                 throw ChaoxingLoginException("密码位数应该在8-16位")
         }
+
+        private suspend fun ChaoxingLoginSession.resolveDeviceCode(context: Context): String {
+            deviceCode.takeIf { it.isNotEmpty() }?.let { return it }
+            return ChaoxingDeviceInfoHelper.getLocalMachineDeviceCode(context).also { code ->
+                if (code.isEmpty()) return@also
+                context.chaoxingDataStore.updateData { dataStore ->
+                    dataStore.toBuilder().setLoginSession(
+                        dataStore.loginSession.toBuilder()
+                            .setDeviceCode(code)
+                            .setIsNotRandomizedDeviceCode(true)
+                            .build()
+                    ).build()
+                }
+            }
+        }
+
+        private suspend fun ChaoxingOtherUserSession.resolveDeviceCode(context: Context): String =
+            deviceCode.takeIf { it.isNotEmpty() } ?: ChaoxingDeviceInfoHelper
+                .randomizedDeviceCode()
+                .also { code ->
+                    context.chaoxingDataStore.updateData { dataStore ->
+                        dataStore.toBuilder().apply {
+                            otherUsersList.indexOfFirst { it.phoneNumber == this@resolveDeviceCode.phoneNumber }
+                                .takeIf { it >= 0 }?.let { index ->
+                                    setOtherUsers(
+                                        index,
+                                        getOtherUsers(index).toBuilder()
+                                            .setDeviceCode(code)
+                                            .setIsNotRandomizedDeviceCode(false)
+                                            .build()
+                                    )
+                                }
+                        }.build()
+                    }
+                }
 
         suspend fun loadFromOtherUserSession(
             session: ChaoxingOtherUserSession,
@@ -222,6 +251,7 @@ class ChaoxingHttpClient private constructor(
             return ChaoxingHttpClient(
                 okHttpClient,
                 userInfo,
+                deviceCode = session.resolveDeviceCode(context),
                 initialConfiguredFid = session.configuredFid.takeIf {
                     session.hasConfiguredFid() && userInfo.fidList.any { school -> school.first == it }
                 } ?: userInfo.fidList.first().first
@@ -280,6 +310,7 @@ class ChaoxingHttpClient private constructor(
             return@withContext ChaoxingHttpClient(
                 client,
                 userInfo,
+                deviceCode = session.resolveDeviceCode(context),
                 initialConfiguredFid = session.configuredFid.takeIf {
                     session.hasConfiguredFid() && userInfo.fidList.any { school -> school.first == it }
                 } ?: userInfo.fidList.first().first
@@ -343,6 +374,7 @@ class ChaoxingHttpClient private constructor(
             return ChaoxingHttpClient(
                 okHttpClient,
                 userInfo,
+                deviceCode = dataStore.loginSession.resolveDeviceCode(context),
                 initialConfiguredFid = dataStore.loginSession.configuredFid.takeIf {
                     dataStore.loginSession.hasConfiguredFid() &&
                             userInfo.fidList.any { school -> school.first == it }

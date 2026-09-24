@@ -396,7 +396,10 @@ fun PasswordSignScreen(
                                     signHandler.retryOtherUserSigning(
                                         session,
                                         index,
-                                        bypassChecking
+                                        bypassChecking,
+                                        hapticFeedback,
+                                        coroutineScope,
+                                        snackbarHost
                                     )
                                 }, isCloneSession = destination.isCloneSession,
                                 suffixContent = {

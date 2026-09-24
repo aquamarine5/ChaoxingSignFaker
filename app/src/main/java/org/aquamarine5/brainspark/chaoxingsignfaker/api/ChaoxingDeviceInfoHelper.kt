@@ -15,6 +15,9 @@ import android.os.Build
 import android.provider.Settings
 import android.util.Base64
 import com.alibaba.fastjson2.JSONObject
+import com.umeng.commonsdk.UMConfigure
+import kotlin.coroutines.resume
+import kotlinx.coroutines.suspendCancellableCoroutine
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.chaoxingApplicationPackageName
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.requirePredictable
 import java.io.ByteArrayOutputStream
@@ -26,11 +29,14 @@ import java.security.spec.X509EncodedKeySpec
 import java.util.Locale
 import java.util.UUID
 import javax.crypto.Cipher
+import javax.crypto.spec.SecretKeySpec
 
 object ChaoxingDeviceInfoHelper {
     private const val DEVICE_INFO_PUBLIC_KEY =
         "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC79d8Ot0hCbxxSISC6x8SCwTBspFSzlLKHJUYqoFNu1TSRaw4hEYkOnvEaL1VyoxV6HXcDrzwYvaFZaZaPQPFnfCHZy5dQwxcmifgSHqS+oKXw40Ys4cVIqnU5d90S7EWSRdBglX489jlqVaNcQSkDx2TYmC+DbAq9FV/BU09ISQIDAQAB"
     private const val RSA_PLAIN_BLOCK_SIZE = 117
+    private const val DEVICE_FLAG_INFO_KEY = "QrCbNY@MuK1X8HGw"
+    private val INVALID_UNIQUE_ID_REGEX = Regex("^0{16,64}$")
 
     fun buildEncryptedDeviceInfo(context: Context): String =
         encryptByRsa(buildDeviceInfo(context).toJSONString().toByteArray(Charsets.UTF_8))
@@ -60,6 +66,52 @@ object ChaoxingDeviceInfoHelper {
             }
             JSONObject.parseObject(output.toString(Charsets.UTF_8.name()))
         }.getOrNull()
+
+    suspend fun getLocalMachineDeviceCode(context: Context): String {
+        val uniqueId = getLocalMachineUniqueId(context)
+        if (uniqueId.isEmpty()) return ""
+        return encryptFlagInfo(uniqueId)
+    }
+
+    fun randomizedDeviceCode(): String {
+        val rawData = MessageDigest.getInstance("SHA-256").digest(
+            (UUID.randomUUID().toString().replace("-", "") + UUID.randomUUID().toString()
+                .replace("-", "")).toByteArray()
+        )
+        return Base64.encodeToString(rawData + rawData, Base64.NO_WRAP)
+    }
+
+    private suspend fun getLocalMachineUniqueId(context: Context): String {
+        val uniqueId = requestOaid(context)
+        return if (isValidUniqueId(uniqueId)) {
+            uniqueId
+        } else {
+            UUID.randomUUID().toString().replace("-", "")
+        }
+    }
+
+    private fun encryptFlagInfo(uniqueId: String): String {
+        val cipher = Cipher.getInstance("AES/ECB/PKCS5Padding")
+        cipher.init(
+            Cipher.ENCRYPT_MODE,
+            SecretKeySpec(DEVICE_FLAG_INFO_KEY.toByteArray(Charsets.UTF_8), "AES")
+        )
+        return Base64.encodeToString(
+            cipher.doFinal(uniqueId.toByteArray(Charsets.UTF_8)),
+            Base64.NO_WRAP
+        )
+    }
+
+    private fun isValidUniqueId(uniqueId: String?): Boolean =
+        !uniqueId.isNullOrBlank() &&
+            !INVALID_UNIQUE_ID_REGEX.matches(uniqueId.replace("-", ""))
+
+    private suspend fun requestOaid(context: Context): String =
+        suspendCancellableCoroutine { continuation ->
+            UMConfigure.getOaid(context.applicationContext) { deviceId ->
+                if (continuation.isActive) continuation.resume(deviceId.orEmpty())
+            }
+        }
 
     @SuppressLint("HardwareIds")
     private fun buildDeviceInfo(context: Context): JSONObject {

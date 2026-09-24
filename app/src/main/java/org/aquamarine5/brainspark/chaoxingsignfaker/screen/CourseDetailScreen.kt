@@ -56,6 +56,8 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.components.NetworkExceptionC
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCourseActivitiesEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCourseEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.checkPredictable
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.requirePredictable
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
 import java.time.Instant
 import java.time.LocalDate
@@ -85,19 +87,32 @@ fun CourseDetailScreen(
     var isFetchedFailure by remember { mutableStateOf<Result<*>?>(null) }
     var partialFailureCount by remember { mutableIntStateOf(0) }
     val courses = destination.courses
-    val courseEntity = courses.first()
+    val courseEntity = courses.firstOrNull()
+    if (courseEntity == null) {
+        Column(
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text("课程数据缺失，请返回重试")
+        }
+        return
+    }
     val isCloneSession = courseEntity.isCloneSession
     LaunchedEffect(Unit) {
         isFetchedFailure = runCatching {
             if (activitiesData == null) {
-                ChaoxingHttpClient.getClientInstanceOrClone(isCloneSession)?.let {
-                    partialFailureCount = 0
-                    activitiesData = ChaoxingActivityHelper.getActivitiesEntity(
-                        it,
-                        courses,
-                        onPartialFailure = { partialFailureCount = it }
-                    )
-                }
+                val client = ChaoxingHttpClient.getClientInstanceOrClone(isCloneSession)
+                requirePredictable(client != null) { "登录会话已失效，请重新登录" }
+                partialFailureCount = 0
+                activitiesData = ChaoxingActivityHelper.getActivitiesEntity(
+                    client,
+                    courses,
+                    onPartialFailure = { partialFailureCount = it }
+                )
+                checkPredictable(activitiesData != null) { "获取签到信息失败" }
             }
         }.onFailure {
             it.snackbarReport(
@@ -186,16 +201,17 @@ fun CourseDetailScreen(
                     coroutineScope.launch {
                         isFetchedFailure = runCatching {
                             if (activitiesData == null) {
-                                ChaoxingHttpClient.getClientInstanceOrClone(isCloneSession)
-                                    ?.let {
-                                        partialFailureCount = 0
-                                        activitiesData = ChaoxingActivityHelper.getActivitiesEntity(
-                                            it,
-                                            courses,
-                                            onPartialFailure = { partialFailureCount = it }
-                                        )
-                                        activitiesListState.animateScrollToItem(0)
-                                    }
+                                val client =
+                                    ChaoxingHttpClient.getClientInstanceOrClone(isCloneSession)
+                                requirePredictable(client != null) { "登录会话已失效，请重新登录" }
+                                partialFailureCount = 0
+                                activitiesData = ChaoxingActivityHelper.getActivitiesEntity(
+                                    client,
+                                    courses,
+                                    onPartialFailure = { partialFailureCount = it }
+                                )
+                                checkPredictable(activitiesData != null) { "获取签到信息失败" }
+                                activitiesListState.animateScrollToItem(0)
                             }
                         }.onFailure {
                             it.snackbarReport(
@@ -227,15 +243,16 @@ fun CourseDetailScreen(
                         pullToRefreshState = true
                         coroutineScope.launch {
                             runCatching {
-                                ChaoxingHttpClient.getClientInstanceOrClone(isCloneSession)
-                                    ?.let {
-                                        partialFailureCount = 0
-                                        activitiesData = ChaoxingActivityHelper.getActivitiesEntity(
-                                            it,
-                                            courses,
-                                            onPartialFailure = { partialFailureCount = it }
-                                        )
-                                    }
+                                val client =
+                                    ChaoxingHttpClient.getClientInstanceOrClone(isCloneSession)
+                                requirePredictable(client != null) { "登录会话已失效，请重新登录" }
+                                partialFailureCount = 0
+                                activitiesData = ChaoxingActivityHelper.getActivitiesEntity(
+                                    client,
+                                    courses,
+                                    onPartialFailure = { partialFailureCount = it }
+                                )
+                                checkPredictable(activitiesData != null) { "获取签到信息失败" }
                             }.onFailure {
                                 it.snackbarReport(
                                     snackbarHost,
@@ -249,7 +266,10 @@ fun CourseDetailScreen(
                         }
                     }
                 ) {
-                    if (activitiesData!!.signActivities.isEmpty()) {
+                    val currentActivitiesData = activitiesData
+                    if (currentActivitiesData == null) {
+                        CenterCircularProgressIndicator()
+                    } else if (currentActivitiesData.signActivities.isEmpty()) {
                         Column(
                             modifier = Modifier
                                 .fillMaxSize()
@@ -274,7 +294,7 @@ fun CourseDetailScreen(
                                 Spacer(modifier = Modifier.height(12.dp))
                             }
                             items(
-                                items = activitiesData!!.signActivities,
+                                items = currentActivitiesData.signActivities,
                                 key = { it.id }
                             ) { activity ->
                                 CourseSignActivityColumnCard(activity, { startTimestamp ->

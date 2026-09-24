@@ -1931,6 +1931,8 @@ fun OtherUserScreen(
                                 ?.filter { it.isNotBlank() }
                                 ?.distinct()
                                 .orEmpty()
+                            val deviceCode =
+                                url.queryParameter("dc")?.takeIf { it.isNotEmpty() }
                             if (phone == null || pwd == null || name == null) {
                                 hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
                                 Toast.makeText(context, "链接格式错误", Toast.LENGTH_SHORT).show()
@@ -1945,6 +1947,7 @@ fun OtherUserScreen(
                                             pwd,
                                             name,
                                             faceObjectIds,
+                                            deviceCode,
                                         )
                                     )
                                 }.onSuccess { result ->

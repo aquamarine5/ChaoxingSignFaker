@@ -367,7 +367,10 @@ fun PhotoSignScreen(
                                         signHandler.retryOtherUserSigning(
                                             session,
                                             index,
-                                            bypassChecking
+                                            bypassChecking,
+                                            hapticFeedback,
+                                            coroutineScope,
+                                            snackbarHost
                                         )
                                     }
                                 ) { isSelf, otherUserSessionList, _ ->
@@ -600,7 +603,10 @@ fun PhotoSignScreen(
                                                         signHandler.retryOtherUserSigning(
                                                             session,
                                                             index,
-                                                            bypassChecking
+                                                            bypassChecking,
+                                                            hapticFeedback,
+                                                            coroutineScope,
+                                                            snackbarHost
                                                         )
                                                     },
                                                     userContent = { index ->

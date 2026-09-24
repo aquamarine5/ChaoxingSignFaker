@@ -511,7 +511,14 @@ fun LocationSignScreen(
                             faceRecognitionData = faceRecognitionData.takeIf { isFaceRequired },
                             isCloneSession = destination.isCloneSession,
                             onRetrySignAction = { index, session, bypassChecking ->
-                                signHandler.retryOtherUserSigning(session, index, bypassChecking)
+                                signHandler.retryOtherUserSigning(
+                                    session,
+                                    index,
+                                    bypassChecking,
+                                    hapticFeedback,
+                                    coroutineScope,
+                                    snackbarHost
+                                )
                             }
                         ) { isSelf, otherUserSessionList, _ ->
                             isSigning.value = true

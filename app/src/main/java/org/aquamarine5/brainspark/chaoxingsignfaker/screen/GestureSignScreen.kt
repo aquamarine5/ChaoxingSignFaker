@@ -518,7 +518,10 @@ fun GestureSignScreen(
                                     signHandler.retryOtherUserSigning(
                                         session,
                                         index,
-                                        bypassChecking
+                                        bypassChecking,
+                                        hapticFeedback,
+                                        coroutineScope,
+                                        snackbarHost
                                     )
                                 }
                             ) { isSelf, otherUserSessionList, _ ->

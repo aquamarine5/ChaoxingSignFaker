@@ -693,7 +693,10 @@ fun QRCodeSignScreen(
                                     signHandler.retryOtherUserSigning(
                                         session,
                                         index,
-                                        bypassChecking
+                                        bypassChecking,
+                                        hapticFeedback,
+                                        coroutineScope,
+                                        snackbarHost
                                     )
                                 }, isCloneSession = destination.isCloneSession,
                                 hasSignRealtimeParameter = signHandler.hasSignRealtimeParameter,

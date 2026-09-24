@@ -25,6 +25,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.entity.SignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingQRCodeSigner.QRCodeExpiredException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingCaptchaCancelledException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingFaceSignException
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingPredictableException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.FaceRecognitionData
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.checkIsLast
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.displaySnackbar
@@ -53,6 +54,9 @@ class ChaoxingSignHandler<in T>(
         val LONG_SIGN_TIME_SPAN = 200.milliseconds
     }
 
+    class ChaoxingShouldSignOnceBeforeException :
+        ChaoxingPredictableException("请先发起一次签到后再重试")
+
     private var storedValue: T? = null
 
     val hasSignRealtimeParameter: Boolean
@@ -61,29 +65,44 @@ class ChaoxingSignHandler<in T>(
     suspend fun retryOtherUserSigning(
         session: ChaoxingOtherUserSession,
         index: Int,
-        bypassChecking: Boolean
+        bypassChecking: Boolean,
+        hapticFeedback: HapticFeedback,
+        coroutineScope: CoroutineScope,
+        snackbarHost: SnackbarHostState
     ): Result<ChaoxingSignResult> {
-        return onOtherUserSigning(
-            getSignRealtimeParameter?.invoke()
-                ?: requireNotNull(storedValue) { "Should call startSigning() first." },
-            session,
-            bypassChecking,
-            index
-        ).onFailure {
-            (it as? ChaoxingHttpClient.ChaoxingGetUserInfoException)?.let { exception ->
-                if (exception.isOtherUser)
-                    ChaoxingOtherUserHelper.markSessionObsoleted(session, context)
+        val realtimeParameterProvider = getSignRealtimeParameter
+        val fallbackValue = storedValue
+        return runCatching {
+            val value = realtimeParameterProvider?.invoke() ?: fallbackValue
+                ?: throw ChaoxingShouldSignOnceBeforeException()
+            onOtherUserSigning(value, session, bypassChecking, index).getOrThrow()
+                .also { signResult ->
+                    if (signResult.isCaptchaSigning && signResult.isCaptchaResolvedByModel)
+                        signStatus[1 + index].markCaptchaResolvedByModel()
+                    if (destination.endTime != null && System.currentTimeMillis() > destination.endTime!!)
+                        signStatus[1 + index].successForLate()
+                    else
+                        signStatus[1 + index].success()
+                    userSelections[index + 1] = false
+                    onSigningFinished(value, session.name, true)
+                }
+        }.onFailure {
+            if (it is CancellationException) throw it
+            if (it is ChaoxingShouldSignOnceBeforeException) {
+                signStatus[1 + index].isLoading.value = false
+            } else {
+                (it as? ChaoxingHttpClient.ChaoxingGetUserInfoException)?.let { exception ->
+                    if (exception.isOtherUser)
+                        ChaoxingOtherUserHelper.markSessionObsoleted(session, context)
+                }
+                signStatus[1 + index].failed(it)
+                it.snackbarReport(
+                    snackbarHost,
+                    coroutineScope,
+                    "重试签到失败",
+                    hapticFeedback
+                )
             }
-            signStatus[1 + index].failed(it)
-        }.onSuccess {
-            if (it.isCaptchaSigning && it.isCaptchaResolvedByModel)
-                signStatus[1 + index].markCaptchaResolvedByModel()
-            if (destination.endTime != null && System.currentTimeMillis() > destination.endTime!!)
-                signStatus[1 + index].successForLate()
-            else
-                signStatus[1 + index].success()
-            userSelections[index + 1] = false
-            onSigningFinished(storedValue!!, session.name, true)
         }
     }
 

@@ -42,6 +42,25 @@ object ChaoxingOtherUserHelper {
     class AlreadyExistedOtherUserException(message: String, throwable: Throwable? = null) :
         ChaoxingParseDataException(message, throwable)
 
+    private suspend fun ChaoxingOtherUserSession.applySharedDeviceCode(
+        context: Context,
+        deviceCode: String?
+    ): ChaoxingOtherUserSession {
+        if (deviceCode.isNullOrEmpty()) return this
+        if (deviceCode == this.deviceCode && isNotRandomizedDeviceCode) return this
+        val updatedSession = toBuilder()
+            .setDeviceCode(deviceCode)
+            .setIsNotRandomizedDeviceCode(true)
+            .build()
+        context.chaoxingDataStore.updateData { datastore ->
+            datastore.toBuilder().apply {
+                otherUsersList.indexOfFirst { it.phoneNumber == updatedSession.phoneNumber }
+                    .takeIf { it >= 0 }?.let { index -> setOtherUsers(index, updatedSession) }
+            }.build()
+        }
+        return updatedSession
+    }
+
     private fun getQRCodeSize(context: Context): Int {
         val displayMetrics = context.resources.displayMetrics
         val width = displayMetrics.widthPixels
@@ -81,11 +100,32 @@ object ChaoxingOtherUserHelper {
             val faceObjectIds = selectedFaceObjectIds
                 .distinct()
                 .filter { it in availableFaceObjectIds }.take(ChaoxingFaceHelper.MAX_FACE_IMAGES)
+            var deviceCode = dataStore.loginSession.deviceCode.takeIf { it.isNotEmpty() }
+            if (deviceCode == null) {
+                val generatedDeviceCode =
+                    ChaoxingDeviceInfoHelper.getLocalMachineDeviceCode(context)
+                if (generatedDeviceCode.isNotEmpty()) {
+                    val updatedDataStore = context.chaoxingDataStore.updateData { currentDataStore ->
+                        val loginSession = currentDataStore.loginSession
+                        if (loginSession.deviceCode.isNotEmpty()) {
+                            currentDataStore
+                        } else {
+                            currentDataStore.toBuilder().setLoginSession(
+                                loginSession.toBuilder()
+                                    .setDeviceCode(generatedDeviceCode)
+                                    .setIsNotRandomizedDeviceCode(true)
+                                    .build()
+                            ).build()
+                        }
+                    }
+                    deviceCode = updatedDataStore.loginSession.deviceCode
+                }
+            }
             "http://cdn.aquamarine5.fun/?phone=${sharedEntity.phoneNumber}&pwd=${
                 Uri.encode(sharedEntity.encryptedPassword)
             }&name=${
                 Uri.encode(sharedEntity.userName)
-            }&face=${faceObjectIds.joinToString(",")}"
+            }&face=${faceObjectIds.joinToString(",")}&dc=${Uri.encode(deviceCode.orEmpty())}"
         }
 
     suspend fun generateQRCode(
@@ -189,8 +229,9 @@ object ChaoxingOtherUserHelper {
             val dataStore = context.chaoxingDataStore.data.first()
             if (dataStore.loginSession.phoneNumber == sharedEntity.phoneNumber)
                 throw AlreadyExistedOtherUserException("自己不能添加自己！")
-            val existedSession =
-                dataStore.otherUsersList.firstOrNull { it.phoneNumber == sharedEntity.phoneNumber }
+            val existedSession = dataStore.otherUsersList
+                .firstOrNull { it.phoneNumber == sharedEntity.phoneNumber }
+                ?.applySharedDeviceCode(context, sharedEntity.deviceCode)
 
             suspend fun saveFaceImages(okHttpClient: OkHttpClient, userEntity: ChaoxingUserEntity) {
                 if (sharedEntity.faceObjectIds.isEmpty()) return
@@ -308,6 +349,12 @@ object ChaoxingOtherUserHelper {
                 .setPassword(sharedEntity.encryptedPassword.replace(" ", "+"))
                 .setName(sharedEntity.userName.ifEmpty { userEntity.name })
                 .setPhoneNumber(sharedEntity.phoneNumber)
+                .apply {
+                    sharedEntity.deviceCode?.takeIf { it.isNotEmpty() }?.let { deviceCode ->
+                        setDeviceCode(deviceCode)
+                        setIsNotRandomizedDeviceCode(true)
+                    }
+                }
                 .clearCookies()
                 .addAllCookies(
                     tempOkHttpClient.cookieJar.loadForRequest(
