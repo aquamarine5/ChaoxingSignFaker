@@ -16,7 +16,6 @@ import android.provider.Settings
 import android.util.Base64
 import com.alibaba.fastjson2.JSONObject
 import com.umeng.commonsdk.UMConfigure
-import kotlin.coroutines.resume
 import kotlinx.coroutines.suspendCancellableCoroutine
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.chaoxingApplicationPackageName
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.requirePredictable
@@ -30,6 +29,7 @@ import java.util.Locale
 import java.util.UUID
 import javax.crypto.Cipher
 import javax.crypto.spec.SecretKeySpec
+import kotlin.coroutines.resume
 
 object ChaoxingDeviceInfoHelper {
     private const val DEVICE_INFO_PUBLIC_KEY =
@@ -67,6 +67,7 @@ object ChaoxingDeviceInfoHelper {
             JSONObject.parseObject(output.toString(Charsets.UTF_8.name()))
         }.getOrNull()
 
+    @SuppressLint("GetInstance")
     suspend fun getLocalMachineDeviceCode(context: Context): String {
         val uniqueId = getLocalMachineUniqueId(context)
         if (uniqueId.isEmpty()) return ""
@@ -90,24 +91,19 @@ object ChaoxingDeviceInfoHelper {
     }
 
     private suspend fun getLocalMachineUniqueId(context: Context): String {
-        val uniqueId = requestOaid(context)
-        return if (isValidUniqueId(uniqueId)) {
+        val uniqueId = suspendCancellableCoroutine { continuation ->
+            UMConfigure.getOaid(context.applicationContext) { deviceId ->
+                if (continuation.isActive) continuation.resume(deviceId.orEmpty())
+            }
+        }
+        return if (uniqueId.isNotBlank() &&
+            !INVALID_UNIQUE_ID_REGEX.matches(uniqueId.replace("-", ""))
+        ) {
             uniqueId
         } else {
             UUID.randomUUID().toString().replace("-", "")
         }
     }
-
-    private fun isValidUniqueId(uniqueId: String?): Boolean =
-        !uniqueId.isNullOrBlank() &&
-            !INVALID_UNIQUE_ID_REGEX.matches(uniqueId.replace("-", ""))
-
-    private suspend fun requestOaid(context: Context): String =
-        suspendCancellableCoroutine { continuation ->
-            UMConfigure.getOaid(context.applicationContext) { deviceId ->
-                if (continuation.isActive) continuation.resume(deviceId.orEmpty())
-            }
-        }
 
     @SuppressLint("HardwareIds")
     private fun buildDeviceInfo(context: Context): JSONObject {

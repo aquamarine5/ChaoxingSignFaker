@@ -54,8 +54,8 @@ import javax.crypto.spec.SecretKeySpec
 class ChaoxingHttpClient private constructor(
     val okHttpClient: OkHttpClient,
     val userEntity: ChaoxingUserEntity,
-    val deviceCode: String = ChaoxingDeviceInfoHelper.randomizedDeviceCode(),
-    initialConfiguredFid: Int = userEntity.fidList.firstOrNull()?.first ?: 0
+    val deviceCode: String,
+    initialConfiguredFid: Int
 ) {
     var configuredFid by mutableIntStateOf(initialConfiguredFid)
         private set
@@ -153,6 +153,7 @@ class ChaoxingHttpClient private constructor(
             }
         }
 
+        @Deprecated("Use ChaoxingDeviceInfoHelper.randomizedDeviceCode() instead")
         fun generateDeviceCode(): String = ChaoxingDeviceInfoHelper.randomizedDeviceCode()
 
         private fun checkPasswordIllegalThrowException(password: String) {
@@ -178,8 +179,7 @@ class ChaoxingHttpClient private constructor(
         }
 
         private suspend fun ChaoxingOtherUserSession.resolveDeviceCode(context: Context): String =
-            deviceCode.takeIf { it.isNotEmpty() } ?: ChaoxingDeviceInfoHelper
-                .randomizedDeviceCode()
+            deviceCode.takeIf { it.isNotEmpty() } ?: ChaoxingDeviceInfoHelper.randomizedDeviceCode()
                 .also { code ->
                     context.chaoxingDataStore.updateData { dataStore ->
                         dataStore.toBuilder().apply {
