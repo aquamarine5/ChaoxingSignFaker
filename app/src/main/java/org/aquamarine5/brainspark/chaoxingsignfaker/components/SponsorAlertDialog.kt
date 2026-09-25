@@ -232,7 +232,7 @@ fun SponsorAlertDialog(onDismissRequest: () -> Unit) {
                         }
                         UMengHelper.onGotoSponsorWechatEvent(
                             context,
-                            ChaoxingHttpClient.instance!!.userEntity
+                            ChaoxingHttpClient.instance!!.name
                         )
                     }
             }) {

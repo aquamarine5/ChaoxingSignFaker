@@ -84,7 +84,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingFaceHelper
-import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClientPool
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpRequesterPool
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingFaceRecognitionImage
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingFaceImageException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
@@ -163,7 +163,7 @@ fun FacePhotoControlComponent(
         }
         coroutineScope.launch {
             runCatching {
-                val client = ChaoxingHttpClientPool.get(context, phoneNumber)
+                val client = ChaoxingHttpRequesterPool.get(context, phoneNumber)
                 ChaoxingFaceHelper.saveFaceImage(
                     client,
                     context,

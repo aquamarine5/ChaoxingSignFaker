@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2025-2026, @aquamarine5 (@海蓝色的咕咕鸽). All Rights Reserved.
  * Author: aquamarine5@163.com (Github: https://github.com/aquamarine5) and Brainspark (previously RenegadeCreation)
  * Repository: https://github.com/aquamarine5/ChaoxingSignFaker
@@ -213,19 +213,19 @@ fun SettingScreen(
                 override fun onChannelChanged(isTestChannel: Boolean) {
                     UMengHelper.onStackbricksTestChannelChangedEvent(
                         context,
-                        userEntity,
+                        ChaoxingHttpClient.instance!!.name,
                         isTestChannel
                     )
                 }
 
                 override fun onCheckUpdate(isTestChannel: Boolean) {
-                    UMengHelper.onStackbricksCheckUpdateEvent(context, userEntity)
+                    UMengHelper.onStackbricksCheckUpdateEvent(context, ChaoxingHttpClient.instance!!.name)
                 }
 
                 override fun onCheckUpdateOnLaunchChanged(isChecked: Boolean) {
                     UMengHelper.onStackbricksCheckOnLaunchChangedEvent(
                         context,
-                        userEntity,
+                        ChaoxingHttpClient.instance!!.name,
                         isChecked
                     )
                 }
@@ -241,13 +241,13 @@ fun SettingScreen(
                     if (isTestChannel)
                         UMengHelper.onStackbricksInstallTestChannelEvent(
                             context,
-                            userEntity,
+                            ChaoxingHttpClient.instance!!.name,
                             versionData
                         )
                     else
                         UMengHelper.onStackbricksInstallNewestEvent(
                             context,
-                            userEntity,
+                            ChaoxingHttpClient.instance!!.name,
                             versionData
                         )
                 }

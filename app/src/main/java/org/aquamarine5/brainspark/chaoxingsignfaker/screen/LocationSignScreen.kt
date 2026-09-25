@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2025-2026, @aquamarine5 (@海蓝色的咕咕鸽). All Rights Reserved.
  * Author: aquamarine5@163.com (Github: https://github.com/aquamarine5) and Brainspark (previously RenegadeCreation)
  * Repository: https://github.com/aquamarine5/ChaoxingSignFaker
@@ -46,7 +46,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCloudDriveHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCourseHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingFaceHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
-import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClientPool
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpRequesterPool
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingSignHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerParams
@@ -304,7 +304,7 @@ fun LocationSignScreen(
                             signStatus = signStatus,
                             onSelfSigning = { value ->
                                 val selfPhoneNumber =
-                                    ChaoxingHttpClient.instance!!.userEntity.phoneNumber
+                                    ChaoxingHttpClient.instance!!.phoneNumber
                                 runCatching {
                                     val faceImageUploadedObjectId =
                                         if (isFaceRequired) {
@@ -356,7 +356,7 @@ fun LocationSignScreen(
                             },
                             onOtherUserSigning = { value, session, bypassChecking, _ ->
                                 runCatching {
-                                    ChaoxingHttpClientPool.get(context, session.phoneNumber)
+                                    ChaoxingHttpRequesterPool.get(context, session.phoneNumber)
                                         .let { client ->
                                             ChaoxingLocationSigner(
                                                 client,
@@ -527,7 +527,7 @@ fun LocationSignScreen(
                             coroutineScope.launch {
                                 if (isFaceRequired) {
                                     val selectedPhoneNumbers = buildList {
-                                        if (isSelf) add(ChaoxingHttpClient.instance!!.userEntity.phoneNumber)
+                                        if (isSelf) add(ChaoxingHttpClient.instance!!.phoneNumber)
                                         addAll(
                                             otherUserSessionList.filterNotNull()
                                                 .map { it.phoneNumber })
@@ -553,7 +553,7 @@ fun LocationSignScreen(
                                     }
                                 }
                                 if (isFaceRequired && (
-                                            (isSelf && ChaoxingHttpClient.instance!!.userEntity.phoneNumber !in faceRecognitionData.faceImageObjectIds.keys) ||
+                                            (isSelf && ChaoxingHttpClient.instance!!.phoneNumber !in faceRecognitionData.faceImageObjectIds.keys) ||
                                                     otherUserSessionList.any { it != null && it.phoneNumber !in faceRecognitionData.faceImageObjectIds.keys }
                                             )
                                 )
@@ -576,9 +576,9 @@ fun LocationSignScreen(
                         FaceRecognitionComponent(
                             mutableListOf<Pair<String, String>>().apply {
                                 if (isSelfForSign && !faceRecognitionData.faceImageObjectIds.containsKey(
-                                        ChaoxingHttpClient.instance!!.userEntity.phoneNumber
+                                        ChaoxingHttpClient.instance!!.phoneNumber
                                     )
-                                ) add(ChaoxingHttpClient.instance!!.userEntity.phoneNumber to ChaoxingHttpClient.instance!!.userEntity.name)
+                                ) add(ChaoxingHttpClient.instance!!.phoneNumber to ChaoxingHttpClient.instance!!.name)
                                 otherUserSessionForSignList.forEach {
                                     if (it != null && !faceRecognitionData.faceImageObjectIds.containsKey(
                                             it.phoneNumber

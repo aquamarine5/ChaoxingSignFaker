@@ -43,7 +43,7 @@ object ChaoxingActivityHelper {
     val AVAILABLE_INTERVAL = 20.minutes.inWholeMilliseconds
 
     suspend fun checkCourseHaveAvailableActivity(
-        client: ChaoxingHttpClient,
+        client: ChaoxingHttpRequester,
         classId: Int,
         courseId: Long
     ): RecommendActivityEntity? = withContext(Dispatchers.IO) {
@@ -86,7 +86,7 @@ object ChaoxingActivityHelper {
     }
 
     suspend fun getActivitiesEntity(
-        client: ChaoxingHttpClient,
+        client: ChaoxingHttpRequester,
         courses: List<ChaoxingCourseEntity>,
         onPartialFailure: (Int) -> Unit = {}
     ): ChaoxingCourseActivitiesEntity {
@@ -123,7 +123,7 @@ object ChaoxingActivityHelper {
     }
 
     suspend fun getActivitiesEntity(
-        client: ChaoxingHttpClient,
+        client: ChaoxingHttpRequester,
         course: ChaoxingCourseEntity
     ): ChaoxingCourseActivitiesEntity =
         withContext(Dispatchers.IO) {

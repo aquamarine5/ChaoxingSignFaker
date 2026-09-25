@@ -28,7 +28,7 @@ import okhttp3.Request
 import okhttp3.Response
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCourseHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingFaceHelper
-import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpRequester
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCaptchaDataEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationSignEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityStatus
@@ -42,7 +42,7 @@ import java.util.UUID
 import kotlin.time.Duration.Companion.seconds
 
 abstract class ChaoxingSigner(
-    val client: ChaoxingHttpClient,
+    val client: ChaoxingHttpRequester,
     val activeId: Long,
     val classId: Int,
     val courseId: Long,
@@ -159,7 +159,7 @@ abstract class ChaoxingSigner(
                     .addQueryParameter("courseId", courseId.toString())
                     .addQueryParameter("classId", classId.toString())
                     .addQueryParameter("activePrimaryId", activeId.toString())
-                    .addQueryParameter("uid", client.userEntity.puid.toString())
+                    .addQueryParameter("uid", client.puid.toString())
                     .build()
             ).build()
         ).execute().use {
@@ -321,7 +321,7 @@ abstract class ChaoxingSigner(
                     .addQueryParameter("courseId", courseId.toString())
                     .addQueryParameter("classId", classId.toString())
                     .addQueryParameter("activePrimaryId", activeId.toString())
-                    .addQueryParameter("uid", client.userEntity.puid.toString())
+                    .addQueryParameter("uid", client.puid.toString())
                     .build().toString()
             ).build()
         ).execute().use {
@@ -370,7 +370,7 @@ abstract class ChaoxingSigner(
                         .addQueryParameter("courseId", courseId.toString())
                         .addQueryParameter("classId", classId.toString())
                         .addQueryParameter("activePrimaryId", activeId.toString())
-                        .addQueryParameter("uid", client.userEntity.puid.toString())
+                        .addQueryParameter("uid", client.puid.toString())
                         .build().toString()
                 ).build()
             ).execute().use { response ->
@@ -443,7 +443,7 @@ abstract class ChaoxingSigner(
                             .addQueryParameter("courseId", courseId.toString())
                             .addQueryParameter("classId", classId.toString())
                             .addQueryParameter("activePrimaryId", activeId.toString())
-                            .addQueryParameter("uid", client.userEntity.puid.toString())
+                            .addQueryParameter("uid", client.puid.toString())
                             .build().toString()
                     )
                 }
@@ -483,7 +483,7 @@ abstract class ChaoxingSigner(
                             .addQueryParameter("courseId", courseId.toString())
                             .addQueryParameter("classId", classId.toString())
                             .addQueryParameter("activePrimaryId", activeId.toString())
-                            .addQueryParameter("uid", client.userEntity.puid.toString())
+                            .addQueryParameter("uid", client.puid.toString())
                             .build().toString()
                     )
                     .addQueryParameter("iv", iv)

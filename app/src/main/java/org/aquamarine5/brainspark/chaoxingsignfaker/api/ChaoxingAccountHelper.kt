@@ -15,8 +15,8 @@ import java.io.File
 import kotlin.time.Duration.Companion.days
 
 object ChaoxingAccountHelper {
-    fun getAvatarUrl(uid: Int): String {
-        return "https://photo.chaoxing.com/p/${uid}_120?flag=1&psize=120_120c&ext=jpg&t=${System.currentTimeMillis()}"
+    fun getAvatarUrl(puid: Int): String {
+        return "https://photo.chaoxing.com/p/${puid}_120?flag=1&psize=120_120c&ext=jpg&t=${System.currentTimeMillis()}"
     }
 
     private val AVATAR_CACHE_TIMEOUT = 1.days.inWholeMilliseconds

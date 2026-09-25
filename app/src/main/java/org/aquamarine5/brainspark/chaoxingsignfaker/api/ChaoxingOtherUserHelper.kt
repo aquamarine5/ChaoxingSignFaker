@@ -80,7 +80,7 @@ object ChaoxingOtherUserHelper {
         return ChaoxingOtherUserSharedEntity(
             dataStore.loginSession.phoneNumber!!,
             dataStore.loginSession.password!!,
-            ChaoxingHttpClient.instance!!.userEntity.name
+            ChaoxingHttpClient.instance!!.name
         )
     }
 
@@ -233,7 +233,7 @@ object ChaoxingOtherUserHelper {
                 .firstOrNull { it.phoneNumber == sharedEntity.phoneNumber }
                 ?.applySharedDeviceCode(context, sharedEntity.deviceCode)
 
-            suspend fun saveFaceImages(okHttpClient: OkHttpClient, userEntity: ChaoxingUserEntity) {
+            suspend fun saveFaceImages(okHttpClient: OkHttpClient, phoneNumber: String) {
                 if (sharedEntity.faceObjectIds.isEmpty()) return
                 val configure = context.chaoxingDataStore.data.first()
                     .faceRecognitionConfiguresMap[sharedEntity.phoneNumber]
@@ -267,10 +267,9 @@ object ChaoxingOtherUserHelper {
                     .forEach { objectId ->
                         ChaoxingFaceHelper.saveFaceImage(
                             okHttpClient,
-                            userEntity,
+                            phoneNumber,
                             context,
                             objectId,
-                            sharedEntity.phoneNumber,
                         )
                     }
             }
@@ -298,8 +297,8 @@ object ChaoxingOtherUserHelper {
                     )
                 }
                 val faceClient =
-                    ChaoxingHttpClientPool.get(context, existedSession.phoneNumber)
-                saveFaceImages(faceClient.okHttpClient, faceClient.userEntity)
+                    ChaoxingHttpRequesterPool.get(context, existedSession.phoneNumber)
+                saveFaceImages(faceClient.okHttpClient, existedSession.phoneNumber)
                 return@withContext Triple(
                     ChaoxingImportOtherUserResultStatus.EXISTED_BUT_UPDATE_FACE_IMAGES,
                     existedSession.name,
@@ -342,12 +341,14 @@ object ChaoxingOtherUserHelper {
                 isSaveToDataStore = false,
                 isEncryptedPassword = true
             )
-            val userEntity =
-                ChaoxingHttpClient.getInfo(tempOkHttpClient, context, sharedEntity.phoneNumber)
+            val userInfo =
+                ChaoxingHttpClient.getInfoWithIdentity(tempOkHttpClient, context, sharedEntity.phoneNumber)
+            val userEntity = userInfo.userEntity
 
             val session = (existedSession?.toBuilder() ?: ChaoxingOtherUserSession.newBuilder())
                 .setPassword(sharedEntity.encryptedPassword.replace(" ", "+"))
-                .setName(sharedEntity.userName.ifEmpty { userEntity.name })
+                .setName(sharedEntity.userName.ifEmpty { userInfo.name })
+                .setPuid(userInfo.puid)
                 .setPhoneNumber(sharedEntity.phoneNumber)
                 .apply {
                     sharedEntity.deviceCode?.takeIf { it.isNotEmpty() }?.let { deviceCode ->
@@ -373,7 +374,7 @@ object ChaoxingOtherUserHelper {
                 context.chaoxingDataStore.updateData { datastore ->
                     datastore.toBuilder().addOtherUsers(session).build()
                 }
-                saveFaceImages(tempOkHttpClient, userEntity)
+                saveFaceImages(tempOkHttpClient, sharedEntity.phoneNumber)
                 return@withContext Triple(
                     ChaoxingImportOtherUserResultStatus.SUCCESS,
                     session.name,
@@ -387,7 +388,7 @@ object ChaoxingOtherUserHelper {
                 if (index == -1) return@updateData datastore
                 datastore.toBuilder().removeOtherUsers(index).addOtherUsers(index, session).build()
             }
-            saveFaceImages(tempOkHttpClient, userEntity)
+            saveFaceImages(tempOkHttpClient, sharedEntity.phoneNumber)
             return@withContext Triple(
                 ChaoxingImportOtherUserResultStatus.EXISTED_BUT_UPDATE_PASSWORD,
                 session.name,
@@ -406,16 +407,16 @@ object ChaoxingOtherUserHelper {
             }
         }
 
-    suspend fun ChaoxingOtherUserSession.getSessionUid(context: Context): Int? {
-        return if (this.hasUid()) this.uid else this.cookiesList.firstOrNull { it.name == "_uid" }?.value?.toIntOrNull()
+    suspend fun ChaoxingOtherUserSession.getSessionPuid(context: Context): Int? {
+        return if (this.hasPuid()) this.puid else this.cookiesList.firstOrNull { it.name == "_uid" }?.value?.toIntOrNull()
             ?.also {
                 context.chaoxingDataStore.updateData { datastore ->
                     val index =
-                        datastore.otherUsersList.indexOfFirst { it.phoneNumber == this@getSessionUid.phoneNumber }
+                        datastore.otherUsersList.indexOfFirst { it.phoneNumber == this@getSessionPuid.phoneNumber }
                     if (index != -1) {
                         datastore.toBuilder().removeOtherUsers(index).addOtherUsers(
                             index,
-                            this@getSessionUid.toBuilder().setUid(it).build()
+                            this@getSessionPuid.toBuilder().setPuid(it).build()
                         ).build()
                     } else {
                         datastore

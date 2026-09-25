@@ -56,6 +56,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostS
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.isDevelopedMode
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.displaySnackbar
 
 lateinit var chaoxingUserAgent: String
 lateinit var chaoxingApplicationPackageName: String

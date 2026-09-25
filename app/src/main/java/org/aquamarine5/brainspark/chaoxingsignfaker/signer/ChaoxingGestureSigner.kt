@@ -11,14 +11,14 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Request
-import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpRequester
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationSignEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignOutEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.GestureSignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.checkResponseThrowException
 
 class ChaoxingGestureSigner(
-    client: ChaoxingHttpClient,
+    client: ChaoxingHttpRequester,
     private val destination: GestureSignDestination,
     baseSignInfo: JSONObject? = null
 ) : ChaoxingSigner(
@@ -79,8 +79,8 @@ class ChaoxingGestureSigner(
                         if (position != null) "%.6f".format(position.randomizedLongitude) else ""
                     )
                     .addQueryParameter("activeId", destination.activeId.toString())
-                    .addQueryParameter("uid", client.userEntity.puid.toString())
-                    .addQueryParameter("name", client.userEntity.name)
+                    .addQueryParameter("uid", client.puid.toString())
+                    .addQueryParameter("name", client.name)
                     .addQueryParameter("fid", client.configuredFid.toString())
                     .addQueryParameter("signCode", gestureOrderCode)
                     .addQueryParameter("deviceCode", client.deviceCode)
@@ -112,8 +112,8 @@ class ChaoxingGestureSigner(
                             if (position != null) "%.6f".format(position.randomizedLongitude) else ""
                         )
                         .addQueryParameter("activeId", destination.activeId.toString())
-                        .addQueryParameter("uid", client.userEntity.puid.toString())
-                        .addQueryParameter("name", client.userEntity.name)
+                        .addQueryParameter("uid", client.puid.toString())
+                        .addQueryParameter("name", client.name)
                         .addQueryParameter("fid", client.configuredFid.toString())
                         .addQueryParameter("signCode", gestureOrderCode)
                         .addQueryParameter("deviceCode", client.deviceCode)

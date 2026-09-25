@@ -10,17 +10,14 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.widget.Toast
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import com.alibaba.fastjson2.JSONObject
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import okhttp3.Call
 import okhttp3.Cookie
 import okhttp3.CookieJar
 import okhttp3.FormBody
@@ -51,24 +48,36 @@ import javax.crypto.Cipher
 import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.SecretKeySpec
 
-class ChaoxingHttpClient private constructor(
-    val okHttpClient: OkHttpClient,
+internal data class ChaoxingUserInfo(
     val userEntity: ChaoxingUserEntity,
-    val deviceCode: String,
-    initialConfiguredFid: Int
-) {
-    var configuredFid by mutableIntStateOf(initialConfiguredFid)
-        private set
+    val name: String,
+    val puid: Int,
+)
 
+class ChaoxingHttpClient internal constructor(
+    val userEntity: ChaoxingUserEntity,
+    name: String,
+    puid: Int,
+    deviceCode: String,
+    initialConfiguredFid: Int,
+    okHttpClient: OkHttpClient,
+) : ChaoxingHttpRequester(
+    okHttpClient = okHttpClient,
+    phoneNumber = userEntity.phoneNumber,
+    name = name,
+    puid = puid,
+    deviceCode = deviceCode,
+    initialConfiguredFid = initialConfiguredFid,
+) {
     suspend fun updateConfiguredFid(context: Context, fid: Int) {
         requirePredictable(userEntity.fidList.any { it.first == fid }) { "请选择账号所属的学校单位" }
         context.chaoxingDataStore.updateData { dataStore ->
             dataStore.toBuilder().apply {
-                if (loginSession.phoneNumber == userEntity.phoneNumber) {
+                if (loginSession.phoneNumber == phoneNumber) {
                     setLoginSession(loginSession.toBuilder().setConfiguredFid(fid))
                 } else {
                     val index = otherUsersList.indexOfFirst {
-                        it.phoneNumber == userEntity.phoneNumber
+                        it.phoneNumber == phoneNumber
                     }
                     checkPredictable(index >= 0) { "未找到当前账号的登录会话" }
                     setOtherUsers(index, getOtherUsers(index).toBuilder().setConfiguredFid(fid))
@@ -76,12 +85,11 @@ class ChaoxingHttpClient private constructor(
             }.build()
         }
         configuredFid = fid
-        instance?.takeIf { it.userEntity.phoneNumber == userEntity.phoneNumber }
-            ?.configuredFid = fid
-        cloneInstance?.takeIf { it.userEntity.phoneNumber == userEntity.phoneNumber }
-            ?.configuredFid = fid
-        ChaoxingHttpClientPool.initialize(context.chaoxingDataStore.data.first().otherUsersList)
+        instance?.takeIf { it.phoneNumber == phoneNumber }?.configuredFid = fid
+        cloneInstance?.takeIf { it.phoneNumber == phoneNumber }?.configuredFid = fid
+        ChaoxingHttpRequesterPool.initialize(context.chaoxingDataStore.data.first().otherUsersList)
     }
+
 
     class ChaoxingLoginException(message: String, throwable: Throwable? = null) :
         ChaoxingParseDataException(message, throwable)
@@ -97,11 +105,7 @@ class ChaoxingHttpClient private constructor(
     class ChaoxingNetworkException(message: String? = null, throwable: Throwable? = null) :
         ChaoxingParseDataException(message ?: "网络错误", throwable)
 
-    var storageCloudToken: String? = null
-
     private var storageIMConfig: ChaoxingEasemobIMConfig? = null
-
-    fun newCall(request: Request): Call = okHttpClient.newCall(request)
 
     suspend fun getIMConfig(): ChaoxingEasemobIMConfig {
         if (storageIMConfig != null) return storageIMConfig!!
@@ -163,100 +167,31 @@ class ChaoxingHttpClient private constructor(
                 throw ChaoxingLoginException("密码位数应该在8-16位")
         }
 
-        private suspend fun ChaoxingLoginSession.resolveDeviceCode(context: Context): String {
-            deviceCode.takeIf { it.isNotEmpty() }?.let { return it }
-            return ChaoxingDeviceInfoHelper.getLocalMachineDeviceCode(context).also { code ->
-                if (code.isEmpty()) return@also
-                context.chaoxingDataStore.updateData { dataStore ->
-                    dataStore.toBuilder().setLoginSession(
-                        dataStore.loginSession.toBuilder()
-                            .setDeviceCode(code)
-                            .setIsNotRandomizedDeviceCode(true)
-                            .build()
-                    ).build()
-                }
-            }
-        }
-
-        private suspend fun ChaoxingOtherUserSession.resolveDeviceCode(context: Context): String =
-            deviceCode.takeIf { it.isNotEmpty() } ?: ChaoxingDeviceInfoHelper.randomizedDeviceCode()
-                .also { code ->
-                    context.chaoxingDataStore.updateData { dataStore ->
-                        dataStore.toBuilder().apply {
-                            otherUsersList.indexOfFirst { it.phoneNumber == this@resolveDeviceCode.phoneNumber }
-                                .takeIf { it >= 0 }?.let { index ->
-                                    setOtherUsers(
-                                        index,
-                                        getOtherUsers(index).toBuilder()
-                                            .setDeviceCode(code)
-                                            .setIsNotRandomizedDeviceCode(false)
-                                            .build()
-                                    )
-                                }
-                        }.build()
-                    }
-                }
-
         suspend fun loadFromOtherUserSession(
             session: ChaoxingOtherUserSession,
             context: Context
-        ): ChaoxingHttpClient {
-            val okHttpClient = instance!!.okHttpClient.newBuilder().cookieJar(object : CookieJar {
-                private val cookieStore: MutableMap<String, List<Cookie>> = mutableMapOf()
-                private var chaoxingCookieSession: List<Cookie> = listOf()
-                override fun saveFromResponse(url: HttpUrl, cookies: List<Cookie>) {
-                    if (url.host.endsWith("chaoxing.com") && (url.encodedPath == "/fanyalogin")) {
-                        chaoxingCookieSession = cookies.toMutableList()
-                    } else if (url.encodedPath == "/apis/login/userLogin4Uname.do") {
-                        val cookiesMap = cookies.associateBy { cookie -> cookie.name }
-                        val keepCookies =
-                            chaoxingCookieSession.filter { !cookiesMap.containsKey(it.name) }
-                        chaoxingCookieSession = (keepCookies + cookiesMap.values)
-                    } else
-                        cookieStore[url.host] = cookies
+        ): ChaoxingHttpClient =
+            loadFromOtherSession(session, context)
+                .toChaoxingHttpClient(context).also { client ->
+                    instance = client
+                    ChaoxingHttpRequesterPool.put(client)
                 }
 
-                override fun loadForRequest(url: HttpUrl): List<Cookie> {
-                    return if (url.host.endsWith("chaoxing.com")) {
-                        chaoxingCookieSession
-                    } else {
-                        cookieStore[url.host] ?: listOf()
-                    }
-                }
-            }).addInterceptor { chain ->
-                chain.proceed(
-                    chain.request().run {
-                        if (headers.none { it.first == "User-Agent" }) {
-                            newBuilder()
-                                .header("User-Agent", chaoxingUserAgent)
-                                .build()
-                        } else this
-                    }
-                )
-            }.retryOnConnectionFailure(true)
-                .build().apply {
-                    cookieJar.saveFromResponse(
-                        HttpUrl.Builder().scheme("https").host("chaoxing.com")
-                            .encodedPath("/fanyalogin").build(),
-                        session.cookiesList.map {
-                            Cookie.Builder()
-                                .value(it.value)
-                                .name(it.name)
-                                .domain(it.host)
-                                .build()
+        private suspend fun ChaoxingLoginSession.resolveDeviceCode(context: Context): String =
+            deviceCode.takeIf { it.isNotEmpty() } ?: ChaoxingDeviceInfoHelper
+                .getLocalMachineDeviceCode(context)
+                .also { code ->
+                    if (code.isNotEmpty()) {
+                        context.chaoxingDataStore.updateData { dataStore ->
+                            dataStore.toBuilder().setLoginSession(
+                                dataStore.loginSession.toBuilder()
+                                    .setDeviceCode(code)
+                                    .setIsNotRandomizedDeviceCode(true)
+                                    .build()
+                            ).build()
                         }
-                    )
+                    }
                 }
-            val userInfo = getInfo(okHttpClient, context, session)
-            return ChaoxingHttpClient(
-                okHttpClient,
-                userInfo,
-                deviceCode = session.resolveDeviceCode(context),
-                initialConfiguredFid = session.configuredFid.takeIf {
-                    session.hasConfiguredFid() && userInfo.fidList.any { school -> school.first == it }
-                } ?: userInfo.fidList.first().first
-            )
-        }
 
         suspend fun create(
             phoneNumber: String,
@@ -303,100 +238,48 @@ class ChaoxingHttpClient private constructor(
                 }
                 .build()
             login(client, phoneNumber, password, context)
-            val userInfo = getInfo(client, context, phoneNumber).apply {
-                UMengHelper.profileSignIn(this, phoneNumber)
-            }
             val session = context.chaoxingDataStore.data.first().loginSession
+            val userInfo = getInfoWithIdentity(client, context, phoneNumber).also {
+                UMengHelper.profileSignIn(it.puid, it.name, phoneNumber)
+            }
+            val effectiveConfiguredFid = session.configuredFid.takeIf { configuredFid ->
+                session.hasConfiguredFid() && userInfo.userEntity.fidList.any { it.first == configuredFid }
+            } ?: userInfo.userEntity.fidList.first().first
             return@withContext ChaoxingHttpClient(
-                client,
-                userInfo,
+                userEntity = userInfo.userEntity,
+                name = userInfo.name,
+                puid = userInfo.puid,
                 deviceCode = session.resolveDeviceCode(context),
-                initialConfiguredFid = session.configuredFid.takeIf {
-                    session.hasConfiguredFid() && userInfo.fidList.any { school -> school.first == it }
-                } ?: userInfo.fidList.first().first
+                initialConfiguredFid = effectiveConfiguredFid,
+                okHttpClient = client,
             ).apply {
                 instance = this
-                ChaoxingHttpClientPool.put(this)
+                ChaoxingHttpRequesterPool.put(this)
             }
         }
 
         suspend fun loadFromDataStore(
             dataStore: ChaoxingSignFakerDataStore,
             context: Context
-        ): ChaoxingHttpClient {
-            val okHttpClient = OkHttpClient.Builder().cookieJar(object : CookieJar {
-                private val cookieStore: MutableMap<String, List<Cookie>> = mutableMapOf()
-                private var chaoxingCookieSession: List<Cookie> = listOf()
-                override fun saveFromResponse(url: HttpUrl, cookies: List<Cookie>) {
-                    if (url.host.endsWith("chaoxing.com") && (url.encodedPath == "/fanyalogin")) {
-                        chaoxingCookieSession = cookies.toMutableList()
-                    } else if (url.encodedPath == "/apis/login/userLogin4Uname.do") {
-                        val cookiesMap = cookies.associateBy { cookie -> cookie.name }
-                        val keepCookies =
-                            chaoxingCookieSession.filter { !cookiesMap.containsKey(it.name) }
-                        chaoxingCookieSession = (keepCookies + cookiesMap.values)
-                    } else
-                        cookieStore[url.host] = cookies
+        ): ChaoxingHttpClient =
+            ChaoxingHttpRequester.loadFromDataStore(dataStore, context)
+                .toChaoxingHttpClient(context).also { client ->
+                    instance = client
+                    ChaoxingHttpRequesterPool.put(client)
                 }
-
-                override fun loadForRequest(url: HttpUrl): List<Cookie> {
-                    return if (url.host.endsWith("chaoxing.com")) {
-                        chaoxingCookieSession
-                    } else {
-                        cookieStore[url.host] ?: listOf()
-                    }
-                }
-            }).addInterceptor { chain ->
-                chain.proceed(
-                    chain.request().run {
-                        if (headers.none { it.first == "User-Agent" }) {
-                            newBuilder()
-                                .header("User-Agent", chaoxingUserAgent)
-                                .build()
-                        } else this
-                    }
-                )
-            }.retryOnConnectionFailure(true).build().apply {
-                cookieJar.saveFromResponse(
-                    HttpUrl.Builder().scheme("https").host("chaoxing.com")
-                        .encodedPath("/fanyalogin").build(),
-                    dataStore.loginSession.cookiesList
-                        .map { cookie ->
-                            Cookie.Builder()
-                                .name(cookie.name)
-                                .value(cookie.value)
-                                .domain(cookie.host)
-                                .build()
-                        }
-                )
-            }
-            val userInfo = getInfo(okHttpClient, context, dataStore.loginSession)
-            return ChaoxingHttpClient(
-                okHttpClient,
-                userInfo,
-                deviceCode = dataStore.loginSession.resolveDeviceCode(context),
-                initialConfiguredFid = dataStore.loginSession.configuredFid.takeIf {
-                    dataStore.loginSession.hasConfiguredFid() &&
-                            userInfo.fidList.any { school -> school.first == it }
-                } ?: userInfo.fidList.first().first
-            ).apply {
-                instance = this
-                ChaoxingHttpClientPool.put(this)
-            }
-        }
 
         suspend fun getInfo(
             client: OkHttpClient,
             context: Context,
             loginSession: ChaoxingLoginSession
-        ): ChaoxingUserEntity = getInfo(client, context, loginSession.phoneNumber, null)
+        ): ChaoxingUserEntity = getInfoWithIdentity(client, context, loginSession.phoneNumber, null).userEntity
 
         suspend fun getInfo(
             client: OkHttpClient,
             context: Context,
             otherUserSession: ChaoxingOtherUserSession
         ): ChaoxingUserEntity =
-            getInfo(client, context, otherUserSession.phoneNumber, otherUserSession)
+            getInfoWithIdentity(client, context, otherUserSession.phoneNumber, otherUserSession).userEntity
 
         suspend fun getInfo(
             client: OkHttpClient,
@@ -404,6 +287,15 @@ class ChaoxingHttpClient private constructor(
             phoneNumber: String,
             otherUserSession: ChaoxingOtherUserSession? = null,
         ): ChaoxingUserEntity =
+            getInfoWithIdentity(client, context, phoneNumber, otherUserSession).userEntity
+
+        internal suspend fun getInfoWithIdentity(
+            client: OkHttpClient,
+            context: Context,
+            phoneNumber: String,
+            otherUserSession: ChaoxingOtherUserSession? = null,
+            isRetryAfterRelogin: Boolean = false,
+        ): ChaoxingUserInfo =
             withContext(Dispatchers.IO) {
                 var userInfoResponse: String? = null
                 runCatching {
@@ -423,6 +315,7 @@ class ChaoxingHttpClient private constructor(
                                         }.build()
                                     )
                                 }.onFailure {
+                                    if (it is CancellationException) throw it
                                     withContext(Dispatchers.Main) {
                                         Toast.makeText(
                                             context,
@@ -442,14 +335,16 @@ class ChaoxingHttpClient private constructor(
                             userInfoResponse = response.body.string()
                             val jsonResult =
                                 JSONObject.parseObject(userInfoResponse).getJSONObject("msg")
-                            return@withContext ChaoxingUserEntity(
+                            val name = jsonResult.getString("name")
+                            val puid = jsonResult.getInteger("puid")
+                            val userEntity = ChaoxingUserEntity(
                                 jsonResult.getInteger("uid"),
                                 jsonResult.getInteger("fid"),
-                                jsonResult.getString("name"),
+                                name,
                                 listOf(),
                                 jsonResult.getString("uname"),
                                 jsonResult.getString("pic").replace("http://", "https://"),
-                                jsonResult.getInteger("puid"),
+                                puid,
                                 phoneNumber,
                                 jsonResult.getJSONObject("accountInfo")
                                     .getJSONObject("imAccount")
@@ -457,14 +352,44 @@ class ChaoxingHttpClient private constructor(
                                 jsonResult.getString("clientId")?.takeIf { it.isNotEmpty() },
                                 parseFidList(jsonResult)
                             )
+                            context.chaoxingDataStore.updateData { dataStore ->
+                                dataStore.toBuilder().apply {
+                                    if (loginSession.phoneNumber == phoneNumber) {
+                                        if (loginSession.name != name ||
+                                            !loginSession.hasPuid() || loginSession.puid != puid
+                                        ) {
+                                            setLoginSession(
+                                                loginSession.toBuilder()
+                                                    .setName(name)
+                                                    .setPuid(puid)
+                                                    .build()
+                                            )
+                                        }
+                                    } else {
+                                        otherUsersList.indexOfFirst { it.phoneNumber == phoneNumber }
+                                            .takeIf { it >= 0 }?.let { index ->
+                                                val session = getOtherUsers(index)
+                                                if (session.name != name ||
+                                                    !session.hasPuid() || session.puid != puid
+                                                ) {
+                                                    setOtherUsers(
+                                                        index,
+                                                        session.toBuilder()
+                                                            .setName(name)
+                                                            .setPuid(puid)
+                                                            .build()
+                                                    )
+                                                }
+                                            }
+                                    }
+                                }.build()
+                            }
+                            return@withContext ChaoxingUserInfo(userEntity, name, puid)
                         }
                 }.getOrElse { throwable ->
-                    if (otherUserSession != null)
-                        runCatching {
-                            reLoginFromOtherSession(client, context, otherUserSession)
-                        }.onSuccess {
-                            return@withContext getInfo(client, context, otherUserSession)
-                        }.onFailure {
+                    if (throwable is CancellationException) throw throwable
+                    if (otherUserSession != null) {
+                        if (isRetryAfterRelogin) {
                             throw ChaoxingGetUserInfoException(
                                 "获取代签用户信息失败",
                                 throwable,
@@ -472,6 +397,26 @@ class ChaoxingHttpClient private constructor(
                                 userInfoResponse
                             )
                         }
+                        runCatching {
+                            reLoginFromOtherSession(client, context, otherUserSession)
+                        }.onSuccess {
+                            return@withContext getInfoWithIdentity(
+                                client,
+                                context,
+                                otherUserSession.phoneNumber,
+                                otherUserSession,
+                                isRetryAfterRelogin = true
+                            )
+                        }.onFailure { reloginFailure ->
+                            if (reloginFailure is CancellationException) throw reloginFailure
+                            throw ChaoxingGetUserInfoException(
+                                "获取代签用户信息失败",
+                                throwable,
+                                true,
+                                userInfoResponse
+                            )
+                        }
+                    }
                     throw ChaoxingGetUserInfoException(
                         "获取用户信息失败",
                         throwable,

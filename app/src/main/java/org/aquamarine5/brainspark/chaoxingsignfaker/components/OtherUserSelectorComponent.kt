@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2025-2026, @aquamarine5 (@海蓝色的咕咕鸽). All Rights Reserved.
  * Author: aquamarine5@163.com (Github: https://github.com/aquamarine5) and Brainspark (previously RenegadeCreation)
  * Repository: https://github.com/aquamarine5/ChaoxingSignFaker
@@ -114,7 +114,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingAccountHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingFaceHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingOtherUserHelper
-import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingOtherUserHelper.getSessionUid
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingOtherUserHelper.getSessionPuid
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.OtherUserTagType
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignResult
@@ -641,7 +641,7 @@ fun OtherUserSelectorComponent(
                 signUserList.addAll(data.let { sessions ->
                     if (isCloneSession) {
                         val clonePhoneNumber =
-                            ChaoxingHttpClient.cloneInstance?.userEntity?.phoneNumber
+                            ChaoxingHttpClient.cloneInstance?.phoneNumber
                         if (clonePhoneNumber != null) {
                             sessions.sortedBy { it.phoneNumber != clonePhoneNumber }
                         } else {
@@ -912,11 +912,11 @@ fun OtherUserSelectorComponent(
                                     null
                                 )
                             }
-                            LaunchedEffect(selfEntity?.uid, selfEntity?.pic) {
+                            LaunchedEffect(ChaoxingHttpClient.instance?.puid, selfEntity?.pic) {
                                 val entity = selfEntity ?: return@LaunchedEffect
                                 selfAvatarModel = ChaoxingAccountHelper.getCachedAvatar(
                                     context,
-                                    "self_${entity.uid}",
+                                    "self_${ChaoxingHttpClient.instance?.puid}",
                                     entity.pic
                                 )
                             }
@@ -950,14 +950,14 @@ fun OtherUserSelectorComponent(
                                                             HapticFeedbackType.ContextClick
                                                         )
                                                         inspectingFaceImagePhoneNumber =
-                                                            ChaoxingHttpClient.instance!!.userEntity.phoneNumber
+                                                            ChaoxingHttpClient.instance!!.phoneNumber
                                                     },
                                                 tint = it.value.color.takeOrElse { MaterialTheme.colorScheme.primary }
                                             )
                                         }
                                     if (faceRecognitionData != null) {
                                         val selfPhone =
-                                            ChaoxingHttpClient.instance!!.userEntity.phoneNumber
+                                            ChaoxingHttpClient.instance!!.phoneNumber
                                         if (selfPhone in faceRecognitionData.failedPhoneNumbers) {
                                             Icon(
                                                 painterResource(R.drawable.ic_user_square),
@@ -988,7 +988,7 @@ fun OtherUserSelectorComponent(
                                     }
                                 }
                                 Text(
-                                    "${ChaoxingHttpClient.instance?.userEntity?.name} ($selfPhoneNumber)",
+                                    "${ChaoxingHttpClient.instance?.name} ($selfPhoneNumber)",
                                     color = Color.Gray,
                                     fontSize = 10.sp,
                                     lineHeight = 12.sp
@@ -1045,12 +1045,12 @@ fun OtherUserSelectorComponent(
                                         )
                                     }
                                     LaunchedEffect(session) {
-                                        session.getSessionUid(context)?.let { uid ->
+                                        session.getSessionPuid(context)?.let { puid ->
                                             otherUserAvatarModel =
                                                 ChaoxingAccountHelper.getCachedAvatar(
                                                     context,
-                                                    uid.toString(),
-                                                    ChaoxingAccountHelper.getAvatarUrl(uid)
+                                                    puid.toString(),
+                                                    ChaoxingAccountHelper.getAvatarUrl(puid)
                                                 )
                                         }
                                     }
@@ -1073,7 +1073,7 @@ fun OtherUserSelectorComponent(
                                                 ) else Color.Unspecified,
                                                 textDecoration = if (successForOtherUser != true) TextDecoration.None else TextDecoration.LineThrough
                                             )
-                                            if (isCloneSession && ChaoxingHttpClient.cloneInstance?.userEntity?.phoneNumber == session.phoneNumber)
+                                            if (isCloneSession && ChaoxingHttpClient.cloneInstance?.phoneNumber == session.phoneNumber)
                                                 Icon(
                                                     painterResource(R.drawable.ic_square_stack),
                                                     null,

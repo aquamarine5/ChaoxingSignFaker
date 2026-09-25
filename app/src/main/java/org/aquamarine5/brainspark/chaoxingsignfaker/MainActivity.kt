@@ -97,7 +97,7 @@ import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingFaceHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
-import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClientPool
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpRequesterPool
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CloneSessionTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.FavoriteLocationSettingComponent
@@ -420,7 +420,7 @@ class MainActivity : ComponentActivity() {
                                     withContext(Dispatchers.IO) {
                                         val datastore =
                                             applicationContext.chaoxingDataStore.data.first()
-                                        ChaoxingHttpClientPool.initialize(datastore.otherUsersList)
+                                        ChaoxingHttpRequesterPool.initialize(datastore.otherUsersList)
                                         ChaoxingFaceHelper.storedFaceRecognitionImages.setValue(
                                             datastore.faceRecognitionConfiguresMap.mapValues { it.value.imagesList }
                                         )
@@ -500,7 +500,7 @@ class MainActivity : ComponentActivity() {
                                 } else {
                                     val coroutineScope = rememberCoroutineScope()
                                     val isCloning =
-                                        ChaoxingHttpClient.cloneInstance?.userEntity != null
+                                        ChaoxingHttpClient.cloneInstance != null
                                     val exitCloneMode = {
                                         hapticFeedback.performHapticFeedback(
                                             HapticFeedbackType.ContextClick

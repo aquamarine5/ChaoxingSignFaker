@@ -35,7 +35,7 @@ class FaceRecognitionData {
         phoneNumber: String,
         otherUserSessionList: List<ChaoxingOtherUserSession?>
     ): Int {
-        return if (phoneNumber == ChaoxingHttpClient.instance!!.userEntity.phoneNumber) 0
+        return if (phoneNumber == ChaoxingHttpClient.instance!!.phoneNumber) 0
         else otherUserSessionList.indexOfFirst { it?.phoneNumber == phoneNumber }
             .let { if (it < 0) -1 else it + 1 }
     }

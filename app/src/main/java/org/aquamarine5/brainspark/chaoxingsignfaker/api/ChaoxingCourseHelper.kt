@@ -28,7 +28,7 @@ object ChaoxingCourseHelper {
     private val URL_COURSE_QUERY_NAME =
         "https://mooc1-api.chaoxing.com/gas/clazz?fields=name&view=json".toHttpUrl()
 
-    suspend fun queryClassName(client: ChaoxingHttpClient, classId: Int): String = withContext(
+    suspend fun queryClassName(client: ChaoxingHttpRequester, classId: Int): String = withContext(
         Dispatchers.IO
     ) {
         client.newCall(
@@ -43,7 +43,7 @@ object ChaoxingCourseHelper {
     }
 
     suspend fun checkClassValid(
-        client: ChaoxingHttpClient,
+        client: ChaoxingHttpRequester,
         classId: Int,
     ): Boolean? = withContext(Dispatchers.IO) {
         client.newCall(Request.Builder().get().url(URL_COURSE_LIST).build()).execute().use {
@@ -63,7 +63,7 @@ object ChaoxingCourseHelper {
     }
 
     suspend fun getClassIdFromCourseId(
-        client: ChaoxingHttpClient,
+        client: ChaoxingHttpRequester,
         courseId: Long
     ): Result<Int?> = withContext(Dispatchers.IO) {
         runCatching {

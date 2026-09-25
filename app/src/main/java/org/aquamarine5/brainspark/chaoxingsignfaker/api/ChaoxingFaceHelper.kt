@@ -17,7 +17,6 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingFaceRecognitionConfigure
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingFaceRecognitionImage
-import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingUserEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingParseDataException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.StoredData
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
@@ -45,7 +44,7 @@ object ChaoxingFaceHelper {
     const val MAX_FACE_IMAGES = 5
 
     suspend fun checkFaceResultAndGetEnc(
-        client: ChaoxingHttpClient,
+        client: ChaoxingHttpRequester,
         objectId: String,
         activeId: Long
     ): String =
@@ -70,7 +69,7 @@ object ChaoxingFaceHelper {
             }
         }
 
-    suspend fun getUserProfileFaceImageUrl(client: ChaoxingHttpClient): String =
+    suspend fun getUserProfileFaceImageUrl(client: ChaoxingHttpRequester): String =
         withContext(Dispatchers.IO) {
             client.newCall(Request.Builder().url(URL_GET_PROFILE_FACE_IMAGE).get().build())
                 .execute().use { response ->
@@ -87,7 +86,7 @@ object ChaoxingFaceHelper {
                 }
         }
 
-    private fun buildFaceResult(client: ChaoxingHttpClient, objectId: String): JSONObject {
+    private fun buildFaceResult(client: ChaoxingHttpRequester, objectId: String): JSONObject {
         val fields = mapOf(
             "currentFaceId" to objectId,
             "LiveDetectionStatus" to "1",
@@ -101,7 +100,7 @@ object ChaoxingFaceHelper {
             .fluentPut("cxtime", cxtime)
             .apply {
                 runCatching {
-                    client.userEntity.clientId?.let { clientId ->
+                    (client as? ChaoxingHttpClient)?.userEntity?.clientId?.let { clientId ->
                         addSignToken(clientId, fields, cxtime)
                     }
                 }.onFailure {
@@ -146,23 +145,13 @@ object ChaoxingFaceHelper {
     }
 
     suspend fun saveFaceImage(
-        client: ChaoxingHttpClient,
-        context: Context,
-        objectId: String,
-        phoneNumber: String? = null,
-    ): ChaoxingFaceRecognitionImage =
-        saveFaceImage(client.okHttpClient, client.userEntity, context, objectId, phoneNumber)
-
-    suspend fun saveFaceImage(
         okHttpClient: OkHttpClient,
-        userEntity: ChaoxingUserEntity,
+        phoneNumber: String,
         context: Context,
         objectId: String,
-        phoneNumber: String? = null,
     ): ChaoxingFaceRecognitionImage = withContext(Dispatchers.IO) {
         checkThrowFaceException(objectId.isNotBlank()) { "人脸照片 ID 不能为空" }
-        val targetPhoneNumber = phoneNumber ?: userEntity.phoneNumber
-        checkThrowFaceException(targetPhoneNumber.isNotBlank()) { "无法确定人脸照片所属用户" }
+        checkThrowFaceException(phoneNumber.isNotBlank()) { "无法确定人脸照片所属用户" }
         val image = ChaoxingFaceRecognitionImage.newBuilder()
             .setObjectId(objectId)
             .setUseCount(0)
@@ -194,7 +183,7 @@ object ChaoxingFaceHelper {
             temporary.delete()
 
             context.chaoxingDataStore.updateData { dataStore ->
-                val configure = dataStore.faceRecognitionConfiguresMap[targetPhoneNumber]
+                val configure = dataStore.faceRecognitionConfiguresMap[phoneNumber]
                     ?: ChaoxingFaceRecognitionConfigure.getDefaultInstance()
                 if (configure.imagesList.any { it.objectId == objectId }) {
                     return@updateData dataStore
@@ -202,7 +191,7 @@ object ChaoxingFaceHelper {
                 checkThrowFaceException(configure.imagesCount < MAX_FACE_IMAGES) { "最多只能保存$MAX_FACE_IMAGES 张人脸照片" }
                 dataStore.toBuilder()
                     .putFaceRecognitionConfigures(
-                        targetPhoneNumber,
+                        phoneNumber,
                         configure.toBuilder().addImages(image).build(),
                     )
                     .build()
@@ -210,11 +199,11 @@ object ChaoxingFaceHelper {
             storedFaceRecognitionImages.updateCachedValue { imagesByPhoneNumber ->
                 imagesByPhoneNumber?.toMutableMap()?.apply {
                     val effectiveImage =
-                        this[targetPhoneNumber].orEmpty().firstOrNull { it.objectId == objectId }
+                        this[phoneNumber].orEmpty().firstOrNull { it.objectId == objectId }
                             ?: image
                     put(
-                        targetPhoneNumber,
-                        this[targetPhoneNumber].orEmpty()
+                        phoneNumber,
+                        this[phoneNumber].orEmpty()
                             .filterNot { it.objectId == objectId } + effectiveImage,
                     )
                 }
@@ -228,15 +217,14 @@ object ChaoxingFaceHelper {
     }
 
     suspend fun saveFaceImage(
-        client: ChaoxingHttpClient,
+        client: ChaoxingHttpRequester,
         context: Context,
         bitmap: Bitmap,
-        phoneNumber: String? = null,
+        phoneNumber: String = client.phoneNumber,
     ): ChaoxingFaceRecognitionImage = withContext(Dispatchers.IO) {
-        val targetPhoneNumber = phoneNumber ?: client.userEntity.phoneNumber
-        checkThrowFaceException(targetPhoneNumber.isNotBlank()) { "无法确定人脸照片所属用户" }
+        checkThrowFaceException(phoneNumber.isNotBlank()) { "无法确定人脸照片所属用户" }
         checkThrowFaceException(
-            (storedFaceRecognitionImages.getValue(context)[targetPhoneNumber]?.size ?: 0) <
+            (storedFaceRecognitionImages.getValue(context)[phoneNumber]?.size ?: 0) <
                     MAX_FACE_IMAGES
         ) { "最多只能保存$MAX_FACE_IMAGES 张人脸照片" }
         val objectId = ChaoxingCloudDriveHelper.uploadImage(client, bitmap)
@@ -260,20 +248,20 @@ object ChaoxingFaceHelper {
             }
             checkThrowFaceException(temporary.renameTo(destination)) { "保存人脸照片失败" }
             context.chaoxingDataStore.updateData { dataStore ->
-                val configure = dataStore.faceRecognitionConfiguresMap[targetPhoneNumber]
+                val configure = dataStore.faceRecognitionConfiguresMap[phoneNumber]
                     ?: ChaoxingFaceRecognitionConfigure.getDefaultInstance()
                 checkThrowFaceException(configure.imagesCount < MAX_FACE_IMAGES) { "最多只能保存$MAX_FACE_IMAGES 张人脸照片" }
                 checkThrowFaceException(configure.imagesList.none { it.objectId == objectId }) { "该人脸照片已保存" }
                 dataStore.toBuilder()
                     .putFaceRecognitionConfigures(
-                        targetPhoneNumber,
+                        phoneNumber,
                         configure.toBuilder().addImages(image).build(),
                     )
                     .build()
             }
             storedFaceRecognitionImages.updateCachedValue { imagesByPhoneNumber ->
                 imagesByPhoneNumber?.toMutableMap()?.apply {
-                    put(targetPhoneNumber, this[targetPhoneNumber].orEmpty() + image)
+                    put(phoneNumber, this[phoneNumber].orEmpty() + image)
                 }
             }
             image

@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2025-2026, @aquamarine5 (@海蓝色的咕咕鸽). All Rights Reserved.
  * Author: aquamarine5@163.com (Github: https://github.com/aquamarine5) and Brainspark (previously RenegadeCreation)
  * Repository: https://github.com/aquamarine5/ChaoxingSignFaker
@@ -84,8 +84,8 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCloudDriveHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCourseHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingFaceHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
-import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClientPool
-import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingOtherUserHelper.getSessionUid
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpRequesterPool
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingOtherUserHelper.getSessionPuid
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingSignHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerParams
@@ -176,6 +176,7 @@ fun QRCodeSignScreen(
         )
     }
     val context = LocalContext.current
+    val currentUserEntity = ChaoxingHttpClient.instance?.userEntity
     val resources = LocalResources.current
     val snackbarHost = LocalSnackbarHostState.current
     val isSigning = remember { mutableStateOf(false) }
@@ -358,7 +359,7 @@ fun QRCodeSignScreen(
                             },
                             onSelfSigning = { value ->
                                 val selfPhoneNumber =
-                                    ChaoxingHttpClient.instance!!.userEntity.phoneNumber
+                                    ChaoxingHttpClient.instance!!.phoneNumber
                                 runCatching {
                                     val faceImageUploadedObjectId =
                                         if (isFaceRequired) {
@@ -424,7 +425,7 @@ fun QRCodeSignScreen(
                             },
                             onOtherUserSigning = { value, session, bypassChecking, _ ->
                                 runCatching {
-                                    ChaoxingHttpClientPool.get(context, session.phoneNumber)
+                                    ChaoxingHttpRequesterPool.get(context, session.phoneNumber)
                                         .let { client ->
                                             val faceImageUploadedObjectId =
                                                 if (isFaceRequired) {
@@ -540,11 +541,11 @@ fun QRCodeSignScreen(
                         }
                         qrQueueTargets = targets
                         qrQueueNames = targets.map { target ->
-                            if (target == -1) ChaoxingHttpClient.instance!!.userEntity.name
+                            if (target == -1) ChaoxingHttpClient.instance!!.name
                             else signUserList[target]!!.name
                         }
                         qrQueueAvatars = targets.map { target ->
-                            if (target == -1) ChaoxingHttpClient.instance!!.userEntity.pic
+                            if (target == -1) currentUserEntity?.pic.orEmpty()
                             else null
                         }
                         qrCurrentTarget = targets.firstOrNull()
@@ -556,11 +557,11 @@ fun QRCodeSignScreen(
                         coroutineScope.launch(Dispatchers.IO) {
                             runCatching {
                                 val avatars = targets.map { target ->
-                                    if (target == -1) ChaoxingHttpClient.instance!!.userEntity.pic
+                                    if (target == -1) currentUserEntity?.pic.orEmpty()
                                     else {
                                         val session = signUserList[target]!!
                                         runCatching {
-                                            session.getSessionUid(context)?.let {
+                                            session.getSessionPuid(context)?.let {
                                                 ChaoxingAccountHelper.getAvatarUrl(it)
                                             }
                                         }.getOrNull()
@@ -804,7 +805,7 @@ fun QRCodeSignScreen(
                                 coroutineScope.launch {
                                     if (isFaceRequired) {
                                         val selectedPhoneNumbers = buildList {
-                                            if (isSelf) add(ChaoxingHttpClient.instance!!.userEntity.phoneNumber)
+                                            if (isSelf) add(ChaoxingHttpClient.instance!!.phoneNumber)
                                             addAll(
                                                 otherUserSessionList.filterNotNull()
                                                     .map { it.phoneNumber })
@@ -830,7 +831,7 @@ fun QRCodeSignScreen(
                                         }
                                     }
                                     if (isFaceRequired && (
-                                                (isSelf && ChaoxingHttpClient.instance!!.userEntity.phoneNumber !in faceRecognitionData.faceImageObjectIds.keys) ||
+                                                (isSelf && ChaoxingHttpClient.instance!!.phoneNumber !in faceRecognitionData.faceImageObjectIds.keys) ||
                                                         otherUserSessionList.any { it != null && it.phoneNumber !in faceRecognitionData.faceImageObjectIds.keys }
                                                 )
                                     ) {
@@ -861,9 +862,9 @@ fun QRCodeSignScreen(
                             }
                             FaceRecognitionComponent(mutableListOf<Pair<String, String>>().apply {
                                 if (isSelfForSign && !faceRecognitionData.faceImageObjectIds.containsKey(
-                                        ChaoxingHttpClient.instance!!.userEntity.phoneNumber
+                                        ChaoxingHttpClient.instance!!.phoneNumber
                                     )
-                                ) add(ChaoxingHttpClient.instance!!.userEntity.phoneNumber to ChaoxingHttpClient.instance!!.userEntity.name)
+                                ) add(ChaoxingHttpClient.instance!!.phoneNumber to ChaoxingHttpClient.instance!!.name)
                                 signUserList.forEach {
                                     if (it != null && !faceRecognitionData.faceImageObjectIds.containsKey(
                                             it.phoneNumber

@@ -13,7 +13,7 @@ import kotlinx.coroutines.withContext
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.Request
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingActivityHelper.NO_SIGN_OFF_EVENT
-import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpRequester
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationSignEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingQRCodeDetailEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignOutEntity
@@ -22,7 +22,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingParseDataE
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.checkResponseThrowException
 
 class ChaoxingQRCodeSigner(
-    client: ChaoxingHttpClient,
+    client: ChaoxingHttpRequester,
     qrCodeActivityEntity: QRCodeSignDestination,
     baseSignInfo: JSONObject? = null
 ) : ChaoxingSigner(
@@ -77,8 +77,8 @@ class ChaoxingQRCodeSigner(
                         .addQueryParameter("latitude", "-1")
                         .addQueryParameter("longitude", "-1")
                         .addQueryParameter("activeId", activeId.toString())
-                        .addQueryParameter("uid", client.userEntity.puid.toString())
-                        .addQueryParameter("name", client.userEntity.name)
+                        .addQueryParameter("uid", client.puid.toString())
+                        .addQueryParameter("name", client.name)
                         .addQueryParameter("fid", client.configuredFid.toString())
                         .addQueryParameter("deviceCode", client.deviceCode)
                         .addQueryParameter("validate", captchaValidate)
@@ -107,8 +107,8 @@ class ChaoxingQRCodeSigner(
                         .addQueryParameter("latitude", "-1")
                         .addQueryParameter("longitude", "-1")
                         .addQueryParameter("activeId", activeId.toString())
-                        .addQueryParameter("uid", client.userEntity.puid.toString())
-                        .addQueryParameter("name", client.userEntity.name)
+                        .addQueryParameter("uid", client.puid.toString())
+                        .addQueryParameter("name", client.name)
                         .addQueryParameter("fid", client.configuredFid.toString())
                         .addQueryParameter("deviceCode", client.deviceCode)
                         .addLocationParameter(position, false)

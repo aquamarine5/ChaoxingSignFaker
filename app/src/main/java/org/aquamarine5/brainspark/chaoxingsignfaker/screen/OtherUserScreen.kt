@@ -162,7 +162,7 @@ import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingFaceHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
-import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClientPool
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpRequesterPool
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingOtherUserHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CameraComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.FacePhotoControlComponent
@@ -1628,8 +1628,9 @@ fun OtherUserScreen(
                     if (!isSchoolSectionExpanded || settingsClient != null) return@LaunchedEffect
                     isLoadingSchools = true
                     val result = runCatching {
-                        ChaoxingHttpClientPool.initialize(context.chaoxingDataStore.data.first().otherUsersList)
-                        ChaoxingHttpClientPool.get(context, settingsPhoneNumber)
+                        ChaoxingHttpRequesterPool.initialize(context.chaoxingDataStore.data.first().otherUsersList)
+                        ChaoxingHttpRequesterPool.get(context, settingsPhoneNumber)
+                            .toChaoxingHttpClient(context)
                     }
                     isLoadingSchools = false
                     result.onSuccess {
@@ -2022,7 +2023,7 @@ fun OtherUserScreen(
                             type = "text/plain"
                             putExtra(
                                 Intent.EXTRA_TEXT,
-                                "${ChaoxingHttpClient.instance!!.userEntity.name} 的用户数据链接：${
+                                "${ChaoxingHttpClient.instance!!.name} 的用户数据链接：${
                                     ChaoxingOtherUserHelper.getSharedUrl(
                                         context,
                                         importSharedEntity,
@@ -2032,7 +2033,7 @@ fun OtherUserScreen(
                             )
                             putExtra(
                                 Intent.EXTRA_TITLE,
-                                "${ChaoxingHttpClient.instance!!.userEntity.name} 的用户数据链接"
+                                "${ChaoxingHttpClient.instance!!.name} 的用户数据链接"
                             )
                         }, "分享自己的链接给他人"))
                     }
@@ -2457,7 +2458,7 @@ fun OtherUserScreen(
                     },
                     text = {
                         FacePhotoControlComponent(
-                            phoneNumber = ChaoxingHttpClient.instance!!.userEntity.phoneNumber,
+                            phoneNumber = ChaoxingHttpClient.instance!!.phoneNumber,
                             onStartCamera = {
                                 facePhotoReturnToUserIndex = null
                                 isFacePhotoDialog = false
@@ -2832,10 +2833,10 @@ fun OtherUserScreen(
                                                             )
                                                             val session = otherUserSessions[index]
                                                             runCatching {
-                                                                ChaoxingHttpClientPool.get(
+                                                                ChaoxingHttpRequesterPool.get(
                                                                     context,
                                                                     session.phoneNumber
-                                                                )
+                                                                ).toChaoxingHttpClient(context)
                                                             }.onSuccess { client ->
                                                                 ChaoxingHttpClient.cloneInstance =
                                                                     client

@@ -118,7 +118,7 @@ class ChaoxingSignHandler<in T>(
         return coroutineScope.launch {
             var isCaptchaSigning = false
             var isCaptchaResolvedByModel = false
-            val selfPhoneNumber = ChaoxingHttpClient.instance!!.userEntity.phoneNumber
+            val selfPhoneNumber = ChaoxingHttpClient.instance!!.phoneNumber
             val queue = buildList {
                 if (isSelf) add(-1)
                 otherUserSessionList.forEachIndexed { index, session ->
@@ -153,7 +153,7 @@ class ChaoxingSignHandler<in T>(
                                 signStatus[0].success()
                             onSigningFinished(
                                 value,
-                                ChaoxingHttpClient.instance!!.userEntity.name,
+                                ChaoxingHttpClient.instance!!.name,
                                 false
                             )
                             break
@@ -181,7 +181,7 @@ class ChaoxingSignHandler<in T>(
                                 throwable.snackbarReport(
                                     snackbarHost,
                                     coroutineScope,
-                                    "为${ChaoxingHttpClient.instance!!.userEntity.name}签到失败",
+                                    "为${ChaoxingHttpClient.instance!!.name}签到失败",
                                     hapticFeedback
                                 )
                             }
@@ -277,7 +277,7 @@ class ChaoxingSignHandler<in T>(
         var isCaptchaSigning = false
         var isCaptchaResolvedByModel = false
         storedValue = value
-        val selfPhoneNumber = ChaoxingHttpClient.instance!!.userEntity.phoneNumber
+        val selfPhoneNumber = ChaoxingHttpClient.instance!!.phoneNumber
         coroutineScope.launch {
             if (isSelf) {
                 signStatus[0].loading()
@@ -297,7 +297,7 @@ class ChaoxingSignHandler<in T>(
                     if (otherUserSessionList.all { it == null }) {
                         onAllSigningFinished(true)
                     }
-                    onSigningFinished(value, ChaoxingHttpClient.instance!!.userEntity.name, false)
+                    onSigningFinished(value, ChaoxingHttpClient.instance!!.name, false)
                 }.onFailure { throwable ->
                     if (throwable is ChaoxingFaceSignException)
                         faceRecognitionData?.markFailure(selfPhoneNumber, otherUserSessionList)
@@ -341,7 +341,7 @@ class ChaoxingSignHandler<in T>(
                             throwable.snackbarReport(
                                 snackbarHost,
                                 coroutineScope,
-                                "为${ChaoxingHttpClient.instance!!.userEntity.name}签到失败",
+                                "为${ChaoxingHttpClient.instance!!.name}签到失败",
                                 hapticFeedback
                             )
                         }

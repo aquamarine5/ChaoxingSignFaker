@@ -27,7 +27,7 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingFaceHelper
-import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClientPool
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpRequesterPool
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.FaceRecognitionData
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.FaceRecognitionImageStatus
@@ -63,7 +63,7 @@ fun SaveFaceImagesDialog(
                         faceRecognitionData.capturedBitmaps[phoneNumber]?.let { bitmap ->
                             runCatching {
                                 val savedImage = ChaoxingFaceHelper.saveFaceImage(
-                                    ChaoxingHttpClientPool.get(context, phoneNumber),
+                                    ChaoxingHttpRequesterPool.get(context, phoneNumber),
                                     context,
                                     bitmap,
                                     phoneNumber

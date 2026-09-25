@@ -51,7 +51,7 @@ import okhttp3.Request
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingFaceHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
-import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClientPool
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpRequesterPool
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingFaceImageException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.randomizeStylizeImage
@@ -142,7 +142,7 @@ fun FaceRecognitionComponent(
                 buildMap {
                     signUserName.forEachIndexed { index, (phoneNumber, _) ->
                         val url = ChaoxingFaceHelper.getUserProfileFaceImageUrl(
-                            ChaoxingHttpClientPool.get(context, phoneNumber)
+                            ChaoxingHttpRequesterPool.get(context, phoneNumber)
                         )
                         val bitmap = withContext(Dispatchers.IO) {
                             profileImageHttpClient.newCall(

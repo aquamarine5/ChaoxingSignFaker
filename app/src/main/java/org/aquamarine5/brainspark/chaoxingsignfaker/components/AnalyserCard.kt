@@ -118,7 +118,7 @@ fun AnalyserCard() {
             context.chaoxingDataStore.data.first().let { dataStore ->
                 customRankDisplayName = dataStore.analysisRankName.ifEmpty {
                     "****${
-                        ChaoxingHttpClient.instance!!.userEntity.phoneNumber.takeLast(
+                        ChaoxingHttpClient.instance!!.phoneNumber.takeLast(
                             2
                         )
                     } 用户"
@@ -182,7 +182,7 @@ fun AnalyserCard() {
                         }, placeholder = {
                             Text(
                                 "****${
-                                    ChaoxingHttpClient.instance!!.userEntity.phoneNumber.takeLast(
+                                    ChaoxingHttpClient.instance!!.phoneNumber.takeLast(
                                         2
                                     )
                                 } 用户"
@@ -293,11 +293,10 @@ fun AnalyserCard() {
                         enter = slideInVertically(),
                         exit = slideOutVertically(targetOffsetY = { -it })
                     ) {
-                        val schoolNames =
-                            remember {
-                                ChaoxingHttpClient.instance!!.userEntity.fidList.map { it.second }
-                                    .distinct()
-                            }
+                        val schoolNames = remember {
+                            ChaoxingHttpClient.instance!!.userEntity.fidList.map { it.second }
+                                .distinct()
+                        }
                         var isExpanded by remember { mutableStateOf(false) }
                         Column {
                             Text("用于展示的学校名称：")

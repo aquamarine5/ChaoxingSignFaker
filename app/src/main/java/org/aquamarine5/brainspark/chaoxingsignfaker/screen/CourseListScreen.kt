@@ -141,7 +141,7 @@ fun CourseListScreen(
 ) {
     val imageLoader = LocalImageLoader.current
     val activeClient = ChaoxingHttpClient.getClientInstanceOrClone(destination.isCloneSession)
-    val courseCacheKey = "${activeClient?.userEntity?.phoneNumber}:${activeClient?.configuredFid}"
+    val courseCacheKey = "${activeClient?.phoneNumber}:${activeClient?.configuredFid}"
     var savedCourseCacheKey by rememberSaveable { mutableStateOf(courseCacheKey) }
     val activitiesData =
         rememberSaveable(saver = ChaoxingCourseEntity.Saver) { mutableStateListOf() }

@@ -75,7 +75,7 @@ object ChaoxingSignHelper {
 
     @OnlyAppDevelopedMode
     fun getSigner(
-        client: ChaoxingHttpClient,
+        client: ChaoxingHttpRequester,
         activity: ChaoxingSignActivityEntity,
         isLate: Boolean = false,
         isCloneSession: Boolean = false
