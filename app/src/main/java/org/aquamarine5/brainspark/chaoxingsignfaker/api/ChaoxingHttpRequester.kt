@@ -38,19 +38,19 @@ open class ChaoxingHttpRequester internal constructor(
     fun newCall(request: Request): Call = okHttpClient.newCall(request)
 
     suspend fun toChaoxingHttpClient(context: Context): ChaoxingHttpClient {
-        val userInfo = ChaoxingHttpClient.getInfoWithIdentity(
+        val (userEntity, puid) = ChaoxingHttpClient.getInfoWithIdentity(
             okHttpClient,
             context,
             phoneNumber,
             otherUserSession,
         )
         val effectiveConfiguredFid = configuredFid.takeIf { fid ->
-            userInfo.userEntity.fidList.any { school -> school.first == fid }
-        } ?: userInfo.userEntity.fidList.first().first
+            userEntity.fidList.any { school -> school.first == fid }
+        } ?: userEntity.fidList.first().first
         return ChaoxingHttpClient(
-            userEntity = userInfo.userEntity,
-            name = userInfo.name,
-            puid = userInfo.puid,
+            userEntity = userEntity,
+            name = userEntity.name,
+            puid = puid,
             deviceCode = deviceCode,
             initialConfiguredFid = effectiveConfiguredFid,
             okHttpClient = okHttpClient,

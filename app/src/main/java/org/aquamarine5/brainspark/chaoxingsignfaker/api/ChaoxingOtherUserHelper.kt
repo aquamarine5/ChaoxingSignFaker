@@ -341,14 +341,13 @@ object ChaoxingOtherUserHelper {
                 isSaveToDataStore = false,
                 isEncryptedPassword = true
             )
-            val userInfo =
+            val (userEntity, puid) =
                 ChaoxingHttpClient.getInfoWithIdentity(tempOkHttpClient, context, sharedEntity.phoneNumber)
-            val userEntity = userInfo.userEntity
 
             val session = (existedSession?.toBuilder() ?: ChaoxingOtherUserSession.newBuilder())
                 .setPassword(sharedEntity.encryptedPassword.replace(" ", "+"))
-                .setName(sharedEntity.userName.ifEmpty { userInfo.name })
-                .setPuid(userInfo.puid)
+                .setName(sharedEntity.userName.ifEmpty { userEntity.name })
+                .setPuid(puid)
                 .setPhoneNumber(sharedEntity.phoneNumber)
                 .apply {
                     sharedEntity.deviceCode?.takeIf { it.isNotEmpty() }?.let { deviceCode ->

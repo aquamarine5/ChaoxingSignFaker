@@ -48,12 +48,6 @@ import javax.crypto.Cipher
 import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.SecretKeySpec
 
-internal data class ChaoxingUserInfo(
-    val userEntity: ChaoxingUserEntity,
-    val name: String,
-    val puid: Int,
-)
-
 class ChaoxingHttpClient internal constructor(
     val userEntity: ChaoxingUserEntity,
     name: String,
@@ -239,16 +233,15 @@ class ChaoxingHttpClient internal constructor(
                 .build()
             login(client, phoneNumber, password, context)
             val session = context.chaoxingDataStore.data.first().loginSession
-            val userInfo = getInfoWithIdentity(client, context, phoneNumber).also {
-                UMengHelper.profileSignIn(it.puid, it.name, phoneNumber)
-            }
+            val (userEntity, puid) = getInfoWithIdentity(client, context, phoneNumber)
+            UMengHelper.profileSignIn(puid, userEntity.name, phoneNumber)
             val effectiveConfiguredFid = session.configuredFid.takeIf { configuredFid ->
-                session.hasConfiguredFid() && userInfo.userEntity.fidList.any { it.first == configuredFid }
-            } ?: userInfo.userEntity.fidList.first().first
+                session.hasConfiguredFid() && userEntity.fidList.any { it.first == configuredFid }
+            } ?: userEntity.fidList.first().first
             return@withContext ChaoxingHttpClient(
-                userEntity = userInfo.userEntity,
-                name = userInfo.name,
-                puid = userInfo.puid,
+                userEntity = userEntity,
+                name = userEntity.name,
+                puid = puid,
                 deviceCode = session.resolveDeviceCode(context),
                 initialConfiguredFid = effectiveConfiguredFid,
                 okHttpClient = client,
@@ -272,14 +265,14 @@ class ChaoxingHttpClient internal constructor(
             client: OkHttpClient,
             context: Context,
             loginSession: ChaoxingLoginSession
-        ): ChaoxingUserEntity = getInfoWithIdentity(client, context, loginSession.phoneNumber, null).userEntity
+        ): ChaoxingUserEntity = getInfoWithIdentity(client, context, loginSession.phoneNumber, null).first
 
         suspend fun getInfo(
             client: OkHttpClient,
             context: Context,
             otherUserSession: ChaoxingOtherUserSession
         ): ChaoxingUserEntity =
-            getInfoWithIdentity(client, context, otherUserSession.phoneNumber, otherUserSession).userEntity
+            getInfoWithIdentity(client, context, otherUserSession.phoneNumber, otherUserSession).first
 
         suspend fun getInfo(
             client: OkHttpClient,
@@ -287,7 +280,7 @@ class ChaoxingHttpClient internal constructor(
             phoneNumber: String,
             otherUserSession: ChaoxingOtherUserSession? = null,
         ): ChaoxingUserEntity =
-            getInfoWithIdentity(client, context, phoneNumber, otherUserSession).userEntity
+            getInfoWithIdentity(client, context, phoneNumber, otherUserSession).first
 
         internal suspend fun getInfoWithIdentity(
             client: OkHttpClient,
@@ -295,7 +288,7 @@ class ChaoxingHttpClient internal constructor(
             phoneNumber: String,
             otherUserSession: ChaoxingOtherUserSession? = null,
             isRetryAfterRelogin: Boolean = false,
-        ): ChaoxingUserInfo =
+        ): Pair<ChaoxingUserEntity, Int> =
             withContext(Dispatchers.IO) {
                 var userInfoResponse: String? = null
                 runCatching {
@@ -384,7 +377,7 @@ class ChaoxingHttpClient internal constructor(
                                     }
                                 }.build()
                             }
-                            return@withContext ChaoxingUserInfo(userEntity, name, puid)
+                            return@withContext userEntity to puid
                         }
                 }.getOrElse { throwable ->
                     if (throwable is CancellationException) throw throwable
