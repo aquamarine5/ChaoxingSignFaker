@@ -44,7 +44,7 @@ object ChaoxingFaceHelper {
     const val MAX_FACE_IMAGES = 5
 
     suspend fun checkFaceResultAndGetEnc(
-        client: ChaoxingHttpRequester,
+        client: ChaoxingHttpClient,
         objectId: String,
         activeId: Long
     ): String =
@@ -86,7 +86,7 @@ object ChaoxingFaceHelper {
                 }
         }
 
-    private fun buildFaceResult(client: ChaoxingHttpRequester, objectId: String): JSONObject {
+    private fun buildFaceResult(client: ChaoxingHttpClient, objectId: String): JSONObject {
         val fields = mapOf(
             "currentFaceId" to objectId,
             "LiveDetectionStatus" to "1",
@@ -100,7 +100,7 @@ object ChaoxingFaceHelper {
             .fluentPut("cxtime", cxtime)
             .apply {
                 runCatching {
-                    (client as? ChaoxingHttpClient)?.userEntity?.clientId?.let { clientId ->
+                    client.userEntity.clientId?.let { clientId ->
                         addSignToken(clientId, fields, cxtime)
                     }
                 }.onFailure {

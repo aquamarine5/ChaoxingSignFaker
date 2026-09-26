@@ -171,22 +171,6 @@ class ChaoxingHttpClient internal constructor(
                     ChaoxingHttpRequesterPool.put(client)
                 }
 
-        private suspend fun ChaoxingLoginSession.resolveDeviceCode(context: Context): String =
-            deviceCode.takeIf { it.isNotEmpty() } ?: ChaoxingDeviceInfoHelper
-                .getLocalMachineDeviceCode(context)
-                .also { code ->
-                    if (code.isNotEmpty()) {
-                        context.chaoxingDataStore.updateData { dataStore ->
-                            dataStore.toBuilder().setLoginSession(
-                                dataStore.loginSession.toBuilder()
-                                    .setDeviceCode(code)
-                                    .setIsNotRandomizedDeviceCode(true)
-                                    .build()
-                            ).build()
-                        }
-                    }
-                }
-
         suspend fun create(
             phoneNumber: String,
             password: String,
@@ -238,11 +222,23 @@ class ChaoxingHttpClient internal constructor(
             val effectiveConfiguredFid = session.configuredFid.takeIf { configuredFid ->
                 session.hasConfiguredFid() && userEntity.fidList.any { it.first == configuredFid }
             } ?: userEntity.fidList.first().first
+            if (!session.hasConfiguredFid() || session.configuredFid != effectiveConfiguredFid) {
+                context.chaoxingDataStore.updateData { dataStore ->
+                    dataStore.toBuilder().apply {
+                        setLoginSession(
+                            loginSession.toBuilder()
+                                .setConfiguredFid(effectiveConfiguredFid)
+                                .build()
+                        )
+                    }.build()
+                }
+            }
             return@withContext ChaoxingHttpClient(
                 userEntity = userEntity,
                 name = userEntity.name,
                 puid = puid,
-                deviceCode = session.resolveDeviceCode(context),
+                deviceCode = session.deviceCode.takeIf { it.isNotEmpty() }
+                    ?: ChaoxingDeviceInfoHelper.getCachedLocalMachineDeviceCode(context),
                 initialConfiguredFid = effectiveConfiguredFid,
                 okHttpClient = client,
             ).apply {
@@ -265,14 +261,20 @@ class ChaoxingHttpClient internal constructor(
             client: OkHttpClient,
             context: Context,
             loginSession: ChaoxingLoginSession
-        ): ChaoxingUserEntity = getInfoWithIdentity(client, context, loginSession.phoneNumber, null).first
+        ): ChaoxingUserEntity =
+            getInfoWithIdentity(client, context, loginSession.phoneNumber, null).first
 
         suspend fun getInfo(
             client: OkHttpClient,
             context: Context,
             otherUserSession: ChaoxingOtherUserSession
         ): ChaoxingUserEntity =
-            getInfoWithIdentity(client, context, otherUserSession.phoneNumber, otherUserSession).first
+            getInfoWithIdentity(
+                client,
+                context,
+                otherUserSession.phoneNumber,
+                otherUserSession
+            ).first
 
         suspend fun getInfo(
             client: OkHttpClient,

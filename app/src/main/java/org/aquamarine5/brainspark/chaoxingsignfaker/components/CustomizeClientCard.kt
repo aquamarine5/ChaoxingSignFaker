@@ -54,9 +54,9 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.displaySnackbar
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.isDevelopedMode
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
-import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.displaySnackbar
 
 lateinit var chaoxingUserAgent: String
 lateinit var chaoxingApplicationPackageName: String
@@ -371,7 +371,7 @@ fun CustomizeClientCard(onClose: (() -> Unit)? = null) {
             val snackbarHostState = LocalSnackbarHostState.current
             Button(
                 enabled = !isSaving &&
-                    (selectedOption != null || isValidUserAgent(customUserAgent)),
+                        (selectedOption != null || isValidUserAgent(customUserAgent)),
                 onClick = {
                     if (isSaving) return@Button
                     if (selectedOption == null && !isValidUserAgent(customUserAgent)) {

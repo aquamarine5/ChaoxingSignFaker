@@ -328,7 +328,8 @@ fun LocationSignScreen(
                                         } else null
                                     if (signer.sign(
                                             value,
-                                            faceImageUploadedObjectId
+                                            faceImageUploadedObjectId,
+                                            context
                                         )
                                     ) {
                                         val resolution =
@@ -342,7 +343,8 @@ fun LocationSignScreen(
                                         signer.signWithCaptcha(
                                             value,
                                             resolution.validate,
-                                            faceImageUploadedObjectId
+                                            faceImageUploadedObjectId,
+                                            context
                                         )
                                         return@runCatching ChaoxingSignResult(
                                             isCaptchaSigning = true,
@@ -389,7 +391,12 @@ fun LocationSignScreen(
                                                             )
                                                         }
                                                     } else null
-                                                if (sign(value, faceImageUploadedObjectId)) {
+                                                if (sign(
+                                                        value,
+                                                        faceImageUploadedObjectId,
+                                                        context
+                                                    )
+                                                ) {
                                                     val resolution =
                                                         suspendCancellableCoroutine { continuation ->
                                                             captchaValidateParams =
@@ -404,7 +411,8 @@ fun LocationSignScreen(
                                                     signWithCaptcha(
                                                         value,
                                                         resolution.validate,
-                                                        faceImageUploadedObjectId
+                                                        faceImageUploadedObjectId,
+                                                        context
                                                     )
                                                     return@runCatching ChaoxingSignResult(
                                                         isCaptchaSigning = true,

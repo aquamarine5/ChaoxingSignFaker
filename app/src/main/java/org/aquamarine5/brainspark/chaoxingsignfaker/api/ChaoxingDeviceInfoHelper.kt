@@ -16,8 +16,11 @@ import android.provider.Settings
 import android.util.Base64
 import com.alibaba.fastjson2.JSONObject
 import com.umeng.commonsdk.UMConfigure
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withTimeout
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.chaoxingApplicationPackageName
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.requirePredictable
 import java.io.ByteArrayOutputStream
 import java.math.BigInteger
@@ -30,6 +33,7 @@ import java.util.UUID
 import javax.crypto.Cipher
 import javax.crypto.spec.SecretKeySpec
 import kotlin.coroutines.resume
+import kotlin.time.Duration.Companion.seconds
 
 object ChaoxingDeviceInfoHelper {
     private const val DEVICE_INFO_PUBLIC_KEY =
@@ -82,6 +86,25 @@ object ChaoxingDeviceInfoHelper {
         )
     }
 
+    suspend fun getCachedLocalMachineDeviceCode(context: Context): String {
+        context.chaoxingDataStore.data.first().loginSession.deviceCode.takeIf { it.isNotEmpty() }
+            ?.let { return it }
+        val generatedDeviceCode = getLocalMachineDeviceCode(context)
+        if (generatedDeviceCode.isEmpty()) return ""
+        return context.chaoxingDataStore.updateData { currentDataStore ->
+            if (currentDataStore.loginSession.deviceCode.isNotEmpty()) {
+                currentDataStore
+            } else {
+                currentDataStore.toBuilder().setLoginSession(
+                    currentDataStore.loginSession.toBuilder()
+                        .setDeviceCode(generatedDeviceCode)
+                        .setIsNotRandomizedDeviceCode(true)
+                        .build()
+                ).build()
+            }
+        }.loginSession.deviceCode
+    }
+
     fun randomizedDeviceCode(): String {
         val rawData = MessageDigest.getInstance("SHA-256").digest(
             (UUID.randomUUID().toString().replace("-", "") + UUID.randomUUID().toString()
@@ -91,17 +114,23 @@ object ChaoxingDeviceInfoHelper {
     }
 
     private suspend fun getLocalMachineUniqueId(context: Context): String {
-        val uniqueId = suspendCancellableCoroutine { continuation ->
-            UMConfigure.getOaid(context.applicationContext) { deviceId ->
-                if (continuation.isActive) continuation.resume(deviceId.orEmpty())
+        val uniqueId = runCatching {
+            withTimeout(1.seconds) {
+                suspendCancellableCoroutine { continuation ->
+                    UMConfigure.getOaid(context.applicationContext) { deviceId ->
+                        if (continuation.isActive) continuation.resume(deviceId.orEmpty())
+                    }
+                }
             }
+        }.getOrElse {
+            return ""
         }
         return if (uniqueId.isNotBlank() &&
             !INVALID_UNIQUE_ID_REGEX.matches(uniqueId.replace("-", ""))
         ) {
             uniqueId
         } else {
-            UUID.randomUUID().toString().replace("-", "")
+            ""
         }
     }
 

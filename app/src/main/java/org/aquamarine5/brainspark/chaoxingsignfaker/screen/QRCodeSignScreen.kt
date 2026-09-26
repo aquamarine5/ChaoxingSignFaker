@@ -384,7 +384,8 @@ fun QRCodeSignScreen(
                                     if (signer.sign(
                                             value,
                                             locationData,
-                                            faceImageUploadedObjectId
+                                            faceImageUploadedObjectId,
+                                            context
                                         )
                                     ) {
                                         val resolution =
@@ -399,7 +400,8 @@ fun QRCodeSignScreen(
                                             value,
                                             locationData,
                                             resolution.validate,
-                                            faceImageUploadedObjectId
+                                            faceImageUploadedObjectId,
+                                            context
                                         )
                                         return@runCatching ChaoxingSignResult(
                                             isCaptchaSigning = true,
@@ -460,7 +462,8 @@ fun QRCodeSignScreen(
                                                 if (sign(
                                                         value,
                                                         locationData,
-                                                        faceImageUploadedObjectId
+                                                        faceImageUploadedObjectId,
+                                                        context
                                                     )
                                                 ) {
                                                     val resolution =
@@ -478,7 +481,8 @@ fun QRCodeSignScreen(
                                                         value,
                                                         locationData,
                                                         resolution.validate,
-                                                        faceImageUploadedObjectId
+                                                        faceImageUploadedObjectId,
+                                                        context
                                                     )
                                                     return@runCatching ChaoxingSignResult(
                                                         isCaptchaSigning = true,
@@ -614,6 +618,9 @@ fun QRCodeSignScreen(
                         encWaiter = null
                         getQRCodeContinuation?.cancel()
                         getQRCodeContinuation = null
+                        signStatus.forEach {
+                            if (it.isSuccess.value == null) it.isLoading.value = false
+                        }
                         isQrContinuousActive = false
                         qrCurrentTarget = null
                         isSigning.value = false
@@ -941,6 +948,12 @@ fun QRCodeSignScreen(
                                 BackHandler(isQRCodeScanning) {
                                     if (isQrContinuousActive) closeQRContinuousSigning()
                                     else {
+                                        getQRCodeContinuation?.cancel()
+                                        getQRCodeContinuation = null
+                                        signStatus.forEach {
+                                            if (it.isSuccess.value == null) it.isLoading.value =
+                                                false
+                                        }
                                         isSigning.value = false
                                         isQRCodeScanning = false
                                         isQRCodeParsing.value = false
@@ -951,6 +964,12 @@ fun QRCodeSignScreen(
                                 QRCodeScanComponent(isQRCodeScanPause, isQRCodeParsing, onClose = {
                                     if (isQrContinuousActive) closeQRContinuousSigning()
                                     else {
+                                        getQRCodeContinuation?.cancel()
+                                        getQRCodeContinuation = null
+                                        signStatus.forEach {
+                                            if (it.isSuccess.value == null) it.isLoading.value =
+                                                false
+                                        }
                                         isSigning.value = false
                                         isQRCodeParsing.value = false
                                         isQRCodeScanPause.value = false

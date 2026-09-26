@@ -906,18 +906,16 @@ fun OtherUserSelectorComponent(
                             )
                             userSelections[0] = userSelections[0].not()
                         }, verticalAlignment = Alignment.CenterVertically) {
-                            val selfEntity = ChaoxingHttpClient.instance?.userEntity
                             var selfAvatarModel by remember {
                                 mutableStateOf<Any?>(
                                     null
                                 )
                             }
-                            LaunchedEffect(ChaoxingHttpClient.instance?.puid, selfEntity?.pic) {
-                                val entity = selfEntity ?: return@LaunchedEffect
+                            LaunchedEffect(ChaoxingHttpClient.instance!!.puid) {
                                 selfAvatarModel = ChaoxingAccountHelper.getCachedAvatar(
                                     context,
-                                    "self_${ChaoxingHttpClient.instance?.puid}",
-                                    entity.pic
+                                    ChaoxingHttpClient.instance!!.puid.toString(),
+                                    ChaoxingHttpClient.instance!!.userEntity.pic
                                 )
                             }
                             AsyncImage(
@@ -1168,8 +1166,11 @@ fun OtherUserSelectorComponent(
                                                     isRetrying = true
                                                     signStatus[i].retrying()
                                                     coroutineScope.launch {
-                                                        onRetrySignAction(index, session, false)
-                                                        isRetrying = false
+                                                        runCatching {
+                                                            onRetrySignAction(index, session, false)
+                                                        }.also {
+                                                            isRetrying = false
+                                                        }
                                                     }
                                                 }
                                             })

@@ -219,7 +219,10 @@ fun SettingScreen(
                 }
 
                 override fun onCheckUpdate(isTestChannel: Boolean) {
-                    UMengHelper.onStackbricksCheckUpdateEvent(context, ChaoxingHttpClient.instance!!.name)
+                    UMengHelper.onStackbricksCheckUpdateEvent(
+                        context,
+                        ChaoxingHttpClient.instance!!.name
+                    )
                 }
 
                 override fun onCheckUpdateOnLaunchChanged(isChecked: Boolean) {

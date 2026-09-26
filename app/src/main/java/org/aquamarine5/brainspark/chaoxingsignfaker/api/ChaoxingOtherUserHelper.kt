@@ -30,7 +30,6 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingSignFakerD
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.HttpCookie
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingImportOtherUserResultStatus
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingOtherUserSharedEntity
-import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingUserEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ImportOtherUserResult
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingParseDataException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
@@ -100,32 +99,12 @@ object ChaoxingOtherUserHelper {
             val faceObjectIds = selectedFaceObjectIds
                 .distinct()
                 .filter { it in availableFaceObjectIds }.take(ChaoxingFaceHelper.MAX_FACE_IMAGES)
-            var deviceCode = dataStore.loginSession.deviceCode.takeIf { it.isNotEmpty() }
-            if (deviceCode == null) {
-                val generatedDeviceCode =
-                    ChaoxingDeviceInfoHelper.getLocalMachineDeviceCode(context)
-                if (generatedDeviceCode.isNotEmpty()) {
-                    val updatedDataStore = context.chaoxingDataStore.updateData { currentDataStore ->
-                        val loginSession = currentDataStore.loginSession
-                        if (loginSession.deviceCode.isNotEmpty()) {
-                            currentDataStore
-                        } else {
-                            currentDataStore.toBuilder().setLoginSession(
-                                loginSession.toBuilder()
-                                    .setDeviceCode(generatedDeviceCode)
-                                    .setIsNotRandomizedDeviceCode(true)
-                                    .build()
-                            ).build()
-                        }
-                    }
-                    deviceCode = updatedDataStore.loginSession.deviceCode
-                }
-            }
+            val deviceCode = ChaoxingDeviceInfoHelper.getCachedLocalMachineDeviceCode(context)
             "http://cdn.aquamarine5.fun/?phone=${sharedEntity.phoneNumber}&pwd=${
                 Uri.encode(sharedEntity.encryptedPassword)
             }&name=${
                 Uri.encode(sharedEntity.userName)
-            }&face=${faceObjectIds.joinToString(",")}&dc=${Uri.encode(deviceCode.orEmpty())}"
+            }&face=${faceObjectIds.joinToString(",")}&dc=${Uri.encode(deviceCode)}"
         }
 
     suspend fun generateQRCode(
@@ -342,7 +321,11 @@ object ChaoxingOtherUserHelper {
                 isEncryptedPassword = true
             )
             val (userEntity, puid) =
-                ChaoxingHttpClient.getInfoWithIdentity(tempOkHttpClient, context, sharedEntity.phoneNumber)
+                ChaoxingHttpClient.getInfoWithIdentity(
+                    tempOkHttpClient,
+                    context,
+                    sharedEntity.phoneNumber
+                )
 
             val session = (existedSession?.toBuilder() ?: ChaoxingOtherUserSession.newBuilder())
                 .setPassword(sharedEntity.encryptedPassword.replace(" ", "+"))

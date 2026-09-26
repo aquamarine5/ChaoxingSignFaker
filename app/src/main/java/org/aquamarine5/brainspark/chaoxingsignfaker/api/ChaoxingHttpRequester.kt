@@ -16,7 +16,9 @@ import okhttp3.CookieJar
 import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingOtherUserHelper.getSessionPuid
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.chaoxingUserAgent
+import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingLoginSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingSignFakerDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
@@ -47,6 +49,35 @@ open class ChaoxingHttpRequester internal constructor(
         val effectiveConfiguredFid = configuredFid.takeIf { fid ->
             userEntity.fidList.any { school -> school.first == fid }
         } ?: userEntity.fidList.first().first
+        if (otherUserSession != null) {
+            if (!otherUserSession.hasConfiguredFid() || otherUserSession.configuredFid != effectiveConfiguredFid) {
+                context.chaoxingDataStore.updateData { dataStore ->
+                    dataStore.toBuilder().apply {
+                        otherUsersList.indexOfFirst { it.phoneNumber == phoneNumber }
+                            .takeIf { it >= 0 }?.let { index ->
+                                setOtherUsers(
+                                    index,
+                                    getOtherUsers(index).toBuilder()
+                                        .setConfiguredFid(effectiveConfiguredFid)
+                                        .build()
+                                )
+                            }
+                    }.build()
+                }
+            }
+        } else {
+            context.chaoxingDataStore.updateData { dataStore ->
+                dataStore.toBuilder().apply {
+                    if (!loginSession.hasConfiguredFid() || loginSession.configuredFid != effectiveConfiguredFid) {
+                        setLoginSession(
+                            loginSession.toBuilder()
+                                .setConfiguredFid(effectiveConfiguredFid)
+                                .build()
+                        )
+                    }
+                }.build()
+            }
+        }
         return ChaoxingHttpClient(
             userEntity = userEntity,
             name = userEntity.name,
@@ -76,6 +107,74 @@ open class ChaoxingHttpRequester internal constructor(
                         }.build()
                     }
                 }
+
+        private suspend fun resolveOtherUserIdentity(
+            okHttpClient: OkHttpClient,
+            session: ChaoxingOtherUserSession,
+            context: Context
+        ): Pair<Int, Int> {
+            val cachedPuid = session.getSessionPuid(context)
+            if (cachedPuid != null && session.hasConfiguredFid()) {
+                return cachedPuid to session.configuredFid
+            }
+            val (userEntity, freshPuid) = ChaoxingHttpClient.getInfoWithIdentity(
+                okHttpClient,
+                context,
+                session.phoneNumber,
+                session
+            )
+            val effectiveFid = session.configuredFid.takeIf { fid ->
+                session.hasConfiguredFid() && userEntity.fidList.any { it.first == fid }
+            } ?: userEntity.fidList.first().first
+            if (!session.hasConfiguredFid() || session.configuredFid != effectiveFid) {
+                context.chaoxingDataStore.updateData { dataStore ->
+                    dataStore.toBuilder().apply {
+                        otherUsersList.indexOfFirst { it.phoneNumber == session.phoneNumber }
+                            .takeIf { it >= 0 }?.let { index ->
+                                setOtherUsers(
+                                    index,
+                                    getOtherUsers(index).toBuilder()
+                                        .setConfiguredFid(effectiveFid)
+                                        .setPuid(freshPuid)
+                                        .build()
+                                )
+                            }
+                    }.build()
+                }
+            }
+            return freshPuid to effectiveFid
+        }
+
+        private suspend fun resolveLoginIdentity(
+            okHttpClient: OkHttpClient,
+            session: ChaoxingLoginSession,
+            context: Context
+        ): Pair<Int, Int> {
+            if (session.hasPuid() && session.hasConfiguredFid()) {
+                return session.puid to session.configuredFid
+            }
+            val (userEntity, freshPuid) = ChaoxingHttpClient.getInfoWithIdentity(
+                okHttpClient,
+                context,
+                session.phoneNumber,
+                null
+            )
+            val effectiveFid = session.configuredFid.takeIf { fid ->
+                session.hasConfiguredFid() && userEntity.fidList.any { it.first == fid }
+            } ?: userEntity.fidList.first().first
+            if (!session.hasConfiguredFid() || session.configuredFid != effectiveFid) {
+                context.chaoxingDataStore.updateData { dataStore ->
+                    dataStore.toBuilder().apply {
+                        setLoginSession(
+                            loginSession.toBuilder()
+                                .setConfiguredFid(effectiveFid)
+                                .build()
+                        )
+                    }.build()
+                }
+            }
+            return freshPuid to effectiveFid
+        }
 
         suspend fun loadFromOtherSession(
             session: ChaoxingOtherUserSession,
@@ -128,13 +227,18 @@ open class ChaoxingHttpRequester internal constructor(
                     }
                 )
             }
+            val (resolvedPuid, resolvedFid) = resolveOtherUserIdentity(
+                okHttpClient,
+                session,
+                context
+            )
             return ChaoxingHttpRequester(
                 okHttpClient,
                 session.phoneNumber,
                 session.name,
-                session.puid.takeIf { session.hasPuid() } ?: 0,
+                resolvedPuid,
                 session.resolveDeviceCode(context),
-                session.configuredFid.takeIf { session.hasConfiguredFid() } ?: 0,
+                resolvedFid,
                 session,
             )
         }
@@ -190,25 +294,15 @@ open class ChaoxingHttpRequester internal constructor(
                 )
             }
             val session = dataStore.loginSession
+            val (resolvedPuid, resolvedFid) = resolveLoginIdentity(okHttpClient, session, context)
             return ChaoxingHttpRequester(
                 okHttpClient,
                 session.phoneNumber,
                 session.name,
-                session.puid.takeIf { session.hasPuid() } ?: 0,
+                resolvedPuid,
                 session.deviceCode.takeIf { it.isNotEmpty() }
-                    ?: ChaoxingDeviceInfoHelper.getLocalMachineDeviceCode(context).also { code ->
-                        if (code.isNotEmpty()) {
-                            context.chaoxingDataStore.updateData { currentDataStore ->
-                                currentDataStore.toBuilder().setLoginSession(
-                                    currentDataStore.loginSession.toBuilder()
-                                        .setDeviceCode(code)
-                                        .setIsNotRandomizedDeviceCode(true)
-                                        .build()
-                                ).build()
-                            }
-                        }
-                    },
-                session.configuredFid.takeIf { session.hasConfiguredFid() } ?: 0,
+                    ?: ChaoxingDeviceInfoHelper.getCachedLocalMachineDeviceCode(context),
+                resolvedFid,
             )
         }
     }

@@ -74,7 +74,7 @@ class ChaoxingSignHandler<in T>(
         val fallbackValue = storedValue
         return runCatching {
             val value = realtimeParameterProvider?.invoke() ?: fallbackValue
-                ?: throw ChaoxingShouldSignOnceBeforeException()
+            ?: throw ChaoxingShouldSignOnceBeforeException()
             onOtherUserSigning(value, session, bypassChecking, index).getOrThrow()
                 .also { signResult ->
                     if (signResult.isCaptchaSigning && signResult.isCaptchaResolvedByModel)
@@ -177,7 +177,19 @@ class ChaoxingSignHandler<in T>(
                             throwable.ifShouldDeselect {
                                 userSelections[0] = false
                             }
-                            if (throwable !is ChaoxingCaptchaCancelledException) {
+                            if (throwable is ChaoxingSigner.WrongPositionException &&
+                                throwable.isAlreadyDisabledRandomizedLocation
+                            ) {
+                                for (i in otherUserSessionList.indices) {
+                                    if (otherUserSessionList[i] != null)
+                                        signStatus[i + 1].failed(throwable)
+                                }
+                                snackbarHost.displaySnackbar(
+                                    "签到位置超出范围，请重新选择位置",
+                                    coroutineScope
+                                )
+                                hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
+                            } else if (throwable !is ChaoxingCaptchaCancelledException) {
                                 throwable.snackbarReport(
                                     snackbarHost,
                                     coroutineScope,
@@ -242,7 +254,23 @@ class ChaoxingSignHandler<in T>(
                                 session.phoneNumber,
                                 throwable is ChaoxingFaceSignException
                             )
-                            if (throwable !is ChaoxingCaptchaCancelledException) {
+                            signStatus[target + 1].failed(throwable)
+                            throwable.ifShouldDeselect {
+                                userSelections[target + 1] = false
+                            }
+                            if (throwable is ChaoxingSigner.WrongPositionException &&
+                                throwable.isAlreadyDisabledRandomizedLocation
+                            ) {
+                                for (i in (target + 1)..<otherUserSessionList.size) {
+                                    if (otherUserSessionList[i] != null)
+                                        signStatus[i + 1].failed(throwable)
+                                }
+                                snackbarHost.displaySnackbar(
+                                    "签到位置超出范围，请重新选择位置",
+                                    coroutineScope
+                                )
+                                hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
+                            } else if (throwable !is ChaoxingCaptchaCancelledException) {
                                 throwable.snackbarReport(
                                     snackbarHost,
                                     coroutineScope,
@@ -250,10 +278,6 @@ class ChaoxingSignHandler<in T>(
                                     hapticFeedback
                                 )
                             }
-                            throwable.ifShouldDeselect {
-                                userSelections[target + 1] = false
-                            }
-                            signStatus[target + 1].failed(throwable)
                             onCurrentTargetChanged(null)
                             onAllSigningFinished(false)
                             return@launch

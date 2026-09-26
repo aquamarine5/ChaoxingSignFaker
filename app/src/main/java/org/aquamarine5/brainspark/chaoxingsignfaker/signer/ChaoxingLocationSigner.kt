@@ -6,6 +6,7 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.signer
 
+import android.content.Context
 import com.alibaba.fastjson2.JSONObject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -50,7 +51,8 @@ class ChaoxingLocationSigner(
 
     suspend fun sign(
         signLocation: ChaoxingLocationSignEntity,
-        faceImageObjectId: String? = null
+        faceImageObjectId: String? = null,
+        context: Context
     ): Boolean =
         withContext(Dispatchers.IO) {
             if (isCaptchaRequired()) return@withContext true
@@ -65,7 +67,7 @@ class ChaoxingLocationSigner(
                         .addQueryParameter("name", client.name)
                         .addQueryParameter("fid", client.configuredFid.toString())
                         .addQueryParameter("deviceCode", client.deviceCode)
-                        .addFaceRecognitionParameter(faceImageObjectId)
+                        .addFaceRecognitionParameter(faceImageObjectId, context)
                         .build()
                 ).get().build()
             ).execute().use {
@@ -77,7 +79,8 @@ class ChaoxingLocationSigner(
     suspend fun signWithCaptcha(
         signLocation: ChaoxingLocationSignEntity,
         validateValue: String,
-        faceImageObjectId: String? = null
+        faceImageObjectId: String? = null,
+        context: Context
     ) =
         withContext(Dispatchers.IO) {
             client.newCall(
@@ -92,7 +95,7 @@ class ChaoxingLocationSigner(
                         .addQueryParameter("fid", client.configuredFid.toString())
                         .addQueryParameter("deviceCode", client.deviceCode)
                         .addQueryParameter("validate", validateValue)
-                        .addFaceRecognitionParameter(faceImageObjectId)
+                        .addFaceRecognitionParameter(faceImageObjectId, context)
                         .build()
                 ).get().build()
             ).execute().use {

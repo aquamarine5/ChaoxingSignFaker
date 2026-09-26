@@ -28,6 +28,7 @@ import okhttp3.Request
 import okhttp3.Response
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCourseHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingFaceHelper
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpRequester
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCaptchaDataEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationSignEntity
@@ -249,7 +250,10 @@ abstract class ChaoxingSigner(
         return addLocationDataParameter(position ?: return this, "locationResult", true)
     }
 
-    protected open suspend fun HttpUrl.Builder.addFaceRecognitionParameter(faceImageObjectId: String?): HttpUrl.Builder {
+    protected open suspend fun HttpUrl.Builder.addFaceRecognitionParameter(
+        faceImageObjectId: String?,
+        context: Context
+    ): HttpUrl.Builder {
         if (faceImageObjectId == null) return this
         addQueryParameter("currentFaceId", faceImageObjectId)
         addQueryParameter("ifCFP", "0")
@@ -257,7 +261,7 @@ abstract class ChaoxingSigner(
         addQueryParameter(
             "faceEnc",
             ChaoxingFaceHelper.checkFaceResultAndGetEnc(
-                client,
+                (client as? ChaoxingHttpClient) ?: client.toChaoxingHttpClient(context),
                 faceImageObjectId,
                 activeId
             )

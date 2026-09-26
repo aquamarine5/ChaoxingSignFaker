@@ -6,6 +6,7 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.signer
 
+import android.content.Context
 import com.alibaba.fastjson2.JSONObject
 import com.google.mlkit.vision.barcode.common.Barcode
 import kotlinx.coroutines.Dispatchers
@@ -67,7 +68,8 @@ class ChaoxingQRCodeSigner(
         enc: String,
         position: ChaoxingLocationSignEntity?,
         captchaValidate: String,
-        faceImageObjectId: String? = null
+        faceImageObjectId: String? = null,
+        context: Context
     ) =
         withContext(Dispatchers.IO) {
             client.newCall(
@@ -84,7 +86,7 @@ class ChaoxingQRCodeSigner(
                         .addQueryParameter("validate", captchaValidate)
                         .addLocationParameter(position, false)
                         .addLocationResultParameter(position)
-                        .addFaceRecognitionParameter(faceImageObjectId)
+                        .addFaceRecognitionParameter(faceImageObjectId, context)
                         .build()
                 ).build()
             ).execute().use {
@@ -96,7 +98,8 @@ class ChaoxingQRCodeSigner(
     suspend fun sign(
         enc: String,
         position: ChaoxingLocationSignEntity?,
-        faceImageObjectId: String? = null
+        faceImageObjectId: String? = null,
+        context: Context
     ): Boolean =
         withContext(Dispatchers.IO) {
             if (isCaptchaRequired()) return@withContext true
@@ -113,7 +116,7 @@ class ChaoxingQRCodeSigner(
                         .addQueryParameter("deviceCode", client.deviceCode)
                         .addLocationParameter(position, false)
                         .addLocationResultParameter(position)
-                        .addFaceRecognitionParameter(faceImageObjectId)
+                        .addFaceRecognitionParameter(faceImageObjectId, context)
                         .build()
                 ).build()
             ).execute().use {
