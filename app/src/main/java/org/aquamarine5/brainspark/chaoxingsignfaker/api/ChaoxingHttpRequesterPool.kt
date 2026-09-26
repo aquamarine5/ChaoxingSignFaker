@@ -71,7 +71,7 @@ object ChaoxingHttpRequesterPool {
         val loadingMutex = loadingMutexes.getOrPut(phoneNumber) { Mutex() }
         return loadingMutex.withLock {
             (clients[phoneNumber] as? ChaoxingHttpClient)?.let { return@withLock it }
-            val source = clients[phoneNumber] as? ChaoxingHttpRequester ?: requester
+            val source = clients[phoneNumber] ?: requester
             if (source is ChaoxingHttpClient) return@withLock source
             val client = source.toChaoxingHttpClient(context)
             sessionsMutex.withLock {

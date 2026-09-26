@@ -38,6 +38,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RichTooltip
 import androidx.compose.material3.Text
 import androidx.compose.material3.TooltipAnchorPosition
@@ -57,6 +58,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -124,6 +126,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.isDevelopedMode
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.rememberFaceRecognitionData
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.sentryReport
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
+import kotlin.coroutines.resume
 import kotlin.time.Duration.Companion.seconds
 
 @Serializable
@@ -298,7 +301,7 @@ fun QRCodeSignScreen(
                         )
                     }
                     var isQrContinuousActive by remember { mutableStateOf(false) }
-                    var qrCurrentTarget: Int? by remember { mutableStateOf<Int?>(null) }
+                    var qrCurrentTarget: Int? by remember { mutableStateOf(null) }
                     var qrQueueTargets by remember { mutableStateOf<List<Int>>(emptyList()) }
                     var qrQueueNames by remember { mutableStateOf<List<String>>(emptyList()) }
                     var qrQueueAvatars by remember { mutableStateOf<List<String?>>(emptyList()) }
@@ -987,13 +990,26 @@ fun QRCodeSignScreen(
                                         runCatching {
                                             ChaoxingQRCodeSigner.parseQRCode(result)
                                         }.onSuccess { enc ->
-                                            isQRCodeIllegal = false
-                                            latestEnc = enc
-                                            latestEncSeq += 1
-                                            encWaiter?.let { waiter ->
-                                                if (waiter.isActive) {
-                                                    waiter.resume(enc, null)
-                                                    encWaiter = null
+                                            if (expiredEnc != null && enc == expiredEnc) {
+                                                isQRCodeIllegal = true
+                                                qrcodeIllegalText = "二维码已过期"
+                                                hapticFeedback.performHapticFeedback(
+                                                    HapticFeedbackType.Reject
+                                                )
+                                                job?.cancel()
+                                                job = coroutineScope.launch {
+                                                    delay(1.seconds)
+                                                    if (latestEnc != null) isQRCodeIllegal = false
+                                                }
+                                            } else {
+                                                isQRCodeIllegal = false
+                                                latestEnc = enc
+                                                latestEncSeq += 1
+                                                encWaiter?.let { waiter ->
+                                                    if (waiter.isActive) {
+                                                        waiter.resume(enc)
+                                                        encWaiter = null
+                                                    }
                                                 }
                                             }
                                         }.onFailure {
@@ -1163,10 +1179,12 @@ fun QRCodeSignScreen(
                                                 if (currentTarget == -1) 0 else currentTarget + 1
                                             val outerIsSuccess =
                                                 signStatus.getOrNull(outerStatusIndex)?.isSuccess?.value == true
+                                            val isOuterCaptchaResolvedByModel =
+                                                signStatus.getOrNull(outerStatusIndex)?.isCaptchaResolvedByModel?.value == true
                                             Row(
                                                 modifier = Modifier
                                                     .background(
-                                                        Color(0xCC222222),
+                                                        Color(0x88888888),
                                                         RoundedCornerShape(8.dp)
                                                     )
                                                     .border(
@@ -1207,6 +1225,15 @@ fun QRCodeSignScreen(
                                                 Spacer(modifier = Modifier.width(6.dp))
                                                 Text("签到中")
                                                 Spacer(modifier = Modifier.width(6.dp))
+                                                if (isOuterCaptchaResolvedByModel) {
+                                                    Icon(
+                                                        painterResource(R.drawable.ic_brain_circuit),
+                                                        contentDescription = "验证码由模型自动识别",
+                                                        tint = MaterialTheme.colorScheme.primary,
+                                                        modifier = Modifier.size(16.dp)
+                                                    )
+                                                    Spacer(modifier = Modifier.width(6.dp))
+                                                }
                                                 if (outerIsSuccess) {
                                                     Icon(
                                                         painterResource(R.drawable.ic_check),
