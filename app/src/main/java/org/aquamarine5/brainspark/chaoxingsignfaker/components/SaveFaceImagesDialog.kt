@@ -63,7 +63,7 @@ fun SaveFaceImagesDialog(
                         faceRecognitionData.capturedBitmaps[phoneNumber]?.let { bitmap ->
                             runCatching {
                                 val savedImage = ChaoxingFaceHelper.saveFaceImage(
-                                    ChaoxingHttpRequesterPool.get(context, phoneNumber),
+                                    ChaoxingHttpRequesterPool.getRequester(context, phoneNumber),
                                     context,
                                     bitmap,
                                     phoneNumber

@@ -44,7 +44,7 @@ object ChaoxingHttpRequesterPool {
         }
     }
 
-    suspend fun get(context: Context, phoneNumber: String): ChaoxingHttpRequester {
+    suspend fun getRequester(context: Context, phoneNumber: String): ChaoxingHttpRequester {
         clients[phoneNumber]?.let { return it }
         val loadingMutex = loadingMutexes.getOrPut(phoneNumber) { Mutex() }
         return loadingMutex.withLock {
@@ -58,6 +58,23 @@ object ChaoxingHttpRequesterPool {
             val client = ChaoxingHttpRequester.loadFromOtherSession(session, context)
             sessionsMutex.withLock {
                 clientSessions[phoneNumber] = session
+                clients[phoneNumber] = client
+            }
+            client
+        }
+    }
+
+    suspend fun getClient(context: Context, phoneNumber: String): ChaoxingHttpClient {
+        (clients[phoneNumber] as? ChaoxingHttpClient)?.let { return it }
+        val requester = getRequester(context, phoneNumber)
+        if (requester is ChaoxingHttpClient) return requester
+        val loadingMutex = loadingMutexes.getOrPut(phoneNumber) { Mutex() }
+        return loadingMutex.withLock {
+            (clients[phoneNumber] as? ChaoxingHttpClient)?.let { return@withLock it }
+            val source = clients[phoneNumber] as? ChaoxingHttpRequester ?: requester
+            if (source is ChaoxingHttpClient) return@withLock source
+            val client = source.toChaoxingHttpClient(context)
+            sessionsMutex.withLock {
                 clients[phoneNumber] = client
             }
             client

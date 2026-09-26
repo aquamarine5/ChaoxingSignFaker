@@ -6,11 +6,11 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.entity
 
-import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.Stable
 import kotlinx.serialization.Serializable
 import kotlin.random.Random
 
-@Immutable
+@Stable
 @Serializable
 data class ChaoxingLocationSignEntity(
     val latitude: Double,

@@ -163,7 +163,7 @@ fun FacePhotoControlComponent(
         }
         coroutineScope.launch {
             runCatching {
-                val client = ChaoxingHttpRequesterPool.get(context, phoneNumber)
+                val client = ChaoxingHttpRequesterPool.getRequester(context, phoneNumber)
                 ChaoxingFaceHelper.saveFaceImage(
                     client,
                     context,

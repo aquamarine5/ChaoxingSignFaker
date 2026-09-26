@@ -276,7 +276,7 @@ fun PhotoSignScreen(
                                         },
                                         onOtherUserSigning = { _, session, bypassChecking, _ ->
                                             runCatching {
-                                                ChaoxingHttpRequesterPool.get(
+                                                ChaoxingHttpRequesterPool.getRequester(
                                                     context,
                                                     session.phoneNumber
                                                 )
@@ -488,7 +488,7 @@ fun PhotoSignScreen(
                                                 },
                                                 onOtherUserSigning = { value, session, bypassChecking, index ->
                                                     runCatching {
-                                                        ChaoxingHttpRequesterPool.get(
+                                                        ChaoxingHttpRequesterPool.getRequester(
                                                             context,
                                                             session.phoneNumber
                                                         ).let { client ->

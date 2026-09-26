@@ -276,7 +276,7 @@ object ChaoxingOtherUserHelper {
                     )
                 }
                 val faceClient =
-                    ChaoxingHttpRequesterPool.get(context, existedSession.phoneNumber)
+                    ChaoxingHttpRequesterPool.getRequester(context, existedSession.phoneNumber)
                 saveFaceImages(faceClient.okHttpClient, existedSession.phoneNumber)
                 return@withContext Triple(
                     ChaoxingImportOtherUserResultStatus.EXISTED_BUT_UPDATE_FACE_IMAGES,

@@ -142,7 +142,7 @@ fun FaceRecognitionComponent(
                 buildMap {
                     signUserName.forEachIndexed { index, (phoneNumber, _) ->
                         val url = ChaoxingFaceHelper.getUserProfileFaceImageUrl(
-                            ChaoxingHttpRequesterPool.get(context, phoneNumber)
+                            ChaoxingHttpRequesterPool.getRequester(context, phoneNumber)
                         )
                         val bitmap = withContext(Dispatchers.IO) {
                             profileImageHttpClient.newCall(

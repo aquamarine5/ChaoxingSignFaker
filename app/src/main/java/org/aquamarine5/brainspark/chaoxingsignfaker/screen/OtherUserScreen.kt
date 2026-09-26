@@ -1629,7 +1629,7 @@ fun OtherUserScreen(
                     isLoadingSchools = true
                     val result = runCatching {
                         ChaoxingHttpRequesterPool.initialize(context.chaoxingDataStore.data.first().otherUsersList)
-                        ChaoxingHttpRequesterPool.get(context, settingsPhoneNumber)
+                        ChaoxingHttpRequesterPool.getRequester(context, settingsPhoneNumber)
                             .toChaoxingHttpClient(context)
                     }
                     isLoadingSchools = false
@@ -2833,7 +2833,7 @@ fun OtherUserScreen(
                                                             )
                                                             val session = otherUserSessions[index]
                                                             runCatching {
-                                                                ChaoxingHttpRequesterPool.get(
+                                                                ChaoxingHttpRequesterPool.getRequester(
                                                                     context,
                                                                     session.phoneNumber
                                                                 ).toChaoxingHttpClient(context)

@@ -427,7 +427,13 @@ fun QRCodeSignScreen(
                             },
                             onOtherUserSigning = { value, session, bypassChecking, _ ->
                                 runCatching {
-                                    ChaoxingHttpRequesterPool.get(context, session.phoneNumber)
+                                    (if (isFaceRequired) ChaoxingHttpRequesterPool.getClient(
+                                        context,
+                                        session.phoneNumber
+                                    ) else ChaoxingHttpRequesterPool.getRequester(
+                                        context,
+                                        session.phoneNumber
+                                    ))
                                         .let { client ->
                                             val faceImageUploadedObjectId =
                                                 if (isFaceRequired) {
