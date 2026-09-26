@@ -201,7 +201,7 @@ fun OtherUserSelectorComponent(
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(40.dp)
                 )
-            }, text = {
+            }, text = { dialogSnackbarHost ->
                 Column {
                     val pendingRetry = repairedSessionForRetry
                     if (pendingRetry != null) {
@@ -302,7 +302,7 @@ fun OtherUserSelectorComponent(
                                     signUserList[sessionIndex] = repairedSession
                                     signStatus[sessionIndex + 1].isObsoleteSession.value = false
                                     hapticFeedback.performHapticFeedback(HapticFeedbackType.Confirm)
-                                    snackbarHost.displaySnackbar(
+                                    dialogSnackbarHost.displaySnackbar(
                                         "用户 ${repairedSession.name} 已成功修复",
                                         coroutineScope
                                     )
@@ -467,6 +467,7 @@ fun OtherUserSelectorComponent(
                     inspectedFaceImage = null
                 }) { Text("关闭") }
             }, dismissButton = {
+                val dialogSnackbarHost = LocalSnackbarHostState.current
                 OutlinedButton(
                     enabled = isSavingFaceImage.not(),
                     onClick = {
@@ -528,10 +529,13 @@ fun OtherUserSelectorComponent(
                                     }
                                 }
                             }.onSuccess {
-                                snackbarHost.displaySnackbar("人脸照片已保存到相册", coroutineScope)
+                                dialogSnackbarHost.displaySnackbar(
+                                    "人脸照片已保存到相册",
+                                    coroutineScope
+                                )
                             }.onFailure {
                                 it.snackbarReport(
-                                    snackbarHost,
+                                    dialogSnackbarHost,
                                     coroutineScope,
                                     "保存人脸照片失败",
                                     hapticFeedback

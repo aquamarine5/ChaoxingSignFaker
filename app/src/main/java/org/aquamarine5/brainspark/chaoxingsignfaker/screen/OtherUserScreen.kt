@@ -469,7 +469,7 @@ fun OtherUserScreen(
             )
         }, title = {
             Text("通过账号密码的形式添加他人的用户数据")
-        }, text = {
+        }, text = { dialogSnackbarHost ->
             var phoneNumber by remember { mutableStateOf("") }
             var password by remember { mutableStateOf("") }
             Column {
@@ -591,7 +591,7 @@ fun OtherUserScreen(
                             )
                         }.onFailure {
                             it.snackbarReport(
-                                snackbarHost,
+                                dialogSnackbarHost,
                                 coroutineScope,
                                 "检查登录失败",
                                 hapticFeedback
@@ -635,7 +635,7 @@ fun OtherUserScreen(
                                 isInputDialog = false
                             }.onFailure { failure ->
                                 failure.snackbarReport(
-                                    snackbarHost,
+                                    dialogSnackbarHost,
                                     coroutineScope,
                                     "保存用户失败",
                                     hapticFeedback
@@ -665,7 +665,7 @@ fun OtherUserScreen(
             )
         }, title = {
             Text("管理标签")
-        }, text = {
+        }, text = { dialogSnackbarHost ->
             val mutex = remember { Mutex() }
             val tagUsageList = remember(isTagsSettingDialog) {
                 if (isTagsSettingDialog) {
@@ -696,10 +696,10 @@ fun OtherUserScreen(
             val keyboardController = LocalSoftwareKeyboardController.current
             val createTagAction = {
                 if (tagsEntityList.any { it.name == newTagName }) {
-                    snackbarHost.displaySnackbar("$newTagName 标签已存在", coroutineScope)
+                    dialogSnackbarHost.displaySnackbar("$newTagName 标签已存在", coroutineScope)
                     hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
                 } else if (newTagName.isBlank()) {
-                    snackbarHost.displaySnackbar("标签名称不能为空", coroutineScope)
+                    dialogSnackbarHost.displaySnackbar("标签名称不能为空", coroutineScope)
                     hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
                 } else {
                     val newTagType = OtherUserTagType.newBuilder().apply {
@@ -1214,8 +1214,8 @@ fun OtherUserScreen(
                                 }.build()
                             }
                         }
-                        snackbarHost.currentSnackbarData?.dismiss()
-                        snackbarHost.showSnackbar("新顺序已保存", withDismissAction = true)
+                        dialogSnackbarHost.currentSnackbarData?.dismiss()
+                        dialogSnackbarHost.showSnackbar("新顺序已保存", withDismissAction = true)
                     }
                 }) { index, tagEntity, _ ->
                     key(tagEntity.id) {
@@ -1335,7 +1335,7 @@ fun OtherUserScreen(
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(40.dp)
             )
-        }, text = {
+        }, text = { dialogSnackbarHost ->
             Column {
                 Text("在最近一次的签到过程中检测到用户 ${otherUserSessions[repairSessionIndex!!].name} 的登录状态异常，重新登录后可修复此问题。")
                 var password by remember { mutableStateOf("") }
@@ -1416,7 +1416,7 @@ fun OtherUserScreen(
                         result.onSuccess { repairedSession ->
                             otherUserSessions[sessionIndex] = repairedSession
                             hapticFeedback.performHapticFeedback(HapticFeedbackType.Confirm)
-                            snackbarHost.displaySnackbar(
+                            dialogSnackbarHost.displaySnackbar(
                                 "用户 ${repairedSession.name} 已成功修复",
                                 coroutineScope
                             )
@@ -1455,25 +1455,6 @@ fun OtherUserScreen(
         var isShareOtherUserExpanded by remember(settingsPhoneNumber) { mutableStateOf(false) }
         var shareOtherUserQrCode by remember(settingsPhoneNumber) { mutableStateOf<Bitmap?>(null) }
         val settingsLazyListState = rememberLazyListState()
-        LaunchedEffect(settingsPhoneNumber, isShareOtherUserExpanded) {
-            if (!isShareOtherUserExpanded) return@LaunchedEffect
-            if (shareOtherUserQrCode != null) return@LaunchedEffect
-            val sessionIndex = selectedUserSettingDialogIndex ?: return@LaunchedEffect
-            val session = otherUserSessions.getOrNull(sessionIndex) ?: return@LaunchedEffect
-            shareOtherUserQrCode = runCatching {
-                ChaoxingOtherUserHelper.generateQRCode(
-                    context,
-                    ChaoxingOtherUserSharedEntity(
-                        session.phoneNumber,
-                        session.password,
-                        session.name
-                    ),
-                    emptyList()
-                )
-            }.onFailure {
-                it.snackbarReport(snackbarHost, coroutineScope, "生成二维码失败", hapticFeedback)
-            }.getOrNull()
-        }
         val modifiedTagIndexList = remember(selectedUserSettingDialogIndex) {
             List(tagsEntityList.size) {
                 mutableStateOf(userTagList[selectedUserSettingDialogIndex!!].value.any { tagEntity ->
@@ -1644,6 +1625,30 @@ fun OtherUserScreen(
                             hapticFeedback
                         )
                     }
+                }
+                LaunchedEffect(settingsPhoneNumber, isShareOtherUserExpanded) {
+                    if (!isShareOtherUserExpanded) return@LaunchedEffect
+                    if (shareOtherUserQrCode != null) return@LaunchedEffect
+                    val sessionIndex = selectedUserSettingDialogIndex ?: return@LaunchedEffect
+                    val session = otherUserSessions.getOrNull(sessionIndex) ?: return@LaunchedEffect
+                    shareOtherUserQrCode = runCatching {
+                        ChaoxingOtherUserHelper.generateQRCode(
+                            context,
+                            ChaoxingOtherUserSharedEntity(
+                                session.phoneNumber,
+                                session.password,
+                                session.name
+                            ),
+                            emptyList()
+                        )
+                    }.onFailure {
+                        it.snackbarReport(
+                            dialogSnackbarHost,
+                            coroutineScope,
+                            "生成二维码失败",
+                            hapticFeedback
+                        )
+                    }.getOrNull()
                 }
                 Column {
                     LazyColumn(state = settingsLazyListState) {
@@ -1889,7 +1894,7 @@ fun OtherUserScreen(
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(40.dp)
             )
-        }, text = {
+        }, text = { dialogSnackbarHost ->
             Column {
                 Text("对方将链接从浏览器打开即可导入你的用户数据（对方需更新到1.5版本及以上），或将链接粘贴到以下输入框中：")
                 Spacer(modifier = Modifier.height(6.dp))
@@ -1988,7 +1993,7 @@ fun OtherUserScreen(
                                     isURLSharedDialog = false
                                 }.onFailure { failure ->
                                     failure.snackbarReport(
-                                        snackbarHost,
+                                        dialogSnackbarHost,
                                         coroutineScope,
                                         "导入失败",
                                         hapticFeedback

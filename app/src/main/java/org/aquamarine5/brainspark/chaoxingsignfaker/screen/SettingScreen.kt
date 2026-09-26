@@ -150,12 +150,13 @@ fun SettingScreen(
                     Text("取消")
                 }
             }, confirmButton = {
+                val dialogSnackbarHost = LocalSnackbarHostState.current
                 Button(onClick = {
                     if (inputPassword == BYPASS_BLOCKED_CHECKING_KEY) {
                         hapticFeedback.performHapticFeedback(HapticFeedbackType.Confirm)
                         coroutineScope.launch(Dispatchers.IO) {
                             isBypassBlockedChecking = true
-                            snackbarHostState.displaySnackbar(
+                            dialogSnackbarHost.displaySnackbar(
                                 "成功解锁@BypassBlockedChecking",
                                 coroutineScope
                             )
@@ -173,7 +174,7 @@ fun SettingScreen(
                                                 .setDisplayRankCount(count.coerceAtLeast(5))
                                         ).build()
                                     }
-                                    snackbarHostState.displaySnackbar(
+                                    dialogSnackbarHost.displaySnackbar(
                                         "已设置排行榜显示数量为$count",
                                         coroutineScope
                                     )
@@ -190,14 +191,14 @@ fun SettingScreen(
                                                 .setAlwaysForceSign(value)
                                         ).build()
                                     }
-                                    snackbarHostState.displaySnackbar(
+                                    dialogSnackbarHost.displaySnackbar(
                                         "已设置${if (value) "总是强制签到" else "不总是强制签到"}",
                                         coroutineScope
                                     )
                                 }
                             }
                     } else {
-                        snackbarHostState.displaySnackbar(
+                        dialogSnackbarHost.displaySnackbar(
                             "密码错误",
                             coroutineScope
                         )

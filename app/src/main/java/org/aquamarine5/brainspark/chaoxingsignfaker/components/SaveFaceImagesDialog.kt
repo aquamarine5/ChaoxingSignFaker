@@ -41,7 +41,6 @@ fun SaveFaceImagesDialog(
     onFinished: () -> Unit
 ) {
     val context = LocalContext.current
-    val snackbarHost = LocalSnackbarHostState.current
     val hapticFeedback = LocalHapticFeedback.current
     val coroutineScope = rememberCoroutineScope()
     var isSaving by remember { mutableStateOf(false) }
@@ -55,6 +54,7 @@ fun SaveFaceImagesDialog(
         title = { Text("保存人脸照片？") },
         text = { Text("是否保存刚才拍摄的 ${faceRecognitionData.newImagePhones.size} 张人脸照片，以便下次签到使用？") },
         confirmButton = {
+            val dialogSnackbarHost = LocalSnackbarHostState.current
             Button(enabled = !isSaving, onClick = {
                 hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                 isSaving = true
@@ -84,7 +84,7 @@ fun SaveFaceImagesDialog(
                                 )
                             }.onFailure {
                                 it.snackbarReport(
-                                    snackbarHost,
+                                    dialogSnackbarHost,
                                     coroutineScope,
                                     "保存人脸照片失败",
                                     hapticFeedback

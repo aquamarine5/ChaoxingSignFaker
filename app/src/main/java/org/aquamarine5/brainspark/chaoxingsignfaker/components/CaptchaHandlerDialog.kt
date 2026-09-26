@@ -185,7 +185,7 @@ fun CaptchaHandlerDialog(
                 dismissWithCancel()
             },
             title = { Text("请完成滑动验证") },
-            text = {
+            text = { dialogSnackbarHost ->
                 if (data != null) {
                     Column(modifier = Modifier.fillMaxWidth()) {
                         Box(
@@ -243,7 +243,7 @@ fun CaptchaHandlerDialog(
                                         check(normalizedPosition, isCheckingCaptcha)
                                     }.onFailure {
                                         it.snackbarReport(
-                                            snackbar,
+                                            dialogSnackbarHost,
                                             coroutineScope,
                                             "验证码校验失败",
                                             hapticFeedback
@@ -279,7 +279,7 @@ fun CaptchaHandlerDialog(
                                         refreshCaptcha()
                                     }.onFailure {
                                         it.snackbarReport(
-                                            snackbar,
+                                            dialogSnackbarHost,
                                             coroutineScope,
                                             "获取验证码信息失败",
                                             hapticFeedback

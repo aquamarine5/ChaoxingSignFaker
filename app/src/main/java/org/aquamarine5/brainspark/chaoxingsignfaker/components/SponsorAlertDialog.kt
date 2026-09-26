@@ -80,37 +80,7 @@ fun SponsorAlertDialog(onDismissRequest: () -> Unit) {
     val context = LocalActivity.current!!.applicationContext
     var sponsorList by remember { mutableStateOf<List<Pair<String, String>>?>(null) }
     var updateDate by remember { mutableStateOf("2006/12/15") }
-    val snackbarState = LocalSnackbarHostState.current
     val coroutineScope = rememberCoroutineScope()
-    LaunchedEffect(Unit) {
-        withContext(Dispatchers.IO) {
-            runCatching {
-                ChaoxingHttpClient.instance?.okHttpClient?.newCall(
-                    Request.Builder()
-                        .get()
-                        .url("http://cdn.aquamarine5.fun/chaoxingsignfaker_sponsor.json")
-                        .build()
-                )?.execute().use {
-                    val json = JSONObject.parseObject(it?.body?.string())
-                    val list = json.getJSONArray("sponsorList")
-                    updateDate = json.getString("updateTime")
-                    if (list.isNotEmpty()) {
-                        sponsorList = buildList {
-                            for (i in list.indices) {
-                                val item = list.getJSONArray(i)
-                                if (item.size == 2) {
-                                    add(item.getString(0) to item.getString(1))
-                                }
-                            }
-                        }
-                    }
-                }
-            }.onFailure {
-                it.sentryReport()
-                snackbarState.displaySnackbar("加载捐赠列表失败", coroutineScope)
-            }
-        }
-    }
     val hapticFeedback = LocalHapticFeedback.current
     val permissionCheck =
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) rememberPermissionState(
@@ -120,6 +90,7 @@ fun SponsorAlertDialog(onDismissRequest: () -> Unit) {
     SnackbarAlertDialog(onDismissRequest = {
         onDismissRequest()
     }, confirmButton = {
+        val dialogSnackbarHost = LocalSnackbarHostState.current
         Row {
             OutlinedButton(onClick = {
                 hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
@@ -225,7 +196,7 @@ fun SponsorAlertDialog(onDismissRequest: () -> Unit) {
                                 })
                         }.onFailure {
                             it.sentryReport()
-                            snackbarState.displaySnackbar(
+                            dialogSnackbarHost.displaySnackbar(
                                 "无法打开微信，请确保已安装微信",
                                 coroutineScope
                             )
@@ -239,7 +210,36 @@ fun SponsorAlertDialog(onDismissRequest: () -> Unit) {
                 Text("现在就去")
             }
         }
-    }, text = {
+    }, text = { dialogSnackbarHost ->
+        LaunchedEffect(Unit) {
+            withContext(Dispatchers.IO) {
+                runCatching {
+                    ChaoxingHttpClient.instance?.okHttpClient?.newCall(
+                        Request.Builder()
+                            .get()
+                            .url("http://cdn.aquamarine5.fun/chaoxingsignfaker_sponsor.json")
+                            .build()
+                    )?.execute().use {
+                        val json = JSONObject.parseObject(it?.body?.string())
+                        val list = json.getJSONArray("sponsorList")
+                        updateDate = json.getString("updateTime")
+                        if (list.isNotEmpty()) {
+                            sponsorList = buildList {
+                                for (i in list.indices) {
+                                    val item = list.getJSONArray(i)
+                                    if (item.size == 2) {
+                                        add(item.getString(0) to item.getString(1))
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }.onFailure {
+                    it.sentryReport()
+                    dialogSnackbarHost.displaySnackbar("加载捐赠列表失败", coroutineScope)
+                }
+            }
+        }
         Column(
             modifier = Modifier.verticalScroll(rememberScrollState())
         ) {
