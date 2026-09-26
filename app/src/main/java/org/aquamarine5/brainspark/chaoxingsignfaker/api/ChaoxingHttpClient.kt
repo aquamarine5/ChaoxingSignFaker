@@ -68,19 +68,36 @@ class ChaoxingHttpClient internal constructor(
         context.chaoxingDataStore.updateData { dataStore ->
             dataStore.toBuilder().apply {
                 if (loginSession.phoneNumber == phoneNumber) {
-                    setLoginSession(loginSession.toBuilder().setConfiguredFid(fid))
+                    setLoginSession(
+                        loginSession.toBuilder().setConfiguredFid(fid)
+                            .clearCookies()
+                            .addAllCookies(updateStoredFidCookie(loginSession.cookiesList, fid))
+                    )
                 } else {
                     val index = otherUsersList.indexOfFirst {
                         it.phoneNumber == phoneNumber
                     }
                     checkPredictable(index >= 0) { "未找到当前账号的登录会话" }
-                    setOtherUsers(index, getOtherUsers(index).toBuilder().setConfiguredFid(fid))
+                    val session = getOtherUsers(index)
+                    setOtherUsers(
+                        index,
+                        session.toBuilder().setConfiguredFid(fid)
+                            .clearCookies()
+                            .addAllCookies(updateStoredFidCookie(session.cookiesList, fid))
+                    )
                 }
             }.build()
         }
         configuredFid = fid
-        instance?.takeIf { it.phoneNumber == phoneNumber }?.configuredFid = fid
-        cloneInstance?.takeIf { it.phoneNumber == phoneNumber }?.configuredFid = fid
+        updateJarFidCookie(okHttpClient, fid)
+        instance?.takeIf { it.phoneNumber == phoneNumber }?.let {
+            it.configuredFid = fid
+            updateJarFidCookie(it.okHttpClient, fid)
+        }
+        cloneInstance?.takeIf { it.phoneNumber == phoneNumber }?.let {
+            it.configuredFid = fid
+            updateJarFidCookie(it.okHttpClient, fid)
+        }
         ChaoxingHttpRequesterPool.initialize(context.chaoxingDataStore.data.first().otherUsersList)
     }
 
@@ -109,6 +126,25 @@ class ChaoxingHttpClient internal constructor(
     }
 
     companion object {
+        private fun updateStoredFidCookie(cookies: List<HttpCookie>, fid: Int): List<HttpCookie> =
+            cookies.map { cookie ->
+                if (cookie.name == "fid") cookie.toBuilder().setValue(fid.toString()).build()
+                else cookie
+            }
+
+        private fun updateJarFidCookie(okHttpClient: OkHttpClient, fid: Int) {
+            val url = "https://chaoxing.com".toHttpUrl()
+            val cookies = okHttpClient.cookieJar.loadForRequest(url)
+            if (cookies.none { it.name == "fid" }) return
+            okHttpClient.cookieJar.saveFromResponse(
+                "https://chaoxing.com/fanyalogin".toHttpUrl(),
+                cookies.map { cookie ->
+                    if (cookie.name == "fid") cookie.newBuilder().value(fid.toString()).build()
+                    else cookie
+                }
+            )
+        }
+
         private const val TRANSFER_KEY = "u2oh6Vu^HWe4_AES"
         private val URL_USER_INFO =
             "https://sso.chaoxing.com/apis/login/userLogin4Uname.do".toHttpUrl()
