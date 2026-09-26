@@ -83,7 +83,7 @@ object ChaoxingRecommendHelper {
         recommendRecords: Map<Int, RecommendRecordList>,
         recommendHabits: List<RecommendHabit>,
         currentRecommendRecord: RecommendRecord,
-        client: ChaoxingHttpClient,
+        client: ChaoxingHttpRequester,
         builder: ChaoxingSignFakerDataStore.Builder
     ): ChaoxingSignFakerDataStore.Builder = withContext(Dispatchers.IO) {
         val allRelatedHabits = recommendHabits.filter { it.classId == classId }
@@ -136,7 +136,7 @@ object ChaoxingRecommendHelper {
         context: Context,
         classId: Int,
         courseId: Long,
-        client: ChaoxingHttpClient
+        client: ChaoxingHttpRequester
     ) =
         withContext(Dispatchers.IO) {
             disableCode {

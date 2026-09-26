@@ -14,8 +14,8 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserS
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
 import java.util.concurrent.ConcurrentHashMap
 
-object ChaoxingHttpClientPool {
-    private val clients = ConcurrentHashMap<String, ChaoxingHttpClient>()
+object ChaoxingHttpRequesterPool {
+    private val clients = ConcurrentHashMap<String, ChaoxingHttpRequester>()
     private val clientSessions = ConcurrentHashMap<String, ChaoxingOtherUserSession>()
     private val loadingMutexes = ConcurrentHashMap<String, Mutex>()
     private val sessionsMutex = Mutex()
@@ -36,15 +36,15 @@ object ChaoxingHttpClientPool {
         }
     }
 
-    suspend fun put(client: ChaoxingHttpClient) {
+    suspend fun put(client: ChaoxingHttpRequester) {
         sessionsMutex.withLock {
-            val phoneNumber = client.userEntity.phoneNumber
+            val phoneNumber = client.phoneNumber
             clientSessions.remove(phoneNumber)
             clients[phoneNumber] = client
         }
     }
 
-    suspend fun get(context: Context, phoneNumber: String): ChaoxingHttpClient {
+    suspend fun getRequester(context: Context, phoneNumber: String): ChaoxingHttpRequester {
         clients[phoneNumber]?.let { return it }
         val loadingMutex = loadingMutexes.getOrPut(phoneNumber) { Mutex() }
         return loadingMutex.withLock {
@@ -55,7 +55,7 @@ object ChaoxingHttpClientPool {
                 cachedSessions[phoneNumber]
                     ?: throw IllegalStateException("未找到用户 $phoneNumber 的登录会话")
             }
-            val client = ChaoxingHttpClient.loadFromOtherUserSession(session, context)
+            val client = ChaoxingHttpRequester.loadFromOtherSession(session, context)
             sessionsMutex.withLock {
                 clientSessions[phoneNumber] = session
                 clients[phoneNumber] = client
@@ -63,4 +63,22 @@ object ChaoxingHttpClientPool {
             client
         }
     }
+
+    suspend fun getClient(context: Context, phoneNumber: String): ChaoxingHttpClient {
+        (clients[phoneNumber] as? ChaoxingHttpClient)?.let { return it }
+        val requester = getRequester(context, phoneNumber)
+        if (requester is ChaoxingHttpClient) return requester
+        val loadingMutex = loadingMutexes.getOrPut(phoneNumber) { Mutex() }
+        return loadingMutex.withLock {
+            (clients[phoneNumber] as? ChaoxingHttpClient)?.let { return@withLock it }
+            val source = clients[phoneNumber] ?: requester
+            if (source is ChaoxingHttpClient) return@withLock source
+            val client = source.toChaoxingHttpClient(context)
+            sessionsMutex.withLock {
+                clients[phoneNumber] = client
+            }
+            client
+        }
+    }
 }
+

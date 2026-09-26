@@ -25,6 +25,7 @@ data class ChaoxingUserEntity(
     val schoolName: List<String>,
     val uname: String?,
     val pic: String,
+    @Deprecated("Use ChaoxingHttpClient.puid")
     val puid: Int,
     val phoneNumber: String,
     val imEncryptedPassword: String,

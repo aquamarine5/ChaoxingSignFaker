@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2025-2026, @aquamarine5 (@海蓝色的咕咕鸽). All Rights Reserved.
  * Author: aquamarine5@163.com (Github: https://github.com/aquamarine5) and Brainspark (previously RenegadeCreation)
  * Repository: https://github.com/aquamarine5/ChaoxingSignFaker
@@ -46,9 +46,8 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCloudDriveHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCourseHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingFaceHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
-import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClientPool
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpRequesterPool
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingSignHelper
-import org.aquamarine5.brainspark.chaoxingsignfaker.entity.SignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerParams
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
@@ -74,6 +73,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityS
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignOutEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignResult
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignStatus
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.SignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingLocationSigner
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSignHandler
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingPredictableException
@@ -233,7 +233,7 @@ fun LocationSignScreen(
                 isFetchedFailure = null
             }
         } else {
-            Crossfade(signActivityStatus) { c ->
+            Crossfade(signActivityStatus, animationSpec = tween(700)) { c ->
                 if (c != null && c != ChaoxingSignActivityStatus.READY_TO_SIGN) {
                     Box(modifier = Modifier.padding(8.dp, 0.dp, 8.dp, 8.dp)) {
                         NotReadyToSignNoticeComponent(
@@ -304,7 +304,7 @@ fun LocationSignScreen(
                             signStatus = signStatus,
                             onSelfSigning = { value ->
                                 val selfPhoneNumber =
-                                    ChaoxingHttpClient.instance!!.userEntity.phoneNumber
+                                    ChaoxingHttpClient.instance!!.phoneNumber
                                 runCatching {
                                     val faceImageUploadedObjectId =
                                         if (isFaceRequired) {
@@ -328,7 +328,8 @@ fun LocationSignScreen(
                                         } else null
                                     if (signer.sign(
                                             value,
-                                            faceImageUploadedObjectId
+                                            faceImageUploadedObjectId,
+                                            context
                                         )
                                     ) {
                                         val resolution =
@@ -342,7 +343,8 @@ fun LocationSignScreen(
                                         signer.signWithCaptcha(
                                             value,
                                             resolution.validate,
-                                            faceImageUploadedObjectId
+                                            faceImageUploadedObjectId,
+                                            context
                                         )
                                         return@runCatching ChaoxingSignResult(
                                             isCaptchaSigning = true,
@@ -356,7 +358,13 @@ fun LocationSignScreen(
                             },
                             onOtherUserSigning = { value, session, bypassChecking, _ ->
                                 runCatching {
-                                    ChaoxingHttpClientPool.get(context, session.phoneNumber)
+                                    (if (isFaceRequired) ChaoxingHttpRequesterPool.getClient(
+                                        context,
+                                        session.phoneNumber
+                                    ) else ChaoxingHttpRequesterPool.getRequester(
+                                        context,
+                                        session.phoneNumber
+                                    ))
                                         .let { client ->
                                             ChaoxingLocationSigner(
                                                 client,
@@ -389,7 +397,12 @@ fun LocationSignScreen(
                                                             )
                                                         }
                                                     } else null
-                                                if (sign(value, faceImageUploadedObjectId)) {
+                                                if (sign(
+                                                        value,
+                                                        faceImageUploadedObjectId,
+                                                        context
+                                                    )
+                                                ) {
                                                     val resolution =
                                                         suspendCancellableCoroutine { continuation ->
                                                             captchaValidateParams =
@@ -404,7 +417,8 @@ fun LocationSignScreen(
                                                     signWithCaptcha(
                                                         value,
                                                         resolution.validate,
-                                                        faceImageUploadedObjectId
+                                                        faceImageUploadedObjectId,
+                                                        context
                                                     )
                                                     return@runCatching ChaoxingSignResult(
                                                         isCaptchaSigning = true,
@@ -511,7 +525,14 @@ fun LocationSignScreen(
                             faceRecognitionData = faceRecognitionData.takeIf { isFaceRequired },
                             isCloneSession = destination.isCloneSession,
                             onRetrySignAction = { index, session, bypassChecking ->
-                                signHandler.retryOtherUserSigning(session, index, bypassChecking)
+                                signHandler.retryOtherUserSigning(
+                                    session,
+                                    index,
+                                    bypassChecking,
+                                    hapticFeedback,
+                                    coroutineScope,
+                                    snackbarHost
+                                )
                             }
                         ) { isSelf, otherUserSessionList, _ ->
                             isSigning.value = true
@@ -520,7 +541,7 @@ fun LocationSignScreen(
                             coroutineScope.launch {
                                 if (isFaceRequired) {
                                     val selectedPhoneNumbers = buildList {
-                                        if (isSelf) add(ChaoxingHttpClient.instance!!.userEntity.phoneNumber)
+                                        if (isSelf) add(ChaoxingHttpClient.instance!!.phoneNumber)
                                         addAll(
                                             otherUserSessionList.filterNotNull()
                                                 .map { it.phoneNumber })
@@ -546,7 +567,7 @@ fun LocationSignScreen(
                                     }
                                 }
                                 if (isFaceRequired && (
-                                            (isSelf && ChaoxingHttpClient.instance!!.userEntity.phoneNumber !in faceRecognitionData.faceImageObjectIds.keys) ||
+                                            (isSelf && ChaoxingHttpClient.instance!!.phoneNumber !in faceRecognitionData.faceImageObjectIds.keys) ||
                                                     otherUserSessionList.any { it != null && it.phoneNumber !in faceRecognitionData.faceImageObjectIds.keys }
                                             )
                                 )
@@ -569,9 +590,9 @@ fun LocationSignScreen(
                         FaceRecognitionComponent(
                             mutableListOf<Pair<String, String>>().apply {
                                 if (isSelfForSign && !faceRecognitionData.faceImageObjectIds.containsKey(
-                                        ChaoxingHttpClient.instance!!.userEntity.phoneNumber
+                                        ChaoxingHttpClient.instance!!.phoneNumber
                                     )
-                                ) add(ChaoxingHttpClient.instance!!.userEntity.phoneNumber to ChaoxingHttpClient.instance!!.userEntity.name)
+                                ) add(ChaoxingHttpClient.instance!!.phoneNumber to ChaoxingHttpClient.instance!!.name)
                                 otherUserSessionForSignList.forEach {
                                     if (it != null && !faceRecognitionData.faceImageObjectIds.containsKey(
                                             it.phoneNumber

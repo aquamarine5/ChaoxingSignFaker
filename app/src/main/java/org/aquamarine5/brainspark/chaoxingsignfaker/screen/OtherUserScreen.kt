@@ -89,6 +89,8 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -145,7 +147,6 @@ import androidx.compose.ui.zIndex
 import coil3.compose.AsyncImage
 import com.github.skydoves.colorpicker.compose.HsvColorPicker
 import com.github.skydoves.colorpicker.compose.rememberColorPickerController
-import io.sentry.Sentry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -161,7 +162,7 @@ import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingFaceHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
-import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClientPool
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpRequesterPool
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingOtherUserHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CameraComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.FacePhotoControlComponent
@@ -176,17 +177,18 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingImportOtherUs
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingOtherUserSharedEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ImportOtherUserResult
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.getResultTips
-import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingPredictableException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.checkPredictable
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.displaySnackbar
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.isDevelopedMode
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.sentryReport
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
-import sh.calvin.reorderable.ReorderableColumn
 import sh.calvin.reorderable.DragGestureDetector
+import sh.calvin.reorderable.ReorderableColumn
 import kotlin.random.Random
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
 @Serializable
@@ -291,8 +293,8 @@ fun OtherUserScreen(
     val pageScrollState = rememberScrollState()
     val pageScrollBounds = remember { mutableStateOf(Rect.Zero) }
     var pageAutoScrollJob by remember { mutableStateOf<Job?>(null) }
-    var pageAutoScrollDirection by remember { mutableStateOf(0) }
-    var pageAutoScrollStartedAt by remember { mutableStateOf(0L) }
+    var pageAutoScrollDirection by remember { mutableIntStateOf(0) }
+    var pageAutoScrollStartedAt by remember { mutableLongStateOf(0L) }
     val pageScrollThreshold = with(LocalDensity.current) { 64.dp.toPx() }
     fun stopPageAutoScroll() {
         pageAutoScrollJob?.cancel()
@@ -300,6 +302,7 @@ fun OtherUserScreen(
         pageAutoScrollDirection = 0
         pageAutoScrollStartedAt = 0L
     }
+
     fun scrollPageDuringDrag(pointerY: Float, onScrolled: (Float) -> Unit) {
         val direction = when {
             pointerY < pageScrollBounds.value.top + pageScrollThreshold -> -1
@@ -322,7 +325,7 @@ fun OtherUserScreen(
                 val scrollDelta = pageScrollState.scrollBy(direction * scrollAmount)
                 if (scrollDelta == 0f) break
                 onScrolled(scrollDelta)
-                delay(16)
+                delay(16.milliseconds)
             }
         }
     }
@@ -466,7 +469,7 @@ fun OtherUserScreen(
             )
         }, title = {
             Text("通过账号密码的形式添加他人的用户数据")
-        }, text = {
+        }, text = { dialogSnackbarHost ->
             var phoneNumber by remember { mutableStateOf("") }
             var password by remember { mutableStateOf("") }
             Column {
@@ -588,7 +591,7 @@ fun OtherUserScreen(
                             )
                         }.onFailure {
                             it.snackbarReport(
-                                snackbarHost,
+                                dialogSnackbarHost,
                                 coroutineScope,
                                 "检查登录失败",
                                 hapticFeedback
@@ -632,7 +635,7 @@ fun OtherUserScreen(
                                 isInputDialog = false
                             }.onFailure { failure ->
                                 failure.snackbarReport(
-                                    snackbarHost,
+                                    dialogSnackbarHost,
                                     coroutineScope,
                                     "保存用户失败",
                                     hapticFeedback
@@ -662,7 +665,7 @@ fun OtherUserScreen(
             )
         }, title = {
             Text("管理标签")
-        }, text = {
+        }, text = { dialogSnackbarHost ->
             val mutex = remember { Mutex() }
             val tagUsageList = remember(isTagsSettingDialog) {
                 if (isTagsSettingDialog) {
@@ -693,10 +696,10 @@ fun OtherUserScreen(
             val keyboardController = LocalSoftwareKeyboardController.current
             val createTagAction = {
                 if (tagsEntityList.any { it.name == newTagName }) {
-                    snackbarHost.displaySnackbar("$newTagName 标签已存在", coroutineScope)
+                    dialogSnackbarHost.displaySnackbar("$newTagName 标签已存在", coroutineScope)
                     hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
                 } else if (newTagName.isBlank()) {
-                    snackbarHost.displaySnackbar("标签名称不能为空", coroutineScope)
+                    dialogSnackbarHost.displaySnackbar("标签名称不能为空", coroutineScope)
                     hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
                 } else {
                     val newTagType = OtherUserTagType.newBuilder().apply {
@@ -1211,8 +1214,8 @@ fun OtherUserScreen(
                                 }.build()
                             }
                         }
-                        snackbarHost.currentSnackbarData?.dismiss()
-                        snackbarHost.showSnackbar("新顺序已保存", withDismissAction = true)
+                        dialogSnackbarHost.currentSnackbarData?.dismiss()
+                        dialogSnackbarHost.showSnackbar("新顺序已保存", withDismissAction = true)
                     }
                 }) { index, tagEntity, _ ->
                     key(tagEntity.id) {
@@ -1332,7 +1335,7 @@ fun OtherUserScreen(
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(40.dp)
             )
-        }, text = {
+        }, text = { dialogSnackbarHost ->
             Column {
                 Text("在最近一次的签到过程中检测到用户 ${otherUserSessions[repairSessionIndex!!].name} 的登录状态异常，重新登录后可修复此问题。")
                 var password by remember { mutableStateOf("") }
@@ -1413,16 +1416,14 @@ fun OtherUserScreen(
                         result.onSuccess { repairedSession ->
                             otherUserSessions[sessionIndex] = repairedSession
                             hapticFeedback.performHapticFeedback(HapticFeedbackType.Confirm)
-                            snackbarHost.displaySnackbar(
+                            dialogSnackbarHost.displaySnackbar(
                                 "用户 ${repairedSession.name} 已成功修复",
                                 coroutineScope
                             )
                             repairSessionIndex = null
                         }.onFailure {
                             hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
-                            if (it !is ChaoxingPredictableException) {
-                                Sentry.captureException(it)
-                            }
+                            it.sentryReport()
                             errorMessage = "登录失败：" + (it.message ?: "未知错误")
                         }
                     }
@@ -1448,9 +1449,11 @@ fun OtherUserScreen(
         var isSchoolSectionExpanded by remember(settingsPhoneNumber) { mutableStateOf(false) }
         var isSchoolExpanded by remember(settingsPhoneNumber) { mutableStateOf(false) }
         var isLoadingSchools by remember(settingsPhoneNumber) { mutableStateOf(false) }
-        var schoolLoadAttempt by remember(settingsPhoneNumber) { mutableStateOf(0) }
+        var schoolLoadAttempt by remember(settingsPhoneNumber) { mutableIntStateOf(0) }
         var isTagsSectionExpanded by remember(settingsPhoneNumber) { mutableStateOf(false) }
         var isFacePhotoSectionExpanded by remember(settingsPhoneNumber) { mutableStateOf(false) }
+        var isShareOtherUserExpanded by remember(settingsPhoneNumber) { mutableStateOf(false) }
+        var shareOtherUserQrCode by remember(settingsPhoneNumber) { mutableStateOf<Bitmap?>(null) }
         val settingsLazyListState = rememberLazyListState()
         val modifiedTagIndexList = remember(selectedUserSettingDialogIndex) {
             List(tagsEntityList.size) {
@@ -1606,8 +1609,9 @@ fun OtherUserScreen(
                     if (!isSchoolSectionExpanded || settingsClient != null) return@LaunchedEffect
                     isLoadingSchools = true
                     val result = runCatching {
-                        ChaoxingHttpClientPool.initialize(context.chaoxingDataStore.data.first().otherUsersList)
-                        ChaoxingHttpClientPool.get(context, settingsPhoneNumber)
+                        ChaoxingHttpRequesterPool.initialize(context.chaoxingDataStore.data.first().otherUsersList)
+                        ChaoxingHttpRequesterPool.getRequester(context, settingsPhoneNumber)
+                            .toChaoxingHttpClient(context)
                     }
                     isLoadingSchools = false
                     result.onSuccess {
@@ -1621,6 +1625,30 @@ fun OtherUserScreen(
                             hapticFeedback
                         )
                     }
+                }
+                LaunchedEffect(settingsPhoneNumber, isShareOtherUserExpanded) {
+                    if (!isShareOtherUserExpanded) return@LaunchedEffect
+                    if (shareOtherUserQrCode != null) return@LaunchedEffect
+                    val sessionIndex = selectedUserSettingDialogIndex ?: return@LaunchedEffect
+                    val session = otherUserSessions.getOrNull(sessionIndex) ?: return@LaunchedEffect
+                    shareOtherUserQrCode = runCatching {
+                        ChaoxingOtherUserHelper.generateQRCode(
+                            context,
+                            ChaoxingOtherUserSharedEntity(
+                                session.phoneNumber,
+                                session.password,
+                                session.name
+                            ),
+                            emptyList()
+                        )
+                    }.onFailure {
+                        it.snackbarReport(
+                            dialogSnackbarHost,
+                            coroutineScope,
+                            "生成二维码失败",
+                            hapticFeedback
+                        )
+                    }.getOrNull()
                 }
                 Column {
                     LazyColumn(state = settingsLazyListState) {
@@ -1697,13 +1725,16 @@ fun OtherUserScreen(
                                     phoneNumber = settingsPhoneNumber,
                                     onStartCamera = {
                                         if (!isSavingDatastore) {
-                                            facePhotoReturnToUserIndex = selectedUserSettingDialogIndex
+                                            facePhotoReturnToUserIndex =
+                                                selectedUserSettingDialogIndex
                                             selectedUserSettingDialogIndex = null
                                             isFacePhotoCameraVisible = true
                                         }
                                     },
                                     pendingCapturedBitmap = pendingFacePhotoBitmap,
-                                    onPendingCapturedBitmapHandled = { pendingFacePhotoBitmap = null },
+                                    onPendingCapturedBitmapHandled = {
+                                        pendingFacePhotoBitmap = null
+                                    },
                                 )
                             }
                         }
@@ -1740,7 +1771,9 @@ fun OtherUserScreen(
                                                 ExposedDropdownMenuAnchorType.PrimaryNotEditable
                                             ),
                                         trailingIcon = {
-                                            ExposedDropdownMenuDefaults.TrailingIcon(isSchoolExpanded)
+                                            ExposedDropdownMenuDefaults.TrailingIcon(
+                                                isSchoolExpanded
+                                            )
                                         },
                                         supportingText = if (isDevelopedMode && selectedFid != null) {
                                             {
@@ -1790,6 +1823,56 @@ fun OtherUserScreen(
                                 }
                             }
                         }
+                        item {
+                            Spacer(modifier = Modifier.height(12.dp))
+                            CollapsibleSettingsSection(
+                                title = "分享此代签用户",
+                                expanded = isShareOtherUserExpanded,
+                                enabled = !isSavingDatastore,
+                                onToggle = {
+                                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                                    isShareOtherUserExpanded = !isShareOtherUserExpanded
+                                }
+                            ) {
+                                Column(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .aspectRatio(1f)
+                                            .border(
+                                                BorderStroke(
+                                                    2.dp,
+                                                    MaterialTheme.colorScheme.primary
+                                                ),
+                                                shape = RoundedCornerShape(9.dp)
+                                            )
+                                            .padding(9.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Crossfade(shareOtherUserQrCode) { v ->
+                                            if (v != null) {
+                                                Image(
+                                                    bitmap = v.asImageBitmap(),
+                                                    contentDescription = "QR Code",
+                                                    modifier = Modifier.fillMaxSize()
+                                                )
+                                            }
+                                        }
+                                    }
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        "使用其他设备打开随地大小签扫描二维码以添加该代签用户",
+                                        fontSize = 12.sp,
+                                        lineHeight = 14.sp,
+                                        textAlign = TextAlign.Center,
+                                        color = Color.Gray
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             })
@@ -1811,7 +1894,7 @@ fun OtherUserScreen(
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(40.dp)
             )
-        }, text = {
+        }, text = { dialogSnackbarHost ->
             Column {
                 Text("对方将链接从浏览器打开即可导入你的用户数据（对方需更新到1.5版本及以上），或将链接粘贴到以下输入框中：")
                 Spacer(modifier = Modifier.height(6.dp))
@@ -1854,6 +1937,8 @@ fun OtherUserScreen(
                                 ?.filter { it.isNotBlank() }
                                 ?.distinct()
                                 .orEmpty()
+                            val deviceCode =
+                                url.queryParameter("dc")?.takeIf { it.isNotEmpty() }
                             if (phone == null || pwd == null || name == null) {
                                 hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
                                 Toast.makeText(context, "链接格式错误", Toast.LENGTH_SHORT).show()
@@ -1868,6 +1953,7 @@ fun OtherUserScreen(
                                             pwd,
                                             name,
                                             faceObjectIds,
+                                            deviceCode,
                                         )
                                     )
                                 }.onSuccess { result ->
@@ -1907,7 +1993,7 @@ fun OtherUserScreen(
                                     isURLSharedDialog = false
                                 }.onFailure { failure ->
                                     failure.snackbarReport(
-                                        snackbarHost,
+                                        dialogSnackbarHost,
                                         coroutineScope,
                                         "导入失败",
                                         hapticFeedback
@@ -1942,7 +2028,7 @@ fun OtherUserScreen(
                             type = "text/plain"
                             putExtra(
                                 Intent.EXTRA_TEXT,
-                                "${ChaoxingHttpClient.instance!!.userEntity.name} 的用户数据链接：${
+                                "${ChaoxingHttpClient.instance!!.name} 的用户数据链接：${
                                     ChaoxingOtherUserHelper.getSharedUrl(
                                         context,
                                         importSharedEntity,
@@ -1952,7 +2038,7 @@ fun OtherUserScreen(
                             )
                             putExtra(
                                 Intent.EXTRA_TITLE,
-                                "${ChaoxingHttpClient.instance!!.userEntity.name} 的用户数据链接"
+                                "${ChaoxingHttpClient.instance!!.name} 的用户数据链接"
                             )
                         }, "分享自己的链接给他人"))
                     }
@@ -2377,7 +2463,7 @@ fun OtherUserScreen(
                     },
                     text = {
                         FacePhotoControlComponent(
-                            phoneNumber = ChaoxingHttpClient.instance!!.userEntity.phoneNumber,
+                            phoneNumber = ChaoxingHttpClient.instance!!.phoneNumber,
                             onStartCamera = {
                                 facePhotoReturnToUserIndex = null
                                 isFacePhotoDialog = false
@@ -2752,10 +2838,10 @@ fun OtherUserScreen(
                                                             )
                                                             val session = otherUserSessions[index]
                                                             runCatching {
-                                                                ChaoxingHttpClientPool.get(
+                                                                ChaoxingHttpRequesterPool.getRequester(
                                                                     context,
                                                                     session.phoneNumber
-                                                                )
+                                                                ).toChaoxingHttpClient(context)
                                                             }.onSuccess { client ->
                                                                 ChaoxingHttpClient.cloneInstance =
                                                                     client
@@ -2824,7 +2910,10 @@ fun OtherUserScreen(
                                                                 scrollPageDuringDrag(
                                                                     dragHandlePositionInRoot.y + change.position.y
                                                                 ) { scrollDelta ->
-                                                                    onDrag(change, Offset(0f, scrollDelta))
+                                                                    onDrag(
+                                                                        change,
+                                                                        Offset(0f, scrollDelta)
+                                                                    )
                                                                 }
                                                             }
                                                         )
@@ -2833,21 +2922,22 @@ fun OtherUserScreen(
                                                 IconButton(
                                                     modifier = Modifier
                                                         .onGloballyPositioned {
-                                                            dragHandlePositionInRoot = it.positionInRoot()
+                                                            dragHandlePositionInRoot =
+                                                                it.positionInRoot()
                                                         }
                                                         .draggableHandle(
-                                                        interactionSource = interactionSource,
-                                                        onDragStarted = {
-                                                            hapticFeedback.performHapticFeedback(
-                                                                HapticFeedbackType.GestureThresholdActivate
-                                                            )
-                                                        }, onDragStopped = {
-                                                            hapticFeedback.performHapticFeedback(
-                                                                HapticFeedbackType.GestureEnd
-                                                            )
-                                                        },
-                                                        dragGestureDetector = dragGestureDetector
-                                                    ), onClick = {}) {
+                                                            interactionSource = interactionSource,
+                                                            onDragStarted = {
+                                                                hapticFeedback.performHapticFeedback(
+                                                                    HapticFeedbackType.GestureThresholdActivate
+                                                                )
+                                                            }, onDragStopped = {
+                                                                hapticFeedback.performHapticFeedback(
+                                                                    HapticFeedbackType.GestureEnd
+                                                                )
+                                                            },
+                                                            dragGestureDetector = dragGestureDetector
+                                                        ), onClick = {}) {
                                                     Icon(
                                                         painterResource(R.drawable.ic_drag_handle_rounded),
                                                         "",
@@ -2859,8 +2949,8 @@ fun OtherUserScreen(
 
                                     }
                                 }
+                            }
                         }
-                    }
                     }
                     Spacer(modifier = Modifier.height(4.dp))
                 }
@@ -2917,6 +3007,7 @@ fun OtherUserScreen(
                             isQRCodeScanPause.value = true
                             return@runCatching ChaoxingOtherUserSharedEntity.parseFromQRCode(qr)
                         }.onFailure { failure ->
+                            failure.sentryReport()
                             isQRCodeIllegal = true
                             isQRCodeParsing.value = false
                             hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
@@ -2965,6 +3056,7 @@ fun OtherUserScreen(
                                         }
                                     }
                                 }.onFailure { failure ->
+                                    failure.sentryReport()
                                     isQRCodeIllegal = true
                                     isQRCodeParsing.value = false
                                     hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)

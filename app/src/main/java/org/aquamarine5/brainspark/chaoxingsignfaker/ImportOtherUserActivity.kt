@@ -97,6 +97,7 @@ class ImportOtherUserActivity : ComponentActivity() {
                         ?.filter { it.isNotBlank() }
                         ?.distinct()
                         .orEmpty()
+                    val deviceCode = data?.getQueryParameter("dc")?.takeIf { it.isNotEmpty() }
                     Crossfade(errorTips) {
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
@@ -133,6 +134,7 @@ class ImportOtherUserActivity : ComponentActivity() {
                                                         pwd,
                                                         name,
                                                         faceObjectIds,
+                                                        deviceCode,
                                                     )
                                                 )
                                             }.onSuccess { result ->

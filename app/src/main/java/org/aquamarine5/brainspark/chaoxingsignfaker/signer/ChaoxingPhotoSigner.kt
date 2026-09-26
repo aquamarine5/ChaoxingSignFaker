@@ -11,7 +11,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.Request
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingActivityHelper.NO_SIGN_OFF_EVENT
-import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpRequester
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignOutEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.ChaoxingPhotoActivityEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingParseDataException
@@ -19,7 +19,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.checkResponseThrow
 
 
 class ChaoxingPhotoSigner(
-    client: ChaoxingHttpClient,
+    client: ChaoxingHttpRequester,
     private val photoActivityEntity: ChaoxingPhotoActivityEntity,
     baseSignInfo: JSONObject? = null
 ) : ChaoxingSigner(
@@ -64,8 +64,8 @@ class ChaoxingPhotoSigner(
             Request.Builder().url(
                 URL_SIGN.newBuilder()
                     .addQueryParameter("activeId", photoActivityEntity.activeId.toString())
-                    .addQueryParameter("uid", client.userEntity.puid.toString())
-                    .addQueryParameter("name", client.userEntity.name)
+                    .addQueryParameter("uid", client.puid.toString())
+                    .addQueryParameter("name", client.name)
                     .addQueryParameter("fid", client.configuredFid.toString())
                     .addQueryParameter("deviceCode", client.deviceCode)
                     .build()
@@ -84,8 +84,8 @@ class ChaoxingPhotoSigner(
                     URL_SIGN.newBuilder()
                         .addQueryParameter("objectId", objectId)
                         .addQueryParameter("activeId", photoActivityEntity.activeId.toString())
-                        .addQueryParameter("uid", client.userEntity.puid.toString())
-                        .addQueryParameter("name", client.userEntity.name)
+                        .addQueryParameter("uid", client.puid.toString())
+                        .addQueryParameter("name", client.name)
                         .addQueryParameter("fid", client.configuredFid.toString())
                         .addQueryParameter("deviceCode", client.deviceCode)
                         .build()
@@ -101,8 +101,8 @@ class ChaoxingPhotoSigner(
             Request.Builder().url(
                 URL_SIGN.newBuilder()
                     .addQueryParameter("activeId", photoActivityEntity.activeId.toString())
-                    .addQueryParameter("uid", client.userEntity.puid.toString())
-                    .addQueryParameter("name", client.userEntity.name)
+                    .addQueryParameter("uid", client.puid.toString())
+                    .addQueryParameter("name", client.name)
                     .addQueryParameter("fid", client.configuredFid.toString())
                     .addQueryParameter("deviceCode", client.deviceCode)
                     .addQueryParameter("validate", validateValue)
@@ -121,8 +121,8 @@ class ChaoxingPhotoSigner(
                     URL_SIGN.newBuilder()
                         .addQueryParameter("objectId", objectId)
                         .addQueryParameter("activeId", photoActivityEntity.activeId.toString())
-                        .addQueryParameter("uid", client.userEntity.puid.toString())
-                        .addQueryParameter("name", client.userEntity.name)
+                        .addQueryParameter("uid", client.puid.toString())
+                        .addQueryParameter("name", client.name)
                         .addQueryParameter("fid", client.configuredFid.toString())
                         .addQueryParameter("deviceCode", client.deviceCode)
                         .addQueryParameter("validate", validateValue)

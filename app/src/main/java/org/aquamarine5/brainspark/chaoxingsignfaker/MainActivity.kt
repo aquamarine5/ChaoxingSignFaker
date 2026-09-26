@@ -89,7 +89,6 @@ import coil3.request.crossfade
 import com.baidu.location.LocationClient
 import com.baidu.mapapi.SDKInitializer
 import com.umeng.analytics.MobclickAgent
-import io.sentry.Sentry
 import io.sentry.android.core.SentryAndroid
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -98,12 +97,13 @@ import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingFaceHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
-import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClientPool
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpRequesterPool
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CloneSessionTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.FavoriteLocationSettingComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.FavoriteLocationSettingDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.initializeClientInfo
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCourseEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingEasemobIMGroup
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.NavigationBarItemData
@@ -147,6 +147,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostS
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.isDevelopedMode
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.sentryReport
 import org.aquamarine5.brainspark.stackbricks.StackbricksPolicy
 import org.aquamarine5.brainspark.stackbricks.StackbricksService
 import org.aquamarine5.brainspark.stackbricks.providers.qiniu.QiniuConfiguration
@@ -299,7 +300,7 @@ class MainActivity : ComponentActivity() {
                                                             }
                                                         }
                                                     }.onFailure {
-                                                        Sentry.captureException(it)
+                                                        it.sentryReport()
                                                         it.printStackTrace()
                                                     }
                                                 }
@@ -419,7 +420,7 @@ class MainActivity : ComponentActivity() {
                                     withContext(Dispatchers.IO) {
                                         val datastore =
                                             applicationContext.chaoxingDataStore.data.first()
-                                        ChaoxingHttpClientPool.initialize(datastore.otherUsersList)
+                                        ChaoxingHttpRequesterPool.initialize(datastore.otherUsersList)
                                         ChaoxingFaceHelper.storedFaceRecognitionImages.setValue(
                                             datastore.faceRecognitionConfiguresMap.mapValues { it.value.imagesList }
                                         )
@@ -454,6 +455,8 @@ class MainActivity : ComponentActivity() {
                                                                 ChaoxingAnalyser.checkAndUploadAnalyserRankData(
                                                                     applicationContext
                                                                 )
+                                                            }.onFailure {
+                                                                it.sentryReport()
                                                             }
                                                         }
                                                         launch {
@@ -497,7 +500,7 @@ class MainActivity : ComponentActivity() {
                                 } else {
                                     val coroutineScope = rememberCoroutineScope()
                                     val isCloning =
-                                        ChaoxingHttpClient.cloneInstance?.userEntity != null
+                                        ChaoxingHttpClient.cloneInstance != null
                                     val exitCloneMode = {
                                         hapticFeedback.performHapticFeedback(
                                             HapticFeedbackType.ContextClick
@@ -683,7 +686,11 @@ class MainActivity : ComponentActivity() {
                                                     }
                                                 }
 
-                                                composable<CourseDetailDestination> {
+                                                composable<CourseDetailDestination>(
+                                                    typeMap = mapOf(
+                                                        typeOf<List<ChaoxingCourseEntity>>() to ChaoxingCourseEntity.Companion.ChaoxingCourseEntityListNavType
+                                                    )
+                                                ) {
                                                     CourseDetailScreen(
                                                         it.toRoute(),
                                                         navToSignerDestination = { destination ->

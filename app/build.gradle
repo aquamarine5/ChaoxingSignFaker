@@ -11,7 +11,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     id("org.aquamarine5.brainspark.stackbricks-gradle-plugin") version "2.2.9"
     id("com.google.protobuf") version "0.9.6"
-    id "io.sentry.android.gradle" version "6.22.0"
+    id "io.sentry.android.gradle" version "6.23.0"
     id("org.jetbrains.kotlin.plugin.serialization") version "2.4.20"
 }
 
@@ -28,14 +28,15 @@ stackbricksConfig {
     ]
     changelog =
             "由于最近学习通更新频繁，导致随地大小签也需要频繁更新，请大家及时更新哦！以下是更新日志：\n" +
-                    "# 1.19.0 更新：\n1. <b><u>非！常！抱！歉！昨天晚上的更新导致部分用户在打开应用时直接卡死崩溃！更新此版本即可修复！如果你现在打不开设置页进行更新，可以等待下课后打开即可正常更新，本次问题造成的不便作者深表歉意。</u></b>\n\n" +
+                    "# 1.19.1 更新：\n1. 支持了给每个账号绑定其设备ID，这样每次签到时不会提示\"更换了签到设备\"，更新到新版本之后请重新扫描代签用户的随地大小签二维码以绑定设备ID，绑定后在本机的学习通、随地大小签以及其他设备的随地大小签上签到时设备ID均一致，感谢 <u>@lzy24626</u> 发现问题。\n2. 更新了二维码签到的逻辑，现在会持续扫描以避免出现频繁的二维码已过期的问题。\n3. 更新了选择用户页面的界面表现。\n4. 优化了网络客户端，减少了不必要的网络请求，同时现在每次的位置签到都会随机偏移坐标，感谢 <u>@1367367</u> 提供优化思路。\n5. 修复了已知问题。\n\n" +
+                    "# 1.19.0 更新：\n1. <b>非！常！抱！歉！昨天晚上的更新导致部分用户在打开应用时直接卡死崩溃！更新此版本即可修复！如果你现在打不开设置页进行更新，可以等待下课后打开即可正常更新，本次问题造成的不便作者深表歉意。</b>\n\n" +
                     "# 1.18.3 更新：\n1. 支持修改学校机构。\n2. 测试性的会根据学习通账号关联的课程表来推断签到事件。\n3. 优化并修复了已知问题。\n\n" +
                     "# 1.18.2 更新：\n1. 因为拍照签到时重复上传同一张照片在教师端会被检测出来并警告，现将拍照签到的图片统一进行风格化处理后再上传，感谢 <u>@crispypotatocake</u> 发现问题。\n2. 修复了极少数设备上打开设置页崩溃的问题。\n3. 优化了群组签到列表页。\n4. 修复了克隆用户时返回页面可能导致异常或崩溃的问题。\n\n" +
                     "# 1.18.1 更新：\n1. <b>重要 由于学习通更新，修复了需要位置信息的二维码签到无法签到的问题，同时支持了签到码和手势签到的位置信息功能。</b>\n2. 现在的验证码会通过AI自动完成了，感谢 <u>@0x77786d</u> 提供的模型支持。\n3. 测试性的加入了收藏签到位置的功能。\n\n" +
                     "# 1.17.* 更新：\n1. 支持存储自己和代签用户的人脸识别照片，就不用每次自己找了。\n2. 没有代签用户的人脸识别照片时，可以自动获取一张用于签到。\n3. 现在自己的代签二维码会附带自己的人脸识别照片，重新扫描其他人的新版本二维码时会把你的照片下载到他的设备上存储。\n4. 修复了超级多Bug。\n\n" +
                     "# 1.16.* 更新：\n1. 由于学习通更新导致原接口失效，修复了获取群聊列表失败的问题。\n\n" +
                     "# 1.15.* 更新：\n1. 支持克隆登录代签用户的账号以给他有你没有的课程签到。\n\n" +
-                    "<g>lovely but not lonely, 20260910 life need pompompurin, @aquamarine5 Brainspark.</g>"
+                    "<g>lovely but not lonely, 20260926 life need pompompurin, @aquamarine5 Brainspark.</g>"
     requiredManifestVersion2MigrateForceInstall = true
     forceInstallLessVersion = 1_1900_6000
     qiniuConfig {
@@ -58,8 +59,8 @@ android {
         applicationId = "org.aquamarine5.brainspark.chaoxingsignfaker"
         minSdk = 26
         targetSdk = 37
-        versionCode = 1_1900_6766
-        versionName = "1.19.0-stable-260918"
+        versionCode = 1_1901_8666
+        versionName = "1.19.1-rc5-260926"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -89,13 +90,11 @@ android {
             signingConfig signingConfigs.chaoxingsignfaker
             buildConfigField("String", "releaseDate", "\"${new Date().format('yyyy-MM-dd HH:mm:ss')}\"")
             buildConfigField("String", "umengChannel", "\"${System.getenv("UMENG_CHANNEL")}\"" ?: '"Stackbricks"')
-            buildConfigField("String", "imEncryptedKey", "\"${project.findProperty("imEncryptedKey") ?: System.getenv("imEncryptedKey") ?: ""}\"")
         }
         debug {
             signingConfig signingConfigs.chaoxingsignfaker
             buildConfigField("String", "releaseDate", "\"${new Date().format('yyyy-MM-dd HH:mm:ss')}\"")
             buildConfigField("String", "umengChannel", "\"${System.getenv("UMENG_CHANNEL")}\"" ?: '"Stackbricks"')
-            buildConfigField("String", "imEncryptedKey", "\"${project.findProperty("imEncryptedKey") ?: System.getenv("imEncryptedKey") ?: ""}\"")
         }
     }
 
@@ -115,7 +114,7 @@ composeCompiler {
 
 protobuf {
     protoc {
-        artifact = "com.google.protobuf:protoc:4.36.1"
+        artifact = "com.google.protobuf:protoc:4.36.2"
     }
 
     generateProtoTasks {

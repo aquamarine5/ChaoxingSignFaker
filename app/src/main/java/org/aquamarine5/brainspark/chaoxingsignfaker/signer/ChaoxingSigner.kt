@@ -29,6 +29,7 @@ import okhttp3.Response
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCourseHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingFaceHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpRequester
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCaptchaDataEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationSignEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityStatus
@@ -37,11 +38,12 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingFaceSignEx
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingParseDataException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.checkResponseThrowException
+import java.util.Locale
 import java.util.UUID
 import kotlin.time.Duration.Companion.seconds
 
 abstract class ChaoxingSigner(
-    val client: ChaoxingHttpClient,
+    val client: ChaoxingHttpRequester,
     val activeId: Long,
     val classId: Int,
     val courseId: Long,
@@ -93,7 +95,11 @@ abstract class ChaoxingSigner(
     class CaptchaCheckException(message: String, throwable: Throwable? = null) :
         ChaoxingParseDataException("$message, 验证码校验失败", throwable)
 
-    class WrongPositionException(distance: Float? = null, throwable: Throwable? = null) :
+    class WrongPositionException(
+        distance: Float? = null,
+        throwable: Throwable? = null,
+        val isAlreadyDisabledRandomizedLocation: Boolean = false
+    ) :
         ChaoxingParseDataException(
             "位置不在设置范围内${if (distance != null) "，距离签到点${distance}米" else ""}",
             throwable
@@ -154,7 +160,7 @@ abstract class ChaoxingSigner(
                     .addQueryParameter("courseId", courseId.toString())
                     .addQueryParameter("classId", classId.toString())
                     .addQueryParameter("activePrimaryId", activeId.toString())
-                    .addQueryParameter("uid", client.userEntity.puid.toString())
+                    .addQueryParameter("uid", client.puid.toString())
                     .build()
             ).build()
         ).execute().use {
@@ -209,8 +215,14 @@ abstract class ChaoxingSigner(
         addQueryParameter(
             parameterName, JSONObject()
                 .fluentPut("result", 1)
-                .fluentPut("latitude", "%.6f".format(position.latitude).toDouble())
-                .fluentPut("longitude", "%.6f".format(position.longitude).toDouble())
+                .fluentPut(
+                    "latitude",
+                    "%.6f".format(Locale.US, position.randomizedLatitude).toDouble()
+                )
+                .fluentPut(
+                    "longitude",
+                    "%.6f".format(Locale.US, position.randomizedLongitude).toDouble()
+                )
                 .fluentPut("address", position.address)
                 .apply {
                     if (isMockData) {
@@ -238,7 +250,10 @@ abstract class ChaoxingSigner(
         return addLocationDataParameter(position ?: return this, "locationResult", true)
     }
 
-    protected open suspend fun HttpUrl.Builder.addFaceRecognitionParameter(faceImageObjectId: String?): HttpUrl.Builder {
+    protected open suspend fun HttpUrl.Builder.addFaceRecognitionParameter(
+        faceImageObjectId: String?,
+        context: Context
+    ): HttpUrl.Builder {
         if (faceImageObjectId == null) return this
         addQueryParameter("currentFaceId", faceImageObjectId)
         addQueryParameter("ifCFP", "0")
@@ -246,7 +261,7 @@ abstract class ChaoxingSigner(
         addQueryParameter(
             "faceEnc",
             ChaoxingFaceHelper.checkFaceResultAndGetEnc(
-                client,
+                (client as? ChaoxingHttpClient) ?: client.toChaoxingHttpClient(context),
                 faceImageObjectId,
                 activeId
             )
@@ -256,7 +271,7 @@ abstract class ChaoxingSigner(
         return this
     }
 
-    protected open fun Response.checkSignResult(): Boolean {
+    protected open fun Response.checkSignResult(position: ChaoxingLocationSignEntity? = null): Boolean {
         val result = body.string()
         if (result.startsWith("[face]"))
             throw ChaoxingFaceSignException(result.removePrefix("[face]"))
@@ -264,8 +279,14 @@ abstract class ChaoxingSigner(
             throw SignAlreadyEndedException()
         if (result == "签到失败，请重新扫描。")
             throw QRCodeExpiredException()
-        if (result.startsWith("errorLocation"))
-            throw WrongPositionException(result.split("_").getOrNull(1)?.toFloatOrNull())
+        if (result.startsWith("errorLocation")) {
+            val isAlreadyDisabled = position?.isRandomizationTightened == true
+            position?.disableRandomizedLocation()
+            throw WrongPositionException(
+                result.split("_").getOrNull(1)?.toFloatOrNull(),
+                isAlreadyDisabledRandomizedLocation = isAlreadyDisabled
+            )
+        }
         if (result == "您已签到过了") {
             throw AlreadySignedException()
         }
@@ -304,7 +325,7 @@ abstract class ChaoxingSigner(
                     .addQueryParameter("courseId", courseId.toString())
                     .addQueryParameter("classId", classId.toString())
                     .addQueryParameter("activePrimaryId", activeId.toString())
-                    .addQueryParameter("uid", client.userEntity.puid.toString())
+                    .addQueryParameter("uid", client.puid.toString())
                     .build().toString()
             ).build()
         ).execute().use {
@@ -353,7 +374,7 @@ abstract class ChaoxingSigner(
                         .addQueryParameter("courseId", courseId.toString())
                         .addQueryParameter("classId", classId.toString())
                         .addQueryParameter("activePrimaryId", activeId.toString())
-                        .addQueryParameter("uid", client.userEntity.puid.toString())
+                        .addQueryParameter("uid", client.puid.toString())
                         .build().toString()
                 ).build()
             ).execute().use { response ->
@@ -426,7 +447,7 @@ abstract class ChaoxingSigner(
                             .addQueryParameter("courseId", courseId.toString())
                             .addQueryParameter("classId", classId.toString())
                             .addQueryParameter("activePrimaryId", activeId.toString())
-                            .addQueryParameter("uid", client.userEntity.puid.toString())
+                            .addQueryParameter("uid", client.puid.toString())
                             .build().toString()
                     )
                 }
@@ -466,7 +487,7 @@ abstract class ChaoxingSigner(
                             .addQueryParameter("courseId", courseId.toString())
                             .addQueryParameter("classId", classId.toString())
                             .addQueryParameter("activePrimaryId", activeId.toString())
-                            .addQueryParameter("uid", client.userEntity.puid.toString())
+                            .addQueryParameter("uid", client.puid.toString())
                             .build().toString()
                     )
                     .addQueryParameter("iv", iv)

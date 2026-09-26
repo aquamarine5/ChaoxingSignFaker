@@ -6,6 +6,7 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.signer
 
+import android.content.Context
 import com.alibaba.fastjson2.JSONObject
 import com.google.mlkit.vision.barcode.common.Barcode
 import kotlinx.coroutines.Dispatchers
@@ -13,7 +14,7 @@ import kotlinx.coroutines.withContext
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.Request
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingActivityHelper.NO_SIGN_OFF_EVENT
-import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpRequester
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationSignEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingQRCodeDetailEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignOutEntity
@@ -22,7 +23,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingParseDataE
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.checkResponseThrowException
 
 class ChaoxingQRCodeSigner(
-    client: ChaoxingHttpClient,
+    client: ChaoxingHttpRequester,
     qrCodeActivityEntity: QRCodeSignDestination,
     baseSignInfo: JSONObject? = null
 ) : ChaoxingSigner(
@@ -67,7 +68,8 @@ class ChaoxingQRCodeSigner(
         enc: String,
         position: ChaoxingLocationSignEntity?,
         captchaValidate: String,
-        faceImageObjectId: String? = null
+        faceImageObjectId: String? = null,
+        context: Context
     ) =
         withContext(Dispatchers.IO) {
             client.newCall(
@@ -77,26 +79,27 @@ class ChaoxingQRCodeSigner(
                         .addQueryParameter("latitude", "-1")
                         .addQueryParameter("longitude", "-1")
                         .addQueryParameter("activeId", activeId.toString())
-                        .addQueryParameter("uid", client.userEntity.puid.toString())
-                        .addQueryParameter("name", client.userEntity.name)
+                        .addQueryParameter("uid", client.puid.toString())
+                        .addQueryParameter("name", client.name)
                         .addQueryParameter("fid", client.configuredFid.toString())
                         .addQueryParameter("deviceCode", client.deviceCode)
                         .addQueryParameter("validate", captchaValidate)
                         .addLocationParameter(position, false)
                         .addLocationResultParameter(position)
-                        .addFaceRecognitionParameter(faceImageObjectId)
+                        .addFaceRecognitionParameter(faceImageObjectId, context)
                         .build()
                 ).build()
             ).execute().use {
                 it.checkResponseThrowException()
-                return@use it.checkSignResult()
+                return@use it.checkSignResult(position)
             }
         }
 
     suspend fun sign(
         enc: String,
         position: ChaoxingLocationSignEntity?,
-        faceImageObjectId: String? = null
+        faceImageObjectId: String? = null,
+        context: Context
     ): Boolean =
         withContext(Dispatchers.IO) {
             if (isCaptchaRequired()) return@withContext true
@@ -107,18 +110,18 @@ class ChaoxingQRCodeSigner(
                         .addQueryParameter("latitude", "-1")
                         .addQueryParameter("longitude", "-1")
                         .addQueryParameter("activeId", activeId.toString())
-                        .addQueryParameter("uid", client.userEntity.puid.toString())
-                        .addQueryParameter("name", client.userEntity.name)
+                        .addQueryParameter("uid", client.puid.toString())
+                        .addQueryParameter("name", client.name)
                         .addQueryParameter("fid", client.configuredFid.toString())
                         .addQueryParameter("deviceCode", client.deviceCode)
                         .addLocationParameter(position, false)
                         .addLocationResultParameter(position)
-                        .addFaceRecognitionParameter(faceImageObjectId)
+                        .addFaceRecognitionParameter(faceImageObjectId, context)
                         .build()
                 ).build()
             ).execute().use {
                 it.checkResponseThrowException()
-                return@use it.checkSignResult()
+                return@use it.checkSignResult(position)
             }
         }
 

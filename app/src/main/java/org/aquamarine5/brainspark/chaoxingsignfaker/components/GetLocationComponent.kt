@@ -430,7 +430,7 @@ fun GetLocationComponent(
                                     (p0?.zoom ?: 0f) >= MARKER_TITLE_VISIBLE_ZOOM
                                 if (isMarkerTitleVisible != isTitleVisible) {
                                     isMarkerTitleVisible = isTitleVisible
-                                    map.updateMarkerTitlesVisibility(
+                                    updateMarkerTitlesVisibility(
                                         favoriteLocationMarkers,
                                         lastSignedLocationMarker,
                                         isTitleVisible
@@ -462,13 +462,14 @@ fun GetLocationComponent(
                 SnackbarAlertDialog(onDismissRequest = {
                     isShowDialog = false
                 }, confirmButton = {
+                    val dialogSnackbarHost = LocalSnackbarHostState.current
                     Button(onClick = {
                         val longitude = dialogLongitude.toDoubleOrNull()
                         val latitude = dialogLatitude.toDoubleOrNull()
                         if (longitude == null || latitude == null ||
                             longitude !in -180.0..180.0 || latitude !in -90.0..90.0
                         ) {
-                            snackbarHost.displaySnackbar("请输入有效的经纬度", coroutineScope)
+                            dialogSnackbarHost.displaySnackbar("请输入有效的经纬度", coroutineScope)
                             hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
                             return@Button
                         }
@@ -587,7 +588,7 @@ fun GetLocationComponent(
                                 })
                         ) as Marker
                     }
-                    baiduMap.map.updateMarkerTitlesVisibility(
+                    updateMarkerTitlesVisibility(
                         favoriteLocationMarkers,
                         lastSignedLocationMarker,
                         isMarkerTitleVisible

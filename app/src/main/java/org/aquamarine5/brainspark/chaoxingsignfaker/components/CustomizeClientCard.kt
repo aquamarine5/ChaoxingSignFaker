@@ -27,6 +27,7 @@ import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
@@ -43,6 +44,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -52,6 +54,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.displaySnackbar
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.isDevelopedMode
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
 
@@ -87,7 +90,18 @@ enum class ChaoxingClientInfo(
 }
 
 
+private fun isValidUserAgent(userAgent: String): Boolean =
+    userAgent.all { it.code in 0x20..0x7E }
+
 fun initializeClientInfo(userAgent: String, packageName: String) {
+    if (!isValidUserAgent(userAgent)) {
+        chaoxingUserAgent = ChaoxingClientInfo.DEFAULT.userAgent
+        chaoxingClientIdentity = ChaoxingClientInfo.DEFAULT.identity
+        chaoxingApplicationPackageName = packageName.ifBlank {
+            ChaoxingClientInfo.DEFAULT.packageName
+        }
+        return
+    }
     ChaoxingClientInfo.fromIdentity(userAgent).let {
         if (it == null) {
             chaoxingUserAgent = userAgent.ifBlank {
@@ -257,7 +271,8 @@ fun CustomizeClientCard(onClose: (() -> Unit)? = null) {
                             ChaoxingClientInfo.DEFAULT.packageName,
                             fontSize = 11.sp,
                             color = Color.Gray,
-                            lineHeight = 12.sp
+                            lineHeight = 12.sp,
+                            fontFamily = FontFamily.Monospace
                         )
                     }
                 }
@@ -284,7 +299,8 @@ fun CustomizeClientCard(onClose: (() -> Unit)? = null) {
                             ChaoxingClientInfo.XUEZAIXIDIAN.packageName,
                             fontSize = 11.sp,
                             color = Color.Gray,
-                            lineHeight = 12.sp
+                            lineHeight = 12.sp,
+                            fontFamily = FontFamily.Monospace
                         )
                     }
                 }
@@ -313,9 +329,14 @@ fun CustomizeClientCard(onClose: (() -> Unit)? = null) {
                         enabled = !isSaving,
                         onValueChange = { customUserAgent = it },
                         label = { Text("输入自定义 UserAgent") },
+                        isError = !isValidUserAgent(customUserAgent),
+                        supportingText = if (!isValidUserAgent(customUserAgent)) {
+                            { Text("UserAgent只能包含可打印ASCII字符") }
+                        } else null,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(top = 8.dp)
+                            .padding(top = 8.dp),
+                        textStyle = LocalTextStyle.current.copy(fontFamily = FontFamily.Monospace)
                     )
                     OutlinedTextField(
                         value = customPackageName,
@@ -327,7 +348,8 @@ fun CustomizeClientCard(onClose: (() -> Unit)? = null) {
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(top = 8.dp)
+                            .padding(top = 8.dp),
+                        textStyle = LocalTextStyle.current.copy(fontFamily = FontFamily.Monospace)
                     )
                     HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -347,48 +369,58 @@ fun CustomizeClientCard(onClose: (() -> Unit)? = null) {
             }
         }, confirmButton = {
             val snackbarHostState = LocalSnackbarHostState.current
-            Button(enabled = !isSaving, onClick = {
-                if (isSaving) return@Button
-                isSaving = true
-                isSchoolExpanded = false
-                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                // Capture the draft before suspending so one save uses one selection.
-                val fidToSave = selectedFid
-                val userAgentPreference = selectedOption?.identity
-                    ?: customUserAgent.ifBlank { ChaoxingClientInfo.DEFAULT.identity }
-                val packageNamePreference = customPackageName
-                coroutineScope.launch {
-                    val result = runCatching {
-                        if (client != null && fidToSave != null && fidToSave != client.configuredFid) {
-                            client.updateConfiguredFid(context, fidToSave)
-                        }
-                        context.chaoxingDataStore.updateData { dataStore ->
-                            dataStore.toBuilder().apply {
-                                preferences = preferences.toBuilder()
-                                    .setCustomizedUserAgent(userAgentPreference)
-                                    .setCustomizedPackageName(packageNamePreference)
-                                    .build()
-                            }.build()
-                        }
-                        initializeClientInfo(userAgentPreference, packageNamePreference)
-                    }
-                    isSaving = false
-                    result.getOrElse { exception ->
-                        if (exception is CancellationException || exception is Error) {
-                            throw exception
-                        }
-                        exception.snackbarReport(
-                            snackbarHostState,
-                            coroutineScope,
-                            prefixTips = "保存学校单位和客户端失败",
-                            hapticFeedback = hapticFeedback
+            Button(
+                enabled = !isSaving &&
+                        (selectedOption != null || isValidUserAgent(customUserAgent)),
+                onClick = {
+                    if (isSaving) return@Button
+                    if (selectedOption == null && !isValidUserAgent(customUserAgent)) {
+                        snackbarHostState.displaySnackbar(
+                            "UserAgent只能包含可打印ASCII字符",
+                            coroutineScope
                         )
-                        return@launch
+                        return@Button
                     }
-                    isShowDialog = false
-                    onClose?.invoke()
+                    isSaving = true
+                    isSchoolExpanded = false
+                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                    val fidToSave = selectedFid
+                    val userAgentPreference = selectedOption?.identity
+                        ?: customUserAgent.ifBlank { ChaoxingClientInfo.DEFAULT.identity }
+                    val packageNamePreference = customPackageName
+                    coroutineScope.launch {
+                        val result = runCatching {
+                            if (client != null && fidToSave != null && fidToSave != client.configuredFid) {
+                                client.updateConfiguredFid(context, fidToSave)
+                            }
+                            context.chaoxingDataStore.updateData { dataStore ->
+                                dataStore.toBuilder().apply {
+                                    preferences = preferences.toBuilder()
+                                        .setCustomizedUserAgent(userAgentPreference)
+                                        .setCustomizedPackageName(packageNamePreference)
+                                        .build()
+                                }.build()
+                            }
+                            initializeClientInfo(userAgentPreference, packageNamePreference)
+                        }
+                        isSaving = false
+                        result.getOrElse { exception ->
+                            if (exception is CancellationException || exception is Error) {
+                                throw exception
+                            }
+                            exception.snackbarReport(
+                                snackbarHostState,
+                                coroutineScope,
+                                prefixTips = "保存学校单位和客户端失败",
+                                hapticFeedback = hapticFeedback
+                            )
+                            return@launch
+                        }
+                        isShowDialog = false
+                        onClose?.invoke()
+                    }
                 }
-            }) {
+            ) {
                 Text(if (isSaving) "保存中…" else "确定")
             }
         })

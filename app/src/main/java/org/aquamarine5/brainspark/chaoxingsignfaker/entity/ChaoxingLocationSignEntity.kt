@@ -6,13 +6,30 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.entity
 
-import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.Stable
 import kotlinx.serialization.Serializable
+import kotlin.random.Random
 
-@Immutable
+@Stable
 @Serializable
 data class ChaoxingLocationSignEntity(
     val latitude: Double,
     val longitude: Double,
     val address: String
-)
+) {
+    @Volatile
+    var isRandomizationTightened = false
+        private set
+
+    val randomizedLatitude: Double
+        get() = latitude + Random.nextDouble(-randomRange, randomRange)
+    val randomizedLongitude: Double
+        get() = longitude + Random.nextDouble(-randomRange, randomRange)
+
+    private val randomRange: Double
+        get() = if (isRandomizationTightened) 0.00001 else 0.00005
+
+    fun disableRandomizedLocation() {
+        isRandomizationTightened = true
+    }
+}
