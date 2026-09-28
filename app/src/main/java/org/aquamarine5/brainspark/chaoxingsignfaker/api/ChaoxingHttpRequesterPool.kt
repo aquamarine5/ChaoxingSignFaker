@@ -12,6 +12,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.requirePredictable
 import java.util.concurrent.ConcurrentHashMap
 
 object ChaoxingHttpRequesterPool {
@@ -52,8 +53,11 @@ object ChaoxingHttpRequesterPool {
             val session = cachedSessions[phoneNumber] ?: run {
                 val sessions = context.chaoxingDataStore.data.first().otherUsersList
                 initialize(sessions)
-                cachedSessions[phoneNumber]
-                    ?: throw IllegalStateException("未找到用户 $phoneNumber 的登录会话")
+                val loadedSession = cachedSessions[phoneNumber]
+                requirePredictable(loadedSession != null) {
+                    "未找到用户 $phoneNumber 的登录会话，请重新扫码导入该用户"
+                }
+                loadedSession
             }
             val client = ChaoxingHttpRequester.loadFromOtherSession(session, context)
             sessionsMutex.withLock {

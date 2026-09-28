@@ -396,7 +396,7 @@ class ChaoxingSignHandler<in T>(
                     faceRecognitionData?.markSuccess(session.phoneNumber, otherUserSessionList)
                     faceRecognitionData?.reportUsage(context, session.phoneNumber, false)
                     if (otherUserSessionList.checkIsLast(
-                            index + 1
+                            index
                         )
                     ) {
                         onAllSigningFinished(true)
@@ -455,7 +455,7 @@ class ChaoxingSignHandler<in T>(
                         onAllSigningFinished(false)
                         return@launch
                     } else {
-                        if (otherUserSessionList.checkIsLast(index + 1)) {
+                        if (otherUserSessionList.checkIsLast(index)) {
                             onAllSigningFinished(userSelections.all { !it })
                         }
                     }
