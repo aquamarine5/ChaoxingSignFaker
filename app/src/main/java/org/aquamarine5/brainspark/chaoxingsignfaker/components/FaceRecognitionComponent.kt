@@ -76,58 +76,60 @@ fun FaceRecognitionComponent(
         onCancel()
     }
 
-    AlertDialog(
-        onDismissRequest = onCancel,
-        title = { Text("使用默认人脸识别照片？") },
-        icon = {
-            Icon(
-                painterResource(R.drawable.ic_triangle_alert),
-                contentDescription = "警告",
-                tint = Color(0xFFFCC307),
-                modifier = Modifier.size(40.dp)
-            )
-        },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(buildAnnotatedString {
-                    append("是否使用代签用户的学习通默认人脸识别照片代替拍摄？")
-                    withStyle(SpanStyle(color = Color.Red, fontWeight = FontWeight.Bold)) {
-                        append("此方式存在风险：使用账号原有照片可能被学习通风控校验识别，导致代签失败甚至影响账号安全。")
-                    }
-                })
-                if (isProcessingProfileImage) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        CircularProgressIndicator()
-                        Text(
-                            "正在获取默认人脸识别照片...(" +
-                                    "${profileImageProgress?.first ?: 0}/${profileImageProgress?.second ?: signUserName.size})"
-                        )
+    if (useProfileImage != false) {
+        AlertDialog(
+            onDismissRequest = onCancel,
+            title = { Text("使用默认人脸识别照片？") },
+            icon = {
+                Icon(
+                    painterResource(R.drawable.ic_triangle_alert),
+                    contentDescription = "警告",
+                    tint = Color(0xFFFCC307),
+                    modifier = Modifier.size(40.dp)
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(buildAnnotatedString {
+                        append("是否使用代签用户的学习通默认人脸识别照片代替拍摄？")
+                        withStyle(SpanStyle(color = Color.Red, fontWeight = FontWeight.Bold)) {
+                            append("此方式存在风险：使用账号原有照片可能被学习通风控校验识别，导致代签失败甚至影响账号安全。")
+                        }
+                    })
+                    if (isProcessingProfileImage) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            CircularProgressIndicator()
+                            Text(
+                                "正在获取默认人脸识别照片...(" +
+                                        "${profileImageProgress?.first ?: 0}/${profileImageProgress?.second ?: signUserName.size})"
+                            )
+                        }
                     }
                 }
+            },
+            confirmButton = {
+                Button(
+                    enabled = !isProcessingProfileImage,
+                    onClick = {
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                        useProfileImage = true
+                    }
+                ) { Text("是") }
+            },
+            dismissButton = {
+                OutlinedButton(
+                    enabled = !isProcessingProfileImage,
+                    onClick = {
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                        useProfileImage = false
+                    }
+                ) { Text("否") }
             }
-        },
-        confirmButton = {
-            Button(
-                enabled = !isProcessingProfileImage,
-                onClick = {
-                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                    useProfileImage = true
-                }
-            ) { Text("是") }
-        },
-        dismissButton = {
-            OutlinedButton(
-                enabled = !isProcessingProfileImage,
-                onClick = {
-                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                    useProfileImage = false
-                }
-            ) { Text("否") }
-        }
-    )
+        )
+    }
 
     if (useProfileImage == true) {
         LaunchedEffect(useProfileImage) {

@@ -7,6 +7,7 @@
 package org.aquamarine5.brainspark.chaoxingsignfaker.signer
 
 import android.content.Context
+import android.util.Log
 import com.alibaba.fastjson2.JSONObject
 import com.google.mlkit.vision.barcode.common.Barcode
 import kotlinx.coroutines.Dispatchers
@@ -17,6 +18,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingActivityHelper.N
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpRequester
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationSignEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingQRCodeDetailEntity
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingQRCodeParseResult
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignOutEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.QRCodeSignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingParseDataException
@@ -35,19 +37,29 @@ class ChaoxingQRCodeSigner(
     baseSignInfo
 ) {
     companion object {
-        fun parseQRCode(qrcode: Barcode): String {
+        fun parseQRCode(qrcode: Barcode): ChaoxingQRCodeParseResult {
             val rawValue = qrcode.rawValue ?: qrcode.url?.url
             ?: throw QRCodeParseException(qrcode.rawValue ?: "null")
             if (rawValue.startsWith("SIGNIN:")) {
                 val content = rawValue.removePrefix("SIGNIN:").substringBefore("-")
-                if (content.contains("&enc=")) {
-                    val enc = content.substringAfter("&enc=").substringBefore("&")
-                    if (enc.isNotBlank()) return enc
-                }
-                throw QRCodeParseException(rawValue)
+                val enc = content.substringAfter("&enc=", "").substringBefore("&")
+                if (enc.isBlank()) throw QRCodeParseException(rawValue)
+                val signDetail = content.substringBefore("&enc=")
+                return ChaoxingQRCodeParseResult(
+                    signDetail.substringBefore("&").substringAfter("=", "").toLongOrNull(),
+                    signDetail.substringAfterLast("=", "").takeIf { it.isNotBlank() },
+                    enc
+                )
             }
-            return rawValue.toHttpUrlOrNull()?.queryParameter("enc")?.takeIf { it.isNotBlank() }
-                ?: throw QRCodeParseException(rawValue)
+            val url = rawValue.toHttpUrlOrNull() ?: throw QRCodeParseException(rawValue)
+            val enc = url.queryParameter("enc")?.takeIf { it.isNotBlank() }
+            ?: throw QRCodeParseException(rawValue)
+            return ChaoxingQRCodeParseResult(
+                url.queryParameter("id")?.toLongOrNull()
+                    ?: url.queryParameter("aid")?.toLongOrNull(),
+                url.queryParameter("c")?.takeIf { it.isNotBlank() },
+                enc
+            )
         }
     }
 
@@ -56,6 +68,30 @@ class ChaoxingQRCodeSigner(
 
     class QRCodeExpiredException(throwable: Throwable? = null) :
         ChaoxingParseDataException("二维码已过期", throwable)
+
+    suspend fun isQRCodeExpired(parseResult: ChaoxingQRCodeParseResult): Boolean? {
+        val code = parseResult.code ?: return null
+        val activePrimaryId = parseResult.aid ?: activeId
+        return withContext(Dispatchers.IO) {
+            runCatching {
+                client.newCall(
+                    Request.Builder().get().url(
+                        URL_SIGN_DETAIL.newBuilder()
+                            .addQueryParameter("activePrimaryId", activePrimaryId.toString())
+                            .addQueryParameter("type", "1")
+                            .addQueryParameter("msg", code)
+                            .build()
+                    ).build()
+                ).execute().use {
+                    it.checkResponseThrowException()
+                    val body = it.body.string()
+                    Log.d("ChaoxingQRCodeSigner", "signDetail: $body")
+                    val result = JSONObject.parseObject(body)
+                    result.getIntValue("isOver") == 1 || result.getString("signCode") != code
+                }
+            }.getOrNull()
+        }
+    }
 
     suspend fun getQRCodeSignInfo(): Pair<ChaoxingQRCodeDetailEntity, ChaoxingSignOutEntity> {
         return getSignInfo().run {
@@ -75,7 +111,7 @@ class ChaoxingQRCodeSigner(
     }
 
     suspend fun sign(
-        enc: String,
+        parseResult: ChaoxingQRCodeParseResult,
         position: ChaoxingLocationSignEntity?,
         faceImageObjectId: String? = null,
         context: Context,
@@ -85,9 +121,11 @@ class ChaoxingQRCodeSigner(
             client.newCall(
                 Request.Builder().url(
                     URL_SIGN_NO_PARAMETER.newBuilder()
-                        .addQueryParameter("enc", enc)
+                        .addQueryParameter("enc", parseResult.enc)
                         .addQueryParameter("name", client.name)
-                        .addQueryParameter("activeId", activeId.toString())
+                        .addQueryParameter(
+                            "activeId", (parseResult.aid ?: activeId).toString()
+                        )
                         .addQueryParameter("uid", client.puid.toString())
                         .addQueryParameter("clientip", "")
                         .addLocationParameter(position, false)
@@ -115,14 +153,17 @@ class ChaoxingQRCodeSigner(
             }
         }
 
-    @Deprecated("Use sign instead", ReplaceWith("sign(enc, position, faceImageObjectId, context, captchaValidate)"))
+    @Deprecated(
+        "Use sign instead",
+        ReplaceWith("sign(parseResult, position, faceImageObjectId, context, captchaValidate)")
+    )
     suspend fun signWithCaptcha(
-        enc: String,
+        parseResult: ChaoxingQRCodeParseResult,
         position: ChaoxingLocationSignEntity?,
         captchaValidate: String,
         faceImageObjectId: String? = null,
         context: Context
-    ) = sign(enc, position, faceImageObjectId, context, captchaValidate)
+    ) = sign(parseResult, position, faceImageObjectId, context, captchaValidate)
 
     override val notSignedPageMarkers: List<String> = listOf("扫一扫")
 }

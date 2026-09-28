@@ -65,6 +65,8 @@ abstract class ChaoxingSigner(
             "https://captcha.chaoxing.com/captcha/check/verification/result?callback=cx_captcha_function".toHttpUrl()
         val URL_CAPTCHA_IMAGE =
             "https://captcha.chaoxing.com/captcha/get/verification/image".toHttpUrl()
+        val URL_SIGN_DETAIL =
+            "https://mobilelearn.chaoxing.com/newsign/signDetail".toHttpUrl()
         val URL_SIGN =
             "https://mobilelearn.chaoxing.com/pptSign/stuSignajax?&clientip=&appType=15&ifTiJiao=1&vpProbability=-1&vpStrategy=".toHttpUrl()
         val URL_SIGN_NO_PARAMETER =
