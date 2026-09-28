@@ -9,6 +9,7 @@ package org.aquamarine5.brainspark.chaoxingsignfaker.signer
 import com.alibaba.fastjson2.JSONObject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import okhttp3.HttpUrl
 import okhttp3.Request
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingActivityHelper.NO_SIGN_OFF_EVENT
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpRequester
@@ -40,11 +41,6 @@ class ChaoxingPhotoSigner(
         const val URL_CLOUD_UPLOAD = "https://pan-yz.chaoxing.com/upload?_from=mobilelearn&_token="
     }
 
-    override suspend fun checkAlreadySign(response: String): Boolean {
-        return response.contains("请先拍照").not() &&
-                response.contains("<div class=\"zactives-btn\" onclick=\"send()\">").not()
-    }
-
     suspend fun getSignoffEntity(jsonResult: JSONObject): ChaoxingSignOutEntity =
         withContext(Dispatchers.IO) {
             ChaoxingSignOutEntity(
@@ -58,36 +54,33 @@ class ChaoxingPhotoSigner(
             )
         }
 
-    suspend fun signByClick(): Boolean = withContext(Dispatchers.IO) {
-        if (isCaptchaRequired()) return@withContext true
-        client.newCall(
-            Request.Builder().url(
-                URL_SIGN.newBuilder()
-                    .addQueryParameter("activeId", photoActivityEntity.activeId.toString())
-                    .addQueryParameter("uid", client.puid.toString())
-                    .addQueryParameter("name", client.name)
-                    .addQueryParameter("fid", client.configuredFid.toString())
-                    .addQueryParameter("deviceCode", client.deviceCode)
-                    .build()
-            ).get().build()
-        ).execute().use {
-            it.checkResponseThrowException()
-            return@use it.checkSignResult()
-        }
+    private fun HttpUrl.Builder.addPhotoSignParameter(
+        objectId: String?,
+        captchaValidate: String?
+    ): HttpUrl.Builder {
+        addQueryParameter("activeId", photoActivityEntity.activeId.toString())
+        addCourseIdParameter()
+        addQueryParameter("uid", client.puid.toString())
+        addQueryParameter("clientip", "")
+        addQueryParameter("useragent", "")
+        addQueryParameter("latitude", "-1")
+        addQueryParameter("longitude", "-1")
+        addQueryParameter("appType", "15")
+        addQueryParameter("fid", client.configuredFid.toString())
+        if (objectId != null) addQueryParameter("objectId", objectId)
+        addQueryParameter("name", client.name)
+        addValidateQueryParameter(captchaValidate)
+        addQueryParameter("deviceCode", client.deviceCode)
+        addEnc2Parameter(signEnc2)
+        return this
     }
 
-    suspend fun signByImage(objectId: String): Boolean =
+    suspend fun signByClick(captchaValidate: String? = null): Boolean =
         withContext(Dispatchers.IO) {
-            if (isCaptchaRequired()) return@withContext true
             client.newCall(
                 Request.Builder().url(
-                    URL_SIGN.newBuilder()
-                        .addQueryParameter("objectId", objectId)
-                        .addQueryParameter("activeId", photoActivityEntity.activeId.toString())
-                        .addQueryParameter("uid", client.puid.toString())
-                        .addQueryParameter("name", client.name)
-                        .addQueryParameter("fid", client.configuredFid.toString())
-                        .addQueryParameter("deviceCode", client.deviceCode)
+                    URL_SIGN_NO_PARAMETER.newBuilder()
+                        .addPhotoSignParameter(null, captchaValidate)
                         .build()
                 ).get().build()
             ).execute().use {
@@ -96,47 +89,36 @@ class ChaoxingPhotoSigner(
             }
         }
 
-    suspend fun signByClickWithCaptcha(validateValue: String) = withContext(Dispatchers.IO) {
-        client.newCall(
-            Request.Builder().url(
-                URL_SIGN.newBuilder()
-                    .addQueryParameter("activeId", photoActivityEntity.activeId.toString())
-                    .addQueryParameter("uid", client.puid.toString())
-                    .addQueryParameter("name", client.name)
-                    .addQueryParameter("fid", client.configuredFid.toString())
-                    .addQueryParameter("deviceCode", client.deviceCode)
-                    .addQueryParameter("validate", validateValue)
-                    .build()
-            ).get().build()
-        ).execute().use {
-            it.checkResponseThrowException()
-            return@use it.checkSignResult()
+    suspend fun signByImage(
+        objectId: String,
+        captchaValidate: String? = null
+    ): Boolean =
+        withContext(Dispatchers.IO) {
+            client.newCall(
+                Request.Builder().url(
+                    URL_SIGN_NO_PARAMETER.newBuilder()
+                        .addPhotoSignParameter(objectId, captchaValidate)
+                        .build()
+                ).get().build()
+            ).execute().use {
+                it.checkResponseThrowException()
+                return@use it.checkSignResult()
+            }
         }
-    }
 
+    @Deprecated("Use signByClick instead", ReplaceWith("signByClick(captchaValidate)"))
+    suspend fun signByClickWithCaptcha(validateValue: String) = signByClick(validateValue)
+
+    @Deprecated("Use signByImage instead", ReplaceWith("signByImage(objectId, captchaValidate)"))
     suspend fun signByImageWithCaptcha(objectId: String, validateValue: String) =
-        withContext(Dispatchers.IO) {
-            client.newCall(
-                Request.Builder().url(
-                    URL_SIGN.newBuilder()
-                        .addQueryParameter("objectId", objectId)
-                        .addQueryParameter("activeId", photoActivityEntity.activeId.toString())
-                        .addQueryParameter("uid", client.puid.toString())
-                        .addQueryParameter("name", client.name)
-                        .addQueryParameter("fid", client.configuredFid.toString())
-                        .addQueryParameter("deviceCode", client.deviceCode)
-                        .addQueryParameter("validate", validateValue)
-                        .build()
-                ).get().build()
-            ).execute().use {
-                it.checkResponseThrowException()
-                return@use it.checkSignResult()
-            }
-        }
+        signByImage(objectId, validateValue)
 
 
     suspend fun ifPhotoRequiredLogin(): Pair<Boolean, ChaoxingSignOutEntity> {
         val json = getSignInfo()
         return Pair(json.getInteger("ifphoto") == 1, getSignoffEntity(json))
     }
+
+    override val notSignedPageMarkers: List<String> =
+        listOf("请先拍照", "zactives-btn")
 }

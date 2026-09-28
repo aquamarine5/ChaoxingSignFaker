@@ -289,10 +289,10 @@ fun PasswordSignScreen(
                                                             continuation.resumeWith(captchaResult)
                                                     }
                                             }
-                                        signer.signWithCaptcha(
+                                        signer.sign(
                                             value,
-                                            resolution.validate,
-                                            locationData
+                                            locationData,
+                                            resolution.validate
                                         )
                                         return@runCatching ChaoxingSignResult(
                                             isCaptchaSigning = true,
@@ -331,10 +331,10 @@ fun PasswordSignScreen(
                                                                     }
                                                                 }
                                                         }
-                                                    this.signWithCaptcha(
+                                                    this.sign(
                                                         value,
-                                                        resolution.validate,
-                                                        locationData
+                                                        locationData,
+                                                        resolution.validate
                                                     )
                                                     return@runCatching ChaoxingSignResult(
                                                         isCaptchaSigning = true,

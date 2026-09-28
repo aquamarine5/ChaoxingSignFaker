@@ -35,10 +35,6 @@ class ChaoxingPasswordSigner(
             "https://mobilelearn.chaoxing.com/widget/sign/pcStuSignController/checkSignCode".toHttpUrl()
     }
 
-    override suspend fun checkAlreadySign(response: String): Boolean {
-        return response.contains("输入发起者设置的签到码完成签到").not()
-    }
-
     suspend fun getPasswordInfo(): Pair<Int, ChaoxingSignOutEntity> = withContext(Dispatchers.IO) {
         getSignInfo().let { jsonResult ->
             jsonResult.getInteger("numberCount") to ChaoxingSignOutEntity(
@@ -70,28 +66,33 @@ class ChaoxingPasswordSigner(
 
     suspend fun sign(
         signCode: String,
-        position: ChaoxingLocationSignEntity? = null
+        position: ChaoxingLocationSignEntity? = null,
+        captchaValidate: String? = null
     ): Boolean = withContext(Dispatchers.IO) {
-        if (isCaptchaRequired()) return@withContext true
         client.newCall(
             Request.Builder().url(
-                URL_SIGN.newBuilder()
+                URL_SIGN_NO_PARAMETER.newBuilder()
+                    .addQueryParameter("activeId", destination.activeId.toString())
+                    .addCourseIdParameter()
+                    .addQueryParameter("uid", client.puid.toString())
+                    .addQueryParameter("clientip", "")
                     .addQueryParameter(
                         "latitude",
-                        if (position != null) "%.6f".format(position.randomizedLatitude) else ""
+                        if (position != null) "%.6f".format(position.randomizedLatitude) else "-1"
                     )
                     .addQueryParameter(
                         "longitude",
-                        if (position != null) "%.6f".format(position.randomizedLongitude) else ""
+                        if (position != null) "%.6f".format(position.randomizedLongitude) else "-1"
                     )
-                    .addQueryParameter("activeId", destination.activeId.toString())
-                    .addQueryParameter("uid", client.puid.toString())
-                    .addQueryParameter("name", client.name)
+                    .addQueryParameter("appType", "15")
                     .addQueryParameter("fid", client.configuredFid.toString())
+                    .addQueryParameter("name", client.name)
                     .addQueryParameter("signCode", signCode)
                     .addQueryParameter("deviceCode", client.deviceCode)
-                    .addLocationResultParameter(position)
                     .addLocationParameter(position, false)
+                    .addLocationResultParameter(position)
+                    .addEnc2Parameter(signEnc2)
+                    .addValidateQueryParameter(captchaValidate)
                     .build()
             ).build()
         ).execute().use {
@@ -100,37 +101,12 @@ class ChaoxingPasswordSigner(
         }
     }
 
+    @Deprecated("Use sign instead", ReplaceWith("sign(signCode, position, captchaValidate)"))
     suspend fun signWithCaptcha(
         signCode: String,
         validateValue: String,
         position: ChaoxingLocationSignEntity? = null
-    ) =
-        withContext(Dispatchers.IO) {
-            client.newCall(
-                Request.Builder().url(
-                    URL_SIGN.newBuilder()
-                        .addQueryParameter(
-                            "latitude",
-                            if (position != null) "%.6f".format(position.randomizedLatitude) else ""
-                        )
-                        .addQueryParameter(
-                            "longitude",
-                            if (position != null) "%.6f".format(position.randomizedLongitude) else ""
-                        )
-                        .addQueryParameter("activeId", destination.activeId.toString())
-                        .addQueryParameter("uid", client.puid.toString())
-                        .addQueryParameter("name", client.name)
-                        .addQueryParameter("fid", client.configuredFid.toString())
-                        .addQueryParameter("signCode", signCode)
-                        .addQueryParameter("deviceCode", client.deviceCode)
-                        .addLocationResultParameter(position)
-                        .addQueryParameter("validate", validateValue)
-                        .addLocationParameter(position, false)
-                        .build()
-                ).build()
-            ).execute().use {
-                it.checkResponseThrowException()
-                return@use it.checkSignResult(position)
-            }
-        }
+    ) = sign(signCode, position, validateValue)
+
+    override val notSignedPageMarkers: List<String> = listOf("输入发起者设置的签到码完成签到")
 }

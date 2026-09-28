@@ -396,10 +396,10 @@ fun GestureSignScreen(
                                                             continuation.resumeWith(captchaResult)
                                                     }
                                             }
-                                        signer.signWithCaptcha(
+                                        signer.sign(
                                             value,
-                                            resolution.validate,
-                                            locationData
+                                            locationData,
+                                            resolution.validate
                                         )
                                         return@runCatching ChaoxingSignResult(
                                             isCaptchaSigning = true,
@@ -437,10 +437,10 @@ fun GestureSignScreen(
                                                                     }
                                                                 }
                                                         }
-                                                    signWithCaptcha(
+                                                    sign(
                                                         value,
-                                                        resolution.validate,
-                                                        locationData
+                                                        locationData,
+                                                        resolution.validate
                                                     )
                                                     return@runCatching ChaoxingSignResult(
                                                         isCaptchaSigning = true,

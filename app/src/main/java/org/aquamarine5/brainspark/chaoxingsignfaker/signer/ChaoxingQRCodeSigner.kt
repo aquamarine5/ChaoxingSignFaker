@@ -36,8 +36,18 @@ class ChaoxingQRCodeSigner(
 ) {
     companion object {
         fun parseQRCode(qrcode: Barcode): String {
-            return (qrcode.rawValue ?: qrcode.url?.url)?.toHttpUrlOrNull()?.queryParameter("enc")
-                ?: throw QRCodeParseException(qrcode.rawValue ?: "null")
+            val rawValue = qrcode.rawValue ?: qrcode.url?.url
+            ?: throw QRCodeParseException(qrcode.rawValue ?: "null")
+            if (rawValue.startsWith("SIGNIN:")) {
+                val content = rawValue.removePrefix("SIGNIN:").substringBefore("-")
+                if (content.contains("&enc=")) {
+                    val enc = content.substringAfter("&enc=").substringBefore("&")
+                    if (enc.isNotBlank()) return enc
+                }
+                throw QRCodeParseException(rawValue)
+            }
+            return rawValue.toHttpUrlOrNull()?.queryParameter("enc")?.takeIf { it.isNotBlank() }
+                ?: throw QRCodeParseException(rawValue)
         }
     }
 
@@ -64,68 +74,55 @@ class ChaoxingQRCodeSigner(
         }
     }
 
+    suspend fun sign(
+        enc: String,
+        position: ChaoxingLocationSignEntity?,
+        faceImageObjectId: String? = null,
+        context: Context,
+        captchaValidate: String? = null
+    ): Boolean =
+        withContext(Dispatchers.IO) {
+            client.newCall(
+                Request.Builder().url(
+                    URL_SIGN_NO_PARAMETER.newBuilder()
+                        .addQueryParameter("enc", enc)
+                        .addQueryParameter("name", client.name)
+                        .addQueryParameter("activeId", activeId.toString())
+                        .addQueryParameter("uid", client.puid.toString())
+                        .addQueryParameter("clientip", "")
+                        .addLocationParameter(position, false)
+                        .addQueryParameter("latitude", "-1")
+                        .addQueryParameter("longitude", "-1")
+                        .addQueryParameter("fid", client.configuredFid.toString())
+                        .addQueryParameter("appType", "15")
+                        .addQueryParameter("deviceCode", client.deviceCode)
+                        .addQueryParameter("vpProbability", "-1")
+                        .addQueryParameter("vpStrategy", "")
+                        .addCourseIdParameter()
+                        .addEnc2Parameter(signEnc2)
+                        .addValidateQueryParameter(captchaValidate)
+                        .addLocationResultParameter(position)
+                        .addFaceRecognitionParameter(
+                            faceImageObjectId,
+                            context,
+                            isCourseIdParameterAdded = true
+                        )
+                        .build()
+                ).build()
+            ).execute().use {
+                it.checkResponseThrowException()
+                return@use it.checkSignResult(position)
+            }
+        }
+
+    @Deprecated("Use sign instead", ReplaceWith("sign(enc, position, faceImageObjectId, context, captchaValidate)"))
     suspend fun signWithCaptcha(
         enc: String,
         position: ChaoxingLocationSignEntity?,
         captchaValidate: String,
         faceImageObjectId: String? = null,
         context: Context
-    ) =
-        withContext(Dispatchers.IO) {
-            client.newCall(
-                Request.Builder().url(
-                    URL_SIGN.newBuilder()
-                        .addQueryParameter("enc", enc)
-                        .addQueryParameter("latitude", "-1")
-                        .addQueryParameter("longitude", "-1")
-                        .addQueryParameter("activeId", activeId.toString())
-                        .addQueryParameter("uid", client.puid.toString())
-                        .addQueryParameter("name", client.name)
-                        .addQueryParameter("fid", client.configuredFid.toString())
-                        .addQueryParameter("deviceCode", client.deviceCode)
-                        .addQueryParameter("validate", captchaValidate)
-                        .addLocationParameter(position, false)
-                        .addLocationResultParameter(position)
-                        .addFaceRecognitionParameter(faceImageObjectId, context)
-                        .build()
-                ).build()
-            ).execute().use {
-                it.checkResponseThrowException()
-                return@use it.checkSignResult(position)
-            }
-        }
+    ) = sign(enc, position, faceImageObjectId, context, captchaValidate)
 
-    suspend fun sign(
-        enc: String,
-        position: ChaoxingLocationSignEntity?,
-        faceImageObjectId: String? = null,
-        context: Context
-    ): Boolean =
-        withContext(Dispatchers.IO) {
-            if (isCaptchaRequired()) return@withContext true
-            client.newCall(
-                Request.Builder().url(
-                    URL_SIGN.newBuilder()
-                        .addQueryParameter("enc", enc)
-                        .addQueryParameter("latitude", "-1")
-                        .addQueryParameter("longitude", "-1")
-                        .addQueryParameter("activeId", activeId.toString())
-                        .addQueryParameter("uid", client.puid.toString())
-                        .addQueryParameter("name", client.name)
-                        .addQueryParameter("fid", client.configuredFid.toString())
-                        .addQueryParameter("deviceCode", client.deviceCode)
-                        .addLocationParameter(position, false)
-                        .addLocationResultParameter(position)
-                        .addFaceRecognitionParameter(faceImageObjectId, context)
-                        .build()
-                ).build()
-            ).execute().use {
-                it.checkResponseThrowException()
-                return@use it.checkSignResult(position)
-            }
-        }
-
-    override suspend fun checkAlreadySign(response: String): Boolean =
-        response.contains("扫一扫").not()
-
+    override val notSignedPageMarkers: List<String> = listOf("扫一扫")
 }

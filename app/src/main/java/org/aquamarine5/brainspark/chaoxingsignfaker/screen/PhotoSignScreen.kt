@@ -260,7 +260,7 @@ fun PhotoSignScreen(
                                                                         )
                                                                 }
                                                         }
-                                                    signer.signByClickWithCaptcha(
+                                                    signer.signByClick(
                                                         resolution.validate
                                                     )
                                                     return@runCatching ChaoxingSignResult(
@@ -304,9 +304,9 @@ fun PhotoSignScreen(
                                                                                 }
                                                                             }
                                                                     }
-                                                                this.signByClickWithCaptcha(
-                                                                    resolution.validate
-                                                                )
+                                                            this.signByClick(
+                                                                resolution.validate
+                                                            )
                                                                 return@runCatching ChaoxingSignResult(
                                                                     isCaptchaSigning = true,
                                                                     isCaptchaResolvedByModel = resolution.resolvedByModel
@@ -471,7 +471,7 @@ fun PhotoSignScreen(
                                                                                     )
                                                                             }
                                                                     }
-                                                                signer.signByImageWithCaptcha(
+                                                                signer.signByImage(
                                                                     objectId,
                                                                     resolution.validate
                                                                 )
@@ -525,10 +525,10 @@ fun PhotoSignScreen(
                                                                                     }
                                                                                 }
                                                                         }
-                                                                    this.signByImageWithCaptcha(
-                                                                        objectId,
-                                                                        resolution.validate
-                                                                    )
+                                                                this.signByImage(
+                                                                    objectId,
+                                                                    resolution.validate
+                                                                )
                                                                     return@runCatching ChaoxingSignResult(
                                                                         isCaptchaSigning = true,
                                                                         isCaptchaResolvedByModel = resolution.resolvedByModel
@@ -833,10 +833,10 @@ fun PhotoSignScreen(
                                                                 captchaValidateParams =
                                                                     signer to { captchaResult ->
                                                                         captchaResult.onSuccess { resolution ->
-                                                                            signer.signByImageWithCaptcha(
-                                                                                objectId,
-                                                                                resolution.validate
-                                                                            )
+                                                                        signer.signByImage(
+                                                                            objectId,
+                                                                            resolution.validate
+                                                                        )
                                                                             coroutineScope.launch {
                                                                                 ChaoxingRecommendHelper.recordRecommendEvent(
                                                                                     context,

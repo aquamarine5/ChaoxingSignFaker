@@ -340,11 +340,11 @@ fun LocationSignScreen(
                                                             continuation.resumeWith(captchaResult)
                                                     }
                                             }
-                                        signer.signWithCaptcha(
+                                        signer.sign(
                                             value,
-                                            resolution.validate,
                                             faceImageUploadedObjectId,
-                                            context
+                                            context,
+                                            resolution.validate
                                         )
                                         return@runCatching ChaoxingSignResult(
                                             isCaptchaSigning = true,
@@ -414,11 +414,11 @@ fun LocationSignScreen(
                                                                     }
                                                                 }
                                                         }
-                                                    signWithCaptcha(
+                                                    sign(
                                                         value,
-                                                        resolution.validate,
                                                         faceImageUploadedObjectId,
-                                                        context
+                                                        context,
+                                                        resolution.validate
                                                     )
                                                     return@runCatching ChaoxingSignResult(
                                                         isCaptchaSigning = true,

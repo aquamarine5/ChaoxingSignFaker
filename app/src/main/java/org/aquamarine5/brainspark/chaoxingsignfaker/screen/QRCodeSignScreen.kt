@@ -399,12 +399,12 @@ fun QRCodeSignScreen(
                                                             continuation.resumeWith(captchaResult)
                                                     }
                                             }
-                                        signer.signWithCaptcha(
+                                        signer.sign(
                                             value,
                                             locationData,
-                                            resolution.validate,
                                             faceImageUploadedObjectId,
-                                            context
+                                            context,
+                                            resolution.validate
                                         )
                                         return@runCatching ChaoxingSignResult(
                                             isCaptchaSigning = true,
@@ -486,12 +486,12 @@ fun QRCodeSignScreen(
                                                                     }
                                                                 }
                                                         }
-                                                    signWithCaptcha(
+                                                    sign(
                                                         value,
                                                         locationData,
-                                                        resolution.validate,
                                                         faceImageUploadedObjectId,
-                                                        context
+                                                        context,
+                                                        resolution.validate
                                                     )
                                                     return@runCatching ChaoxingSignResult(
                                                         isCaptchaSigning = true,
