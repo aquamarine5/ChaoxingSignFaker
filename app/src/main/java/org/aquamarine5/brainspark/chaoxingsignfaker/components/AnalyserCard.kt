@@ -87,7 +87,6 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingAnalyserRankA
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingAnalyserRankRecord
 import org.aquamarine5.brainspark.chaoxingsignfaker.ui.theme.FontGilroy
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingAnalyser
-import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.isDevelopedMode
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
@@ -99,7 +98,6 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun AnalyserCard() {
     LocalContext.current.let { context ->
-        val snackbarHostState = LocalSnackbarHostState.current
         val coroutineScope = rememberCoroutineScope()
         val hapticFeedback = LocalHapticFeedback.current
         val analyser = rememberSaveable(saver = ChaoxingAnalyser.MutableStateAnalyser.Saver) {
@@ -118,7 +116,7 @@ fun AnalyserCard() {
             context.chaoxingDataStore.data.first().let { dataStore ->
                 customRankDisplayName = dataStore.analysisRankName.ifEmpty {
                     "****${
-                        ChaoxingHttpClient.instance!!.userEntity.phoneNumber.takeLast(
+                        ChaoxingHttpClient.instance!!.phoneNumber.takeLast(
                             2
                         )
                     } 用户"
@@ -182,7 +180,7 @@ fun AnalyserCard() {
                         }, placeholder = {
                             Text(
                                 "****${
-                                    ChaoxingHttpClient.instance!!.userEntity.phoneNumber.takeLast(
+                                    ChaoxingHttpClient.instance!!.phoneNumber.takeLast(
                                         2
                                     )
                                 } 用户"
@@ -293,11 +291,10 @@ fun AnalyserCard() {
                         enter = slideInVertically(),
                         exit = slideOutVertically(targetOffsetY = { -it })
                     ) {
-                        val schoolNames =
-                            remember {
-                                ChaoxingHttpClient.instance!!.userEntity.fidList.map { it.second }
-                                    .distinct()
-                            }
+                        val schoolNames = remember {
+                            ChaoxingHttpClient.instance!!.userEntity.fidList.map { it.second }
+                                .distinct()
+                        }
                         var isExpanded by remember { mutableStateOf(false) }
                         Column {
                             Text("用于展示的学校名称：")
@@ -421,17 +418,7 @@ fun AnalyserCard() {
             })
         }
         if (isAnalyserRankDialog) {
-            LaunchedEffect(Unit) {
-                if (rankData == null || rankData!!.isFailure)
-                    rankData = ChaoxingAnalyser.getAnalyserTopRank(displayRankCount).onFailure {
-                        it.snackbarReport(
-                            snackbarHostState,
-                            coroutineScope,
-                            "获取排行榜失败",
-                            hapticFeedback
-                        )
-                    }
-            }
+
             LaunchedEffect(Unit) {
                 if (rankAnalysisData == null)
                     rankAnalysisData = ChaoxingAnalyser.getTotalRankAnalysis().getOrNull()
@@ -482,7 +469,18 @@ fun AnalyserCard() {
                 }) {
                     Text("关闭")
                 }
-            }, text = {
+            }, text = { dialogSnackbarHostState ->
+                LaunchedEffect(Unit) {
+                    if (rankData == null || rankData!!.isFailure)
+                        rankData = ChaoxingAnalyser.getAnalyserTopRank(displayRankCount).onFailure {
+                            it.snackbarReport(
+                                dialogSnackbarHostState,
+                                coroutineScope,
+                                "获取排行榜失败",
+                                hapticFeedback
+                            )
+                        }
+                }
                 Column(modifier = Modifier.fillMaxWidth()) {
                     when {
                         rankData == null -> {
@@ -764,7 +762,7 @@ fun AnalyserCard() {
                                             ChaoxingAnalyser.getAnalyserTopRank(displayRankCount)
                                                 .onFailure {
                                                     it.snackbarReport(
-                                                        snackbarHostState,
+                                                        dialogSnackbarHostState,
                                                         coroutineScope,
                                                         "获取排行榜失败",
                                                         hapticFeedback

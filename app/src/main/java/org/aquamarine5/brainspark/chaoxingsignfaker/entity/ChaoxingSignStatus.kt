@@ -129,6 +129,10 @@ data class ChaoxingSignStatus(
             null -> {
                 if (isLoading.value)
                     CircularProgressIndicator(modifier = Modifier.size(32.dp))
+                else if (error.value.isNotEmpty())
+                    Text(
+                        error.value, color = Orange, lineHeight = 15.sp
+                    )
             }
         }
 

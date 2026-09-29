@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2025-2026, @aquamarine5 (@海蓝色的咕咕鸽). All Rights Reserved.
  * Author: aquamarine5@163.com (Github: https://github.com/aquamarine5) and Brainspark (previously RenegadeCreation)
  * Repository: https://github.com/aquamarine5/ChaoxingSignFaker
@@ -38,6 +38,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RichTooltip
 import androidx.compose.material3.Text
 import androidx.compose.material3.TooltipAnchorPosition
@@ -47,7 +48,6 @@ import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -57,6 +57,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -84,8 +85,8 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCloudDriveHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCourseHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingFaceHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
-import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClientPool
-import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingOtherUserHelper.getSessionUid
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpRequesterPool
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingOtherUserHelper.getSessionPuid
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingSignHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerParams
@@ -94,6 +95,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.components.FaceRecognitionCo
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.FaceRecognitionNewFeatureTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.GetLocationComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NetworkExceptionComponent
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.NewFeatureTipsCard
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NotReadyToSignNoticeComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.OtherUserSelectorComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.QRCodeScanComponent
@@ -104,6 +106,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.components.SponsorPopupDialo
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.cloneSessionGuard
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationSignEntity
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingQRCodeParseResult
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityStatus
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignOutEntity
@@ -121,8 +124,10 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.displaySnackbar
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.isDevelopedMode
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.rememberFaceRecognitionData
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.requirePredictable
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.sentryReport
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
+import kotlin.coroutines.resume
 import kotlin.time.Duration.Companion.seconds
 
 @Serializable
@@ -175,6 +180,7 @@ fun QRCodeSignScreen(
         )
     }
     val context = LocalContext.current
+    val currentUserEntity = ChaoxingHttpClient.instance?.userEntity
     val resources = LocalResources.current
     val snackbarHost = LocalSnackbarHostState.current
     val isSigning = remember { mutableStateOf(false) }
@@ -189,6 +195,7 @@ fun QRCodeSignScreen(
     val hapticFeedback = LocalHapticFeedback.current
     var isFetchedFailure by remember { mutableStateOf<Result<*>?>(null) }
     val isDisplayFaceRecognitionImageNewFeatureTips = remember { mutableStateOf(false) }
+    val isDisplayQRCodeKeepScanningNewFeatureTips = remember { mutableStateOf(false) }
     if (captchaValidateParams != null) {
         CaptchaHandlerDialog(
             captchaValidateParams!!.first,
@@ -202,6 +209,8 @@ fun QRCodeSignScreen(
         context.chaoxingDataStore.data.first().let {
             isDisplayFaceRecognitionImageNewFeatureTips.value =
                 !it.learntTooltips.saveFaceRecognitionImagesToLocal
+            isDisplayQRCodeKeepScanningNewFeatureTips.value =
+                !it.learntTooltips.qrCodeSupportKeepScanning
         }
         isFetchedFailure = runCatching {
             val data = if (destination.isCloneSession) {
@@ -293,20 +302,23 @@ fun QRCodeSignScreen(
                         )
                     }
                     var isQrContinuousActive by remember { mutableStateOf(false) }
-                    var qrCurrentTarget: Int? by remember { mutableStateOf<Int?>(null) }
+                    var qrCurrentTarget: Int? by remember { mutableStateOf(null) }
                     var qrQueueTargets by remember { mutableStateOf<List<Int>>(emptyList()) }
                     var qrQueueNames by remember { mutableStateOf<List<String>>(emptyList()) }
                     var qrQueueAvatars by remember { mutableStateOf<List<String?>>(emptyList()) }
-                    var latestEnc by remember { mutableStateOf<String?>(null) }
-                    var latestEncSeq by remember { mutableIntStateOf(0) }
-                    var lastConsumedEncSeq by remember { mutableIntStateOf(-1) }
+                    var latestEnc by remember {
+                        mutableStateOf<ChaoxingQRCodeParseResult?>(null)
+                    }
+                    var lastCheckedEnc by remember { mutableStateOf<String?>(null) }
                     var expiredEnc by remember { mutableStateOf<String?>(null) }
-                    var encWaiter: CancellableContinuation<String>? by remember {
+                    var encWaiter: CancellableContinuation<ChaoxingQRCodeParseResult>? by remember {
                         mutableStateOf(null)
                     }
                     var continuousJob by remember { mutableStateOf<Job?>(null) }
+                    var expiredRefreshJob by remember { mutableStateOf<Job?>(null) }
 
-                    var getQRCodeContinuation: CancellableContinuation<String>? by remember {
+                    var getQRCodeContinuation: CancellableContinuation<ChaoxingQRCodeParseResult>? by
+                    remember {
                         mutableStateOf(
                             null
                         )
@@ -354,7 +366,7 @@ fun QRCodeSignScreen(
                             },
                             onSelfSigning = { value ->
                                 val selfPhoneNumber =
-                                    ChaoxingHttpClient.instance!!.userEntity.phoneNumber
+                                    ChaoxingHttpClient.instance!!.phoneNumber
                                 runCatching {
                                     val faceImageUploadedObjectId =
                                         if (isFaceRequired) {
@@ -379,7 +391,8 @@ fun QRCodeSignScreen(
                                     if (signer.sign(
                                             value,
                                             locationData,
-                                            faceImageUploadedObjectId
+                                            faceImageUploadedObjectId,
+                                            context
                                         )
                                     ) {
                                         val resolution =
@@ -390,11 +403,12 @@ fun QRCodeSignScreen(
                                                             continuation.resumeWith(captchaResult)
                                                     }
                                             }
-                                        signer.signWithCaptcha(
+                                        signer.sign(
                                             value,
                                             locationData,
-                                            resolution.validate,
-                                            faceImageUploadedObjectId
+                                            faceImageUploadedObjectId,
+                                            context,
+                                            resolution.validate
                                         )
                                         return@runCatching ChaoxingSignResult(
                                             isCaptchaSigning = true,
@@ -406,7 +420,7 @@ fun QRCodeSignScreen(
                                     )
                                 }.onFailure {
                                     if (it is ChaoxingQRCodeSigner.QRCodeExpiredException)
-                                        expiredEnc = value
+                                        expiredEnc = value.enc
                                 }
                             },
                             onSigningFinished = { _, name, isOtherUser ->
@@ -420,7 +434,13 @@ fun QRCodeSignScreen(
                             },
                             onOtherUserSigning = { value, session, bypassChecking, _ ->
                                 runCatching {
-                                    ChaoxingHttpClientPool.get(context, session.phoneNumber)
+                                    (if (isFaceRequired) ChaoxingHttpRequesterPool.getClient(
+                                        context,
+                                        session.phoneNumber
+                                    ) else ChaoxingHttpRequesterPool.getRequester(
+                                        context,
+                                        session.phoneNumber
+                                    ))
                                         .let { client ->
                                             val faceImageUploadedObjectId =
                                                 if (isFaceRequired) {
@@ -455,7 +475,8 @@ fun QRCodeSignScreen(
                                                 if (sign(
                                                         value,
                                                         locationData,
-                                                        faceImageUploadedObjectId
+                                                        faceImageUploadedObjectId,
+                                                        context
                                                     )
                                                 ) {
                                                     val resolution =
@@ -469,11 +490,12 @@ fun QRCodeSignScreen(
                                                                     }
                                                                 }
                                                         }
-                                                    signWithCaptcha(
+                                                    sign(
                                                         value,
                                                         locationData,
-                                                        resolution.validate,
-                                                        faceImageUploadedObjectId
+                                                        faceImageUploadedObjectId,
+                                                        context,
+                                                        resolution.validate
                                                     )
                                                     return@runCatching ChaoxingSignResult(
                                                         isCaptchaSigning = true,
@@ -487,7 +509,7 @@ fun QRCodeSignScreen(
                                         }
                                 }.onFailure {
                                     if (it is ChaoxingQRCodeSigner.QRCodeExpiredException)
-                                        expiredEnc = value
+                                        expiredEnc = value.enc
                                 }
 
                             },
@@ -501,6 +523,8 @@ fun QRCodeSignScreen(
                                     isQRCodeParsing.value = false
                                     encWaiter?.cancel()
                                     encWaiter = null
+                                    expiredRefreshJob?.cancel()
+                                    expiredRefreshJob = null
                                 }
                                 if (isSuccessful) {
                                     if (faceRecognitionData.newImagePhones.isNotEmpty()) {
@@ -519,15 +543,27 @@ fun QRCodeSignScreen(
                         )
                     }
 
+                    fun reportQRCodeExpiredTips() {
+                        isQRCodeIllegal = true
+                        qrcodeIllegalText = "二维码已过期"
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
+                        job?.cancel()
+                        job = coroutineScope.launch {
+                            delay(1.seconds)
+                            isQRCodeIllegal = false
+                        }
+                    }
+
                     fun beginQRContinuousSigning() {
                         encWaiter?.cancel()
                         encWaiter = null
                         getQRCodeContinuation?.cancel()
                         getQRCodeContinuation = null
                         latestEnc = null
-                        latestEncSeq = 0
-                        lastConsumedEncSeq = -1
+                        lastCheckedEnc = null
                         expiredEnc = null
+                        expiredRefreshJob?.cancel()
+                        expiredRefreshJob = null
                         val targets = buildList {
                             if (isSelfForSign) add(-1)
                             signUserList.forEachIndexed { index, session ->
@@ -536,11 +572,11 @@ fun QRCodeSignScreen(
                         }
                         qrQueueTargets = targets
                         qrQueueNames = targets.map { target ->
-                            if (target == -1) ChaoxingHttpClient.instance!!.userEntity.name
+                            if (target == -1) ChaoxingHttpClient.instance!!.name
                             else signUserList[target]!!.name
                         }
                         qrQueueAvatars = targets.map { target ->
-                            if (target == -1) ChaoxingHttpClient.instance!!.userEntity.pic
+                            if (target == -1) currentUserEntity?.pic.orEmpty()
                             else null
                         }
                         qrCurrentTarget = targets.firstOrNull()
@@ -552,11 +588,11 @@ fun QRCodeSignScreen(
                         coroutineScope.launch(Dispatchers.IO) {
                             runCatching {
                                 val avatars = targets.map { target ->
-                                    if (target == -1) ChaoxingHttpClient.instance!!.userEntity.pic
+                                    if (target == -1) currentUserEntity?.pic.orEmpty()
                                     else {
                                         val session = signUserList[target]!!
                                         runCatching {
-                                            session.getSessionUid(context)?.let {
+                                            session.getSessionPuid(context)?.let {
                                                 ChaoxingAccountHelper.getAvatarUrl(it)
                                             }
                                         }.getOrNull()
@@ -568,6 +604,16 @@ fun QRCodeSignScreen(
                             }
                         }
                         continuousJob?.cancel()
+                        expiredRefreshJob = coroutineScope.launch {
+                            while (isQrContinuousActive) {
+                                delay(1.5.seconds)
+                                val current = latestEnc
+                                if (current == null || current.enc != expiredEnc) continue
+                                val isExpired = signer.isQRCodeExpired(current)
+                                if (isExpired == true) expiredEnc = current.enc
+                                reportQRCodeExpiredTips()
+                            }
+                        }
                         continuousJob = signHandler.startContinuousSigning(
                             isSelfForSign,
                             signUserList,
@@ -575,25 +621,18 @@ fun QRCodeSignScreen(
                             coroutineScope,
                             snackbarHost,
                             getFreshEnc = {
-                                var enc: String
+                                var parseResult: ChaoxingQRCodeParseResult
                                 do {
-                                    enc = if (latestEnc != null && latestEncSeq > lastConsumedEncSeq) {
-                                        lastConsumedEncSeq = latestEncSeq
-                                        latestEnc!!
-                                    } else {
-                                        suspendCancellableCoroutine<String> { continuation ->
+                                    parseResult = latestEnc?.takeIf { it.enc != expiredEnc }
+                                        ?: suspendCancellableCoroutine<ChaoxingQRCodeParseResult> { continuation ->
                                             encWaiter?.cancel()
                                             encWaiter = continuation
                                             continuation.invokeOnCancellation {
                                                 if (encWaiter == continuation) encWaiter = null
                                             }
-                                        }.also {
-                                            lastConsumedEncSeq = latestEncSeq
                                         }
-                                    }
-                                    if (enc == expiredEnc) delay(ChaoxingSignHandler.LONG_SIGN_TIME_SPAN)
-                                } while (enc == expiredEnc)
-                                enc
+                                } while (parseResult.enc == expiredEnc)
+                                parseResult
                             },
                             onCurrentTargetChanged = {
                                 qrCurrentTarget = it
@@ -604,10 +643,15 @@ fun QRCodeSignScreen(
                     fun closeQRContinuousSigning() {
                         continuousJob?.cancel()
                         continuousJob = null
+                        expiredRefreshJob?.cancel()
+                        expiredRefreshJob = null
                         encWaiter?.cancel()
                         encWaiter = null
                         getQRCodeContinuation?.cancel()
                         getQRCodeContinuation = null
+                        signStatus.forEach {
+                            if (it.isSuccess.value == null) it.isLoading.value = false
+                        }
                         isQrContinuousActive = false
                         qrCurrentTarget = null
                         isSigning.value = false
@@ -663,7 +707,7 @@ fun QRCodeSignScreen(
                                             )
                                             Spacer(modifier = Modifier.width(9.dp))
                                             Text(
-                                                "自己不在课堂现场时，必须需要另一名在场的用户为你代签，随地大小签不支持破解二维码签到。\n在新版本中，如果需要为很多人进行动态的二维码签到，请手持手机保持在扫描二维码界面，等待为所有用户签到完毕后扫描页面会自动退出，无需担心二维码已过期的问题。",
+                                                "自己不在课堂现场时，必须需要另一名在场的用户为你代签，随地大小签不支持破解二维码签到。",
                                                 color = Color.White,
                                                 fontSize = 13.sp,
                                                 lineHeight = 18.sp,
@@ -688,7 +732,10 @@ fun QRCodeSignScreen(
                                     signHandler.retryOtherUserSigning(
                                         session,
                                         index,
-                                        bypassChecking
+                                        bypassChecking,
+                                        hapticFeedback,
+                                        coroutineScope,
+                                        snackbarHost
                                     )
                                 }, isCloneSession = destination.isCloneSession,
                                 hasSignRealtimeParameter = signHandler.hasSignRealtimeParameter,
@@ -775,6 +822,18 @@ fun QRCodeSignScreen(
                                             }
                                         }
                                     }
+                                    NewFeatureTipsCard(
+                                        isDisplayQRCodeKeepScanningNewFeatureTips,
+                                        tipsText = "在新版本中，如果需要为很多人进行动态的二维码签到，请手持手机保持在扫描二维码界面，等待为所有用户签到完毕后扫描页面会自动退出，无需担心二维码已过期的问题。"
+                                    ) {
+                                        context.chaoxingDataStore.updateData {
+                                            it.toBuilder().setLearntTooltips(
+                                                it.learntTooltips.toBuilder()
+                                                    .setQrCodeSupportKeepScanning(true)
+                                                    .build()
+                                            ).build()
+                                        }
+                                    }
                                 }
                             ) { isSelf, otherUserSessionList, _ ->
                                 isSigning.value = true
@@ -784,7 +843,7 @@ fun QRCodeSignScreen(
                                 coroutineScope.launch {
                                     if (isFaceRequired) {
                                         val selectedPhoneNumbers = buildList {
-                                            if (isSelf) add(ChaoxingHttpClient.instance!!.userEntity.phoneNumber)
+                                            if (isSelf) add(ChaoxingHttpClient.instance!!.phoneNumber)
                                             addAll(
                                                 otherUserSessionList.filterNotNull()
                                                     .map { it.phoneNumber })
@@ -810,7 +869,7 @@ fun QRCodeSignScreen(
                                         }
                                     }
                                     if (isFaceRequired && (
-                                                (isSelf && ChaoxingHttpClient.instance!!.userEntity.phoneNumber !in faceRecognitionData.faceImageObjectIds.keys) ||
+                                                (isSelf && ChaoxingHttpClient.instance!!.phoneNumber !in faceRecognitionData.faceImageObjectIds.keys) ||
                                                         otherUserSessionList.any { it != null && it.phoneNumber !in faceRecognitionData.faceImageObjectIds.keys }
                                                 )
                                     ) {
@@ -841,9 +900,9 @@ fun QRCodeSignScreen(
                             }
                             FaceRecognitionComponent(mutableListOf<Pair<String, String>>().apply {
                                 if (isSelfForSign && !faceRecognitionData.faceImageObjectIds.containsKey(
-                                        ChaoxingHttpClient.instance!!.userEntity.phoneNumber
+                                        ChaoxingHttpClient.instance!!.phoneNumber
                                     )
-                                ) add(ChaoxingHttpClient.instance!!.userEntity.phoneNumber to ChaoxingHttpClient.instance!!.userEntity.name)
+                                ) add(ChaoxingHttpClient.instance!!.phoneNumber to ChaoxingHttpClient.instance!!.name)
                                 signUserList.forEach {
                                     if (it != null && !faceRecognitionData.faceImageObjectIds.containsKey(
                                             it.phoneNumber
@@ -867,7 +926,7 @@ fun QRCodeSignScreen(
                                     }
                                 }
                                 isFaceImageCaptured = false
-                                if (isMapRequired)
+                                if (isMapRequired && locationData == null)
                                     isMapGetting = true
                                 else {
                                     beginQRContinuousSigning()
@@ -920,6 +979,12 @@ fun QRCodeSignScreen(
                                 BackHandler(isQRCodeScanning) {
                                     if (isQrContinuousActive) closeQRContinuousSigning()
                                     else {
+                                        getQRCodeContinuation?.cancel()
+                                        getQRCodeContinuation = null
+                                        signStatus.forEach {
+                                            if (it.isSuccess.value == null) it.isLoading.value =
+                                                false
+                                        }
                                         isSigning.value = false
                                         isQRCodeScanning = false
                                         isQRCodeParsing.value = false
@@ -930,6 +995,12 @@ fun QRCodeSignScreen(
                                 QRCodeScanComponent(isQRCodeScanPause, isQRCodeParsing, onClose = {
                                     if (isQrContinuousActive) closeQRContinuousSigning()
                                     else {
+                                        getQRCodeContinuation?.cancel()
+                                        getQRCodeContinuation = null
+                                        signStatus.forEach {
+                                            if (it.isSuccess.value == null) it.isLoading.value =
+                                                false
+                                        }
                                         isSigning.value = false
                                         isQRCodeParsing.value = false
                                         isQRCodeScanPause.value = false
@@ -940,14 +1011,22 @@ fun QRCodeSignScreen(
                                     if (isQrContinuousActive) {
                                         runCatching {
                                             ChaoxingQRCodeSigner.parseQRCode(result)
-                                        }.onSuccess { enc ->
-                                            isQRCodeIllegal = false
-                                            latestEnc = enc
-                                            latestEncSeq += 1
-                                            encWaiter?.let { waiter ->
-                                                if (waiter.isActive) {
-                                                    waiter.resume(enc, null)
-                                                    encWaiter = null
+                                        }.onSuccess { parseResult ->
+                                            if (expiredEnc == null || parseResult.enc != expiredEnc) {
+                                                isQRCodeIllegal = false
+                                                latestEnc = parseResult
+                                                encWaiter?.let { waiter ->
+                                                    if (waiter.isActive) {
+                                                        waiter.resume(parseResult)
+                                                        encWaiter = null
+                                                    }
+                                                }
+                                                if (lastCheckedEnc != parseResult.enc) {
+                                                    lastCheckedEnc = parseResult.enc
+                                                    coroutineScope.launch {
+                                                        if (signer.isQRCodeExpired(parseResult) == true)
+                                                            expiredEnc = parseResult.enc
+                                                    }
                                                 }
                                             }
                                         }.onFailure {
@@ -975,13 +1054,20 @@ fun QRCodeSignScreen(
                                         return@QRCodeScanComponent
                                     }
                                     if (getQRCodeContinuation?.isActive == true) {
-                                        getQRCodeContinuation?.resumeWith(runCatching {
-                                            ChaoxingQRCodeSigner.parseQRCode(
-                                                result
-                                            )
-                                        })
+                                        val continuation = getQRCodeContinuation!!
                                         getQRCodeContinuation = null
                                         isQRCodeScanning = false
+                                        coroutineScope.launch {
+                                            continuation.resumeWith(runCatching {
+                                                ChaoxingQRCodeSigner.parseQRCode(
+                                                    result
+                                                ).also { parseResult ->
+                                                    requirePredictable(
+                                                        signer.isQRCodeExpired(parseResult) != true
+                                                    ) { "二维码已过期" }
+                                                }
+                                            })
+                                        }
                                         return@QRCodeScanComponent
                                     }
                                     isSigning.value = true
@@ -989,30 +1075,48 @@ fun QRCodeSignScreen(
                                     isQRCodeParsing.value = true
                                     runCatching {
                                         ChaoxingQRCodeSigner.parseQRCode(result)
-                                    }.onSuccess {
-                                        val pendingSelf =
-                                            isSelfForSign && userSelections[0] && signStatus[0].isSuccess.value != true
-                                        val pendingOthers =
-                                            signUserList.mapIndexed { index, session ->
-                                                if (session != null && userSelections[index + 1] && signStatus[index + 1].isSuccess.value != true) session
-                                                else null
+                                    }.onSuccess { parseResult ->
+                                        coroutineScope.launch {
+                                            if (signer.isQRCodeExpired(parseResult) == true) {
+                                                isQRCodeIllegal = true
+                                                isQRCodeScanPause.value = true
+                                                qrcodeIllegalText = "二维码已过期"
+                                                hapticFeedback.performHapticFeedback(
+                                                    HapticFeedbackType.Reject
+                                                )
+                                                job?.cancel()
+                                                job = coroutineScope.launch {
+                                                    delay(1.seconds)
+                                                    isQRCodeScanPause.value = false
+                                                    delay(1.seconds)
+                                                    isQRCodeIllegal = false
+                                                }
+                                                return@launch
                                             }
-                                        if (!pendingSelf && pendingOthers.all { session -> session == null }) {
-                                            isSigning.value = false
+                                            val pendingSelf =
+                                                isSelfForSign && userSelections[0] && signStatus[0].isSuccess.value != true
+                                            val pendingOthers =
+                                                signUserList.mapIndexed { index, session ->
+                                                    if (session != null && userSelections[index + 1] && signStatus[index + 1].isSuccess.value != true) session
+                                                    else null
+                                                }
+                                            if (!pendingSelf && pendingOthers.all { session -> session == null }) {
+                                                isSigning.value = false
+                                                isQRCodeScanning = false
+                                                isQRCodeScanPause.value = true
+                                                isQRCodeParsing.value = false
+                                                return@launch
+                                            }
                                             isQRCodeScanning = false
-                                            isQRCodeScanPause.value = true
-                                            isQRCodeParsing.value = false
-                                            return@QRCodeScanComponent
+                                            signHandler.startSigning(
+                                                parseResult,
+                                                pendingSelf,
+                                                pendingOthers,
+                                                hapticFeedback,
+                                                coroutineScope,
+                                                snackbarHost
+                                            )
                                         }
-                                        isQRCodeScanning = false
-                                        signHandler.startSigning(
-                                            it,
-                                            pendingSelf,
-                                            pendingOthers,
-                                            hapticFeedback,
-                                            coroutineScope,
-                                            snackbarHost
-                                        )
                                     }.onFailure {
                                         it.printStackTrace()
                                         (it as? ChaoxingQRCodeSigner.QRCodeParseException).let { exception ->
@@ -1117,10 +1221,12 @@ fun QRCodeSignScreen(
                                                 if (currentTarget == -1) 0 else currentTarget + 1
                                             val outerIsSuccess =
                                                 signStatus.getOrNull(outerStatusIndex)?.isSuccess?.value == true
+                                            val isOuterCaptchaResolvedByModel =
+                                                signStatus.getOrNull(outerStatusIndex)?.isCaptchaResolvedByModel?.value == true
                                             Row(
                                                 modifier = Modifier
                                                     .background(
-                                                        Color(0xCC222222),
+                                                        Color(0x88888888),
                                                         RoundedCornerShape(8.dp)
                                                     )
                                                     .border(
@@ -1161,6 +1267,15 @@ fun QRCodeSignScreen(
                                                 Spacer(modifier = Modifier.width(6.dp))
                                                 Text("签到中")
                                                 Spacer(modifier = Modifier.width(6.dp))
+                                                if (isOuterCaptchaResolvedByModel) {
+                                                    Icon(
+                                                        painterResource(R.drawable.ic_brain_circuit),
+                                                        contentDescription = "验证码由模型自动识别",
+                                                        tint = MaterialTheme.colorScheme.primary,
+                                                        modifier = Modifier.size(16.dp)
+                                                    )
+                                                    Spacer(modifier = Modifier.width(6.dp))
+                                                }
                                                 if (outerIsSuccess) {
                                                     Icon(
                                                         painterResource(R.drawable.ic_check),

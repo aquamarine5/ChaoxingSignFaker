@@ -124,7 +124,7 @@ object ChaoxingAnalyser {
             context.chaoxingDataStore.updateData { dataStore ->
                 if (dataStore.disableAnalysisRank) return@updateData dataStore
                 val analysisName = dataStore.analysisRankName.ifEmpty {
-                    "****${ChaoxingHttpClient.instance!!.userEntity.phoneNumber.takeLast(2)} 用户"
+                    "****${ChaoxingHttpClient.instance!!.phoneNumber.takeLast(2)} 用户"
                 }
                 dataStore.toBuilder().apply {
                     val analysisDatabaseUUID = analysisUUID.ifEmpty {

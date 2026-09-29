@@ -76,6 +76,7 @@ message Preferences{
   string customizedPackageName = 5;
   uint32 displayRankCount = 6;
   bool alwaysForceSign = 7;
+  bool isIgnoreAllConsistentDeviceCodeComponents = 8;
 }
 
 message ChaoxingCourseClass{
@@ -94,6 +95,8 @@ message LearntTooltip{
   bool supportCloneOtherUserSession = 8;
   bool sliderCaptchaAutoResolveByModel = 9;
   bool saveFaceRecognitionImagesToLocal = 10;
+  bool qrCodeSupportKeepScanning = 11;
+  bool supportConsistentDeviceCodeInOtherSession = 12;
 }
 
 message OtherUserTagType{
@@ -125,7 +128,10 @@ message ChaoxingLoginSession{
   string password = 3;
   string faceImageObjectId = 4 [deprecated = true];
   optional uint32 configuredFid = 5;
-  optional uint32 uid = 6;
+  optional uint32 puid = 6;
+  optional string deviceCode = 7;
+  bool isNotRandomizedDeviceCode = 8;
+  string name = 9;
 }
 
 message ChaoxingOtherUserSession{
@@ -137,7 +143,9 @@ message ChaoxingOtherUserSession{
   string faceImageObjectId = 6 [deprecated = true];
   bool isObsoleteSession = 7;
   optional uint32 configuredFid = 8;
-  optional uint32 uid = 9;
+  optional uint32 puid = 9;
+  optional string deviceCode = 10;
+  bool isNotRandomizedDeviceCode = 11;
 }
 
 message HttpCookie{

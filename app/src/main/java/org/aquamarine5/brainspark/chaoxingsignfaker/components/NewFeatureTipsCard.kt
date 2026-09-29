@@ -7,6 +7,7 @@
 package org.aquamarine5.brainspark.chaoxingsignfaker.components
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
@@ -47,6 +48,8 @@ fun NewFeatureTipsCard(
     isDisplay: MutableState<Boolean>,
     tipsText: String,
     modifier: Modifier = Modifier,
+    trailingAction: (@Composable () -> Unit)? = null,
+    isAnimated: Boolean = true,
     onDismiss: suspend () -> Unit
 ) {
     NewFeatureTipsCard(
@@ -59,6 +62,8 @@ fun NewFeatureTipsCard(
             )
         },
         modifier = modifier,
+        trailingAction = trailingAction,
+        isAnimated = isAnimated,
         onDismiss = onDismiss
     )
 }
@@ -68,13 +73,15 @@ fun NewFeatureTipsCard(
     isDisplay: MutableState<Boolean>,
     tipsContent: @Composable () -> Unit,
     modifier: Modifier = Modifier,
+    trailingAction: (@Composable () -> Unit)? = null,
+    isAnimated: Boolean = true,
     onDismiss: suspend () -> Unit
 ) {
     val hapticFeedback = LocalHapticFeedback.current
     val coroutineScope = rememberCoroutineScope()
     AnimatedVisibility(
         isDisplay.value,
-        enter = slideInVertically() + fadeIn(),
+        enter = if (isAnimated) slideInVertically() + fadeIn() else EnterTransition.None,
         exit = slideOutVertically() + fadeOut()
     ) {
         Column {
@@ -99,6 +106,9 @@ fun NewFeatureTipsCard(
                     Spacer(modifier = Modifier.width(8.dp))
                     Box(modifier = Modifier.weight(1f)) {
                         tipsContent()
+                    }
+                    if (trailingAction != null) {
+                        trailingAction()
                     }
                     IconButton(
                         onClick = {

@@ -34,7 +34,7 @@ object ChaoxingLessonHelper {
     val LESSONS_CACHE_INTERVAL = TimeUnit.DAYS.toMillis(7)
 
     suspend fun refreshLessons(
-        client: ChaoxingHttpClient,
+        client: ChaoxingHttpRequester,
         context: Context
     ): Result<List<ChaoxingLesson>> = runCatching {
         withContext(Dispatchers.IO) {
@@ -208,7 +208,7 @@ object ChaoxingLessonHelper {
     }
 
     suspend fun checkCurrentLessonSignActivities(
-        client: ChaoxingHttpClient,
+        client: ChaoxingHttpRequester,
         context: Context,
         courses: List<ChaoxingCourseEntity>
     ): List<RecommendActivityEntity> {

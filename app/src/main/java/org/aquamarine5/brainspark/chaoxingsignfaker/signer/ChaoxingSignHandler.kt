@@ -25,6 +25,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.entity.SignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingQRCodeSigner.QRCodeExpiredException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingCaptchaCancelledException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingFaceSignException
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingPredictableException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.FaceRecognitionData
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.checkIsLast
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.displaySnackbar
@@ -53,6 +54,9 @@ class ChaoxingSignHandler<in T>(
         val LONG_SIGN_TIME_SPAN = 200.milliseconds
     }
 
+    class ChaoxingShouldSignOnceBeforeException :
+        ChaoxingPredictableException("请先发起一次签到后再重试")
+
     private var storedValue: T? = null
 
     val hasSignRealtimeParameter: Boolean
@@ -61,29 +65,44 @@ class ChaoxingSignHandler<in T>(
     suspend fun retryOtherUserSigning(
         session: ChaoxingOtherUserSession,
         index: Int,
-        bypassChecking: Boolean
+        bypassChecking: Boolean,
+        hapticFeedback: HapticFeedback,
+        coroutineScope: CoroutineScope,
+        snackbarHost: SnackbarHostState
     ): Result<ChaoxingSignResult> {
-        return onOtherUserSigning(
-            getSignRealtimeParameter?.invoke()
-                ?: requireNotNull(storedValue) { "Should call startSigning() first." },
-            session,
-            bypassChecking,
-            index
-        ).onFailure {
-            (it as? ChaoxingHttpClient.ChaoxingGetUserInfoException)?.let { exception ->
-                if (exception.isOtherUser)
-                    ChaoxingOtherUserHelper.markSessionObsoleted(session, context)
+        val realtimeParameterProvider = getSignRealtimeParameter
+        val fallbackValue = storedValue
+        return runCatching {
+            val value = realtimeParameterProvider?.invoke() ?: fallbackValue
+            ?: throw ChaoxingShouldSignOnceBeforeException()
+            onOtherUserSigning(value, session, bypassChecking, index).getOrThrow()
+                .also { signResult ->
+                    if (signResult.isCaptchaSigning && signResult.isCaptchaResolvedByModel)
+                        signStatus[1 + index].markCaptchaResolvedByModel()
+                    if (destination.endTime != null && System.currentTimeMillis() > destination.endTime!!)
+                        signStatus[1 + index].successForLate()
+                    else
+                        signStatus[1 + index].success()
+                    userSelections[index + 1] = false
+                    onSigningFinished(value, session.name, true)
+                }
+        }.onFailure {
+            if (it is CancellationException) throw it
+            if (it is ChaoxingShouldSignOnceBeforeException) {
+                signStatus[1 + index].isLoading.value = false
+            } else {
+                (it as? ChaoxingHttpClient.ChaoxingGetUserInfoException)?.let { exception ->
+                    if (exception.isOtherUser)
+                        ChaoxingOtherUserHelper.markSessionObsoleted(session, context)
+                }
+                signStatus[1 + index].failed(it)
+                it.snackbarReport(
+                    snackbarHost,
+                    coroutineScope,
+                    "重试签到失败",
+                    hapticFeedback
+                )
             }
-            signStatus[1 + index].failed(it)
-        }.onSuccess {
-            if (it.isCaptchaSigning && it.isCaptchaResolvedByModel)
-                signStatus[1 + index].markCaptchaResolvedByModel()
-            if (destination.endTime != null && System.currentTimeMillis() > destination.endTime!!)
-                signStatus[1 + index].successForLate()
-            else
-                signStatus[1 + index].success()
-            userSelections[index + 1] = false
-            onSigningFinished(storedValue!!, session.name, true)
         }
     }
 
@@ -99,7 +118,7 @@ class ChaoxingSignHandler<in T>(
         return coroutineScope.launch {
             var isCaptchaSigning = false
             var isCaptchaResolvedByModel = false
-            val selfPhoneNumber = ChaoxingHttpClient.instance!!.userEntity.phoneNumber
+            val selfPhoneNumber = ChaoxingHttpClient.instance!!.phoneNumber
             val queue = buildList {
                 if (isSelf) add(-1)
                 otherUserSessionList.forEachIndexed { index, session ->
@@ -134,7 +153,7 @@ class ChaoxingSignHandler<in T>(
                                 signStatus[0].success()
                             onSigningFinished(
                                 value,
-                                ChaoxingHttpClient.instance!!.userEntity.name,
+                                ChaoxingHttpClient.instance!!.name,
                                 false
                             )
                             break
@@ -158,11 +177,23 @@ class ChaoxingSignHandler<in T>(
                             throwable.ifShouldDeselect {
                                 userSelections[0] = false
                             }
-                            if (throwable !is ChaoxingCaptchaCancelledException) {
+                            if (throwable is ChaoxingSigner.WrongPositionException &&
+                                throwable.isAlreadyDisabledRandomizedLocation
+                            ) {
+                                for (i in otherUserSessionList.indices) {
+                                    if (otherUserSessionList[i] != null)
+                                        signStatus[i + 1].failed(throwable)
+                                }
+                                snackbarHost.displaySnackbar(
+                                    "签到位置超出范围，请重新选择位置",
+                                    coroutineScope
+                                )
+                                hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
+                            } else if (throwable !is ChaoxingCaptchaCancelledException) {
                                 throwable.snackbarReport(
                                     snackbarHost,
                                     coroutineScope,
-                                    "为${ChaoxingHttpClient.instance!!.userEntity.name}签到失败",
+                                    "为${ChaoxingHttpClient.instance!!.name}签到失败",
                                     hapticFeedback
                                 )
                             }
@@ -223,7 +254,23 @@ class ChaoxingSignHandler<in T>(
                                 session.phoneNumber,
                                 throwable is ChaoxingFaceSignException
                             )
-                            if (throwable !is ChaoxingCaptchaCancelledException) {
+                            signStatus[target + 1].failed(throwable)
+                            throwable.ifShouldDeselect {
+                                userSelections[target + 1] = false
+                            }
+                            if (throwable is ChaoxingSigner.WrongPositionException &&
+                                throwable.isAlreadyDisabledRandomizedLocation
+                            ) {
+                                for (i in (target + 1)..<otherUserSessionList.size) {
+                                    if (otherUserSessionList[i] != null)
+                                        signStatus[i + 1].failed(throwable)
+                                }
+                                snackbarHost.displaySnackbar(
+                                    "签到位置超出范围，请重新选择位置",
+                                    coroutineScope
+                                )
+                                hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
+                            } else if (throwable !is ChaoxingCaptchaCancelledException) {
                                 throwable.snackbarReport(
                                     snackbarHost,
                                     coroutineScope,
@@ -231,10 +278,6 @@ class ChaoxingSignHandler<in T>(
                                     hapticFeedback
                                 )
                             }
-                            throwable.ifShouldDeselect {
-                                userSelections[target + 1] = false
-                            }
-                            signStatus[target + 1].failed(throwable)
                             onCurrentTargetChanged(null)
                             onAllSigningFinished(false)
                             return@launch
@@ -258,7 +301,7 @@ class ChaoxingSignHandler<in T>(
         var isCaptchaSigning = false
         var isCaptchaResolvedByModel = false
         storedValue = value
-        val selfPhoneNumber = ChaoxingHttpClient.instance!!.userEntity.phoneNumber
+        val selfPhoneNumber = ChaoxingHttpClient.instance!!.phoneNumber
         coroutineScope.launch {
             if (isSelf) {
                 signStatus[0].loading()
@@ -278,7 +321,7 @@ class ChaoxingSignHandler<in T>(
                     if (otherUserSessionList.all { it == null }) {
                         onAllSigningFinished(true)
                     }
-                    onSigningFinished(value, ChaoxingHttpClient.instance!!.userEntity.name, false)
+                    onSigningFinished(value, ChaoxingHttpClient.instance!!.name, false)
                 }.onFailure { throwable ->
                     if (throwable is ChaoxingFaceSignException)
                         faceRecognitionData?.markFailure(selfPhoneNumber, otherUserSessionList)
@@ -322,7 +365,7 @@ class ChaoxingSignHandler<in T>(
                             throwable.snackbarReport(
                                 snackbarHost,
                                 coroutineScope,
-                                "为${ChaoxingHttpClient.instance!!.userEntity.name}签到失败",
+                                "为${ChaoxingHttpClient.instance!!.name}签到失败",
                                 hapticFeedback
                             )
                         }
@@ -353,7 +396,7 @@ class ChaoxingSignHandler<in T>(
                     faceRecognitionData?.markSuccess(session.phoneNumber, otherUserSessionList)
                     faceRecognitionData?.reportUsage(context, session.phoneNumber, false)
                     if (otherUserSessionList.checkIsLast(
-                            index + 1
+                            index
                         )
                     ) {
                         onAllSigningFinished(true)
@@ -412,7 +455,7 @@ class ChaoxingSignHandler<in T>(
                         onAllSigningFinished(false)
                         return@launch
                     } else {
-                        if (otherUserSessionList.checkIsLast(index + 1)) {
+                        if (otherUserSessionList.checkIsLast(index)) {
                             onAllSigningFinished(userSelections.all { !it })
                         }
                     }

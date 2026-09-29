@@ -27,7 +27,7 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingFaceHelper
-import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClientPool
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpRequesterPool
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.FaceRecognitionData
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.FaceRecognitionImageStatus
@@ -41,7 +41,6 @@ fun SaveFaceImagesDialog(
     onFinished: () -> Unit
 ) {
     val context = LocalContext.current
-    val snackbarHost = LocalSnackbarHostState.current
     val hapticFeedback = LocalHapticFeedback.current
     val coroutineScope = rememberCoroutineScope()
     var isSaving by remember { mutableStateOf(false) }
@@ -55,6 +54,7 @@ fun SaveFaceImagesDialog(
         title = { Text("保存人脸照片？") },
         text = { Text("是否保存刚才拍摄的 ${faceRecognitionData.newImagePhones.size} 张人脸照片，以便下次签到使用？") },
         confirmButton = {
+            val dialogSnackbarHost = LocalSnackbarHostState.current
             Button(enabled = !isSaving, onClick = {
                 hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                 isSaving = true
@@ -63,7 +63,7 @@ fun SaveFaceImagesDialog(
                         faceRecognitionData.capturedBitmaps[phoneNumber]?.let { bitmap ->
                             runCatching {
                                 val savedImage = ChaoxingFaceHelper.saveFaceImage(
-                                    ChaoxingHttpClientPool.get(context, phoneNumber),
+                                    ChaoxingHttpRequesterPool.getRequester(context, phoneNumber),
                                     context,
                                     bitmap,
                                     phoneNumber
@@ -84,7 +84,7 @@ fun SaveFaceImagesDialog(
                                 )
                             }.onFailure {
                                 it.snackbarReport(
-                                    snackbarHost,
+                                    dialogSnackbarHost,
                                     coroutineScope,
                                     "保存人脸照片失败",
                                     hapticFeedback

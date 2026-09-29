@@ -141,7 +141,7 @@ fun CourseListScreen(
 ) {
     val imageLoader = LocalImageLoader.current
     val activeClient = ChaoxingHttpClient.getClientInstanceOrClone(destination.isCloneSession)
-    val courseCacheKey = "${activeClient?.userEntity?.phoneNumber}:${activeClient?.configuredFid}"
+    val courseCacheKey = "${activeClient?.phoneNumber}:${activeClient?.configuredFid}"
     var savedCourseCacheKey by rememberSaveable { mutableStateOf(courseCacheKey) }
     val activitiesData =
         rememberSaveable(saver = ChaoxingCourseEntity.Saver) { mutableStateListOf() }
@@ -854,9 +854,10 @@ fun CourseListScreen(
                                                 )
                                                 if (isPreferred)
                                                     coroutineScope.launch {
-                                                        val classIdsToAdd = groupClassIds.filterNot {
-                                                            preferredClassIds.contains(it)
-                                                        }
+                                                        val classIdsToAdd =
+                                                            groupClassIds.filterNot {
+                                                                preferredClassIds.contains(it)
+                                                            }
                                                         context.chaoxingDataStore.updateData {
                                                             it.toBuilder()
                                                                 .addAllPreferClassId(classIdsToAdd)

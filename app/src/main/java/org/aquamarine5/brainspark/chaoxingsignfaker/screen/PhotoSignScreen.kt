@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2025-2026, @aquamarine5 (@海蓝色的咕咕鸽). All Rights Reserved.
  * Author: aquamarine5@163.com (Github: https://github.com/aquamarine5) and Brainspark (previously RenegadeCreation)
  * Repository: https://github.com/aquamarine5/ChaoxingSignFaker
@@ -67,7 +67,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCloudDriveHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCourseHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
-import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClientPool
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpRequesterPool
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingRecommendHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingSignHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CameraComponent
@@ -260,7 +260,7 @@ fun PhotoSignScreen(
                                                                         )
                                                                 }
                                                         }
-                                                    signer.signByClickWithCaptcha(
+                                                    signer.signByClick(
                                                         resolution.validate
                                                     )
                                                     return@runCatching ChaoxingSignResult(
@@ -276,7 +276,7 @@ fun PhotoSignScreen(
                                         },
                                         onOtherUserSigning = { _, session, bypassChecking, _ ->
                                             runCatching {
-                                                ChaoxingHttpClientPool.get(
+                                                ChaoxingHttpRequesterPool.getRequester(
                                                     context,
                                                     session.phoneNumber
                                                 )
@@ -304,7 +304,7 @@ fun PhotoSignScreen(
                                                                                 }
                                                                             }
                                                                     }
-                                                                this.signByClickWithCaptcha(
+                                                                this.signByClick(
                                                                     resolution.validate
                                                                 )
                                                                 return@runCatching ChaoxingSignResult(
@@ -367,7 +367,10 @@ fun PhotoSignScreen(
                                         signHandler.retryOtherUserSigning(
                                             session,
                                             index,
-                                            bypassChecking
+                                            bypassChecking,
+                                            hapticFeedback,
+                                            coroutineScope,
+                                            snackbarHost
                                         )
                                     }
                                 ) { isSelf, otherUserSessionList, _ ->
@@ -468,7 +471,7 @@ fun PhotoSignScreen(
                                                                                     )
                                                                             }
                                                                     }
-                                                                signer.signByImageWithCaptcha(
+                                                                signer.signByImage(
                                                                     objectId,
                                                                     resolution.validate
                                                                 )
@@ -485,7 +488,7 @@ fun PhotoSignScreen(
                                                 },
                                                 onOtherUserSigning = { value, session, bypassChecking, index ->
                                                     runCatching {
-                                                        ChaoxingHttpClientPool.get(
+                                                        ChaoxingHttpRequesterPool.getRequester(
                                                             context,
                                                             session.phoneNumber
                                                         ).let { client ->
@@ -522,7 +525,7 @@ fun PhotoSignScreen(
                                                                                     }
                                                                                 }
                                                                         }
-                                                                    this.signByImageWithCaptcha(
+                                                                    this.signByImage(
                                                                         objectId,
                                                                         resolution.validate
                                                                     )
@@ -600,7 +603,10 @@ fun PhotoSignScreen(
                                                         signHandler.retryOtherUserSigning(
                                                             session,
                                                             index,
-                                                            bypassChecking
+                                                            bypassChecking,
+                                                            hapticFeedback,
+                                                            coroutineScope,
+                                                            snackbarHost
                                                         )
                                                     },
                                                     userContent = { index ->
@@ -696,7 +702,7 @@ fun PhotoSignScreen(
                                                         derivedStateOf {
                                                             if (isSelfForSign) {
                                                                 listOf(
-                                                                    ChaoxingHttpClient.instance!!.userEntity.name,
+                                                                    ChaoxingHttpClient.instance!!.name,
                                                                 ) + otherUserSessionForSignList.filterNotNull()
                                                                     .map { it.name }
                                                             } else {
@@ -827,7 +833,7 @@ fun PhotoSignScreen(
                                                                 captchaValidateParams =
                                                                     signer to { captchaResult ->
                                                                         captchaResult.onSuccess { resolution ->
-                                                                            signer.signByImageWithCaptcha(
+                                                                            signer.signByImage(
                                                                                 objectId,
                                                                                 resolution.validate
                                                                             )
@@ -855,7 +861,7 @@ fun PhotoSignScreen(
                                                             } else isSignSuccess = true
                                                             UMengHelper.onSignPhotoEvent(
                                                                 context,
-                                                                ChaoxingHttpClient.instance!!.userEntity.name
+                                                                ChaoxingHttpClient.instance!!.name
                                                             )
                                                         }
                                                     }.onFailure {
