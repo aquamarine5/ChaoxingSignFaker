@@ -76,6 +76,7 @@ message Preferences{
   string customizedPackageName = 5;
   uint32 displayRankCount = 6;
   bool alwaysForceSign = 7;
+  bool isIgnoreAllConsistentDeviceCodeComponents = 8;
 }
 
 message ChaoxingCourseClass{
@@ -95,6 +96,7 @@ message LearntTooltip{
   bool sliderCaptchaAutoResolveByModel = 9;
   bool saveFaceRecognitionImagesToLocal = 10;
   bool qrCodeSupportKeepScanning = 11;
+  bool supportConsistentDeviceCodeInOtherSession = 12;
 }
 
 message OtherUserTagType{

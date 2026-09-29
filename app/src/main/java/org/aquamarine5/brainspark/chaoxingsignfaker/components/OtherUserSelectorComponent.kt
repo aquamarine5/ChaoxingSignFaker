@@ -159,6 +159,7 @@ fun OtherUserSelectorComponent(
         var tagContainedUserIndexList by remember { mutableStateOf<List<List<Int>>?>(null) }
         val tagClickState = remember { mutableListOf<MutableState<Boolean>>() }
         var selfPhoneNumber by remember { mutableStateOf<String?>(null) }
+        var isIgnoreAllConsistentDeviceCodeComponents by remember { mutableStateOf(false) }
         var success by signStatus[0].isSuccess
         var ignoreExceptionUserIndex by remember {
             mutableStateOf<Pair<Int, ChaoxingOtherUserSession>?>(
@@ -611,6 +612,8 @@ fun OtherUserSelectorComponent(
                     )
                 })
                 selfPhoneNumber = datastore.loginSession.phoneNumber
+                isIgnoreAllConsistentDeviceCodeComponents =
+                    datastore.preferences.isIgnoreAllConsistentDeviceCodeComponents
                 tagContainedUserIndexList = datastore.tagsLibraryList.map { tagEntity ->
                     buildList {
                         datastore.otherUsersList.mapIndexed { index, otherUserSession ->
@@ -1102,6 +1105,21 @@ fun OtherUserSelectorComponent(
                                                         tint = it.value.color.takeOrElse { MaterialTheme.colorScheme.primary }
                                                     )
                                                 }
+                                            if (!isIgnoreAllConsistentDeviceCodeComponents) {
+                                                Icon(
+                                                    painterResource(
+                                                        if (session.isNotRandomizedDeviceCode) R.drawable.ic_tablet_smartphone_check
+                                                        else R.drawable.ic_tablet_smartphone_x
+                                                    ),
+                                                    contentDescription = if (session.isNotRandomizedDeviceCode) "已绑定统一设备码" else "使用固定随机设备码",
+                                                    modifier = Modifier
+                                                        .padding(start = 4.dp)
+                                                        .size(14.dp),
+                                                    tint = if (session.isNotRandomizedDeviceCode) Color(
+                                                        0xFF4CAF50
+                                                    ) else Color(0xFFFF9800)
+                                                )
+                                            }
                                             if (signStatus[i].isCaptchaResolvedByModel.value) {
                                                 Icon(
                                                     painterResource(R.drawable.ic_brain_circuit),

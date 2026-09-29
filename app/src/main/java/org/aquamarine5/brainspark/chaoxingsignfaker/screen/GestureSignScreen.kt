@@ -412,7 +412,10 @@ fun GestureSignScreen(
                                 }
                             }, onOtherUserSigning = { value, session, bypassChecking, _ ->
                                 runCatching {
-                                    ChaoxingHttpRequesterPool.getRequester(context, session.phoneNumber)
+                                    ChaoxingHttpRequesterPool.getRequester(
+                                        context,
+                                        session.phoneNumber
+                                    )
                                         .let { client ->
                                             ChaoxingGestureSigner(
                                                 client,

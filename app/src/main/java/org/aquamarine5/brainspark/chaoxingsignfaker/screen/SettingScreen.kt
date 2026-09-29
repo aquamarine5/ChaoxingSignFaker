@@ -122,9 +122,12 @@ fun SettingScreen(
         var isShowSignoffDialog by remember { mutableStateOf(false) }
         var isBypassBlockedChecking by remember { mutableStateOf(false) }
         var isUnblockDialog by remember { mutableStateOf(false) }
+        var isIgnoreAllConsistentDeviceCodeComponents by remember { mutableStateOf(false) }
         LaunchedEffect(Unit) {
             context.chaoxingDataStore.data.first().apply {
                 isBypassBlockedChecking = bypassBlockedChecking
+                isIgnoreAllConsistentDeviceCodeComponents =
+                    preferences.isIgnoreAllConsistentDeviceCodeComponents
             }
             launch(Dispatchers.IO) {
                 stackbricksService.deleteTemp()
@@ -531,6 +534,40 @@ fun SettingScreen(
                     }
             }
         )
+        Spacer(modifier = Modifier.height(8.dp))
+        fun toggleIgnoreAllConsistentDeviceCodeComponents() {
+            isIgnoreAllConsistentDeviceCodeComponents =
+                !isIgnoreAllConsistentDeviceCodeComponents
+            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+            coroutineScope.launch(Dispatchers.IO) {
+                context.chaoxingDataStore.updateData {
+                    it.toBuilder().setPreferences(
+                        it.preferences.toBuilder().setIsIgnoreAllConsistentDeviceCodeComponents(
+                            isIgnoreAllConsistentDeviceCodeComponents
+                        ).build()
+                    ).build()
+                }
+            }
+        }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Switch(isIgnoreAllConsistentDeviceCodeComponents, onCheckedChange = { checked ->
+                isIgnoreAllConsistentDeviceCodeComponents = checked
+                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                coroutineScope.launch(Dispatchers.IO) {
+                    context.chaoxingDataStore.updateData {
+                        it.toBuilder().setPreferences(
+                            it.preferences.toBuilder().setIsIgnoreAllConsistentDeviceCodeComponents(
+                                checked
+                            ).build()
+                        ).build()
+                    }
+                }
+            })
+            Text("关闭设备码提示图标", modifier = Modifier.clickable {
+                toggleIgnoreAllConsistentDeviceCodeComponents()
+            })
+        }
+
         Spacer(modifier = Modifier.height(8.dp))
         var isUiDevelopedMode by remember { mutableStateOf(isDevelopedMode) }
         Row(verticalAlignment = Alignment.CenterVertically) {

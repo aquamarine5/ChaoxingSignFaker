@@ -70,6 +70,7 @@ import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
@@ -80,6 +81,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -247,10 +249,99 @@ private fun CollapsibleSettingsSection(
                 fontWeight = FontWeight.Bold
             )
         }
-        AnimatedVisibility(visible = expanded) {
-            Column { content() }
-        }
     }
+    AnimatedVisibility(visible = expanded) {
+        Column { content() }
+    }
+}
+
+@Composable
+private fun ConsistentDeviceCodeHelpDialog(
+    isIgnoreAllConsistentDeviceCodeComponents: Boolean,
+    onIgnoreAllConsistentDeviceCodeComponentsChange: (Boolean) -> Unit,
+    onDismissRequest: () -> Unit
+) {
+    val checkIconId = "deviceCodeCheckIcon"
+    val crossIconId = "deviceCodeCrossIcon"
+    SnackbarAlertDialog(onDismissRequest = onDismissRequest, icon = {
+        Icon(
+            painterResource(R.drawable.ic_sparkles),
+            null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(40.dp)
+        )
+    }, title = {
+        Text("设备码说明")
+    }, text = {
+        Column {
+            Column(
+                modifier = Modifier
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                    .verticalScroll(rememberScrollState())
+                    .zIndex(1f)
+            ) {
+                Text(
+                    buildAnnotatedString {
+                        append("▪ 为了给代签用户绑定统一的设备码，请让代签用户更新到随地大小签最新版本，然后此机去重新扫描随地大小签的用户页二维码或重新根据链接导入以绑定设备码。绑定设备码后，无论是在机主的学习通应用上、机主的随地大小签上和已经绑定过设备码的随地大小签进行代签上都会被学习通认为是同一台设备，不会在教师端检测出\"更换了签到设备\"。\n")
+                        append("▪ 没有绑定设备码的用户在使用随地大小签代签时，会在之后的所有签到上固定每个用户不同的随机设备码。随机设备码只能保证每次都使用随地大小签时不出现\"更换了签到设备\"，但如果代签用户在自己的学习通应用上、或其他随地大小签用户为此用户签到过一次，则还是会出现\"更换了签到设备\"的异常。\n")
+                        append("▪ 已绑定设备码的代签用户会有")
+                        appendInlineContent(checkIconId, "[已绑定统一设备码标识]")
+                        append("的标识，没有绑定统一设备码而是使用固定的随机设备码的用户会用")
+                        appendInlineContent(crossIconId, "[固定随机设备码标识]")
+                        append("的标识。")
+                    },
+                    inlineContent = mapOf(
+                        checkIconId to InlineTextContent(
+                            Placeholder(
+                                width = 16.sp,
+                                height = 16.sp,
+                                placeholderVerticalAlign = PlaceholderVerticalAlign.Center
+                            )
+                        ) {
+                            Icon(
+                                painterResource(R.drawable.ic_tablet_smartphone_check),
+                                contentDescription = "已绑定统一设备码",
+                                tint = Color(0xFF4CAF50)
+                            )
+                        },
+                        crossIconId to InlineTextContent(
+                            Placeholder(
+                                width = 16.sp,
+                                height = 16.sp,
+                                placeholderVerticalAlign = PlaceholderVerticalAlign.Center
+                            )
+                        ) {
+                            Icon(
+                                painterResource(R.drawable.ic_tablet_smartphone_x),
+                                contentDescription = "固定随机设备码",
+                                tint = Color(0xFFFF9800)
+                            )
+                        }
+                    )
+                )
+                HorizontalDivider(modifier = Modifier.padding(0.dp, 8.dp))
+                Text(
+                    buildAnnotatedString {
+                        withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+                            append("学习通检测前后签到设备的机制并不是在所有学校都启用，如果你确定你的学校没有此机制且不想看见代签用户后面的关于设备码的图标，可以点击下方的按钮关闭，你可以随时在设置页修改此选项。")
+                        }
+                    }
+                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Switch(
+                        checked = isIgnoreAllConsistentDeviceCodeComponents,
+                        onCheckedChange = onIgnoreAllConsistentDeviceCodeComponentsChange
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("关闭设备码提示图标")
+                }
+            }
+        }
+    }, confirmButton = {
+        Button(onClick = onDismissRequest) {
+            Text("关闭")
+        }
+    })
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -287,6 +378,9 @@ fun OtherUserScreen(
     val otherUserSessions = remember { mutableStateListOf<ChaoxingOtherUserSession>() }
     var qrCode by remember { mutableStateOf<Bitmap?>(null) }
     val isTooltipShowed = remember { mutableStateOf(false) }
+    val isConsistentDeviceCodeTooltipShowed = remember { mutableStateOf(false) }
+    var isConsistentDeviceCodeDialogVisible by remember { mutableStateOf(false) }
+    var isIgnoreConsistentDeviceCodeComponents by remember { mutableStateOf(false) }
     val tagsEntityList = remember { mutableStateListOf<OtherUserTagType>() }
     val userTagList = remember { mutableStateListOf<MutableState<List<OtherUserTagType>>>() }
     val coroutineScope = rememberCoroutineScope()
@@ -347,6 +441,10 @@ fun OtherUserScreen(
                 }
             })
             isTooltipShowed.value = !datastore.learntTooltips.supportCloneOtherUserSession
+            isConsistentDeviceCodeTooltipShowed.value =
+                !datastore.learntTooltips.supportConsistentDeviceCodeInOtherSession
+            isIgnoreConsistentDeviceCodeComponents =
+                datastore.preferences.isIgnoreAllConsistentDeviceCodeComponents
             isLocalSharedEntityReady = ChaoxingOtherUserHelper.checkSharedEntity(datastore)
         }
     }
@@ -1454,6 +1552,9 @@ fun OtherUserScreen(
         var isFacePhotoSectionExpanded by remember(settingsPhoneNumber) { mutableStateOf(false) }
         var isShareOtherUserExpanded by remember(settingsPhoneNumber) { mutableStateOf(false) }
         var shareOtherUserQrCode by remember(settingsPhoneNumber) { mutableStateOf<Bitmap?>(null) }
+        var isSettingsDeviceCodeDialogVisible by remember(settingsPhoneNumber) {
+            mutableStateOf(false)
+        }
         val settingsLazyListState = rememberLazyListState()
         val modifiedTagIndexList = remember(selectedUserSettingDialogIndex) {
             List(tagsEntityList.size) {
@@ -1652,6 +1753,51 @@ fun OtherUserScreen(
                 }
                 Column {
                     LazyColumn(state = settingsLazyListState) {
+                        item {
+                            val isDeviceCodeConsistent =
+                                otherUserSessions[selectedUserSettingDialogIndex!!].isNotRandomizedDeviceCode
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Icon(
+                                    painterResource(
+                                        if (isDeviceCodeConsistent) R.drawable.ic_tablet_smartphone_check
+                                        else R.drawable.ic_tablet_smartphone_x
+                                    ),
+                                    contentDescription = null,
+                                    tint = if (isDeviceCodeConsistent) Color(0xFF4CAF50) else Color(
+                                        0xFFFF9800
+                                    ),
+                                    modifier = Modifier
+                                        .size(24.dp)
+                                        .padding(end = 3.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    if (isDeviceCodeConsistent) "此用户已设置统一的设备码。"
+                                    else "此用户还没有设置统一的设备码，可能签到时在老师端会显示\"更改了签到设备\"。",
+                                    fontSize = 13.sp,
+                                    lineHeight = 17.sp,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                IconButton(
+                                    onClick = {
+                                        hapticFeedback.performHapticFeedback(
+                                            HapticFeedbackType.ContextClick
+                                        )
+                                        isSettingsDeviceCodeDialogVisible = true
+                                    }, modifier = Modifier.size(32.dp)
+                                ) {
+                                    Icon(
+                                        painterResource(R.drawable.ic_circle_question_mark),
+                                        contentDescription = "设备码说明",
+                                        tint = Color.Gray,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                }
+                            }
+                        }
                         item {
                             CollapsibleSettingsSection(
                                 title = "修改用户标签",
@@ -1876,6 +2022,29 @@ fun OtherUserScreen(
                     }
                 }
             })
+        if (isSettingsDeviceCodeDialogVisible) {
+            ConsistentDeviceCodeHelpDialog(
+                isIgnoreAllConsistentDeviceCodeComponents = isIgnoreConsistentDeviceCodeComponents,
+                onIgnoreAllConsistentDeviceCodeComponentsChange = { checked ->
+                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                    isIgnoreConsistentDeviceCodeComponents = checked
+                    coroutineScope.launch(Dispatchers.IO) {
+                        context.chaoxingDataStore.updateData {
+                            it.toBuilder()
+                                .setPreferences(
+                                    it.preferences.toBuilder()
+                                        .setIsIgnoreAllConsistentDeviceCodeComponents(checked)
+                                        .build()
+                                ).build()
+                        }
+                    }
+                },
+                onDismissRequest = {
+                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                    isSettingsDeviceCodeDialogVisible = false
+                }
+            )
+        }
     }
     if (isURLSharedDialog) {
         SnackbarAlertDialog(onDismissRequest = {
@@ -2287,6 +2456,60 @@ fun OtherUserScreen(
                 }
             }
             Spacer(modifier = Modifier.height(8.dp))
+            NewFeatureTipsCard(
+                isConsistentDeviceCodeTooltipShowed,
+                tipsText = "现在支持给代签用户绑定统一的设备码，在绑定后进行代签时教师端不会被学习通检测出\"更换了签到设备\"。",
+                modifier = Modifier.padding(6.dp, 0.dp),
+                isAnimated = false,
+                trailingAction = {
+                    IconButton(
+                        onClick = {
+                            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                            isConsistentDeviceCodeDialogVisible = true
+                        },
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            painterResource(R.drawable.ic_circle_question_mark),
+                            contentDescription = "设备码说明",
+                            tint = Color.Gray,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+            ) {
+                context.chaoxingDataStore.updateData {
+                    it.toBuilder()
+                        .setLearntTooltips(
+                            it.learntTooltips.toBuilder()
+                                .setSupportConsistentDeviceCodeInOtherSession(true)
+                                .build()
+                        ).build()
+                }
+            }
+            if (isConsistentDeviceCodeDialogVisible) {
+                ConsistentDeviceCodeHelpDialog(
+                    isIgnoreAllConsistentDeviceCodeComponents = isIgnoreConsistentDeviceCodeComponents,
+                    onIgnoreAllConsistentDeviceCodeComponentsChange = { checked ->
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                        isIgnoreConsistentDeviceCodeComponents = checked
+                        coroutineScope.launch(Dispatchers.IO) {
+                            context.chaoxingDataStore.updateData {
+                                it.toBuilder()
+                                    .setPreferences(
+                                        it.preferences.toBuilder()
+                                            .setIsIgnoreAllConsistentDeviceCodeComponents(checked)
+                                            .build()
+                                    ).build()
+                            }
+                        }
+                    },
+                    onDismissRequest = {
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                        isConsistentDeviceCodeDialogVisible = false
+                    }
+                )
+            }
             Card(
                 shape = RoundedCornerShape(18.dp),
                 colors = CardDefaults.cardColors(
@@ -2724,6 +2947,10 @@ fun OtherUserScreen(
                                                     .weight(1f)
                                                     .padding(0.dp, 2.dp)
                                             ) {
+                                                val isDeviceCodeConsistent =
+                                                    user.isNotRandomizedDeviceCode
+                                                val isDeviceCodeIconVisible =
+                                                    !isIgnoreConsistentDeviceCodeComponents
                                                 Text(
                                                     text = buildAnnotatedString {
                                                         withStyle(
@@ -2743,7 +2970,36 @@ fun OtherUserScreen(
                                                         ) {
                                                             append(" (${user.phoneNumber})")
                                                         }
+                                                        if (isDeviceCodeIconVisible) {
+                                                            appendInlineContent(
+                                                                "deviceCodeStatus",
+                                                                "[设备码标识]"
+                                                            )
+                                                        }
                                                     },
+                                                    inlineContent = if (isDeviceCodeIconVisible) mapOf(
+                                                        "deviceCodeStatus" to InlineTextContent(
+                                                            Placeholder(
+                                                                width = 14.sp,
+                                                                height = 14.sp,
+                                                                placeholderVerticalAlign = PlaceholderVerticalAlign.Center
+                                                            )
+                                                        ) {
+                                                            Icon(
+                                                                painterResource(
+                                                                    if (isDeviceCodeConsistent) R.drawable.ic_tablet_smartphone_check
+                                                                    else R.drawable.ic_tablet_smartphone_x
+                                                                ),
+                                                                contentDescription = if (isDeviceCodeConsistent) "已绑定统一设备码" else "使用固定随机设备码",
+                                                                tint = if (isDeviceCodeConsistent) Color(
+                                                                    0xFF4CAF50
+                                                                ) else Color(0xFFFF9800),
+                                                                modifier = Modifier
+                                                                    .padding(start = 2.dp)
+                                                                    .size(14.dp)
+                                                            )
+                                                        }
+                                                    ) else emptyMap(),
                                                     fontSize = 14.sp,
                                                     lineHeight = 16.sp,
                                                     fontWeight = FontWeight.Medium,
@@ -2821,7 +3077,8 @@ fun OtherUserScreen(
                                                             hapticFeedback.performHapticFeedback(
                                                                 HapticFeedbackType.ContextClick
                                                             )
-                                                        }
+                                                        },
+                                                        modifier = Modifier.width(40.dp)
                                                     ) {
                                                         Icon(
                                                             painterResource(R.drawable.ic_triangle_alert),
@@ -2831,43 +3088,46 @@ fun OtherUserScreen(
                                                         )
                                                     }
                                                 else
-                                                    IconButton(onClick = {
-                                                        coroutineScope.launch {
-                                                            hapticFeedback.performHapticFeedback(
-                                                                HapticFeedbackType.ContextClick
-                                                            )
-                                                            val session = otherUserSessions[index]
-                                                            runCatching {
-                                                                ChaoxingHttpRequesterPool.getRequester(
-                                                                    context,
-                                                                    session.phoneNumber
-                                                                ).toChaoxingHttpClient(context)
-                                                            }.onSuccess { client ->
-                                                                ChaoxingHttpClient.cloneInstance =
-                                                                    client
-                                                                naviCloneCourseListScreen()
-                                                            }.onFailure { failure ->
-                                                                (failure as? ChaoxingHttpClient.ChaoxingGetUserInfoException)
-                                                                    ?.takeIf { it.isOtherUser }
-                                                                    ?.let {
-                                                                        coroutineScope.launch {
-                                                                            runCatching {
-                                                                                ChaoxingOtherUserHelper.markSessionObsoleted(
-                                                                                    session,
-                                                                                    context
-                                                                                )
+                                                    IconButton(
+                                                        modifier = Modifier.width(40.dp),
+                                                        onClick = {
+                                                            coroutineScope.launch {
+                                                                hapticFeedback.performHapticFeedback(
+                                                                    HapticFeedbackType.ContextClick
+                                                                )
+                                                                val session =
+                                                                    otherUserSessions[index]
+                                                                runCatching {
+                                                                    ChaoxingHttpRequesterPool.getRequester(
+                                                                        context,
+                                                                        session.phoneNumber
+                                                                    ).toChaoxingHttpClient(context)
+                                                                }.onSuccess { client ->
+                                                                    ChaoxingHttpClient.cloneInstance =
+                                                                        client
+                                                                    naviCloneCourseListScreen()
+                                                                }.onFailure { failure ->
+                                                                    (failure as? ChaoxingHttpClient.ChaoxingGetUserInfoException)
+                                                                        ?.takeIf { it.isOtherUser }
+                                                                        ?.let {
+                                                                            coroutineScope.launch {
+                                                                                runCatching {
+                                                                                    ChaoxingOtherUserHelper.markSessionObsoleted(
+                                                                                        session,
+                                                                                        context
+                                                                                    )
+                                                                                }
                                                                             }
                                                                         }
-                                                                    }
-                                                                failure.snackbarReport(
-                                                                    snackbarHost,
-                                                                    coroutineScope,
-                                                                    "切换代签用户失败",
-                                                                    hapticFeedback
-                                                                )
+                                                                    failure.snackbarReport(
+                                                                        snackbarHost,
+                                                                        coroutineScope,
+                                                                        "切换代签用户失败",
+                                                                        hapticFeedback
+                                                                    )
+                                                                }
                                                             }
-                                                        }
-                                                    }) {
+                                                        }) {
                                                         Icon(
                                                             painterResource(R.drawable.ic_user_left_arrow),
                                                             null
@@ -2879,7 +3139,8 @@ fun OtherUserScreen(
                                                         hapticFeedback.performHapticFeedback(
                                                             HapticFeedbackType.ContextClick
                                                         )
-                                                    }
+                                                    },
+                                                    modifier = Modifier.width(40.dp)
                                                 ) {
                                                     Icon(
                                                         painter = painterResource(R.drawable.ic_user_round_pen),
@@ -2921,6 +3182,7 @@ fun OtherUserScreen(
                                                 }
                                                 IconButton(
                                                     modifier = Modifier
+                                                        .width(40.dp)
                                                         .onGloballyPositioned {
                                                             dragHandlePositionInRoot =
                                                                 it.positionInRoot()

@@ -89,7 +89,10 @@ class ChaoxingLocationSigner(
             }
         }
 
-    @Deprecated("Use sign instead", ReplaceWith("sign(signLocation, faceImageObjectId, context, captchaValidate)"))
+    @Deprecated(
+        "Use sign instead",
+        ReplaceWith("sign(signLocation, faceImageObjectId, context, captchaValidate)")
+    )
     suspend fun signWithCaptcha(
         signLocation: ChaoxingLocationSignEntity,
         validateValue: String,

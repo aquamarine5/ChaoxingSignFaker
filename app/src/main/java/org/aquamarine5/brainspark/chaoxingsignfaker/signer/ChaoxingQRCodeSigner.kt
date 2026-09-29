@@ -53,7 +53,7 @@ class ChaoxingQRCodeSigner(
             }
             val url = rawValue.toHttpUrlOrNull() ?: throw QRCodeParseException(rawValue)
             val enc = url.queryParameter("enc")?.takeIf { it.isNotBlank() }
-            ?: throw QRCodeParseException(rawValue)
+                ?: throw QRCodeParseException(rawValue)
             return ChaoxingQRCodeParseResult(
                 url.queryParameter("id")?.toLongOrNull()
                     ?: url.queryParameter("aid")?.toLongOrNull(),

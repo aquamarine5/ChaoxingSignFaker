@@ -304,9 +304,9 @@ fun PhotoSignScreen(
                                                                                 }
                                                                             }
                                                                     }
-                                                            this.signByClick(
-                                                                resolution.validate
-                                                            )
+                                                                this.signByClick(
+                                                                    resolution.validate
+                                                                )
                                                                 return@runCatching ChaoxingSignResult(
                                                                     isCaptchaSigning = true,
                                                                     isCaptchaResolvedByModel = resolution.resolvedByModel
@@ -525,10 +525,10 @@ fun PhotoSignScreen(
                                                                                     }
                                                                                 }
                                                                         }
-                                                                this.signByImage(
-                                                                    objectId,
-                                                                    resolution.validate
-                                                                )
+                                                                    this.signByImage(
+                                                                        objectId,
+                                                                        resolution.validate
+                                                                    )
                                                                     return@runCatching ChaoxingSignResult(
                                                                         isCaptchaSigning = true,
                                                                         isCaptchaResolvedByModel = resolution.resolvedByModel
@@ -833,10 +833,10 @@ fun PhotoSignScreen(
                                                                 captchaValidateParams =
                                                                     signer to { captchaResult ->
                                                                         captchaResult.onSuccess { resolution ->
-                                                                        signer.signByImage(
-                                                                            objectId,
-                                                                            resolution.validate
-                                                                        )
+                                                                            signer.signByImage(
+                                                                                objectId,
+                                                                                resolution.validate
+                                                                            )
                                                                             coroutineScope.launch {
                                                                                 ChaoxingRecommendHelper.recordRecommendEvent(
                                                                                     context,

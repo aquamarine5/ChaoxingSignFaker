@@ -37,6 +37,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 //noinspection UsingMaterialAndMaterial3Libraries
@@ -66,6 +67,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
@@ -251,8 +254,13 @@ class MainActivity : ComponentActivity() {
                                 exit = shrinkVertically()
                             ) {
                                 BottomNavigation(
-                                    backgroundColor = MaterialTheme.colorScheme.primaryContainer,
-                                    elevation = 14.dp
+                                    modifier = Modifier
+                                        .shadow(14.dp, clip = false)
+                                        .background(MaterialTheme.colorScheme.primaryContainer)
+                                        .navigationBarsPadding(),
+                                    backgroundColor = Color.Transparent,
+                                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    elevation = 0.dp
                                 ) {
                                     remember {
                                         listOf(

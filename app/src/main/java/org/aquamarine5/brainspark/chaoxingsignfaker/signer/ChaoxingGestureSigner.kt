@@ -99,7 +99,10 @@ class ChaoxingGestureSigner(
         }
     }
 
-    @Deprecated("Use sign instead", ReplaceWith("sign(gestureOrderCode, position, captchaValidate)"))
+    @Deprecated(
+        "Use sign instead",
+        ReplaceWith("sign(gestureOrderCode, position, captchaValidate)")
+    )
     suspend fun signWithCaptcha(
         gestureOrderCode: String,
         validateValue: String,

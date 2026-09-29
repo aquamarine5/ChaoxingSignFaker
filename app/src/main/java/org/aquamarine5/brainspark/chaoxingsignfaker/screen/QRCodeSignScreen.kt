@@ -318,11 +318,11 @@ fun QRCodeSignScreen(
                     var expiredRefreshJob by remember { mutableStateOf<Job?>(null) }
 
                     var getQRCodeContinuation: CancellableContinuation<ChaoxingQRCodeParseResult>? by
-                        remember {
-                            mutableStateOf(
-                                null
-                            )
-                        }
+                    remember {
+                        mutableStateOf(
+                            null
+                        )
+                    }
                     var locationData by remember { mutableStateOf<ChaoxingLocationSignEntity?>(null) }
                     var job by remember { mutableStateOf<Job?>(null) }
                     val userSelections = remember { mutableStateListOf(true) }
