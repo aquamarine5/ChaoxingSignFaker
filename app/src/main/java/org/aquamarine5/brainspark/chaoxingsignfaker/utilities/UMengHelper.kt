@@ -14,7 +14,6 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.BuildConfig
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationSignEntity
-import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingUserEntity
 import org.aquamarine5.brainspark.stackbricks.StackbricksVersionData
 import java.security.MessageDigest
 
@@ -57,10 +56,10 @@ object UMengHelper {
         UMConfigure.init(context, API_KEY, API_CHANNEL, UMConfigure.DEVICE_TYPE_PHONE, "")
     }
 
-    fun profileSignIn(user: ChaoxingUserEntity, phoneNumber: String) {
-        MobclickAgent.onProfileSignIn(user.uid.toString())
+    fun profileSignIn(puid: Int, name: String, phoneNumber: String) {
+        MobclickAgent.onProfileSignIn(puid.toString())
         MobclickAgent.userProfileMobile(phoneNumber)
-        MobclickAgent.userProfile("name", user.name)
+        MobclickAgent.userProfile("name", name)
     }
 
     fun profileSignOff() {
@@ -83,7 +82,7 @@ object UMengHelper {
                 "name" to (applicationInfo.applicationInfo?.name ?: "Unknown"),
                 "label" to context.packageManager.getApplicationLabel(applicationInfo.applicationInfo!!),
                 "version" to (applicationInfo.versionName ?: ""),
-                "user" to (ChaoxingHttpClient.instance?.userEntity?.name ?: "Unknown")
+                "user" to (ChaoxingHttpClient.instance?.name ?: "Unknown")
             )
         )
     }
@@ -167,59 +166,59 @@ object UMengHelper {
         )
     }
 
-    fun onGotoSponsorWechatEvent(context: Context, userEntity: ChaoxingUserEntity) {
-        onEvent(context, EVENT_TAG_GOTO_SPONSOR_WECHAT, mapOf("user" to userEntity.name))
+    fun onGotoSponsorWechatEvent(context: Context, name: String) {
+        onEvent(context, EVENT_TAG_GOTO_SPONSOR_WECHAT, mapOf("user" to name))
     }
 
-    fun onStackbricksCheckUpdateEvent(context: Context, userEntity: ChaoxingUserEntity) {
-        onEvent(context, EVENT_TAG_STACKBRICKS_CHECK_UPDATE, mapOf("user" to userEntity.name))
+    fun onStackbricksCheckUpdateEvent(context: Context, name: String) {
+        onEvent(context, EVENT_TAG_STACKBRICKS_CHECK_UPDATE, mapOf("user" to name))
     }
 
     fun onStackbricksInstallNewestEvent(
         context: Context,
-        userEntity: ChaoxingUserEntity,
+        name: String,
         versionData: StackbricksVersionData
     ) {
         onEvent(
             context,
             EVENT_TAG_STACKBRICKS_INSTALL_NEWEST,
-            mapOf("user" to userEntity.name, "version" to versionData.versionName)
+            mapOf("user" to name, "version" to versionData.versionName)
         )
     }
 
     fun onStackbricksInstallTestChannelEvent(
         context: Context,
-        userEntity: ChaoxingUserEntity,
+        name: String,
         versionData: StackbricksVersionData
     ) {
         onEvent(
             context,
             EVENT_TAG_STACKBRICKS_INSTALL_TEST_CHANNEL,
-            mapOf("user" to userEntity.name, "version" to versionData.versionName)
+            mapOf("user" to name, "version" to versionData.versionName)
         )
     }
 
     fun onStackbricksCheckOnLaunchChangedEvent(
         context: Context,
-        userEntity: ChaoxingUserEntity,
+        name: String,
         status: Boolean
     ) {
         onEvent(
             context,
             EVENT_TAG_STACKBRICKS_CHECK_ON_LAUNCH_CHANGED,
-            mapOf("user" to userEntity.name, "status" to status)
+            mapOf("user" to name, "status" to status)
         )
     }
 
     fun onStackbricksTestChannelChangedEvent(
         context: Context,
-        userEntity: ChaoxingUserEntity,
+        name: String,
         status: Boolean
     ) {
         onEvent(
             context,
             EVENT_TAG_STACKBRICKS_TEST_CHANNEL_CHANGED,
-            mapOf("user" to userEntity.name, "status" to status)
+            mapOf("user" to name, "status" to status)
         )
     }
 }

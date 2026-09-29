@@ -21,7 +21,6 @@ import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
-import org.aquamarine5.brainspark.chaoxingsignfaker.BuildConfig
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.easemob.MessageBody
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.easemob.Meta
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingEasemobIMConfig
@@ -63,7 +62,7 @@ object ChaoxingIMHelper {
         "https://a1-vip6.easecdn.com/cx-dev/cxstudy/users/%s/messageroaming"
     const val USER_AGENT_EASEMOB = "Easemob-SDK(Android) 4.9.0.1"
 
-    val IM_ENCRYPTED_KEY = BuildConfig.imEncryptedKey.toByteArray(Charsets.UTF_8)
+    val IM_ENCRYPTED_KEY = "SL2(M/eD".toByteArray(Charsets.UTF_8)
 
     fun desDecrypt(imEncryptedPassword: String): String {
         @Suppress("GetInstance")

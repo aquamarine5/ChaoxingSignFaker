@@ -30,20 +30,35 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingSignFakerD
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.HttpCookie
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingImportOtherUserResultStatus
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingOtherUserSharedEntity
-import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingUserEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ImportOtherUserResult
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingParseDataException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
-import kotlin.time.Duration.Companion.milliseconds
 
 object ChaoxingOtherUserHelper {
-    val TIMEOUT_NEXT_SIGN = 200.milliseconds
-
     class NotAvailableQRCodeException(message: String, throwable: Throwable? = null) :
         ChaoxingParseDataException(message, throwable)
 
     class AlreadyExistedOtherUserException(message: String, throwable: Throwable? = null) :
         ChaoxingParseDataException(message, throwable)
+
+    private suspend fun ChaoxingOtherUserSession.applySharedDeviceCode(
+        context: Context,
+        deviceCode: String?
+    ): ChaoxingOtherUserSession {
+        if (deviceCode.isNullOrEmpty()) return this
+        if (deviceCode == this.deviceCode && isNotRandomizedDeviceCode) return this
+        val updatedSession = toBuilder()
+            .setDeviceCode(deviceCode)
+            .setIsNotRandomizedDeviceCode(true)
+            .build()
+        context.chaoxingDataStore.updateData { datastore ->
+            datastore.toBuilder().apply {
+                otherUsersList.indexOfFirst { it.phoneNumber == updatedSession.phoneNumber }
+                    .takeIf { it >= 0 }?.let { index -> setOtherUsers(index, updatedSession) }
+            }.build()
+        }
+        return updatedSession
+    }
 
     private fun getQRCodeSize(context: Context): Int {
         val displayMetrics = context.resources.displayMetrics
@@ -64,7 +79,7 @@ object ChaoxingOtherUserHelper {
         return ChaoxingOtherUserSharedEntity(
             dataStore.loginSession.phoneNumber!!,
             dataStore.loginSession.password!!,
-            ChaoxingHttpClient.instance!!.userEntity.name
+            ChaoxingHttpClient.instance!!.name
         )
     }
 
@@ -84,11 +99,12 @@ object ChaoxingOtherUserHelper {
             val faceObjectIds = selectedFaceObjectIds
                 .distinct()
                 .filter { it in availableFaceObjectIds }.take(ChaoxingFaceHelper.MAX_FACE_IMAGES)
+            val deviceCode = ChaoxingDeviceInfoHelper.getCachedLocalMachineDeviceCode(context)
             "http://cdn.aquamarine5.fun/?phone=${sharedEntity.phoneNumber}&pwd=${
                 Uri.encode(sharedEntity.encryptedPassword)
             }&name=${
                 Uri.encode(sharedEntity.userName)
-            }&face=${faceObjectIds.joinToString(",")}"
+            }&face=${faceObjectIds.joinToString(",")}&dc=${Uri.encode(deviceCode)}"
         }
 
     suspend fun generateQRCode(
@@ -192,10 +208,11 @@ object ChaoxingOtherUserHelper {
             val dataStore = context.chaoxingDataStore.data.first()
             if (dataStore.loginSession.phoneNumber == sharedEntity.phoneNumber)
                 throw AlreadyExistedOtherUserException("自己不能添加自己！")
-            val existedSession =
-                dataStore.otherUsersList.firstOrNull { it.phoneNumber == sharedEntity.phoneNumber }
+            val existedSession = dataStore.otherUsersList
+                .firstOrNull { it.phoneNumber == sharedEntity.phoneNumber }
+                ?.applySharedDeviceCode(context, sharedEntity.deviceCode)
 
-            suspend fun saveFaceImages(okHttpClient: OkHttpClient, userEntity: ChaoxingUserEntity) {
+            suspend fun saveFaceImages(okHttpClient: OkHttpClient, phoneNumber: String) {
                 if (sharedEntity.faceObjectIds.isEmpty()) return
                 val configure = context.chaoxingDataStore.data.first()
                     .faceRecognitionConfiguresMap[sharedEntity.phoneNumber]
@@ -229,10 +246,9 @@ object ChaoxingOtherUserHelper {
                     .forEach { objectId ->
                         ChaoxingFaceHelper.saveFaceImage(
                             okHttpClient,
-                            userEntity,
+                            phoneNumber,
                             context,
                             objectId,
-                            sharedEntity.phoneNumber,
                         )
                     }
             }
@@ -260,8 +276,8 @@ object ChaoxingOtherUserHelper {
                     )
                 }
                 val faceClient =
-                    ChaoxingHttpClientPool.get(context, existedSession.phoneNumber)
-                saveFaceImages(faceClient.okHttpClient, faceClient.userEntity)
+                    ChaoxingHttpRequesterPool.getRequester(context, existedSession.phoneNumber)
+                saveFaceImages(faceClient.okHttpClient, existedSession.phoneNumber)
                 return@withContext Triple(
                     ChaoxingImportOtherUserResultStatus.EXISTED_BUT_UPDATE_FACE_IMAGES,
                     existedSession.name,
@@ -304,13 +320,24 @@ object ChaoxingOtherUserHelper {
                 isSaveToDataStore = false,
                 isEncryptedPassword = true
             )
-            val userEntity =
-                ChaoxingHttpClient.getInfo(tempOkHttpClient, context, sharedEntity.phoneNumber)
+            val (userEntity, puid) =
+                ChaoxingHttpClient.getInfoWithIdentity(
+                    tempOkHttpClient,
+                    context,
+                    sharedEntity.phoneNumber
+                )
 
             val session = (existedSession?.toBuilder() ?: ChaoxingOtherUserSession.newBuilder())
                 .setPassword(sharedEntity.encryptedPassword.replace(" ", "+"))
                 .setName(sharedEntity.userName.ifEmpty { userEntity.name })
+                .setPuid(puid)
                 .setPhoneNumber(sharedEntity.phoneNumber)
+                .apply {
+                    sharedEntity.deviceCode?.takeIf { it.isNotEmpty() }?.let { deviceCode ->
+                        setDeviceCode(deviceCode)
+                        setIsNotRandomizedDeviceCode(true)
+                    }
+                }
                 .clearCookies()
                 .addAllCookies(
                     tempOkHttpClient.cookieJar.loadForRequest(
@@ -329,7 +356,7 @@ object ChaoxingOtherUserHelper {
                 context.chaoxingDataStore.updateData { datastore ->
                     datastore.toBuilder().addOtherUsers(session).build()
                 }
-                saveFaceImages(tempOkHttpClient, userEntity)
+                saveFaceImages(tempOkHttpClient, sharedEntity.phoneNumber)
                 return@withContext Triple(
                     ChaoxingImportOtherUserResultStatus.SUCCESS,
                     session.name,
@@ -343,7 +370,7 @@ object ChaoxingOtherUserHelper {
                 if (index == -1) return@updateData datastore
                 datastore.toBuilder().removeOtherUsers(index).addOtherUsers(index, session).build()
             }
-            saveFaceImages(tempOkHttpClient, userEntity)
+            saveFaceImages(tempOkHttpClient, sharedEntity.phoneNumber)
             return@withContext Triple(
                 ChaoxingImportOtherUserResultStatus.EXISTED_BUT_UPDATE_PASSWORD,
                 session.name,
@@ -361,4 +388,22 @@ object ChaoxingOtherUserHelper {
                 datastore.toBuilder().clearOtherUsers().addAllOtherUsers(updatedSessions).build()
             }
         }
+
+    suspend fun ChaoxingOtherUserSession.getSessionPuid(context: Context): Int? {
+        return if (this.hasPuid()) this.puid else this.cookiesList.firstOrNull { it.name == "_uid" }?.value?.toIntOrNull()
+            ?.also {
+                context.chaoxingDataStore.updateData { datastore ->
+                    val index =
+                        datastore.otherUsersList.indexOfFirst { it.phoneNumber == this@getSessionPuid.phoneNumber }
+                    if (index != -1) {
+                        datastore.toBuilder().removeOtherUsers(index).addOtherUsers(
+                            index,
+                            this@getSessionPuid.toBuilder().setPuid(it).build()
+                        ).build()
+                    } else {
+                        datastore
+                    }
+                }
+            }
+    }
 }

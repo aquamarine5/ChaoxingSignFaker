@@ -40,6 +40,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.checkResponse
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.sentryReport
 
 private const val UNBLOCKED_BUTTON_CLICK_LIMIT = 8
 
@@ -70,6 +71,8 @@ fun BlockedContent(content: @Composable () -> Unit) {
                             JSONObject.parseObject(it?.body?.string()).getJSONArray("banfids")
                                 .toList(Int::class.java)
                     }
+                }.onFailure {
+                    it.sentryReport()
                 }
         }
     }

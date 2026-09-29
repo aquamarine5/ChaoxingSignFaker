@@ -9,6 +9,7 @@ package org.aquamarine5.brainspark.chaoxingsignfaker.utilities
 import android.content.Context
 import android.graphics.Bitmap
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
@@ -21,6 +22,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingFaceHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
 
+@Stable
 class FaceRecognitionData {
     val imageIconList: FaceRecognitionImageIconState = mutableStateOf(emptyList())
     val capturedBitmaps: SnapshotStateMap<String, Bitmap> = mutableStateMapOf()
@@ -35,7 +37,7 @@ class FaceRecognitionData {
         phoneNumber: String,
         otherUserSessionList: List<ChaoxingOtherUserSession?>
     ): Int {
-        return if (phoneNumber == ChaoxingHttpClient.instance!!.userEntity.phoneNumber) 0
+        return if (phoneNumber == ChaoxingHttpClient.instance!!.phoneNumber) 0
         else otherUserSessionList.indexOfFirst { it?.phoneNumber == phoneNumber }
             .let { if (it < 0) -1 else it + 1 }
     }

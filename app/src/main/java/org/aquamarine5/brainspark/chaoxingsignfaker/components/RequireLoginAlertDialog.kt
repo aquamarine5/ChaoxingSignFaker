@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingOtherUserSharedEntity
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.sentryReport
 
 @Composable
 fun RequireLoginAlertDialog(
@@ -80,6 +81,7 @@ fun RequireLoginAlertDialog(
                             runCatching {
                                 ChaoxingHttpClient.checkSharedEntity(phoneNumber, password, context)
                             }.onFailure {
+                                it.sentryReport()
                                 errorText = it.message ?: "登录失败"
                             }.onSuccess {
                                 onSharedEntityReceived(it)

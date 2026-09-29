@@ -59,7 +59,7 @@ object ChaoxingCaptchaPredictor {
         val session = ortSession ?: return null
         val environment = OrtEnvironment.getEnvironment()
         val paddedLength = max(originalImage.width, originalImage.height)
-        return createBitmap(paddedLength, paddedLength).use { paddedImage ->
+        createBitmap(paddedLength, paddedLength).use { paddedImage ->
             Canvas(paddedImage).drawBitmap(originalImage, 0f, 0f, null)
             paddedImage.scale(MODEL_INPUT_SIZE, MODEL_INPUT_SIZE).use { scaledImage ->
                 val pixels = IntArray(MODEL_INPUT_SIZE * MODEL_INPUT_SIZE)

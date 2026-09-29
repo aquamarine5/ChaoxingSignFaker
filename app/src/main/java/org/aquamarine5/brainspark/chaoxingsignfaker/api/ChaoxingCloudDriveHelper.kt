@@ -46,7 +46,7 @@ object ChaoxingCloudDriveHelper {
         }
     }
 
-    suspend fun getCloudToken(client: ChaoxingHttpClient): String = withContext(Dispatchers.IO) {
+    suspend fun getCloudToken(client: ChaoxingHttpRequester): String = withContext(Dispatchers.IO) {
         client.storageCloudToken?.let { return@withContext it }
         client.newCall(Request.Builder().url(URL_CLOUD_TOKEN).build()).execute().use {
             it.checkResponseThrowException()
@@ -67,7 +67,7 @@ object ChaoxingCloudDriveHelper {
         }
     }
 
-    suspend fun uploadImage(client: ChaoxingHttpClient, image: Bitmap): String =
+    suspend fun uploadImage(client: ChaoxingHttpRequester, image: Bitmap): String =
         withContext(Dispatchers.IO) {
             val filename = "${UUID.randomUUID()}.jpg"
             ByteArrayOutputStream().use { out ->
@@ -75,7 +75,7 @@ object ChaoxingCloudDriveHelper {
                 client.newCall(
                     Request.Builder().url(URL_CLOUD_UPLOAD + getCloudToken(client)).post(
                         MultipartBody.Builder().setType(MultipartBody.FORM)
-                            .addFormDataPart("puid", client.userEntity.puid.toString())
+                            .addFormDataPart("puid", client.puid.toString())
                             .addFormDataPart(
                                 "file",
                                 filename,
@@ -91,7 +91,7 @@ object ChaoxingCloudDriveHelper {
         }
 
     suspend fun uploadImage(
-        client: ChaoxingHttpClient,
+        client: ChaoxingHttpRequester,
         context: Context,
         uri: Uri
     ): String =
@@ -100,7 +100,7 @@ object ChaoxingCloudDriveHelper {
             client.newCall(
                 Request.Builder().url(URL_CLOUD_UPLOAD + getCloudToken(client)).post(
                     MultipartBody.Builder().setType(MultipartBody.FORM)
-                        .addFormDataPart("puid", client.userEntity.puid.toString())
+                        .addFormDataPart("puid", client.puid.toString())
                         .addFormDataPart(
                             "file",
                             filename,

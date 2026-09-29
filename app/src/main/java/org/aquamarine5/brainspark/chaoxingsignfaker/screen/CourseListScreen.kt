@@ -132,7 +132,7 @@ private const val SORT_COMMON = 0
 fun CourseListScreen(
     destination: CourseListDestination,
     stackbricksService: StackbricksService,
-    navToDetailDestination: (ChaoxingCourseEntity) -> Unit,
+    navToDetailDestination: (CourseDetailDestination) -> Unit,
     onNewVersionAvailable: () -> Unit,
     navToSettingDestination: () -> Unit,
     navToSignActivityDestination: (SignDestination) -> Unit,
@@ -141,7 +141,7 @@ fun CourseListScreen(
 ) {
     val imageLoader = LocalImageLoader.current
     val activeClient = ChaoxingHttpClient.getClientInstanceOrClone(destination.isCloneSession)
-    val courseCacheKey = "${activeClient?.userEntity?.phoneNumber}:${activeClient?.configuredFid}"
+    val courseCacheKey = "${activeClient?.phoneNumber}:${activeClient?.configuredFid}"
     var savedCourseCacheKey by rememberSaveable { mutableStateOf(courseCacheKey) }
     val activitiesData =
         rememberSaveable(saver = ChaoxingCourseEntity.Saver) { mutableStateListOf() }
@@ -200,6 +200,8 @@ fun CourseListScreen(
                         ChaoxingHttpClient.getClientInstanceOrClone(destination.isCloneSession)
                             ?.let { ChaoxingLessonHelper.refreshLessons(it, context) }
                     }
+                }.onFailure {
+                    it.snackbarReport(snackbarHost, coroutineScope, "刷新课表失败", hapticFeedback)
                 }
             }
             if (activitiesData.isEmpty()) {
@@ -518,6 +520,9 @@ fun CourseListScreen(
                                                 ignoreCase = true
                                             ) == true)
                                 }
+                            val groupedCourses = remember(filteredActivities.toList()) {
+                                filteredActivities.groupBy { it.courseName to it.courseId }.values.toList()
+                            }
                             LazyColumn {
                                 item {
                                     Spacer(modifier = Modifier.height(4.dp))
@@ -533,7 +538,9 @@ fun CourseListScreen(
                                             Icon(
                                                 painterResource(R.drawable.ic_circle_question_mark),
                                                 null,
-                                                modifier = Modifier.size(36.dp).padding(2.dp)
+                                                modifier = Modifier
+                                                    .size(36.dp)
+                                                    .padding(2.dp)
                                             )
                                             Column(
                                                 modifier = Modifier.padding(
@@ -607,7 +614,9 @@ fun CourseListScreen(
                                                         Icon(
                                                             painterResource(R.drawable.ic_lightbulb),
                                                             null,
-                                                            modifier = Modifier.size(36.dp).padding(2.dp)
+                                                            modifier = Modifier
+                                                                .size(36.dp)
+                                                                .padding(2.dp)
                                                         )
                                                         Column(
                                                             modifier = Modifier
@@ -620,34 +629,35 @@ fun CourseListScreen(
                                                                 lineHeight = 17.sp,
                                                                 fontWeight = FontWeight.Bold
                                                             )
-                                                            Text(buildAnnotatedString {
-                                                                withStyle(
-                                                                    SpanStyle(
-                                                                        fontWeight = FontWeight.Bold,
-                                                                        color = MaterialTheme.colorScheme.primary
-                                                                    )
-                                                                ) {
-                                                                    append(item.className)
-                                                                }
-                                                                append(" 在 ")
-                                                                withStyle(
-                                                                    SpanStyle(
-                                                                        fontFamily = FontGilroy
-                                                                    )
-                                                                ) {
-                                                                    append(
-                                                                        activityTimeFormatter.format(
-                                                                            Instant.ofEpochMilli(
-                                                                                item.startTime
+                                                            Text(
+                                                                buildAnnotatedString {
+                                                                    withStyle(
+                                                                        SpanStyle(
+                                                                            fontWeight = FontWeight.Bold,
+                                                                            color = MaterialTheme.colorScheme.primary
+                                                                        )
+                                                                    ) {
+                                                                        append(item.className)
+                                                                    }
+                                                                    append(" 在 ")
+                                                                    withStyle(
+                                                                        SpanStyle(
+                                                                            fontFamily = FontGilroy
+                                                                        )
+                                                                    ) {
+                                                                        append(
+                                                                            activityTimeFormatter.format(
+                                                                                Instant.ofEpochMilli(
+                                                                                    item.startTime
+                                                                                )
                                                                             )
                                                                         )
-                                                                    )
-                                                                }
-                                                                append(" 的 ")
-                                                                withStyle(SpanStyle(color = MaterialTheme.colorScheme.primary)) {
-                                                                    append(item.activityName)
-                                                                }
-                                                            },
+                                                                    }
+                                                                    append(" 的 ")
+                                                                    withStyle(SpanStyle(color = MaterialTheme.colorScheme.primary)) {
+                                                                        append(item.activityName)
+                                                                    }
+                                                                },
                                                                 fontSize = 14.sp,
                                                                 lineHeight = 17.sp,
                                                                 style = TextStyle.Default.copy(
@@ -693,7 +703,11 @@ fun CourseListScreen(
                                                                         null,
                                                                         modifier = Modifier.size(18.dp)
                                                                     )
-                                                                    Spacer(modifier = Modifier.width(10.dp))
+                                                                    Spacer(
+                                                                        modifier = Modifier.width(
+                                                                            10.dp
+                                                                        )
+                                                                    )
                                                                     Text("前往签到")
                                                                 }
                                                             }
@@ -749,15 +763,17 @@ fun CourseListScreen(
                                     }
                                 }
                                 stickyHeader(key = "course_search") {
-                                    Surface(
-                                        color = MaterialTheme.colorScheme.background,
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-                                        Column(modifier = Modifier.padding(bottom = 8.dp)) {
+                                    Column(modifier = Modifier.fillMaxWidth()) {
+                                        Surface(
+                                            color = MaterialTheme.colorScheme.background,
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
                                             OutlinedTextField(
                                                 value = searchQuery,
                                                 onValueChange = { searchQuery = it },
-                                                modifier = Modifier.fillMaxWidth(),
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(top = 4.dp, bottom = 3.dp),
                                                 placeholder = { Text("搜索课程名称 / 老师 / 学校") },
                                                 leadingIcon = {
                                                     Icon(
@@ -786,7 +802,7 @@ fun CourseListScreen(
                                         }
                                     }
                                 }
-                                if (searchQuery.isNotBlank() && filteredActivities.isEmpty()) {
+                                if (searchQuery.isNotBlank() && groupedCourses.isEmpty()) {
                                     item {
                                         Column(
                                             modifier = Modifier
@@ -804,7 +820,15 @@ fun CourseListScreen(
                                         }
                                     }
                                 }
-                                items(filteredActivities, key = { it.classId }) { data ->
+                                item {
+                                    Spacer(modifier = Modifier.height(5.dp))
+                                }
+                                items(
+                                    groupedCourses,
+                                    key = { "${it.first().courseId}_${it.first().courseName}" }) { group ->
+                                    val data = group.first()
+                                    val groupClassIds =
+                                        remember(group) { group.map { it.classId }.toSet() }
                                     Column(
                                         modifier = Modifier.animateItem(
                                             placementSpec = spring(
@@ -822,20 +846,29 @@ fun CourseListScreen(
                                         CourseInfoColumnCard(
                                             data,
                                             imageLoader,
+                                            mergedCount = group.size,
+                                            mergedClassIds = remember(group) { group.map { it.classId } },
                                             onPreferredResort = { isPreferred ->
                                                 hapticFeedback.performHapticFeedback(
                                                     HapticFeedbackType.ContextClick
                                                 )
                                                 if (isPreferred)
                                                     coroutineScope.launch {
+                                                        val classIdsToAdd =
+                                                            groupClassIds.filterNot {
+                                                                preferredClassIds.contains(it)
+                                                            }
                                                         context.chaoxingDataStore.updateData {
                                                             it.toBuilder()
-                                                                .addPreferClassId(data.classId)
+                                                                .addAllPreferClassId(classIdsToAdd)
                                                                 .build()
                                                         }
-                                                        preferredClassIds.add(data.classId)
+                                                        preferredClassIds.addAll(classIdsToAdd)
+                                                        group.forEach {
+                                                            it.isPreferred.value = true
+                                                        }
                                                         activitiesData.sortByDescending {
-                                                            if (it.classId == data.classId)
+                                                            if (groupClassIds.contains(it.classId))
                                                                 return@sortByDescending SORT_TOP
                                                             if (preferredClassIds.contains(
                                                                     it.classId
@@ -849,14 +882,21 @@ fun CourseListScreen(
                                                         context.chaoxingDataStore.updateData { dataStore ->
                                                             dataStore.toBuilder().apply {
                                                                 val newList =
-                                                                    preferClassIdList.filterNot { it == data.classId }
+                                                                    preferClassIdList.filterNot {
+                                                                        groupClassIds.contains(
+                                                                            it
+                                                                        )
+                                                                    }
                                                                 clearPreferClassId()
                                                                 addAllPreferClassId(newList)
                                                             }.build()
                                                         }
-                                                        preferredClassIds.remove(data.classId)
+                                                        preferredClassIds.removeAll(groupClassIds)
+                                                        group.forEach {
+                                                            it.isPreferred.value = false
+                                                        }
                                                         activitiesData.sortByDescending {
-                                                            if (it.classId == data.classId)
+                                                            if (groupClassIds.contains(it.classId))
                                                                 return@sortByDescending SORT_UNFAVOURED
                                                             if (preferredClassIds.contains(
                                                                     it.classId
@@ -873,7 +913,7 @@ fun CourseListScreen(
                                                 return@CourseInfoColumnCard
                                             debouncePreviousTime = currentTime
                                             hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                                            navToDetailDestination(data)
+                                            navToDetailDestination(CourseDetailDestination(group))
                                         }
                                     }
                                 }
@@ -926,7 +966,10 @@ fun CourseListScreen(
                     }
                 } else {
                     Box(modifier = Modifier.fillMaxSize()) {
-                        Column(modifier = Modifier.align(Alignment.Center)) {
+                        Column(
+                            modifier = Modifier.align(Alignment.Center),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
                             Icon(painterResource(R.drawable.ic_circle_question_mark), null)
                             Text("暂无课程，请检查登录的学习通账号是否正确。")
                         }

@@ -51,11 +51,11 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingIMHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingSignHelper
-import org.aquamarine5.brainspark.chaoxingsignfaker.entity.SignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NetworkExceptionComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingEasemobIMGroup
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingGroupSignActivityEntity
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.SignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.isDevelopedMode
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
@@ -196,8 +196,10 @@ fun GroupDetailScreen(
                                 Text("该群聊暂无可用签到活动")
                             }
                         } else {
-                            Spacer(modifier = Modifier.height(12.dp))
                             LazyColumn {
+                                item {
+                                    Spacer(modifier = Modifier.height(12.dp))
+                                }
                                 items(messages!!, key = {
                                     it.activeId
                                 }) { message ->
@@ -256,7 +258,6 @@ fun GroupDetailScreen(
                                             )
                                         Spacer(modifier = Modifier.height(16.dp))
                                     }
-
                                 }
                             }
                         }

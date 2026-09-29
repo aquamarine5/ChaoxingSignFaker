@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2025-2026, @aquamarine5 (@海蓝色的咕咕鸽). All Rights Reserved.
  * Author: aquamarine5@163.com (Github: https://github.com/aquamarine5) and Brainspark (previously RenegadeCreation)
  * Repository: https://github.com/aquamarine5/ChaoxingSignFaker
@@ -55,12 +55,14 @@ import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.derivedStateOf
@@ -94,6 +96,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
@@ -101,21 +104,22 @@ import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.SuccessResult
 import coil3.toBitmap
-import io.sentry.Sentry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.Request
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingAccountHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingFaceHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingOtherUserHelper
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingOtherUserHelper.getSessionPuid
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.OtherUserTagType
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignResult
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignStatus
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.TAG_COLOR_UNSPECIFIED
-import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingPredictableException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.FaceRecognitionData
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.FaceRecognitionImageStatus
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalImageLoader
@@ -124,6 +128,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.OnlyAppDevelopedMo
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.displaySnackbar
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.isDevelopedMode
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.sentryReport
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
 import java.io.File
 import kotlin.math.abs
@@ -137,7 +142,7 @@ fun OtherUserSelectorComponent(
     isCurrentAlreadySigned: Boolean,
     isSigning: MutableState<Boolean>,
     userSelections: SnapshotStateList<Boolean>,
-    onRetrySignAction: suspend (index: Int, session: ChaoxingOtherUserSession, bypassChecking: Boolean) -> Unit,
+    onRetrySignAction: suspend (index: Int, session: ChaoxingOtherUserSession, bypassChecking: Boolean) -> Result<ChaoxingSignResult>,
     hasSignRealtimeParameter: Boolean = false,
     userContent: @Composable ((index: Int) -> Unit)? = null,
     prefixTipsContent: @Composable (() -> Unit),
@@ -154,6 +159,7 @@ fun OtherUserSelectorComponent(
         var tagContainedUserIndexList by remember { mutableStateOf<List<List<Int>>?>(null) }
         val tagClickState = remember { mutableListOf<MutableState<Boolean>>() }
         var selfPhoneNumber by remember { mutableStateOf<String?>(null) }
+        var isIgnoreAllConsistentDeviceCodeComponents by remember { mutableStateOf(false) }
         var success by signStatus[0].isSuccess
         var ignoreExceptionUserIndex by remember {
             mutableStateOf<Pair<Int, ChaoxingOtherUserSession>?>(
@@ -196,7 +202,7 @@ fun OtherUserSelectorComponent(
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(40.dp)
                 )
-            }, text = {
+            }, text = { dialogSnackbarHost ->
                 Column {
                     val pendingRetry = repairedSessionForRetry
                     if (pendingRetry != null) {
@@ -297,7 +303,7 @@ fun OtherUserSelectorComponent(
                                     signUserList[sessionIndex] = repairedSession
                                     signStatus[sessionIndex + 1].isObsoleteSession.value = false
                                     hapticFeedback.performHapticFeedback(HapticFeedbackType.Confirm)
-                                    snackbarHost.displaySnackbar(
+                                    dialogSnackbarHost.displaySnackbar(
                                         "用户 ${repairedSession.name} 已成功修复",
                                         coroutineScope
                                     )
@@ -317,9 +323,7 @@ fun OtherUserSelectorComponent(
                                     }
                                 }.onFailure {
                                     hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
-                                    if (it !is ChaoxingPredictableException) {
-                                        Sentry.captureException(it)
-                                    }
+                                    it.sentryReport()
                                     errorMessage = "登录失败：" + (it.message ?: "未知错误")
                                 }
                             }
@@ -464,6 +468,7 @@ fun OtherUserSelectorComponent(
                     inspectedFaceImage = null
                 }) { Text("关闭") }
             }, dismissButton = {
+                val dialogSnackbarHost = LocalSnackbarHostState.current
                 OutlinedButton(
                     enabled = isSavingFaceImage.not(),
                     onClick = {
@@ -525,10 +530,13 @@ fun OtherUserSelectorComponent(
                                     }
                                 }
                             }.onSuccess {
-                                snackbarHost.displaySnackbar("人脸照片已保存到相册", coroutineScope)
+                                dialogSnackbarHost.displaySnackbar(
+                                    "人脸照片已保存到相册",
+                                    coroutineScope
+                                )
                             }.onFailure {
                                 it.snackbarReport(
-                                    snackbarHost,
+                                    dialogSnackbarHost,
                                     coroutineScope,
                                     "保存人脸照片失败",
                                     hapticFeedback
@@ -604,6 +612,8 @@ fun OtherUserSelectorComponent(
                     )
                 })
                 selfPhoneNumber = datastore.loginSession.phoneNumber
+                isIgnoreAllConsistentDeviceCodeComponents =
+                    datastore.preferences.isIgnoreAllConsistentDeviceCodeComponents
                 tagContainedUserIndexList = datastore.tagsLibraryList.map { tagEntity ->
                     buildList {
                         datastore.otherUsersList.mapIndexed { index, otherUserSession ->
@@ -638,7 +648,7 @@ fun OtherUserSelectorComponent(
                 signUserList.addAll(data.let { sessions ->
                     if (isCloneSession) {
                         val clonePhoneNumber =
-                            ChaoxingHttpClient.cloneInstance?.userEntity?.phoneNumber
+                            ChaoxingHttpClient.cloneInstance?.phoneNumber
                         if (clonePhoneNumber != null) {
                             sessions.sortedBy { it.phoneNumber != clonePhoneNumber }
                         } else {
@@ -780,14 +790,13 @@ fun OtherUserSelectorComponent(
                 Spacer(modifier = Modifier.height(6.dp))
 
                 Text(
-                    "选择要进行签到的用户：",
-                    modifier = Modifier.padding(start = 3.dp),
+                    "选择要签到的用户：",
                     fontWeight = FontWeight.Bold
                 )
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(0.dp, 4.dp, 8.dp, 16.dp)
+                        .padding(0.dp, 1.dp, 8.dp, 11.dp)
                 ) {
                     Row {
                         if (tagEntities != null && tagContainedUserIndexList != null)
@@ -882,21 +891,50 @@ fun OtherUserSelectorComponent(
                             .padding(vertical = 4.dp)
                             .onGloballyPositioned { userRowCoordinates[0] = it }
                     ) {
-                        Checkbox(
-                            checked = userSelections[0] && signStatus[0].isSuccess.value != true,
-                            onCheckedChange = { isChecked ->
-                                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                                userSelections[0] = isChecked
-                            },
-                            enabled = (success == true).not()
-                        )
+                        CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
+                            Checkbox(
+                                checked = userSelections[0] && signStatus[0].isSuccess.value != true,
+                                onCheckedChange = { isChecked ->
+                                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                                    userSelections[0] = isChecked
+                                },
+                                enabled = (success == true).not(),
+                                modifier = Modifier.padding(
+                                    start = 3.dp,
+                                    end = 14.dp,
+                                    top = 11.dp,
+                                    bottom = 11.dp
+                                )
+                            )
+                        }
                         Row(modifier = Modifier.clickable((success == true).not()) {
                             hapticFeedback.performHapticFeedback(
                                 HapticFeedbackType.ContextClick
                             )
                             userSelections[0] = userSelections[0].not()
                         }, verticalAlignment = Alignment.CenterVertically) {
-                            Spacer(modifier = Modifier.width(8.dp))
+                            var selfAvatarModel by remember {
+                                mutableStateOf<Any?>(
+                                    null
+                                )
+                            }
+                            LaunchedEffect(ChaoxingHttpClient.instance!!.puid) {
+                                selfAvatarModel = ChaoxingAccountHelper.getCachedAvatar(
+                                    context,
+                                    ChaoxingHttpClient.instance!!.puid.toString(),
+                                    ChaoxingHttpClient.instance!!.userEntity.pic
+                                )
+                            }
+                            AsyncImage(
+                                model = selfAvatarModel,
+                                imageLoader = imageLoader,
+                                contentDescription = "头像",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier
+                                    .size(30.dp)
+                                    .clip(RoundedCornerShape(5.dp))
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
                             Column {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Text(
@@ -912,21 +950,19 @@ fun OtherUserSelectorComponent(
                                                 modifier = Modifier
                                                     .padding(start = 4.dp)
                                                     .size(14.dp)
-                                                    .then(
-                                                        if (isDevelopedMode) Modifier.clickable {
-                                                            hapticFeedback.performHapticFeedback(
-                                                                HapticFeedbackType.ContextClick
-                                                            )
-                                                            inspectingFaceImagePhoneNumber =
-                                                                ChaoxingHttpClient.instance!!.userEntity.phoneNumber
-                                                        } else Modifier
-                                                    ),
+                                                    .clickable {
+                                                        hapticFeedback.performHapticFeedback(
+                                                            HapticFeedbackType.ContextClick
+                                                        )
+                                                        inspectingFaceImagePhoneNumber =
+                                                            ChaoxingHttpClient.instance!!.phoneNumber
+                                                    },
                                                 tint = it.value.color.takeOrElse { MaterialTheme.colorScheme.primary }
                                             )
                                         }
                                     if (faceRecognitionData != null) {
                                         val selfPhone =
-                                            ChaoxingHttpClient.instance!!.userEntity.phoneNumber
+                                            ChaoxingHttpClient.instance!!.phoneNumber
                                         if (selfPhone in faceRecognitionData.failedPhoneNumbers) {
                                             Icon(
                                                 painterResource(R.drawable.ic_user_square),
@@ -957,7 +993,7 @@ fun OtherUserSelectorComponent(
                                     }
                                 }
                                 Text(
-                                    "${ChaoxingHttpClient.instance?.userEntity?.name} ($selfPhoneNumber)",
+                                    "${ChaoxingHttpClient.instance?.name} ($selfPhoneNumber)",
                                     color = Color.Gray,
                                     fontSize = 10.sp,
                                     lineHeight = 12.sp
@@ -984,15 +1020,23 @@ fun OtherUserSelectorComponent(
                             (1 + index).let { i ->
                                 val successForOtherUser by signStatus[i].isSuccess
                                 var isRetrying by remember { mutableStateOf(false) }
-                                Checkbox(
-                                    checked = userSelections[i] && signStatus[i].isSuccess.value != true,
-                                    onCheckedChange = { isChecked ->
-                                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                                        userSelections[i] = isChecked
-                                        updateTagClickState()
-                                    },
-                                    enabled = (successForOtherUser == true).not()
-                                )
+                                CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
+                                    Checkbox(
+                                        checked = userSelections[i] && signStatus[i].isSuccess.value != true,
+                                        onCheckedChange = { isChecked ->
+                                            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                                            userSelections[i] = isChecked
+                                            updateTagClickState()
+                                        },
+                                        enabled = (successForOtherUser == true).not(),
+                                        modifier = Modifier.padding(
+                                            start = 3.dp,
+                                            end = 14.dp,
+                                            top = 11.dp,
+                                            bottom = 11.dp
+                                        )
+                                    )
+                                }
                                 Row(modifier = Modifier.clickable((successForOtherUser == true).not()) {
                                     hapticFeedback.performHapticFeedback(
                                         HapticFeedbackType.ContextClick
@@ -1000,7 +1044,31 @@ fun OtherUserSelectorComponent(
                                     userSelections[i] = userSelections[i].not()
                                     updateTagClickState()
                                 }, verticalAlignment = Alignment.CenterVertically) {
-                                    Spacer(modifier = Modifier.width(8.dp))
+                                    var otherUserAvatarModel by remember {
+                                        mutableStateOf<Any?>(
+                                            null
+                                        )
+                                    }
+                                    LaunchedEffect(session) {
+                                        session.getSessionPuid(context)?.let { puid ->
+                                            otherUserAvatarModel =
+                                                ChaoxingAccountHelper.getCachedAvatar(
+                                                    context,
+                                                    puid.toString(),
+                                                    ChaoxingAccountHelper.getAvatarUrl(puid)
+                                                )
+                                        }
+                                    }
+                                    AsyncImage(
+                                        model = otherUserAvatarModel,
+                                        imageLoader = imageLoader,
+                                        contentDescription = "头像",
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier
+                                            .size(30.dp)
+                                            .clip(RoundedCornerShape(5.dp))
+                                    )
+                                    Spacer(modifier = Modifier.width(10.dp))
                                     Column {
                                         Row(verticalAlignment = Alignment.CenterVertically) {
                                             Text(
@@ -1010,7 +1078,7 @@ fun OtherUserSelectorComponent(
                                                 ) else Color.Unspecified,
                                                 textDecoration = if (successForOtherUser != true) TextDecoration.None else TextDecoration.LineThrough
                                             )
-                                            if (isCloneSession)
+                                            if (isCloneSession && ChaoxingHttpClient.cloneInstance?.phoneNumber == session.phoneNumber)
                                                 Icon(
                                                     painterResource(R.drawable.ic_square_stack),
                                                     null,
@@ -1027,18 +1095,31 @@ fun OtherUserSelectorComponent(
                                                         modifier = Modifier
                                                             .padding(start = 4.dp)
                                                             .size(14.dp)
-                                                            .then(
-                                                                if (isDevelopedMode) Modifier.clickable {
-                                                                    hapticFeedback.performHapticFeedback(
-                                                                        HapticFeedbackType.ContextClick
-                                                                    )
-                                                                    inspectingFaceImagePhoneNumber =
-                                                                        session.phoneNumber
-                                                                } else Modifier
-                                                            ),
+                                                            .clickable {
+                                                                hapticFeedback.performHapticFeedback(
+                                                                    HapticFeedbackType.ContextClick
+                                                                )
+                                                                inspectingFaceImagePhoneNumber =
+                                                                    session.phoneNumber
+                                                            },
                                                         tint = it.value.color.takeOrElse { MaterialTheme.colorScheme.primary }
                                                     )
                                                 }
+                                            if (!isIgnoreAllConsistentDeviceCodeComponents) {
+                                                Icon(
+                                                    painterResource(
+                                                        if (session.isNotRandomizedDeviceCode) R.drawable.ic_tablet_smartphone_check
+                                                        else R.drawable.ic_tablet_smartphone_x
+                                                    ),
+                                                    contentDescription = if (session.isNotRandomizedDeviceCode) "已绑定统一设备码" else "使用固定随机设备码",
+                                                    modifier = Modifier
+                                                        .padding(start = 4.dp)
+                                                        .size(14.dp),
+                                                    tint = if (session.isNotRandomizedDeviceCode) Color(
+                                                        0xFF4CAF50
+                                                    ) else Color(0xFFFF9800)
+                                                )
+                                            }
                                             if (signStatus[i].isCaptchaResolvedByModel.value) {
                                                 Icon(
                                                     painterResource(R.drawable.ic_brain_circuit),
@@ -1107,8 +1188,11 @@ fun OtherUserSelectorComponent(
                                                     isRetrying = true
                                                     signStatus[i].retrying()
                                                     coroutineScope.launch {
-                                                        onRetrySignAction(index, session, false)
-                                                        isRetrying = false
+                                                        runCatching {
+                                                            onRetrySignAction(index, session, false)
+                                                        }.also {
+                                                            isRetrying = false
+                                                        }
                                                     }
                                                 }
                                             })

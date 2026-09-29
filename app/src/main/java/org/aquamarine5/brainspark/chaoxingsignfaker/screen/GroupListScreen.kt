@@ -12,6 +12,7 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.VisibilityThreshold
 import androidx.compose.animation.core.spring
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -29,6 +30,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -56,6 +58,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
@@ -73,9 +76,9 @@ import kotlinx.serialization.json.Json
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingIMHelper
-import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NetworkExceptionComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingEasemobIMGroup
+import org.aquamarine5.brainspark.chaoxingsignfaker.ui.theme.getLowAttentionGrayColor
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalImageLoader
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
@@ -180,7 +183,26 @@ fun GroupListScreen(
         Crossfade(isFetchedFailure) { v ->
             when {
                 v == null -> {
-                    CenterCircularProgressIndicator()
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(MaterialTheme.colorScheme.background)
+                    ) {
+                        Column(
+                            modifier = Modifier.align(Alignment.Center),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            CircularProgressIndicator()
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                "此过程加载时间较久\n请耐心等待...",
+                                color = Color.Gray,
+                                fontSize = 12.sp,
+                                textAlign = TextAlign.Center,
+                                lineHeight = 14.sp
+                            )
+                        }
+                    }
                 }
 
                 v.isFailure -> {
@@ -228,15 +250,17 @@ fun GroupListScreen(
                     }
                     LazyColumn {
                         stickyHeader(key = "group_search") {
-                            Surface(
-                                color = MaterialTheme.colorScheme.background,
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Column(modifier = Modifier.padding(bottom = 8.dp)) {
+                            Column(modifier = Modifier.fillMaxWidth()) {
+                                Surface(
+                                    color = MaterialTheme.colorScheme.background,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
                                     OutlinedTextField(
                                         value = searchQuery,
                                         onValueChange = { searchQuery = it },
-                                        modifier = Modifier.fillMaxWidth(),
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(top = 4.dp, bottom = 3.dp),
                                         placeholder = { Text("搜索群聊名称") },
                                         leadingIcon = {
                                             Icon(
@@ -282,6 +306,10 @@ fun GroupListScreen(
                                     Text("没有找到与“$searchQuery”匹配的群聊")
                                 }
                             }
+                        }
+
+                        item {
+                            Spacer(modifier = Modifier.height(5.dp))
                         }
                         items(groupedGroups, key = {
                             it.first().chatName
@@ -339,8 +367,8 @@ fun GroupListScreen(
                                                         text = "(x${group.size})",
                                                         fontSize = 11.sp,
                                                         lineHeight = 14.sp,
-                                                        color = Color.Gray,
-                                                        modifier = Modifier.padding(start = 4.dp)
+                                                        color = getLowAttentionGrayColor(),
+                                                        modifier = Modifier.padding(start = 2.dp)
                                                     )
                                                 }
                                             }

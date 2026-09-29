@@ -67,6 +67,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostS
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.displaySnackbar
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.sentryReport
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
 import org.aquamarine5.brainspark.stackbricks.StackbricksComponent
 import org.aquamarine5.brainspark.stackbricks.StackbricksService
@@ -258,6 +259,9 @@ fun LoginPage(
                                         )
                                         putExtra(Intent.EXTRA_TEXT, "Your content:")
                                     })
+                                }.onFailure {
+                                    snackbarHost.displaySnackbar("无法打开邮件应用", coroutineScope)
+                                    it.sentryReport()
                                 }
                             },
                             shape = RoundedCornerShape(18.dp),
