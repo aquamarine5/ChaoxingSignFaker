@@ -855,8 +855,9 @@ class MainActivity : ComponentActivity() {
                                                 }
                                             }
                                         }
-                                        LaunchedEffect(pendingSignRequest) {
+                                        LaunchedEffect(pendingSignRequest, destination) {
                                             val request = pendingSignRequest ?: return@LaunchedEffect
+                                            if (destination == null) return@LaunchedEffect
                                             pendingSignRequest = null
                                             if (destination is LoginDestination || destination is WelcomeDestination) {
                                                 Toast.makeText(
@@ -904,17 +905,18 @@ class MainActivity : ComponentActivity() {
                                                         ?: runCatching {
                                                             ChaoxingCourseHelper.queryClassName(client, classId)
                                                         }.getOrDefault("")
+                                                    val course = ChaoxingCourseEntity(
+                                                        courseName = courseName,
+                                                        teacherName = null,
+                                                        courseId = courseId,
+                                                        classId = classId,
+                                                        className = courseName,
+                                                        imageUrl = "",
+                                                        schools = null,
+                                                        isCloneSession = false
+                                                    )
                                                     navController.navigate(
-                                                        ChaoxingCourseEntity(
-                                                            courseName = courseName,
-                                                            teacherName = null,
-                                                            courseId = courseId,
-                                                            classId = classId,
-                                                            className = courseName,
-                                                            imageUrl = "",
-                                                            schools = null,
-                                                            isCloneSession = false
-                                                        )
+                                                        CourseDetailDestination(listOf(course))
                                                     )
                                                 }
                                             }.onFailure {
