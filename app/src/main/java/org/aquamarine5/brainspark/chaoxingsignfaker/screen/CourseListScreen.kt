@@ -14,6 +14,7 @@ import androidx.compose.animation.core.VisibilityThreshold
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -354,14 +355,20 @@ fun CourseListScreen(
                     append("\n更新日志：\n")
                 }
                 )
-                val changelogRaw = newestVersionData?.changelog
-                    ?: stackbricksService.internalVersionData?.changelog ?: "暂无更新日志"
+                val changelogRaw = (newestVersionData?.changelog
+                    ?: stackbricksService.internalVersionData?.changelog ?: "暂无更新日志")
+                    .trimStart()
                 val changelogGray = MaterialTheme.colorScheme.onSurfaceVariant
                 Text(
                     remember(changelogRaw, changelogGray) {
                         parseChangelogToAnnotatedString(changelogRaw, changelogGray)
                     },
                     modifier = Modifier
+                        .border(
+                            1.dp, MaterialTheme.colorScheme.primary,
+                            RoundedCornerShape(4.dp)
+                        )
+                        .padding(8.dp)
                         .fillMaxWidth()
                         .heightIn(max = 320.dp)
                         .verticalScroll(rememberScrollState()),

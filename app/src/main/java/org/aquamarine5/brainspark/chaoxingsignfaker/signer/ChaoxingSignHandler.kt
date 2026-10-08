@@ -118,6 +118,7 @@ class ChaoxingSignHandler<in T>(
         return coroutineScope.launch {
             var isCaptchaSigning = false
             var isCaptchaResolvedByModel = false
+            var isAnySkipped = false
             val selfPhoneNumber = ChaoxingHttpClient.instance!!.phoneNumber
             val queue = buildList {
                 if (isSelf) add(-1)
@@ -176,6 +177,16 @@ class ChaoxingSignHandler<in T>(
                             signStatus[0].failed(throwable)
                             throwable.ifShouldDeselect {
                                 userSelections[0] = false
+                            }
+                            if (throwable.isSkippableInContinuousSigning) {
+                                throwable.snackbarReport(
+                                    snackbarHost,
+                                    coroutineScope,
+                                    "为${ChaoxingHttpClient.instance!!.name}签到失败，已跳过",
+                                    hapticFeedback
+                                )
+                                isAnySkipped = true
+                                break
                             }
                             if (throwable is ChaoxingSigner.WrongPositionException &&
                                 throwable.isAlreadyDisabledRandomizedLocation
@@ -258,6 +269,16 @@ class ChaoxingSignHandler<in T>(
                             throwable.ifShouldDeselect {
                                 userSelections[target + 1] = false
                             }
+                            if (throwable.isSkippableInContinuousSigning) {
+                                throwable.snackbarReport(
+                                    snackbarHost,
+                                    coroutineScope,
+                                    "为${session.name}签到失败，已跳过",
+                                    hapticFeedback
+                                )
+                                isAnySkipped = true
+                                break
+                            }
                             if (throwable is ChaoxingSigner.WrongPositionException &&
                                 throwable.isAlreadyDisabledRandomizedLocation
                             ) {
@@ -286,7 +307,7 @@ class ChaoxingSignHandler<in T>(
                 }
             }
             onCurrentTargetChanged(null)
-            onAllSigningFinished(true)
+            onAllSigningFinished(!isAnySkipped)
         }
     }
 
@@ -464,3 +485,8 @@ class ChaoxingSignHandler<in T>(
         }
     }
 }
+
+private val Throwable.isSkippableInContinuousSigning: Boolean
+    get() = this is ChaoxingSigner.AlreadySignedException ||
+            this is ChaoxingSigner.PredictedAlreadySignedException ||
+            this is ChaoxingSigner.SignActivityNoPermissionException

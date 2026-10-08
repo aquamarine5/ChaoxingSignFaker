@@ -30,10 +30,12 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -56,6 +58,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import androidx.core.net.toUri
 import coil3.compose.AsyncImage
 import kotlinx.coroutines.Dispatchers
@@ -535,9 +538,8 @@ fun SettingScreen(
             }
         )
         Spacer(modifier = Modifier.height(8.dp))
-        fun toggleIgnoreAllConsistentDeviceCodeComponents() {
-            isIgnoreAllConsistentDeviceCodeComponents =
-                !isIgnoreAllConsistentDeviceCodeComponents
+        fun setIgnoreAllConsistentDeviceCodeComponents(checked: Boolean) {
+            isIgnoreAllConsistentDeviceCodeComponents = checked
             hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
             coroutineScope.launch(Dispatchers.IO) {
                 context.chaoxingDataStore.updateData {
@@ -549,28 +551,64 @@ fun SettingScreen(
                 }
             }
         }
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Switch(isIgnoreAllConsistentDeviceCodeComponents, onCheckedChange = { checked ->
-                isIgnoreAllConsistentDeviceCodeComponents = checked
-                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                coroutineScope.launch(Dispatchers.IO) {
-                    context.chaoxingDataStore.updateData {
-                        it.toBuilder().setPreferences(
-                            it.preferences.toBuilder().setIsIgnoreAllConsistentDeviceCodeComponents(
-                                checked
-                            ).build()
-                        ).build()
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                painterResource(R.drawable.ic_tablet_smartphone_check),
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary
+            )
+            Text(
+                "关闭设备码提示图标",
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = 8.dp)
+                    .clickable {
+                        setIgnoreAllConsistentDeviceCodeComponents(
+                            !isIgnoreAllConsistentDeviceCodeComponents
+                        )
                     }
-                }
-            })
-            Text("关闭设备码提示图标", modifier = Modifier.clickable {
-                toggleIgnoreAllConsistentDeviceCodeComponents()
+            )
+            VerticalDivider(modifier = Modifier.height(24.dp))
+            Switch(isIgnoreAllConsistentDeviceCodeComponents, onCheckedChange = { checked ->
+                setIgnoreAllConsistentDeviceCodeComponents(checked)
             })
         }
 
         Spacer(modifier = Modifier.height(8.dp))
         var isUiDevelopedMode by remember { mutableStateOf(isDevelopedMode) }
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            modifier = Modifier.fillMaxWidth().zIndex(1f),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                painterResource(R.drawable.ic_wrench),
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary
+            )
+            Text(
+                "启用开发模式",
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = 8.dp)
+                    .clickable {
+                        isUiDevelopedMode = !isUiDevelopedMode
+                        isDevelopedMode = !isUiDevelopedMode
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                        coroutineScope.launch(Dispatchers.IO) {
+                            context.chaoxingDataStore.updateData {
+                                it.toBuilder().setPreferences(
+                                    it.preferences.toBuilder().setIsDevelopedMode(
+                                        isUiDevelopedMode
+                                    ).build()
+                                ).build()
+                            }
+                        }
+                    }
+            )
+            VerticalDivider(modifier = Modifier.height(24.dp))
             Switch(isUiDevelopedMode, onCheckedChange = { value ->
                 isUiDevelopedMode = value
                 isDevelopedMode = value
@@ -579,18 +617,6 @@ fun SettingScreen(
                     context.chaoxingDataStore.updateData {
                         it.toBuilder().setPreferences(
                             it.preferences.toBuilder().setIsDevelopedMode(value).build()
-                        ).build()
-                    }
-                }
-            })
-            Text("启用开发模式", modifier = Modifier.clickable {
-                isUiDevelopedMode = !isUiDevelopedMode
-                isDevelopedMode = !isDevelopedMode
-                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                coroutineScope.launch(Dispatchers.IO) {
-                    context.chaoxingDataStore.updateData {
-                        it.toBuilder().setPreferences(
-                            it.preferences.toBuilder().setIsDevelopedMode(isDevelopedMode).build()
                         ).build()
                     }
                 }
