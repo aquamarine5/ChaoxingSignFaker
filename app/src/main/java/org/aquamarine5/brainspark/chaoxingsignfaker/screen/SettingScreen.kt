@@ -28,6 +28,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -103,6 +104,8 @@ private const val COMMAND_ALWAYS_FORCE_SIGN_PREFIX = "alwaysForceSign "
 
 var isAlwaysForceSign by mutableStateOf(false)
 
+var isAllowExternalQuerySettingTipsRequested by mutableStateOf(false)
+
 @Composable
 fun SettingScreen(
     stackbricksService: StackbricksService,
@@ -126,11 +129,19 @@ fun SettingScreen(
         var isBypassBlockedChecking by remember { mutableStateOf(false) }
         var isUnblockDialog by remember { mutableStateOf(false) }
         var isIgnoreAllConsistentDeviceCodeComponents by remember { mutableStateOf(false) }
+        var isAllowExternalProviderFetchInformation by remember { mutableStateOf(false) }
+        var isExternalProviderInformationTipsDialogVisible by remember { mutableStateOf(false) }
         LaunchedEffect(Unit) {
             context.chaoxingDataStore.data.first().apply {
                 isBypassBlockedChecking = bypassBlockedChecking
                 isIgnoreAllConsistentDeviceCodeComponents =
                     preferences.isIgnoreAllConsistentDeviceCodeComponents
+                isAllowExternalProviderFetchInformation =
+                    preferences.isAllowExternalProviderFetchInformation
+            }
+            if (isAllowExternalQuerySettingTipsRequested) {
+                isAllowExternalQuerySettingTipsRequested = false
+                isExternalProviderInformationTipsDialogVisible = true
             }
             launch(Dispatchers.IO) {
                 stackbricksService.deleteTemp()
@@ -574,6 +585,103 @@ fun SettingScreen(
             VerticalDivider(modifier = Modifier.height(24.dp))
             Switch(isIgnoreAllConsistentDeviceCodeComponents, onCheckedChange = { checked ->
                 setIgnoreAllConsistentDeviceCodeComponents(checked)
+            })
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+        fun setAllowExternalProviderFetchInformation(checked: Boolean) {
+            isAllowExternalProviderFetchInformation = checked
+            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+            coroutineScope.launch(Dispatchers.IO) {
+                context.chaoxingDataStore.updateData {
+                    it.toBuilder().setPreferences(
+                        it.preferences.toBuilder().setIsAllowExternalProviderFetchInformation(
+                            isAllowExternalProviderFetchInformation
+                        ).build()
+                    ).build()
+                }
+            }
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                painterResource(R.drawable.ic_server_plus),
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary
+            )
+            Text(
+                "允许其他应用查询学习通信息",
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = 8.dp)
+                    .clickable {
+                        setAllowExternalProviderFetchInformation(
+                            !isAllowExternalProviderFetchInformation
+                        )
+                    }
+            )
+            IconButton(onClick = {
+                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                isExternalProviderInformationTipsDialogVisible = true
+            }) {
+                Icon(
+                    painterResource(R.drawable.ic_circle_question_mark),
+                    contentDescription = null
+                )
+            }
+            VerticalDivider(modifier = Modifier.height(24.dp))
+            Switch(isAllowExternalProviderFetchInformation, onCheckedChange = { checked ->
+                setAllowExternalProviderFetchInformation(checked)
+            })
+        }
+        if (isExternalProviderInformationTipsDialogVisible) {
+            SnackbarAlertDialog(onDismissRequest = {
+                isExternalProviderInformationTipsDialogVisible = false
+            }, confirmButton = {
+                Button(onClick = {
+                    hapticFeedback.performHapticFeedback(HapticFeedbackType.Confirm)
+                    isExternalProviderInformationTipsDialogVisible = false
+                }) {
+                    Text("我知道了")
+                }
+            }, icon = {
+                Icon(painterResource(R.drawable.ic_triangle_alert), null)
+            }, text = {
+                Column {
+                    Text(buildAnnotatedString {
+                        withStyle(SpanStyle(color = Color.Red)) {
+                            append("启用此选项会允许其他应用查询你的学习通相关信息")
+                        }
+                        append(
+                            "，包括但不限于加入的课程信息以及签到事件信息。关闭此选项不会阻止其他应用请求跳转到签到页或课程详情页的操作。"
+                        )
+                    })
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                    Text("你可以随时在设置页修改此设置。")
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Switch(isAllowExternalProviderFetchInformation, onCheckedChange = { checked ->
+                            setAllowExternalProviderFetchInformation(checked)
+                        })
+                        Text(
+                            "允许其他应用查询学习通信息",
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(start = 8.dp)
+                                .clickable {
+                                    setAllowExternalProviderFetchInformation(
+                                        !isAllowExternalProviderFetchInformation
+                                    )
+                                }
+                        )
+                    }
+                }
             })
         }
 

@@ -140,6 +140,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.screen.SettingScreen
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.SignGraphDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.WelcomeDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.WelcomeScreen
+import org.aquamarine5.brainspark.chaoxingsignfaker.screen.isAllowExternalQuerySettingTipsRequested
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.isAlwaysForceSign
 import org.aquamarine5.brainspark.chaoxingsignfaker.ui.theme.ChaoxingSignFakerTheme
 import org.aquamarine5.brainspark.chaoxingsignfaker.ui.theme.Orange
@@ -172,9 +173,12 @@ class MainActivity : ComponentActivity() {
 
     private var pendingSignRequest by mutableStateOf<ExternalSignRequest?>(null)
 
+    private var isPendingOpenAllowExternalQuerySetting by mutableStateOf(false)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         pendingSignRequest = intent.parseExternalSignRequest()
+        isPendingOpenAllowExternalQuerySetting = intent.isOpenSettingToAllowExternalQueryPremission()
         @Suppress("DEPRECATION")
         val versionData = packageManager.getPackageInfo(
             packageName,
@@ -855,6 +859,28 @@ class MainActivity : ComponentActivity() {
                                                 }
                                             }
                                         }
+                                        LaunchedEffect(isPendingOpenAllowExternalQuerySetting, destination) {
+                                            if (!isPendingOpenAllowExternalQuerySetting) return@LaunchedEffect
+                                            if (destination == null) return@LaunchedEffect
+                                            isPendingOpenAllowExternalQuerySetting = false
+                                            if (destination is LoginDestination || destination is WelcomeDestination) {
+                                                Toast.makeText(
+                                                    applicationContext,
+                                                    "请先登录 ChaoxingSignFaker",
+                                                    Toast.LENGTH_SHORT
+                                                ).show()
+                                                return@LaunchedEffect
+                                            }
+                                            isAllowExternalQuerySettingTipsRequested = true
+                                            runCatching {
+                                                navController.navigate(SettingDestination) {
+                                                    launchSingleTop = true
+                                                }
+                                            }.onFailure {
+                                                it.sentryReport()
+                                                it.printStackTrace()
+                                            }
+                                        }
                                         LaunchedEffect(pendingSignRequest, destination) {
                                             val request = pendingSignRequest ?: return@LaunchedEffect
                                             if (destination == null) return@LaunchedEffect
@@ -995,6 +1021,9 @@ class MainActivity : ComponentActivity() {
             finish()
         }
         intent.parseExternalSignRequest()?.let { pendingSignRequest = it }
+        if (intent.isOpenSettingToAllowExternalQueryPremission()) {
+            isPendingOpenAllowExternalQuerySetting = true
+        }
         super.onNewIntent(intent)
     }
 

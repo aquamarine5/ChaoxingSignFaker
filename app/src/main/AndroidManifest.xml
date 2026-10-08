@@ -19,6 +19,12 @@
 
     <uses-feature android:name="android.hardware.camera" />
 
+    <permission
+        android:name="org.aquamarine5.brainspark.chaoxingsignfaker.permission.QUERY_CHAOXING_INFORMATION"
+        android:protectionLevel="normal" />
+
+    <uses-permission android:name="org.aquamarine5.brainspark.chaoxingsignfaker.permission.QUERY_CHAOXING_INFORMATION" />
+
     <queries>
         <package android:name="com.netease.cloudmusic" />
         <package android:name="com.chaoxing.mobile" />
@@ -62,6 +68,11 @@
 
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
+            <intent-filter>
+                <action android:name="org.aquamarine5.brainspark.chaoxingsignfaker.action.OPEN_SETTING_TO_ALLOW_EXTERNAL_QUERY_PREMISSION" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
         </activity>
         <activity
             android:name=".ImportOtherUserActivity"
@@ -86,9 +97,10 @@
             android:process=":remote" />
 
         <provider
-            android:name=".ExternalCourseProvider"
-            android:authorities="org.aquamarine5.brainspark.chaoxingsignfaker.courses"
-            android:exported="true" />
+            android:name=".ChaoxingExternalCourseProvider"
+            android:authorities="org.aquamarine5.brainspark.chaoxingsignfaker.coursesProvider"
+            android:exported="true"
+            android:permission="org.aquamarine5.brainspark.chaoxingsignfaker.permission.QUERY_CHAOXING_INFORMATION" />
 
         <meta-data
             android:name="com.baidu.lbsapi.API_KEY"

@@ -34,6 +34,14 @@ fun Intent.parseExternalSignRequest(): ExternalSignRequest? =
         courseName = getStringExtra("courseName")?.takeIf { it.isNotBlank() }
     )
 
+fun Intent.isOpenSettingToAllowExternalQueryPremission(): Boolean =
+    action == ExternalSettingEntry.ACTION_OPEN_SETTING_TO_ALLOW_EXTERNAL_QUERY_PREMISSION
+
+object ExternalSettingEntry {
+    const val ACTION_OPEN_SETTING_TO_ALLOW_EXTERNAL_QUERY_PREMISSION =
+        "org.aquamarine5.brainspark.chaoxingsignfaker.action.OPEN_SETTING_TO_ALLOW_EXTERNAL_QUERY_PREMISSION"
+}
+
 object ExternalSignEntry {
     const val ACTION_OPEN_SIGN =
         "org.aquamarine5.brainspark.chaoxingsignfaker.action.OPEN_SIGN"

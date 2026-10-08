@@ -22,9 +22,9 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.requirePredictable
 
-class ExternalCourseProvider : ContentProvider() {
+class ChaoxingExternalCourseProvider : ContentProvider() {
     companion object {
-        const val AUTHORITY = "org.aquamarine5.brainspark.chaoxingsignfaker.courses"
+        const val AUTHORITY = "org.aquamarine5.brainspark.chaoxingsignfaker.coursesProvider"
         private const val METHOD_GET_COURSES = "getCourses"
         private const val KEY_JSON = "json"
         private const val KEY_ERROR = "error"
@@ -43,9 +43,13 @@ class ExternalCourseProvider : ContentProvider() {
             result.putString(KEY_ERROR, "上下文不可用")
             return result
         }
+        val datastore = runBlocking { context.chaoxingDataStore.data.first() }
+        if (!datastore.preferences.isAllowExternalProviderFetchInformation) {
+            result.putString(KEY_ERROR, "用户未授权查询接口")
+            return result
+        }
         runCatching {
             val client = ChaoxingHttpClient.instance ?: runBlocking {
-                val datastore = context.chaoxingDataStore.data.first()
                 requirePredictable(datastore.agreeTerms && datastore.hasLoginSession()) {
                     "请先打开 ChaoxingSignFaker 登录学习通"
                 }
