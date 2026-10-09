@@ -34,12 +34,12 @@ fun Intent.parseExternalSignRequest(): ExternalSignRequest? =
         courseName = getStringExtra("courseName")?.takeIf { it.isNotBlank() }
     )
 
-fun Intent.isOpenSettingToAllowExternalQueryPremission(): Boolean =
-    action == ExternalSettingEntry.ACTION_OPEN_SETTING_TO_ALLOW_EXTERNAL_QUERY_PREMISSION
+fun Intent.isOpenSettingToAllowExternalQueryPermission(): Boolean =
+    action == ExternalSettingEntry.ACTION_OPEN_SETTING_TO_ALLOW_EXTERNAL_QUERY_PERMISSION
 
 object ExternalSettingEntry {
-    const val ACTION_OPEN_SETTING_TO_ALLOW_EXTERNAL_QUERY_PREMISSION =
-        "org.aquamarine5.brainspark.chaoxingsignfaker.action.OPEN_SETTING_TO_ALLOW_EXTERNAL_QUERY_PREMISSION"
+    const val ACTION_OPEN_SETTING_TO_ALLOW_EXTERNAL_QUERY_PERMISSION =
+        "org.aquamarine5.brainspark.chaoxingsignfaker.action.OPEN_SETTING_TO_ALLOW_EXTERNAL_QUERY_PERMISSION"
 }
 
 object ExternalSignEntry {
@@ -54,23 +54,23 @@ object ExternalSignEntry {
     ): SignDestination? =
         when (signType.lowercase()) {
             "gesture" -> GestureSignDestination(
-                activeId, classId, courseId, "", null, null, false, false
+                activeId, classId, courseId, "", null, null, isLate = false, isCloneSession = false
             )
 
             "location" -> GetLocationDestination(
-                activeId, classId, courseId, "", null, null, false, false
+                activeId, classId, courseId, "", null, null, isLate = false, isCloneSession = false
             )
 
             "password" -> PasswordSignDestination(
-                activeId, classId, courseId, "", null, null, false, false
+                activeId, classId, courseId, "", null, null, isLate = false, isCloneSession = false
             )
 
             "photo" -> PhotoSignDestination(
-                activeId, classId, courseId, "", null, null, false, false
+                activeId, classId, courseId, "", null, null, isLate = false, isCloneSession = false
             )
 
             "qrcode" -> QRCodeSignDestination(
-                activeId, classId, courseId, "", null, null, false, false
+                activeId, classId, courseId, "", null, null, isLate = false, isCloneSession = false
             )
 
             else -> null

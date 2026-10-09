@@ -569,7 +569,8 @@ fun SettingScreen(
             Icon(
                 painterResource(R.drawable.ic_tablet_smartphone_check),
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(24.dp)
             )
             Text(
                 "关闭设备码提示图标",
@@ -580,9 +581,12 @@ fun SettingScreen(
                         setIgnoreAllConsistentDeviceCodeComponents(
                             !isIgnoreAllConsistentDeviceCodeComponents
                         )
-                    }
+                    },
+                lineHeight = 15.sp
             )
-            VerticalDivider(modifier = Modifier.height(24.dp))
+            VerticalDivider(
+                modifier = Modifier.height(24.dp).padding(horizontal = 2.dp)
+            )
             Switch(isIgnoreAllConsistentDeviceCodeComponents, onCheckedChange = { checked ->
                 setIgnoreAllConsistentDeviceCodeComponents(checked)
             })
@@ -609,7 +613,8 @@ fun SettingScreen(
             Icon(
                 painterResource(R.drawable.ic_server_plus),
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(24.dp)
             )
             Text(
                 "允许其他应用查询学习通信息",
@@ -620,7 +625,8 @@ fun SettingScreen(
                         setAllowExternalProviderFetchInformation(
                             !isAllowExternalProviderFetchInformation
                         )
-                    }
+                    },
+                lineHeight = 15.sp
             )
             IconButton(onClick = {
                 hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
@@ -628,10 +634,13 @@ fun SettingScreen(
             }) {
                 Icon(
                     painterResource(R.drawable.ic_circle_question_mark),
-                    contentDescription = null
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp)
                 )
             }
-            VerticalDivider(modifier = Modifier.height(24.dp))
+            VerticalDivider(
+                modifier = Modifier.height(24.dp).padding(horizontal = 2.dp)
+            )
             Switch(isAllowExternalProviderFetchInformation, onCheckedChange = { checked ->
                 setAllowExternalProviderFetchInformation(checked)
             })
@@ -694,7 +703,8 @@ fun SettingScreen(
             Icon(
                 painterResource(R.drawable.ic_wrench),
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(24.dp)
             )
             Text(
                 "启用开发模式",
@@ -714,9 +724,12 @@ fun SettingScreen(
                                 ).build()
                             }
                         }
-                    }
+                    },
+                lineHeight = 15.sp
             )
-            VerticalDivider(modifier = Modifier.height(24.dp))
+            VerticalDivider(
+                modifier = Modifier.height(24.dp).padding(horizontal = 2.dp)
+            )
             Switch(isUiDevelopedMode, onCheckedChange = { value ->
                 isUiDevelopedMode = value
                 isDevelopedMode = value

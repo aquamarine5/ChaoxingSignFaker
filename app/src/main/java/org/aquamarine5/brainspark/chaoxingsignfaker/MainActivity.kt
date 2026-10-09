@@ -178,7 +178,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         pendingSignRequest = intent.parseExternalSignRequest()
-        isPendingOpenAllowExternalQuerySetting = intent.isOpenSettingToAllowExternalQueryPremission()
+        isPendingOpenAllowExternalQuerySetting = intent.isOpenSettingToAllowExternalQueryPermission()
         @Suppress("DEPRECATION")
         val versionData = packageManager.getPackageInfo(
             packageName,
@@ -1021,7 +1021,7 @@ class MainActivity : ComponentActivity() {
             finish()
         }
         intent.parseExternalSignRequest()?.let { pendingSignRequest = it }
-        if (intent.isOpenSettingToAllowExternalQueryPremission()) {
+        if (intent.isOpenSettingToAllowExternalQueryPermission()) {
             isPendingOpenAllowExternalQuerySetting = true
         }
         super.onNewIntent(intent)

@@ -69,7 +69,7 @@
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
             <intent-filter>
-                <action android:name="org.aquamarine5.brainspark.chaoxingsignfaker.action.OPEN_SETTING_TO_ALLOW_EXTERNAL_QUERY_PREMISSION" />
+                <action android:name="org.aquamarine5.brainspark.chaoxingsignfaker.action.OPEN_SETTING_TO_ALLOW_EXTERNAL_QUERY_PERMISSION" />
 
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
