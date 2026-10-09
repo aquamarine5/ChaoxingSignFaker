@@ -7,13 +7,17 @@
 package org.aquamarine5.brainspark.chaoxingsignfaker.screen
 
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.VisibilityThreshold
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -91,22 +95,29 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCourseHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingLessonHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingRecommendHelper
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingSignHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.BlockedContent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CourseInfoColumnCard
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NetworkExceptionComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NewFeatureTipsCard
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.QRCodeScanComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SnackbarAlertDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingCourseClass
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCourseEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.RecommendActivityEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.SignDestination
+import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingQRCodeSigner
 import org.aquamarine5.brainspark.chaoxingsignfaker.ui.theme.FontGilroy
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingPredictableException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalImageLoader
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.disableCode
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.disableComposableCode
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.displaySnackbar
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.isDevelopedMode
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.sentryReport
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
 import org.aquamarine5.brainspark.stackbricks.StackbricksService
 import org.aquamarine5.brainspark.stackbricks.StackbricksVersionData
@@ -162,6 +173,14 @@ fun CourseListScreen(
         DateTimeFormatter.ofPattern("HH:mm:ss").withZone(ZoneId.systemDefault())
     }
     val isCaptchaAutoResolveLearntTooltip = rememberSaveable { mutableStateOf(false) }
+    var isQRCodeScanning by remember { mutableStateOf(false) }
+    val isQRCodeScanPause = remember { mutableStateOf(false) }
+    val isQRCodeResolving = remember { mutableStateOf(false) }
+    val closeQRCodeScanner = {
+        isQRCodeScanning = false
+        isQRCodeResolving.value = false
+        isQRCodeScanPause.value = false
+    }
     LaunchedEffect(courseCacheKey) {
         if (savedCourseCacheKey != courseCacheKey) {
             activitiesData.clear()
@@ -382,6 +401,7 @@ fun CourseListScreen(
             Icon(painterResource(R.drawable.ic_circle_arrow_up), null)
         })
     }
+    Box(modifier = Modifier.fillMaxSize()) {
     BlockedContent {
         Column(
             modifier = Modifier
@@ -590,6 +610,37 @@ fun CourseListScreen(
                                                         Spacer(modifier = Modifier.width(10.dp))
                                                         Text(
                                                             "从群聊列表查找签到",
+                                                            color = MaterialTheme.colorScheme.primary
+                                                        )
+                                                    }
+                                                }
+                                                Spacer(modifier = Modifier.height(8.dp))
+                                                OutlinedButton(
+                                                    onClick = {
+                                                        hapticFeedback.performHapticFeedback(
+                                                            HapticFeedbackType.ContextClick
+                                                        )
+                                                        isQRCodeScanPause.value = false
+                                                        isQRCodeResolving.value = false
+                                                        isQRCodeScanning = true
+                                                    },
+                                                    shape = RoundedCornerShape(18.dp),
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                ) {
+                                                    Row(
+                                                        verticalAlignment = Alignment.CenterVertically,
+                                                        horizontalArrangement = Arrangement.Center,
+                                                        modifier = Modifier.fillMaxWidth()
+                                                    ) {
+                                                        Icon(
+                                                            painter = painterResource(R.drawable.ic_scan_qr_code),
+                                                            null,
+                                                            modifier = Modifier.size(18.dp)
+                                                        )
+                                                        Spacer(modifier = Modifier.width(10.dp))
+                                                        Text(
+                                                            "扫描签到二维码",
                                                             color = MaterialTheme.colorScheme.primary
                                                         )
                                                     }
@@ -984,6 +1035,61 @@ fun CourseListScreen(
                 }
             }
         }
+    }
+    AnimatedVisibility(
+        isQRCodeScanning,
+        enter = slideInHorizontally(
+            initialOffsetX = { it },
+            animationSpec = tween(300)
+        ),
+        exit = slideOutHorizontally(
+            animationSpec = tween(400),
+            targetOffsetX = { (it * 1.5).toInt() }
+        )
+    ) {
+        BackHandler(isQRCodeScanning, closeQRCodeScanner)
+        QRCodeScanComponent(
+            isPause = isQRCodeScanPause,
+            isLoading = isQRCodeResolving,
+            onClose = closeQRCodeScanner,
+            onScanResult = { barcode ->
+                if (isQRCodeScanPause.value) return@QRCodeScanComponent
+                isQRCodeScanPause.value = true
+                isQRCodeResolving.value = true
+                coroutineScope.launch {
+                    runCatching {
+                        val parseResult = ChaoxingQRCodeSigner.parseQRCode(barcode)
+                        val httpClient = ChaoxingHttpClient.getClientInstanceOrClone(
+                            destination.isCloneSession
+                        ) ?: throw ChaoxingPredictableException("请先登录后再扫描签到二维码")
+                        ChaoxingSignHelper.getScannedQRCodeDestination(
+                            httpClient,
+                            parseResult,
+                            destination.isCloneSession
+                        )
+                    }.onSuccess { scannedDestination ->
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                        isQRCodeResolving.value = false
+                        isQRCodeScanning = false
+                        navToSignActivityDestination(scannedDestination)
+                    }.onFailure { throwable ->
+                        (throwable as? ChaoxingQRCodeSigner.QRCodeParseException)?.let {
+                            if (isDevelopedMode)
+                                snackbarHost.displaySnackbar(it.rawValue, coroutineScope)
+                        } ?: throwable.sentryReport()
+                        throwable.snackbarReport(
+                            snackbarHost,
+                            coroutineScope,
+                            "无法识别该签到二维码",
+                            hapticFeedback
+                        )
+                        isQRCodeResolving.value = false
+                        isQRCodeScanPause.value = false
+                    }
+                }
+            }
+        ) {}
+    }
     }
 }
 

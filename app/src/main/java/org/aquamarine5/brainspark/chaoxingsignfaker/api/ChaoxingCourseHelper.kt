@@ -86,6 +86,29 @@ object ChaoxingCourseHelper {
         }
     }
 
+    suspend fun getCourseIdFromClassId(
+        client: ChaoxingHttpRequester,
+        classId: Int
+    ): Result<Long?> = withContext(Dispatchers.IO) {
+        runCatching {
+            client.newCall(Request.Builder().get().url(URL_COURSE_LIST).build()).execute()
+                .use { rawResponse ->
+                    val jsonResult = JSONObject.parseObject(rawResponse.body.string())
+                    val channelList = jsonResult.getJSONArray("channelList")
+                    for (i in channelList.indices) {
+                        val course = channelList.getJSONObject(i)
+                        val content = course.getJSONObject("content")
+                        if (!content.containsKey("course")) continue
+                        if (content.getIntValue("id") != classId) continue
+                        val courseContent =
+                            content.getJSONObject("course").getJSONArray("data").getJSONObject(0)
+                        return@runCatching courseContent.getLong("id")
+                    }
+                    return@runCatching null
+                }
+        }
+    }
+
     private fun MutableList<ChaoxingCourseEntity>.parseCourseListData(
         channelList: JSONArray,
         isCloneSession: Boolean
