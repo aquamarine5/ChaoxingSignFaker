@@ -30,6 +30,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.FaceRecognitionDat
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.checkIsLast
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.displaySnackbar
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ifShouldDeselect
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.isSessionObsoletedCausing
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.Duration
@@ -91,10 +92,8 @@ class ChaoxingSignHandler<in T>(
             if (it is ChaoxingShouldSignOnceBeforeException) {
                 signStatus[1 + index].isLoading.value = false
             } else {
-                (it as? ChaoxingHttpClient.ChaoxingGetUserInfoException)?.let { exception ->
-                    if (exception.isOtherUser)
-                        ChaoxingOtherUserHelper.markSessionObsoleted(session, context)
-                }
+                if (it.isSessionObsoletedCausing)
+                    ChaoxingOtherUserHelper.markSessionObsoleted(session, context)
                 signStatus[1 + index].failed(it)
                 it.snackbarReport(
                     snackbarHost,
@@ -118,6 +117,7 @@ class ChaoxingSignHandler<in T>(
         return coroutineScope.launch {
             var isCaptchaSigning = false
             var isCaptchaResolvedByModel = false
+            var isAnySkipped = false
             val selfPhoneNumber = ChaoxingHttpClient.instance!!.phoneNumber
             val queue = buildList {
                 if (isSelf) add(-1)
@@ -176,6 +176,16 @@ class ChaoxingSignHandler<in T>(
                             signStatus[0].failed(throwable)
                             throwable.ifShouldDeselect {
                                 userSelections[0] = false
+                            }
+                            if (throwable.isSkippableInContinuousSigning) {
+                                throwable.snackbarReport(
+                                    snackbarHost,
+                                    coroutineScope,
+                                    "为${ChaoxingHttpClient.instance!!.name}签到失败，已跳过",
+                                    hapticFeedback
+                                )
+                                isAnySkipped = true
+                                break
                             }
                             if (throwable is ChaoxingSigner.WrongPositionException &&
                                 throwable.isAlreadyDisabledRandomizedLocation
@@ -238,11 +248,9 @@ class ChaoxingSignHandler<in T>(
                                 delay(500.milliseconds)
                                 continue
                             }
-                            (throwable as? ChaoxingHttpClient.ChaoxingGetUserInfoException)?.let { exception ->
-                                if (exception.isOtherUser) {
-                                    signStatus[target + 1].markSessionObsoleted()
-                                    ChaoxingOtherUserHelper.markSessionObsoleted(session, context)
-                                }
+                            if (throwable.isSessionObsoletedCausing) {
+                                signStatus[target + 1].markSessionObsoleted()
+                                ChaoxingOtherUserHelper.markSessionObsoleted(session, context)
                             }
                             if (throwable is ChaoxingFaceSignException)
                                 faceRecognitionData?.markFailure(
@@ -257,6 +265,16 @@ class ChaoxingSignHandler<in T>(
                             signStatus[target + 1].failed(throwable)
                             throwable.ifShouldDeselect {
                                 userSelections[target + 1] = false
+                            }
+                            if (throwable.isSkippableInContinuousSigning) {
+                                throwable.snackbarReport(
+                                    snackbarHost,
+                                    coroutineScope,
+                                    "为${session.name}签到失败，已跳过",
+                                    hapticFeedback
+                                )
+                                isAnySkipped = true
+                                break
                             }
                             if (throwable is ChaoxingSigner.WrongPositionException &&
                                 throwable.isAlreadyDisabledRandomizedLocation
@@ -286,7 +304,7 @@ class ChaoxingSignHandler<in T>(
                 }
             }
             onCurrentTargetChanged(null)
-            onAllSigningFinished(true)
+            onAllSigningFinished(!isAnySkipped)
         }
     }
 
@@ -403,11 +421,9 @@ class ChaoxingSignHandler<in T>(
                     }
                     onSigningFinished(value, session.name, true)
                 }.onFailure { it ->
-                    (it as? ChaoxingHttpClient.ChaoxingGetUserInfoException)?.let { exception ->
-                        if (exception.isOtherUser) {
-                            signStatus[index + 1].markSessionObsoleted()
-                            ChaoxingOtherUserHelper.markSessionObsoleted(session, context)
-                        }
+                    if (it.isSessionObsoletedCausing) {
+                        signStatus[index + 1].markSessionObsoleted()
+                        ChaoxingOtherUserHelper.markSessionObsoleted(session, context)
                     }
                     if (it is ChaoxingFaceSignException)
                         faceRecognitionData?.markFailure(session.phoneNumber, otherUserSessionList)
@@ -464,3 +480,8 @@ class ChaoxingSignHandler<in T>(
         }
     }
 }
+
+private val Throwable.isSkippableInContinuousSigning: Boolean
+    get() = this is ChaoxingSigner.AlreadySignedException ||
+            this is ChaoxingSigner.PredictedAlreadySignedException ||
+            this is ChaoxingSigner.SignActivityNoPermissionException

@@ -113,7 +113,11 @@ class ChaoxingHttpClient internal constructor(
     ) :
         ChaoxingParseDataException(message, throwable, data)
 
-    class ChaoxingNetworkException(message: String? = null, throwable: Throwable? = null) :
+    class ChaoxingNetworkException(
+        message: String? = null,
+        throwable: Throwable? = null,
+        val responseCode: Int? = null
+    ) :
         ChaoxingParseDataException(message ?: "网络错误", throwable)
 
     private var storageIMConfig: ChaoxingEasemobIMConfig? = null

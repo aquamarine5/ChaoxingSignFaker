@@ -114,6 +114,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.updateMarkerTitles
 @Composable
 fun GetLocationComponent(
     locationInfo: ChaoxingLocationDetailEntity? = null,
+    classId: Int,
     confirmButtonText: @Composable () -> Unit,
     onLocationResult: (ChaoxingLocationSignEntity) -> Unit
 ) {
@@ -163,6 +164,9 @@ fun GetLocationComponent(
             val favoriteLocationMarkers = remember { mutableListOf<Marker>() }
             var isMarkerTitleVisible = remember { true }
             var lastSignedLocationMarker: Marker? = remember { null }
+            var rememberedSignedLocation by remember {
+                mutableStateOf<ChaoxingLocation?>(null)
+            }
             val markerPositionIcon = remember {
                 BitmapDescriptorFactory.fromResource(R.drawable.ic_geo_alt_fill)
             }
@@ -314,12 +318,13 @@ fun GetLocationComponent(
                                     )
 
                                     if (clickedName == "未指定") {
+                                        val initialPosition =
+                                            rememberedSignedLocation?.let { remembered ->
+                                                LatLng(remembered.latitude, remembered.longitude)
+                                            } ?: LatLng(it.latitude, it.longitude)
                                         map.setMapStatus(
                                             MapStatusUpdateFactory.newLatLng(
-                                                LatLng(
-                                                    it.latitude,
-                                                    it.longitude
-                                                )
+                                                initialPosition
                                             )
                                         )
                                         clickedPosition = LatLng(it.latitude, it.longitude)
@@ -573,8 +578,13 @@ fun GetLocationComponent(
                             baiduMap.map.addFavoriteLocationMarker(it, starBitmap)
                         )
                     }
-                    if (data.preferences.hasLastSignedLocation()) {
-                        val last = data.preferences.lastSignedLocation
+                    if (data.containsClassRememberedLocation(classId)) {
+                        rememberedSignedLocation =
+                            data.getClassRememberedLocationOrThrow(classId)
+                    } else if (data.preferences.hasLastSignedLocation()) {
+                        rememberedSignedLocation = data.preferences.lastSignedLocation
+                    }
+                    rememberedSignedLocation?.let { last ->
                         lastSignedLocationMarker = baiduMap.map.addOverlay(
                             MarkerOptions()
                                 .position(LatLng(last.latitude, last.longitude))

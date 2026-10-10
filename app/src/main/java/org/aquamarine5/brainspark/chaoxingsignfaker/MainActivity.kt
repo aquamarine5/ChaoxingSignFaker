@@ -98,6 +98,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCourseHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingFaceHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpRequesterPool
@@ -139,6 +140,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.screen.SettingScreen
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.SignGraphDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.WelcomeDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.WelcomeScreen
+import org.aquamarine5.brainspark.chaoxingsignfaker.screen.isAllowExternalQuerySettingTipsRequested
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.isAlwaysForceSign
 import org.aquamarine5.brainspark.chaoxingsignfaker.ui.theme.ChaoxingSignFakerTheme
 import org.aquamarine5.brainspark.chaoxingsignfaker.ui.theme.Orange
@@ -150,6 +152,8 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostS
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.isDevelopedMode
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.requirePredictable
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.toastReport
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.sentryReport
 import org.aquamarine5.brainspark.stackbricks.StackbricksPolicy
 import org.aquamarine5.brainspark.stackbricks.StackbricksService
@@ -167,8 +171,14 @@ class MainActivity : ComponentActivity() {
         const val INTENT_EXTRA_EXIT_FLAG = "intent_extra_exit_flag"
     }
 
+    private var pendingSignRequest by mutableStateOf<ExternalSignRequest?>(null)
+
+    private var isPendingOpenAllowExternalQuerySetting by mutableStateOf(false)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        pendingSignRequest = intent.parseExternalSignRequest()
+        isPendingOpenAllowExternalQuerySetting = intent.isOpenSettingToAllowExternalQueryPermission()
         @Suppress("DEPRECATION")
         val versionData = packageManager.getPackageInfo(
             packageName,
@@ -849,6 +859,96 @@ class MainActivity : ComponentActivity() {
                                                 }
                                             }
                                         }
+                                        LaunchedEffect(isPendingOpenAllowExternalQuerySetting, destination) {
+                                            if (!isPendingOpenAllowExternalQuerySetting) return@LaunchedEffect
+                                            if (destination == null) return@LaunchedEffect
+                                            isPendingOpenAllowExternalQuerySetting = false
+                                            if (destination is LoginDestination || destination is WelcomeDestination) {
+                                                Toast.makeText(
+                                                    applicationContext,
+                                                    "请先登录 ChaoxingSignFaker",
+                                                    Toast.LENGTH_SHORT
+                                                ).show()
+                                                return@LaunchedEffect
+                                            }
+                                            isAllowExternalQuerySettingTipsRequested = true
+                                            runCatching {
+                                                navController.navigate(SettingDestination) {
+                                                    launchSingleTop = true
+                                                }
+                                            }.onFailure {
+                                                it.sentryReport()
+                                                it.printStackTrace()
+                                            }
+                                        }
+                                        LaunchedEffect(pendingSignRequest, destination) {
+                                            val request = pendingSignRequest ?: return@LaunchedEffect
+                                            if (destination == null) return@LaunchedEffect
+                                            pendingSignRequest = null
+                                            if (destination is LoginDestination || destination is WelcomeDestination) {
+                                                Toast.makeText(
+                                                    applicationContext,
+                                                    "请先登录 ChaoxingSignFaker",
+                                                    Toast.LENGTH_SHORT
+                                                ).show()
+                                                return@LaunchedEffect
+                                            }
+                                            runCatching {
+                                                val client = ChaoxingHttpClient.instance
+                                                requirePredictable(client != null) {
+                                                    "请先登录 ChaoxingSignFaker"
+                                                }
+                                                val classId = request.classId
+                                                requirePredictable(classId != null && classId > 0) {
+                                                    "跳转签到列表必须传递 classId"
+                                                }
+                                                val courseId = request.courseId
+                                                requirePredictable(courseId != null && courseId > 0) {
+                                                    "跳转签到列表必须传递 courseId"
+                                                }
+                                                val fid = request.fid
+                                                requirePredictable(fid != null && fid > 0) {
+                                                    "跳转签到列表必须传递 fid"
+                                                }
+                                                val activeId = request.activeId
+                                                val signType = request.signType
+                                                requirePredictable((activeId == null) == (signType == null)) {
+                                                    "跳转签到事件必须同时传递 signType 和 activeId"
+                                                }
+                                                if (client.configuredFid != fid) {
+                                                    client.updateConfiguredFid(applicationContext, fid)
+                                                }
+                                                if (activeId != null && signType != null) {
+                                                    val signDestination = ExternalSignEntry.destinationOf(
+                                                        activeId, classId, courseId, signType
+                                                    )
+                                                    requirePredictable(signDestination != null) {
+                                                        "不支持的 signType: $signType"
+                                                    }
+                                                    navController.navigate(signDestination)
+                                                } else {
+                                                    val courseName = request.courseName
+                                                        ?: runCatching {
+                                                            ChaoxingCourseHelper.queryClassName(client, classId)
+                                                        }.getOrDefault("")
+                                                    val course = ChaoxingCourseEntity(
+                                                        courseName = courseName,
+                                                        teacherName = null,
+                                                        courseId = courseId,
+                                                        classId = classId,
+                                                        className = courseName,
+                                                        imageUrl = "",
+                                                        schools = null,
+                                                        isCloneSession = false
+                                                    )
+                                                    navController.navigate(
+                                                        CourseDetailDestination(listOf(course))
+                                                    )
+                                                }
+                                            }.onFailure {
+                                                it.toastReport(applicationContext, "跳转失败")
+                                            }
+                                        }
                                     }
                                     if (showExitCloneDialog) {
                                         AlertDialog(
@@ -919,6 +1019,10 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         if (intent.getBooleanExtra(INTENT_EXTRA_EXIT_FLAG, false)) {
             finish()
+        }
+        intent.parseExternalSignRequest()?.let { pendingSignRequest = it }
+        if (intent.isOpenSettingToAllowExternalQueryPermission()) {
+            isPendingOpenAllowExternalQuerySetting = true
         }
         super.onNewIntent(intent)
     }

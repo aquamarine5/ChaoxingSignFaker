@@ -444,11 +444,19 @@ fun LocationSignScreen(
                                 }
                                 coroutineScope.launch(Dispatchers.IO) {
                                     context.chaoxingDataStore.updateData {
-                                        it.toBuilder().setPreferences(
-                                            it.preferences.toBuilder()
-                                                .setLastSignedLocation(value.toChaoxingLocation())
-                                                .build()
-                                        ).build()
+                                        it.toBuilder().apply {
+                                            val signedLocationProto =
+                                                value.toChaoxingLocation()
+                                            setPreferences(
+                                                it.preferences.toBuilder()
+                                                    .setLastSignedLocation(signedLocationProto)
+                                                    .build()
+                                            )
+                                            putClassRememberedLocation(
+                                                destination.classId,
+                                                signedLocationProto
+                                            )
+                                        }.build()
                                     }
                                 }
                             },
@@ -639,9 +647,12 @@ fun LocationSignScreen(
                             isSigning.value = false
                             isGetLocation = false
                         }
-                        GetLocationComponent(signInfo, confirmButtonText = {
-                            Text("签到")
-                        }) { result ->
+                        GetLocationComponent(
+                            signInfo,
+                            classId = destination.classId,
+                            confirmButtonText = {
+                                Text("签到")
+                            }) { result ->
                             isGetLocation = false
                             signedLocation = result
                             signHandler.startSigning(
