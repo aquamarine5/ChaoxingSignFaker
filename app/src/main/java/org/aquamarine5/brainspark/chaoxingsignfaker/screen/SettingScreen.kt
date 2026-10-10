@@ -585,14 +585,14 @@ fun SettingScreen(
                 lineHeight = 15.sp
             )
             VerticalDivider(
-                modifier = Modifier.height(24.dp).padding(horizontal = 2.dp)
+                modifier = Modifier.height(32.dp).padding(horizontal = 6.dp)
             )
             Switch(isIgnoreAllConsistentDeviceCodeComponents, onCheckedChange = { checked ->
                 setIgnoreAllConsistentDeviceCodeComponents(checked)
             })
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(2.dp))
         fun setAllowExternalProviderFetchInformation(checked: Boolean) {
             isAllowExternalProviderFetchInformation = checked
             hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
@@ -635,11 +635,12 @@ fun SettingScreen(
                 Icon(
                     painterResource(R.drawable.ic_circle_question_mark),
                     contentDescription = null,
-                    modifier = Modifier.size(16.dp)
+                    modifier = Modifier.size(24.dp),
+                    tint = Color.Gray
                 )
             }
             VerticalDivider(
-                modifier = Modifier.height(24.dp).padding(horizontal = 2.dp)
+                modifier = Modifier.height(32.dp).padding(horizontal = 6.dp)
             )
             Switch(isAllowExternalProviderFetchInformation, onCheckedChange = { checked ->
                 setAllowExternalProviderFetchInformation(checked)
@@ -694,7 +695,7 @@ fun SettingScreen(
             })
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(2.dp))
         var isUiDevelopedMode by remember { mutableStateOf(isDevelopedMode) }
         Row(
             modifier = Modifier.fillMaxWidth().zIndex(1f),
@@ -728,7 +729,7 @@ fun SettingScreen(
                 lineHeight = 15.sp
             )
             VerticalDivider(
-                modifier = Modifier.height(24.dp).padding(horizontal = 2.dp)
+                modifier = Modifier.height(32.dp).padding(horizontal = 6.dp)
             )
             Switch(isUiDevelopedMode, onCheckedChange = { value ->
                 isUiDevelopedMode = value

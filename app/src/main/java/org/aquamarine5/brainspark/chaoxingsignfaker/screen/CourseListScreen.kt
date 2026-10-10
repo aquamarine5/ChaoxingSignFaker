@@ -125,6 +125,7 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
 @Serializable
@@ -139,6 +140,9 @@ private const val SORT_TOP = 100
 private const val SORT_STAR = 10
 private const val SORT_UNFAVOURED = 5
 private const val SORT_COMMON = 0
+
+private val LESSON_SIGN_ACTIVITIES_POLL_INTERVAL = 5.seconds
+private val LESSON_SIGN_ACTIVITIES_POLL_TIMEOUT = 2.minutes
 
 @Composable
 fun CourseListScreen(
@@ -274,18 +278,37 @@ fun CourseListScreen(
                                     })
                                 }
                         }
-                    ChaoxingHttpClient.getClientInstanceOrClone(destination.isCloneSession)
-                        ?.let {
-                            lessonSignActivities =
-                                ChaoxingLessonHelper.checkCurrentLessonSignActivities(
-                                    it, context, activitiesData.toList()
-                                )
-                        }
                 }.onFailure {
                     it.snackbarReport(
                         snackbarHost,
                         coroutineScope,
                         "获取课程列表失败",
+                        hapticFeedback
+                    )
+                }
+            }
+            launch {
+                runCatching {
+                    val deadlineTimestamp = System.currentTimeMillis() +
+                            LESSON_SIGN_ACTIVITIES_POLL_TIMEOUT.inWholeMilliseconds
+                    while (true) {
+                        val httpClient =
+                            ChaoxingHttpClient.getClientInstanceOrClone(destination.isCloneSession)
+                                ?: break
+                        val fetchedActivities =
+                            ChaoxingLessonHelper.checkCurrentLessonSignActivities(
+                                httpClient, context, activitiesData.toList()
+                            )
+                        lessonSignActivities = fetchedActivities
+                        if (fetchedActivities.isNotEmpty()) break
+                        if (System.currentTimeMillis() >= deadlineTimestamp) break
+                        delay(LESSON_SIGN_ACTIVITIES_POLL_INTERVAL)
+                    }
+                }.onFailure {
+                    it.snackbarReport(
+                        snackbarHost,
+                        coroutineScope,
+                        "检测课表签到事件失败",
                         hapticFeedback
                     )
                 }
