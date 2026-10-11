@@ -38,6 +38,7 @@ message ChaoxingSignFakerDataStore{
   repeated string preferGroupId = 29;
   ChaoxingClassSchedule classSchedule = 30;
   map<uint32,ChaoxingLocation> classRememberedLocation=31;
+  map<uint32,ChaoxingLocation> classSelectedLocation=32;
 }
 
 message ChaoxingClassSchedule{

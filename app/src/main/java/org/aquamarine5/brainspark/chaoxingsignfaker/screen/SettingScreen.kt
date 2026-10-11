@@ -453,6 +453,7 @@ fun SettingScreen(
                     hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                     context.startActivity(Intent(Intent.ACTION_SEND).apply {
                         setData("mailto:aquamarine5forever@gmail.com".toUri())
+                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                         putExtra(Intent.EXTRA_EMAIL, "aquamarine5forever@gmail.com")
                         putExtra(Intent.EXTRA_CC, "aquamarine5forever@gmail.com")
                         putExtra(Intent.EXTRA_SUBJECT, "Send to ChaoxingSignFaker:\n")
@@ -548,203 +549,213 @@ fun SettingScreen(
                     }
             }
         )
-        Spacer(modifier = Modifier.height(8.dp))
-        fun setIgnoreAllConsistentDeviceCodeComponents(checked: Boolean) {
-            isIgnoreAllConsistentDeviceCodeComponents = checked
-            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-            coroutineScope.launch(Dispatchers.IO) {
-                context.chaoxingDataStore.updateData {
-                    it.toBuilder().setPreferences(
-                        it.preferences.toBuilder().setIsIgnoreAllConsistentDeviceCodeComponents(
-                            isIgnoreAllConsistentDeviceCodeComponents
-                        ).build()
-                    ).build()
-                }
-            }
-        }
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                painterResource(R.drawable.ic_tablet_smartphone_check),
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(24.dp)
-            )
-            Text(
-                "关闭设备码提示图标",
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(horizontal = 8.dp)
-                    .clickable {
-                        setIgnoreAllConsistentDeviceCodeComponents(
-                            !isIgnoreAllConsistentDeviceCodeComponents
-                        )
-                    },
-                lineHeight = 15.sp
-            )
-            VerticalDivider(
-                modifier = Modifier.height(32.dp).padding(horizontal = 6.dp)
-            )
-            Switch(isIgnoreAllConsistentDeviceCodeComponents, onCheckedChange = { checked ->
-                setIgnoreAllConsistentDeviceCodeComponents(checked)
-            })
-        }
-
-        Spacer(modifier = Modifier.height(2.dp))
-        fun setAllowExternalProviderFetchInformation(checked: Boolean) {
-            isAllowExternalProviderFetchInformation = checked
-            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-            coroutineScope.launch(Dispatchers.IO) {
-                context.chaoxingDataStore.updateData {
-                    it.toBuilder().setPreferences(
-                        it.preferences.toBuilder().setIsAllowExternalProviderFetchInformation(
-                            isAllowExternalProviderFetchInformation
-                        ).build()
-                    ).build()
-                }
-            }
-        }
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                painterResource(R.drawable.ic_server_plus),
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(24.dp)
-            )
-            Text(
-                "允许其他应用查询学习通信息",
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(horizontal = 8.dp)
-                    .clickable {
-                        setAllowExternalProviderFetchInformation(
-                            !isAllowExternalProviderFetchInformation
-                        )
-                    },
-                lineHeight = 15.sp
-            )
-            IconButton(onClick = {
-                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                isExternalProviderInformationTipsDialogVisible = true
-            }) {
-                Icon(
-                    painterResource(R.drawable.ic_circle_question_mark),
-                    contentDescription = null,
-                    modifier = Modifier.size(24.dp),
-                    tint = Color.Gray
-                )
-            }
-            VerticalDivider(
-                modifier = Modifier.height(32.dp).padding(horizontal = 6.dp)
-            )
-            Switch(isAllowExternalProviderFetchInformation, onCheckedChange = { checked ->
-                setAllowExternalProviderFetchInformation(checked)
-            })
-        }
-        if (isExternalProviderInformationTipsDialogVisible) {
-            SnackbarAlertDialog(onDismissRequest = {
-                isExternalProviderInformationTipsDialogVisible = false
-            }, confirmButton = {
-                Button(onClick = {
-                    hapticFeedback.performHapticFeedback(HapticFeedbackType.Confirm)
-                    isExternalProviderInformationTipsDialogVisible = false
-                }) {
-                    Text("我知道了")
-                }
-            }, icon = {
-                Icon(painterResource(R.drawable.ic_triangle_alert), null)
-            }, text = {
-                Column {
-                    Text(buildAnnotatedString {
-                        withStyle(SpanStyle(color = Color.Red)) {
-                            append("启用此选项会允许其他应用查询你的学习通相关信息")
-                        }
-                        append(
-                            "，包括但不限于加入的课程信息以及签到事件信息。关闭此选项不会阻止其他应用请求跳转到签到页或课程详情页的操作。"
-                        )
-                    })
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-                    Text("你可以随时在设置页修改此设置。")
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Switch(isAllowExternalProviderFetchInformation, onCheckedChange = { checked ->
-                            setAllowExternalProviderFetchInformation(checked)
-                        })
-                        Text(
-                            "允许其他应用查询学习通信息",
-                            modifier = Modifier
-                                .weight(1f)
-                                .padding(start = 8.dp)
-                                .clickable {
-                                    setAllowExternalProviderFetchInformation(
-                                        !isAllowExternalProviderFetchInformation
-                                    )
-                                }
-                        )
-                    }
-                }
-            })
-        }
-
-        Spacer(modifier = Modifier.height(2.dp))
         var isUiDevelopedMode by remember { mutableStateOf(isDevelopedMode) }
-        Row(
-            modifier = Modifier.fillMaxWidth().zIndex(1f),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                painterResource(R.drawable.ic_wrench),
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(24.dp)
-            )
-            Text(
-                "启用开发模式",
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(horizontal = 8.dp)
-                    .clickable {
-                        isUiDevelopedMode = !isUiDevelopedMode
-                        isDevelopedMode = !isUiDevelopedMode
-                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                        coroutineScope.launch(Dispatchers.IO) {
-                            context.chaoxingDataStore.updateData {
-                                it.toBuilder().setPreferences(
-                                    it.preferences.toBuilder().setIsDevelopedMode(
-                                        isUiDevelopedMode
-                                    ).build()
-                                ).build()
-                            }
-                        }
-                    },
-                lineHeight = 15.sp
-            )
-            VerticalDivider(
-                modifier = Modifier.height(32.dp).padding(horizontal = 6.dp)
-            )
-            Switch(isUiDevelopedMode, onCheckedChange = { value ->
-                isUiDevelopedMode = value
-                isDevelopedMode = value
+        Column(modifier = Modifier.zIndex(1f)) {
+            Spacer(modifier = Modifier.height(8.dp))
+            fun setIgnoreAllConsistentDeviceCodeComponents(checked: Boolean) {
+                isIgnoreAllConsistentDeviceCodeComponents = checked
                 hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                 coroutineScope.launch(Dispatchers.IO) {
                     context.chaoxingDataStore.updateData {
                         it.toBuilder().setPreferences(
-                            it.preferences.toBuilder().setIsDevelopedMode(value).build()
+                            it.preferences.toBuilder().setIsIgnoreAllConsistentDeviceCodeComponents(
+                                isIgnoreAllConsistentDeviceCodeComponents
+                            ).build()
                         ).build()
                     }
                 }
-            })
-        }
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    painterResource(R.drawable.ic_tablet_smartphone_check),
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(24.dp)
+                )
+                Text(
+                    "关闭设备码提示图标",
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(horizontal = 8.dp)
+                        .clickable {
+                            setIgnoreAllConsistentDeviceCodeComponents(
+                                !isIgnoreAllConsistentDeviceCodeComponents
+                            )
+                        },
+                    lineHeight = 15.sp
+                )
+                VerticalDivider(
+                    modifier = Modifier
+                        .height(32.dp)
+                        .padding(horizontal = 6.dp)
+                )
+                Switch(isIgnoreAllConsistentDeviceCodeComponents, onCheckedChange = { checked ->
+                    setIgnoreAllConsistentDeviceCodeComponents(checked)
+                })
+            }
 
+            Spacer(modifier = Modifier.height(2.dp))
+            fun setAllowExternalProviderFetchInformation(checked: Boolean) {
+                isAllowExternalProviderFetchInformation = checked
+                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                coroutineScope.launch(Dispatchers.IO) {
+                    context.chaoxingDataStore.updateData {
+                        it.toBuilder().setPreferences(
+                            it.preferences.toBuilder().setIsAllowExternalProviderFetchInformation(
+                                isAllowExternalProviderFetchInformation
+                            ).build()
+                        ).build()
+                    }
+                }
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    painterResource(R.drawable.ic_server_plus),
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(24.dp)
+                )
+                Text(
+                    "允许其他应用查询学习通信息",
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(horizontal = 8.dp)
+                        .clickable {
+                            setAllowExternalProviderFetchInformation(
+                                !isAllowExternalProviderFetchInformation
+                            )
+                        },
+                    lineHeight = 15.sp
+                )
+                IconButton(onClick = {
+                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                    isExternalProviderInformationTipsDialogVisible = true
+                }) {
+                    Icon(
+                        painterResource(R.drawable.ic_circle_question_mark),
+                        contentDescription = null,
+                        modifier = Modifier.size(24.dp),
+                        tint = Color.Gray
+                    )
+                }
+                VerticalDivider(
+                    modifier = Modifier
+                        .height(32.dp)
+                        .padding(horizontal = 6.dp)
+                )
+                Switch(isAllowExternalProviderFetchInformation, onCheckedChange = { checked ->
+                    setAllowExternalProviderFetchInformation(checked)
+                })
+            }
+            if (isExternalProviderInformationTipsDialogVisible) {
+                SnackbarAlertDialog(onDismissRequest = {
+                    isExternalProviderInformationTipsDialogVisible = false
+                }, confirmButton = {
+                    Button(onClick = {
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.Confirm)
+                        isExternalProviderInformationTipsDialogVisible = false
+                    }) {
+                        Text("我知道了")
+                    }
+                }, icon = {
+                    Icon(painterResource(R.drawable.ic_triangle_alert), null)
+                }, text = {
+                    Column {
+                        Text(buildAnnotatedString {
+                            withStyle(SpanStyle(color = Color.Red)) {
+                                append("启用此选项会允许其他应用查询你的学习通相关信息")
+                            }
+                            append(
+                                "，包括但不限于加入的课程信息以及签到事件信息。关闭此选项不会阻止其他应用请求跳转到签到页或课程详情页的操作。"
+                            )
+                        })
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                        Text("你可以随时在设置页修改此设置。")
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Switch(
+                                isAllowExternalProviderFetchInformation,
+                                onCheckedChange = { checked ->
+                                    setAllowExternalProviderFetchInformation(checked)
+                                })
+                            Text(
+                                "允许其他应用查询学习通信息",
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .padding(start = 8.dp)
+                                    .clickable {
+                                        setAllowExternalProviderFetchInformation(
+                                            !isAllowExternalProviderFetchInformation
+                                        )
+                                    }
+                            )
+                        }
+                    }
+                })
+            }
+
+            Spacer(modifier = Modifier.height(2.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    painterResource(R.drawable.ic_wrench),
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(24.dp)
+                )
+                Text(
+                    "启用开发模式",
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(horizontal = 8.dp)
+                        .clickable {
+                            isUiDevelopedMode = !isUiDevelopedMode
+                            isDevelopedMode = !isUiDevelopedMode
+                            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                            coroutineScope.launch(Dispatchers.IO) {
+                                context.chaoxingDataStore.updateData {
+                                    it.toBuilder().setPreferences(
+                                        it.preferences.toBuilder().setIsDevelopedMode(
+                                            isUiDevelopedMode
+                                        ).build()
+                                    ).build()
+                                }
+                            }
+                        },
+                    lineHeight = 15.sp
+                )
+                VerticalDivider(
+                    modifier = Modifier
+                        .height(32.dp)
+                        .padding(horizontal = 6.dp)
+                )
+                Switch(isUiDevelopedMode, onCheckedChange = { value ->
+                    isUiDevelopedMode = value
+                    isDevelopedMode = value
+                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                    coroutineScope.launch(Dispatchers.IO) {
+                        context.chaoxingDataStore.updateData {
+                            it.toBuilder().setPreferences(
+                                it.preferences.toBuilder().setIsDevelopedMode(value).build()
+                            ).build()
+                        }
+                    }
+                })
+            }
+        }
         @OnlyAppDevelopedMode AnimatedVisibility(
             isUiDevelopedMode,
             enter = slideInVertically(),

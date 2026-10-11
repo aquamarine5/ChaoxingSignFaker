@@ -48,6 +48,10 @@ fun ChaoxingLocationSignEntity.toChaoxingLocation(label: String = address): Chao
         .build()
 }
 
+fun ChaoxingLocation.toChaoxingLocationSignEntity(): ChaoxingLocationSignEntity {
+    return ChaoxingLocationSignEntity(latitude, longitude, address)
+}
+
 @Composable
 fun SaveFavoriteLocationDialog(
     location: ChaoxingLocationSignEntity,

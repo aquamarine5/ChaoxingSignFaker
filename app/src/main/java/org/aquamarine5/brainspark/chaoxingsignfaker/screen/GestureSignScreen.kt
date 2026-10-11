@@ -52,6 +52,7 @@ import com.github.ihsg.patternlocker.DefaultLockerNormalCellView
 import com.github.ihsg.patternlocker.OnPatternChangeListener
 import com.github.ihsg.patternlocker.PatternLockerView
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.serialization.Serializable
@@ -71,6 +72,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.components.SignOutRedirectTi
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SignPotentialWarningTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SponsorPopupDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.cloneSessionGuard
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.toChaoxingLocationSignEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationSignEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityStatus
@@ -80,9 +82,12 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignStatus
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.SignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingGestureSigner
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSignHandler
+import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSigner
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.UMengHelper
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.displaySnackbar
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.saveSelectedLocation
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -250,6 +255,15 @@ fun GestureSignScreen(
                     var isCheckingStatus by remember { mutableStateOf(false) }
                     var text by remember { mutableStateOf("") }
                     var locationData by remember { mutableStateOf<ChaoxingLocationSignEntity?>(null) }
+                    LaunchedEffect(Unit) {
+                        context.chaoxingDataStore.data.first().let { data ->
+                            if (data.containsClassSelectedLocation(destination.classId)) {
+                                locationData = data.getClassSelectedLocationOrThrow(
+                                    destination.classId
+                                ).toChaoxingLocationSignEntity()
+                            }
+                        }
+                    }
                     var isMapGetting by remember { mutableStateOf(false) }
                     var pendingAutoSignAction by remember { mutableStateOf<(() -> Unit)?>(null) }
                     val signStatus = remember { mutableListOf(ChaoxingSignStatus(hapticFeedback)) }
@@ -409,6 +423,8 @@ fun GestureSignScreen(
                                         isCaptchaSigning = false,
                                         isCaptchaResolvedByModel = false
                                     )
+                                }.onFailure {
+                                    if (it is ChaoxingSigner.WrongPositionException) locationData = null
                                 }
                             }, onOtherUserSigning = { value, session, bypassChecking, _ ->
                                 runCatching {
@@ -455,11 +471,18 @@ fun GestureSignScreen(
                                                 )
                                             }
                                         }
+                                }.onFailure {
+                                    if (it is ChaoxingSigner.WrongPositionException) locationData = null
                                 }
                             },
                             onSigningFinished = { _, name, isOtherUser ->
                                 coroutineScope.launch {
                                     UMengHelper.onSignGestureEvent(context, name, isOtherUser)
+                                }
+                                locationData?.saveSelectedLocation(
+                                    context, destination.classId, coroutineScope
+                                ) {
+                                    locationData = it
                                 }
                             }, onAllSigningFinished = { isSuccessful ->
                                 isSigning.value = false
@@ -525,7 +548,9 @@ fun GestureSignScreen(
                                         hapticFeedback,
                                         coroutineScope,
                                         snackbarHost
-                                    )
+                                    ).onFailure {
+                                        if (it is ChaoxingSigner.WrongPositionException) locationData = null
+                                    }
                                 }
                             ) { isSelf, otherUserSessionList, _ ->
                                 if (!isCheckingStatus) {
@@ -585,7 +610,9 @@ fun GestureSignScreen(
                                             fadeOut(animationSpec = tween(300)),
                                 modifier = Modifier.zIndex(1f)
                             ) {
-                                GetLocationComponent(confirmButtonText = {
+                                GetLocationComponent(
+                                    classId = destination.classId,
+                                    confirmButtonText = {
                                     Text("设置")
                                 }) {
                                     isMapGetting = false

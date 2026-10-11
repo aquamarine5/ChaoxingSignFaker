@@ -104,6 +104,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.components.SignOutRedirectTi
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SignPotentialWarningTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SponsorPopupDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.cloneSessionGuard
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.toChaoxingLocationSignEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationSignEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingQRCodeParseResult
@@ -115,6 +116,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignStatus
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.SignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingQRCodeSigner
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSignHandler
+import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSigner
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingPredictableException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.FaceRecognitionImageStatus
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalImageLoader
@@ -125,6 +127,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.displaySnackbar
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.isDevelopedMode
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.rememberFaceRecognitionData
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.requirePredictable
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.saveSelectedLocation
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.sentryReport
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
 import kotlin.coroutines.resume
@@ -324,6 +327,15 @@ fun QRCodeSignScreen(
                         )
                     }
                     var locationData by remember { mutableStateOf<ChaoxingLocationSignEntity?>(null) }
+                    LaunchedEffect(Unit) {
+                        context.chaoxingDataStore.data.first().let { data ->
+                            if (data.containsClassSelectedLocation(destination.classId)) {
+                                locationData = data.getClassSelectedLocationOrThrow(
+                                    destination.classId
+                                ).toChaoxingLocationSignEntity()
+                            }
+                        }
+                    }
                     var job by remember { mutableStateOf<Job?>(null) }
                     val userSelections = remember { mutableStateListOf(true) }
                     val signStatus =
@@ -421,6 +433,7 @@ fun QRCodeSignScreen(
                                 }.onFailure {
                                     if (it is ChaoxingQRCodeSigner.QRCodeExpiredException)
                                         expiredEnc = value.enc
+                                    if (it is ChaoxingSigner.WrongPositionException) locationData = null
                                 }
                             },
                             onSigningFinished = { _, name, isOtherUser ->
@@ -430,6 +443,11 @@ fun QRCodeSignScreen(
                                         name,
                                         isOtherUser
                                     )
+                                }
+                                locationData?.saveSelectedLocation(
+                                    context, destination.classId, coroutineScope
+                                ) {
+                                    locationData = it
                                 }
                             },
                             onOtherUserSigning = { value, session, bypassChecking, _ ->
@@ -510,6 +528,7 @@ fun QRCodeSignScreen(
                                 }.onFailure {
                                     if (it is ChaoxingQRCodeSigner.QRCodeExpiredException)
                                         expiredEnc = value.enc
+                                    if (it is ChaoxingSigner.WrongPositionException) locationData = null
                                 }
 
                             },
@@ -736,7 +755,9 @@ fun QRCodeSignScreen(
                                         hapticFeedback,
                                         coroutineScope,
                                         snackbarHost
-                                    )
+                                    ).onFailure {
+                                        if (it is ChaoxingSigner.WrongPositionException) locationData = null
+                                    }
                                 }, isCloneSession = destination.isCloneSession,
                                 hasSignRealtimeParameter = signHandler.hasSignRealtimeParameter,
                                 suffixContent = {
@@ -954,11 +975,12 @@ fun QRCodeSignScreen(
                                             fadeOut(animationSpec = tween(300)),
                                 modifier = Modifier.zIndex(1f)
                             ) {
-                                GetLocationComponent(confirmButtonText = {
+                                GetLocationComponent(
+                                    classId = destination.classId,
+                                    confirmButtonText = {
                                     Text("设置")
                                 }) {
                                     isMapGetting = false
-                                    locationData = it
                                     beginQRContinuousSigning()
                                 }
                                 BackHandler(isMapGetting) {
