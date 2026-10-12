@@ -6,6 +6,9 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker
 
+//noinspection UsingMaterialAndMaterial3Libraries
+//noinspection UsingMaterialAndMaterial3Libraries
+//noinspection UsingMaterialAndMaterial3Libraries
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
@@ -40,11 +43,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-//noinspection UsingMaterialAndMaterial3Libraries
 import androidx.compose.material.BottomNavigation
-//noinspection UsingMaterialAndMaterial3Libraries
 import androidx.compose.material.BottomNavigationItem
-//noinspection UsingMaterialAndMaterial3Libraries
 import androidx.compose.material.ContentAlpha
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Badge
@@ -153,8 +153,8 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.isDevelopedMode
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.requirePredictable
-import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.toastReport
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.sentryReport
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.toastReport
 import org.aquamarine5.brainspark.stackbricks.StackbricksPolicy
 import org.aquamarine5.brainspark.stackbricks.StackbricksService
 import org.aquamarine5.brainspark.stackbricks.providers.qiniu.QiniuConfiguration
@@ -178,7 +178,8 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         pendingSignRequest = intent.parseExternalSignRequest()
-        isPendingOpenAllowExternalQuerySetting = intent.isOpenSettingToAllowExternalQueryPermission()
+        isPendingOpenAllowExternalQuerySetting =
+            intent.isOpenSettingToAllowExternalQueryPermission()
         @Suppress("DEPRECATION")
         val versionData = packageManager.getPackageInfo(
             packageName,
@@ -198,6 +199,8 @@ class MainActivity : ComponentActivity() {
                 options.isEnabled = false
             }
 
+            options.setTracePropagationTargets(emptyList<String>())
+
             val versionName = versionData.versionName!!
             if (versionName.contains("rc"))
                 options.environment = "rc"
@@ -214,7 +217,8 @@ class MainActivity : ComponentActivity() {
                 "SocketTimeoutException",
                 "UnknownHostException",
                 "ConnectException",
-                "SSLHandshakeException"
+                "SSLHandshakeException",
+                "SocketException"
             )
             options.beforeSend = { event, _ ->
                 event.setExtra("sign", verifiedSignature)
@@ -859,7 +863,10 @@ class MainActivity : ComponentActivity() {
                                                 }
                                             }
                                         }
-                                        LaunchedEffect(isPendingOpenAllowExternalQuerySetting, destination) {
+                                        LaunchedEffect(
+                                            isPendingOpenAllowExternalQuerySetting,
+                                            destination
+                                        ) {
                                             if (!isPendingOpenAllowExternalQuerySetting) return@LaunchedEffect
                                             if (destination == null) return@LaunchedEffect
                                             isPendingOpenAllowExternalQuerySetting = false
@@ -882,7 +889,8 @@ class MainActivity : ComponentActivity() {
                                             }
                                         }
                                         LaunchedEffect(pendingSignRequest, destination) {
-                                            val request = pendingSignRequest ?: return@LaunchedEffect
+                                            val request =
+                                                pendingSignRequest ?: return@LaunchedEffect
                                             if (destination == null) return@LaunchedEffect
                                             pendingSignRequest = null
                                             if (destination is LoginDestination || destination is WelcomeDestination) {
@@ -916,12 +924,16 @@ class MainActivity : ComponentActivity() {
                                                     "跳转签到事件必须同时传递 signType 和 activeId"
                                                 }
                                                 if (client.configuredFid != fid) {
-                                                    client.updateConfiguredFid(applicationContext, fid)
+                                                    client.updateConfiguredFid(
+                                                        applicationContext,
+                                                        fid
+                                                    )
                                                 }
                                                 if (activeId != null && signType != null) {
-                                                    val signDestination = ExternalSignEntry.destinationOf(
-                                                        activeId, classId, courseId, signType
-                                                    )
+                                                    val signDestination =
+                                                        ExternalSignEntry.destinationOf(
+                                                            activeId, classId, courseId, signType
+                                                        )
                                                     requirePredictable(signDestination != null) {
                                                         "不支持的 signType: $signType"
                                                     }
@@ -929,7 +941,10 @@ class MainActivity : ComponentActivity() {
                                                 } else {
                                                     val courseName = request.courseName
                                                         ?: runCatching {
-                                                            ChaoxingCourseHelper.queryClassName(client, classId)
+                                                            ChaoxingCourseHelper.queryClassName(
+                                                                client,
+                                                                classId
+                                                            )
                                                         }.getOrDefault("")
                                                     val course = ChaoxingCourseEntity(
                                                         courseName = courseName,

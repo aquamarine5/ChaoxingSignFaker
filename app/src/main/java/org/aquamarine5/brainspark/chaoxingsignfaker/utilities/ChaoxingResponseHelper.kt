@@ -224,7 +224,7 @@ fun Throwable.sentryReport() {
 
 val Throwable.isSessionObsoletedCausing: Boolean
     get() = generateSequence(this) { it.cause }.any {
-        (it as? ChaoxingHttpClient.ChaoxingGetUserInfoException)?.isOtherUser == true ||
+        it is ChaoxingUserSessionOutdatedException ||
                 (it as? ChaoxingHttpClient.ChaoxingNetworkException)?.responseCode == 403
     }
 

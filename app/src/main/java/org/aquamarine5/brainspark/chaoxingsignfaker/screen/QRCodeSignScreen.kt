@@ -220,13 +220,13 @@ fun QRCodeSignScreen(
                 ChaoxingHttpClient.cloneInstance!!.let { cloneHttpClient ->
                     ChaoxingQRCodeSigner(cloneHttpClient, destination).let {
                         isFaceRequired = it.isFaceRequired()
-                        signActivityStatus = it.preSign()
+                        signActivityStatus = it.preSign(context)
                         it.getQRCodeSignInfo()
                     }
                 }
             } else {
                 isFaceRequired = signer.isFaceRequired()
-                signActivityStatus = signer.preSign()
+                signActivityStatus = signer.preSign(context)
                 signer.getQRCodeSignInfo()
             }
             isMapRequired = data.first.isPositionRequired
@@ -250,13 +250,13 @@ fun QRCodeSignScreen(
                             ChaoxingHttpClient.cloneInstance!!.let { cloneHttpClient ->
                                 ChaoxingQRCodeSigner(cloneHttpClient, destination).let {
                                     isFaceRequired = it.isFaceRequired()
-                                    signActivityStatus = it.preSign()
+                                    signActivityStatus = it.preSign(context)
                                     it.getQRCodeSignInfo()
                                 }
                             }
                         } else {
                             isFaceRequired = signer.isFaceRequired()
-                            signActivityStatus = signer.preSign()
+                            signActivityStatus = signer.preSign(context)
                             signer.getQRCodeSignInfo()
                         }
                         isMapRequired = data.first.isPositionRequired
@@ -433,7 +433,8 @@ fun QRCodeSignScreen(
                                 }.onFailure {
                                     if (it is ChaoxingQRCodeSigner.QRCodeExpiredException)
                                         expiredEnc = value.enc
-                                    if (it is ChaoxingSigner.WrongPositionException) locationData = null
+                                    if (it is ChaoxingSigner.WrongPositionException) locationData =
+                                        null
                                 }
                             },
                             onSigningFinished = { _, name, isOtherUser ->
@@ -489,7 +490,9 @@ fun QRCodeSignScreen(
                                                 ) else destination,
                                                 signer.getSignInfo()
                                             ).run {
-                                                if (!(isAlwaysForceSign || bypassChecking)) checkSignStatusThrowException()
+                                                if (!(isAlwaysForceSign || bypassChecking)) checkSignStatusThrowException(
+                                                    context
+                                                )
                                                 if (sign(
                                                         value,
                                                         locationData,
@@ -528,7 +531,8 @@ fun QRCodeSignScreen(
                                 }.onFailure {
                                     if (it is ChaoxingQRCodeSigner.QRCodeExpiredException)
                                         expiredEnc = value.enc
-                                    if (it is ChaoxingSigner.WrongPositionException) locationData = null
+                                    if (it is ChaoxingSigner.WrongPositionException) locationData =
+                                        null
                                 }
 
                             },
@@ -756,7 +760,8 @@ fun QRCodeSignScreen(
                                         coroutineScope,
                                         snackbarHost
                                     ).onFailure {
-                                        if (it is ChaoxingSigner.WrongPositionException) locationData = null
+                                        if (it is ChaoxingSigner.WrongPositionException) locationData =
+                                            null
                                     }
                                 }, isCloneSession = destination.isCloneSession,
                                 hasSignRealtimeParameter = signHandler.hasSignRealtimeParameter,
@@ -978,8 +983,8 @@ fun QRCodeSignScreen(
                                 GetLocationComponent(
                                     classId = destination.classId,
                                     confirmButtonText = {
-                                    Text("设置")
-                                }) {
+                                        Text("设置")
+                                    }) {
                                     isMapGetting = false
                                     beginQRContinuousSigning()
                                 }

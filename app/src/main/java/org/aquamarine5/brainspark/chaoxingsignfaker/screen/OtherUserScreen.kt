@@ -179,6 +179,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingImportOtherUs
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingOtherUserSharedEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ImportOtherUserResult
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.getResultTips
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingUserSessionOutdatedException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
@@ -3107,8 +3108,7 @@ fun OtherUserScreen(
                                                                         client
                                                                     naviCloneCourseListScreen()
                                                                 }.onFailure { failure ->
-                                                                    (failure as? ChaoxingHttpClient.ChaoxingGetUserInfoException)
-                                                                        ?.takeIf { it.isOtherUser }
+                                                                    (failure as? ChaoxingUserSessionOutdatedException)
                                                                         ?.let {
                                                                             coroutineScope.launch {
                                                                                 runCatching {

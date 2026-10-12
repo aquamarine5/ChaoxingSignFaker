@@ -36,3 +36,9 @@ class ChaoxingFaceImageException(message: String, throwable: Throwable? = null) 
 
 class ChaoxingCaptchaCancelledException(throwable: Throwable? = null) :
     ChaoxingPredictableException("已取消验证码验证", throwable)
+
+class ChaoxingUserSessionOutdatedException(
+    message: String = "登录状态已过期，请重新登录",
+    throwable: Throwable? = null,
+    data: String? = null
+) : ChaoxingParseDataException(message, throwable, data)

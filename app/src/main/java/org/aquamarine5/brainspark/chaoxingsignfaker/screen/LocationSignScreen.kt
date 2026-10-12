@@ -190,13 +190,13 @@ fun LocationSignScreen(
                         destination
                     ).let {
                         isFaceRequired = it.isFaceRequired()
-                        signActivityStatus = it.preSign()
+                        signActivityStatus = it.preSign(context)
                         it.getLocationSignInfo()
                     }
                 }
             } else {
                 isFaceRequired = signer.isFaceRequired()
-                signActivityStatus = signer.preSign()
+                signActivityStatus = signer.preSign(context)
                 signer.getLocationSignInfo()
             }
             signInfo = data.first
@@ -224,13 +224,13 @@ fun LocationSignScreen(
                                     destination
                                 ).let {
                                     isFaceRequired = it.isFaceRequired()
-                                    signActivityStatus = it.preSign()
+                                    signActivityStatus = it.preSign(context)
                                     it.getLocationSignInfo()
                                 }
                             }
                         } else {
                             isFaceRequired = signer.isFaceRequired()
-                            signActivityStatus = signer.preSign()
+                            signActivityStatus = signer.preSign(context)
                             signer.getLocationSignInfo()
                         }
                         signInfo = data.first
@@ -369,7 +369,8 @@ fun LocationSignScreen(
                                         isCaptchaResolvedByModel = false
                                     )
                                 }.onFailure {
-                                    if (it is ChaoxingSigner.WrongPositionException) selectedLocation = null
+                                    if (it is ChaoxingSigner.WrongPositionException) selectedLocation =
+                                        null
                                 }
                             },
                             onOtherUserSigning = { value, session, bypassChecking, _ ->
@@ -392,7 +393,9 @@ fun LocationSignScreen(
                                                 ) else destination,
                                                 signer.getSignInfo()
                                             ).run {
-                                                if (!(isAlwaysForceSign || bypassChecking)) checkSignStatusThrowException()
+                                                if (!(isAlwaysForceSign || bypassChecking)) checkSignStatusThrowException(
+                                                    context
+                                                )
                                                 val faceImageUploadedObjectId =
                                                     if (isFaceRequired) {
                                                         faceRecognitionData.faceImageObjectIds.getOrPut(
@@ -447,7 +450,8 @@ fun LocationSignScreen(
                                             }
                                         }
                                 }.onFailure {
-                                    if (it is ChaoxingSigner.WrongPositionException) selectedLocation = null
+                                    if (it is ChaoxingSigner.WrongPositionException) selectedLocation =
+                                        null
                                 }
                             },
                             destination = destination,
@@ -597,7 +601,8 @@ fun LocationSignScreen(
                                     coroutineScope,
                                     snackbarHost
                                 ).onFailure {
-                                    if (it is ChaoxingSigner.WrongPositionException) selectedLocation = null
+                                    if (it is ChaoxingSigner.WrongPositionException) selectedLocation =
+                                        null
                                 }
                             }
                         ) { isSelf, otherUserSessionList, _ ->

@@ -121,7 +121,7 @@ data class ChaoxingSignStatus(
                             else -> {
                                 Color(0xFFF43E06)
                             }
-                        }, lineHeight = 15.sp
+                        }, lineHeight = 16.sp
                     )
                 }
             }
@@ -131,7 +131,7 @@ data class ChaoxingSignStatus(
                     CircularProgressIndicator(modifier = Modifier.size(32.dp))
                 else if (error.value.isNotEmpty())
                     Text(
-                        error.value, color = Orange, lineHeight = 15.sp
+                        error.value, color = Orange, lineHeight = 16.sp
                     )
             }
         }

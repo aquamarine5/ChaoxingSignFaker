@@ -26,6 +26,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingQRCodeSigner.
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingCaptchaCancelledException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingFaceSignException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingPredictableException
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingUserSessionOutdatedException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.FaceRecognitionData
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.checkIsLast
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.displaySnackbar
@@ -80,6 +81,7 @@ class ChaoxingSignHandler<in T>(
                 .also { signResult ->
                     if (signResult.isCaptchaSigning && signResult.isCaptchaResolvedByModel)
                         signStatus[1 + index].markCaptchaResolvedByModel()
+                    signStatus[1 + index].isObsoleteSession.value = false
                     if (destination.endTime != null && System.currentTimeMillis() > destination.endTime!!)
                         signStatus[1 + index].successForLate()
                     else
@@ -230,6 +232,7 @@ class ChaoxingSignHandler<in T>(
                                 signResult.isCaptchaSigning && signResult.isCaptchaResolvedByModel
                             if (signResult.isCaptchaSigning && signResult.isCaptchaResolvedByModel)
                                 signStatus[1 + target].markCaptchaResolvedByModel()
+                            signStatus[1 + target].isObsoleteSession.value = false
                             if (destination.endTime != null && System.currentTimeMillis() > destination.endTime!!)
                                 signStatus[1 + target].successForLate()
                             else
@@ -406,6 +409,7 @@ class ChaoxingSignHandler<in T>(
                     isCaptchaResolvedByModel = it.isCaptchaSigning && it.isCaptchaResolvedByModel
                     if (isCaptchaResolvedByModel)
                         signStatus[1 + index].markCaptchaResolvedByModel()
+                    signStatus[1 + index].isObsoleteSession.value = false
                     if (destination.endTime != null && System.currentTimeMillis() > destination.endTime!!)
                         signStatus[1 + index].successForLate()
                     else
@@ -484,4 +488,5 @@ class ChaoxingSignHandler<in T>(
 private val Throwable.isSkippableInContinuousSigning: Boolean
     get() = this is ChaoxingSigner.AlreadySignedException ||
             this is ChaoxingSigner.PredictedAlreadySignedException ||
-            this is ChaoxingSigner.SignActivityNoPermissionException
+            this is ChaoxingSigner.SignActivityNoPermissionException ||
+            this is ChaoxingUserSessionOutdatedException

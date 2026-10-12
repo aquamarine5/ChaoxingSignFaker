@@ -187,13 +187,13 @@ fun PasswordSignScreen(
                         client,
                         destination
                     ).let {
-                        signActivityStatus = it.preSign()
+                        signActivityStatus = it.preSign(context)
                         isMapRequired = it.isPositionRequired()
                         it.getPasswordInfo()
                     }
                 }
             } else {
-                signActivityStatus = signer.preSign()
+                signActivityStatus = signer.preSign(context)
                 isMapRequired = signer.isPositionRequired()
                 signer.getPasswordInfo()
             }).apply {
@@ -222,13 +222,13 @@ fun PasswordSignScreen(
                                     client,
                                     destination
                                 ).let {
-                                    signActivityStatus = it.preSign()
+                                    signActivityStatus = it.preSign(context)
                                     isMapRequired = it.isPositionRequired()
                                     it.getPasswordInfo()
                                 }
                             }
                         } else {
-                            signActivityStatus = signer.preSign()
+                            signActivityStatus = signer.preSign(context)
                             isMapRequired = signer.isPositionRequired()
                             signer.getPasswordInfo()
                         }).apply {
@@ -317,7 +317,8 @@ fun PasswordSignScreen(
                                         isCaptchaResolvedByModel = false
                                     )
                                 }.onFailure {
-                                    if (it is ChaoxingSigner.WrongPositionException) locationData = null
+                                    if (it is ChaoxingSigner.WrongPositionException) locationData =
+                                        null
                                 }
                             },
                             onOtherUserSigning = { value, session, bypassChecking, _ ->
@@ -337,7 +338,9 @@ fun PasswordSignScreen(
                                                 ) else destination,
                                                 signer.getSignInfo()
                                             ).run {
-                                                if (!(isAlwaysForceSign || bypassChecking)) checkSignStatusThrowException()
+                                                if (!(isAlwaysForceSign || bypassChecking)) checkSignStatusThrowException(
+                                                    context
+                                                )
                                                 if (sign(value, locationData)) {
                                                     val resolution =
                                                         suspendCancellableCoroutine { continuation ->
@@ -366,7 +369,8 @@ fun PasswordSignScreen(
                                             }
                                         }
                                 }.onFailure {
-                                    if (it is ChaoxingSigner.WrongPositionException) locationData = null
+                                    if (it is ChaoxingSigner.WrongPositionException) locationData =
+                                        null
                                 }
                             },
                             onSigningFinished = { _, name, isOtherUser ->
@@ -427,7 +431,8 @@ fun PasswordSignScreen(
                                         coroutineScope,
                                         snackbarHost
                                     ).onFailure {
-                                        if (it is ChaoxingSigner.WrongPositionException) locationData = null
+                                        if (it is ChaoxingSigner.WrongPositionException) locationData =
+                                            null
                                     }
                                 }, isCloneSession = destination.isCloneSession,
                                 suffixContent = {
@@ -682,8 +687,8 @@ fun PasswordSignScreen(
                                 GetLocationComponent(
                                     classId = destination.classId,
                                     confirmButtonText = {
-                                    Text("设置")
-                                }) {
+                                        Text("设置")
+                                    }) {
                                     isMapGetting = false
                                     locationData = it
                                     pendingAutoSignAction?.invoke()

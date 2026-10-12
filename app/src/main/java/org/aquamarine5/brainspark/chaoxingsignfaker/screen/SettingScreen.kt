@@ -631,7 +631,7 @@ fun SettingScreen(
                                 !isAllowExternalProviderFetchInformation
                             )
                         },
-                    lineHeight = 15.sp
+                    lineHeight = 16.sp
                 )
                 IconButton(onClick = {
                     hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)

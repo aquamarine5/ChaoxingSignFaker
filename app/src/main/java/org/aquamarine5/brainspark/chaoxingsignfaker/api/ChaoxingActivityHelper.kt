@@ -57,7 +57,7 @@ object ChaoxingActivityHelper {
         ).execute().use {
             it.checkResponseThrowException()
             val jsonResult = JSONObject.parseObject(it.body.string()).getJSONObject("data")
-            (jsonResult.getJSONArray("activeList") ?: return@withContext null).asSequence()
+            (jsonResult?.getJSONArray("activeList") ?: return@withContext null).asSequence()
                 .map { activity ->
                     activity as JSONObject
                 }.firstOrNull { activity ->
