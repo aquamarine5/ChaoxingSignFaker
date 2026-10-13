@@ -39,7 +39,7 @@ stackbricksConfig {
                     "# 1.15.* 更新：\n1. 支持克隆登录代签用户的账号以给他有你没有的课程签到。\n\n" +
                     "<g>lovely but not lonely, 20260926 life need pompompurin, @aquamarine5 Brainspark.</g>"
     requiredManifestVersion2MigrateForceInstall = true
-    forceInstallLessVersion = 1_1900_6000
+    forceInstallLessVersion = 1_1902_9900
     qiniuConfig {
         accessKey = project.findProperty("qiniu.accessKey") ?: ""
         secretKey = project.findProperty("qiniu.secretKey") ?: ""
@@ -60,8 +60,8 @@ android {
         applicationId = "org.aquamarine5.brainspark.chaoxingsignfaker"
         minSdk = 26
         targetSdk = 37
-        versionCode = 1_1902_0098
-        versionName = "1.19.2-beta1-261008"
+        versionCode = 1_1902_9998
+        versionName = "1.19.2-stable-261013"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
