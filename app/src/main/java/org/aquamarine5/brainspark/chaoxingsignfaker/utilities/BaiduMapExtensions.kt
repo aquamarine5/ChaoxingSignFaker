@@ -20,7 +20,12 @@ import com.baidu.mapapi.map.Marker
 import com.baidu.mapapi.map.MarkerOptions
 import com.baidu.mapapi.map.TitleOptions
 import com.baidu.mapapi.model.LatLng
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.toChaoxingLocation
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingLocation
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationSignEntity
 
 fun BaiduMap.addOrUpdateLocationMarker(
     marker: Marker?,
@@ -107,4 +112,21 @@ fun Context.createBitmapDescriptorFromVector(
         drawable.draw(canvas)
     }
     return BitmapDescriptorFactory.fromBitmap(bitmap)
+}
+
+fun ChaoxingLocationSignEntity.saveSelectedLocation(
+    context: Context,
+    classId: Int,
+    coroutineScope: CoroutineScope,
+    onLocationChanged: (ChaoxingLocationSignEntity?) -> Unit
+) {
+    onLocationChanged(this)
+    coroutineScope.launch(Dispatchers.IO) {
+        context.chaoxingDataStore.updateData {
+            it.toBuilder().putClassSelectedLocation(
+                classId,
+                toChaoxingLocation()
+            ).build()
+        }
+    }
 }

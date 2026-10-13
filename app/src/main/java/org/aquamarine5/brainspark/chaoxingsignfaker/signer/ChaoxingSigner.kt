@@ -36,6 +36,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityS
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingQRCodeSigner.QRCodeExpiredException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingFaceSignException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingParseDataException
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingUserSessionOutdatedException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.checkResponseThrowException
 import java.util.Locale
@@ -72,6 +73,7 @@ abstract class ChaoxingSigner(
         val URL_SIGN_NO_PARAMETER =
             "https://mobilelearn.chaoxing.com/pptSign/stuSignajax".toHttpUrl()
         private val SIGNED_STATUSES = setOf(1, 2, 3, 9)
+        private const val HTTP_CODE_FORBIDDEN = 403
         private val PRIMARY_ATTEND_STATUS_PATTERN =
             """"primaryAttend"\s*:\s*\{[^{}]*?"status"\s*:\s*(\d+)""".toRegex()
         private val SIGN_STATUS_PATTERN = """signstatus\s*=\s*(\d+)""".toRegex()
@@ -152,8 +154,8 @@ abstract class ChaoxingSigner(
         return response.contains("下次早点哦")
     }
 
-    open suspend fun checkSignStatusThrowException() {
-        when (preSign()) {
+    open suspend fun checkSignStatusThrowException(context: Context) {
+        when (preSign(context)) {
             ChaoxingSignActivityStatus.EXPIRED -> throw SignExpiredException()
             ChaoxingSignActivityStatus.ALREADY_SIGNED -> throw PredictedAlreadySignedException()
             else -> {
@@ -192,27 +194,44 @@ abstract class ChaoxingSigner(
         return getSignInfo().getInteger("ifopenAddress") == 1
     }
 
-    open suspend fun preSign(): ChaoxingSignActivityStatus = withContext(Dispatchers.IO) {
-        client.newCall(
-            Request.Builder().post(
-                FormBody.Builder().addEncoded("ext", extContent).build()
-            ).url(
-                getPreSignUrl()
-            ).build()
-        ).execute().use {
-            it.checkResponseThrowException()
-            val body = it.body.string()
-            if (it.code == 302 || body.contains("校验失败，未查询到活动数据")) {
-                throw SignActivityNoPermissionException()
-            }
-            postAnalysis()
-            return@withContext if (checkExpiredSign(body)) {
-                ChaoxingSignActivityStatus.EXPIRED
-            } else if (checkAlreadySign(body)) {
-                ChaoxingSignActivityStatus.ALREADY_SIGNED
-            } else {
-                ChaoxingSignActivityStatus.READY_TO_SIGN
-            }
+    open suspend fun preSign(context: Context): ChaoxingSignActivityStatus =
+        withContext(Dispatchers.IO) {
+            val response = requestPreSign()
+            if (response.code == HTTP_CODE_FORBIDDEN) {
+                response.close()
+                if (!client.reLogin(context)) throw ChaoxingUserSessionOutdatedException()
+                val retried = requestPreSign()
+                if (retried.code == HTTP_CODE_FORBIDDEN) {
+                    retried.close()
+                    throw ChaoxingUserSessionOutdatedException()
+                }
+                handlePreSignResponse(retried)
+            } else handlePreSignResponse(response)
+        }
+
+    private fun requestPreSign(): Response = client.newCall(
+        Request.Builder().post(
+            FormBody.Builder().addEncoded("ext", extContent).build()
+        ).url(
+            getPreSignUrl()
+        ).build()
+    ).execute()
+
+    private suspend fun handlePreSignResponse(
+        response: Response
+    ): ChaoxingSignActivityStatus = response.use {
+        it.checkResponseThrowException()
+        val body = it.body.string()
+        if (it.code == 302 || body.contains("校验失败，未查询到活动数据")) {
+            throw SignActivityNoPermissionException()
+        }
+        postAnalysis()
+        return@use if (checkExpiredSign(body)) {
+            ChaoxingSignActivityStatus.EXPIRED
+        } else if (checkAlreadySign(body)) {
+            ChaoxingSignActivityStatus.ALREADY_SIGNED
+        } else {
+            ChaoxingSignActivityStatus.READY_TO_SIGN
         }
     }
 

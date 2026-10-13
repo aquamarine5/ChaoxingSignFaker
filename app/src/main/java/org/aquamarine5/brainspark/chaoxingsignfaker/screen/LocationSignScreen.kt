@@ -16,9 +16,11 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
@@ -29,9 +31,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.baidu.mapapi.model.CoordUtil
@@ -65,6 +70,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.components.SignPotentialWarn
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SponsorPopupDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.cloneSessionGuard
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.toChaoxingLocation
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.toChaoxingLocationSignEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationDetailEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationSignEntity
@@ -76,12 +82,14 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignStatus
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.SignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingLocationSigner
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSignHandler
+import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingSigner
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingPredictableException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.FaceRecognitionImageStatus
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.rememberFaceRecognitionData
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.saveSelectedLocation
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
 
 @Immutable
@@ -159,6 +167,7 @@ fun LocationSignScreen(
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val hapticFeedback = LocalHapticFeedback.current
+    var selectedLocation by remember { mutableStateOf<ChaoxingLocationSignEntity?>(null) }
     var isFetchedFailure by remember { mutableStateOf<Result<*>?>(null) }
     val faceRecognitionData = rememberFaceRecognitionData()
     var isFaceRequired by remember { mutableStateOf(false) }
@@ -167,6 +176,11 @@ fun LocationSignScreen(
         context.chaoxingDataStore.data.first().let {
             isDisplayFaceRecognitionImageNewFeatureTips.value =
                 !it.learntTooltips.saveFaceRecognitionImagesToLocal
+            if (it.containsClassSelectedLocation(destination.classId)) {
+                selectedLocation =
+                    it.getClassSelectedLocationOrThrow(destination.classId)
+                        .toChaoxingLocationSignEntity()
+            }
         }
         isFetchedFailure = runCatching {
             val data = if (destination.isCloneSession) {
@@ -176,13 +190,13 @@ fun LocationSignScreen(
                         destination
                     ).let {
                         isFaceRequired = it.isFaceRequired()
-                        signActivityStatus = it.preSign()
+                        signActivityStatus = it.preSign(context)
                         it.getLocationSignInfo()
                     }
                 }
             } else {
                 isFaceRequired = signer.isFaceRequired()
-                signActivityStatus = signer.preSign()
+                signActivityStatus = signer.preSign(context)
                 signer.getLocationSignInfo()
             }
             signInfo = data.first
@@ -210,13 +224,13 @@ fun LocationSignScreen(
                                     destination
                                 ).let {
                                     isFaceRequired = it.isFaceRequired()
-                                    signActivityStatus = it.preSign()
+                                    signActivityStatus = it.preSign(context)
                                     it.getLocationSignInfo()
                                 }
                             }
                         } else {
                             isFaceRequired = signer.isFaceRequired()
-                            signActivityStatus = signer.preSign()
+                            signActivityStatus = signer.preSign(context)
                             signer.getLocationSignInfo()
                         }
                         signInfo = data.first
@@ -354,6 +368,9 @@ fun LocationSignScreen(
                                         isCaptchaSigning = false,
                                         isCaptchaResolvedByModel = false
                                     )
+                                }.onFailure {
+                                    if (it is ChaoxingSigner.WrongPositionException) selectedLocation =
+                                        null
                                 }
                             },
                             onOtherUserSigning = { value, session, bypassChecking, _ ->
@@ -376,7 +393,9 @@ fun LocationSignScreen(
                                                 ) else destination,
                                                 signer.getSignInfo()
                                             ).run {
-                                                if (!(isAlwaysForceSign || bypassChecking)) checkSignStatusThrowException()
+                                                if (!(isAlwaysForceSign || bypassChecking)) checkSignStatusThrowException(
+                                                    context
+                                                )
                                                 val faceImageUploadedObjectId =
                                                     if (isFaceRequired) {
                                                         faceRecognitionData.faceImageObjectIds.getOrPut(
@@ -430,6 +449,9 @@ fun LocationSignScreen(
                                                 )
                                             }
                                         }
+                                }.onFailure {
+                                    if (it is ChaoxingSigner.WrongPositionException) selectedLocation =
+                                        null
                                 }
                             },
                             destination = destination,
@@ -442,13 +464,26 @@ fun LocationSignScreen(
                                         isOtherUser
                                     )
                                 }
+                                value.saveSelectedLocation(
+                                    context, destination.classId, coroutineScope
+                                ) {
+                                    selectedLocation = it
+                                }
                                 coroutineScope.launch(Dispatchers.IO) {
                                     context.chaoxingDataStore.updateData {
-                                        it.toBuilder().setPreferences(
-                                            it.preferences.toBuilder()
-                                                .setLastSignedLocation(value.toChaoxingLocation())
-                                                .build()
-                                        ).build()
+                                        it.toBuilder().apply {
+                                            val signedLocationProto =
+                                                value.toChaoxingLocation()
+                                            setPreferences(
+                                                it.preferences.toBuilder()
+                                                    .setLastSignedLocation(signedLocationProto)
+                                                    .build()
+                                            )
+                                            putClassRememberedLocation(
+                                                destination.classId,
+                                                signedLocationProto
+                                            )
+                                        }.build()
                                     }
                                 }
                             },
@@ -494,6 +529,18 @@ fun LocationSignScreen(
                             faceRecognitionData = faceRecognitionData.takeIf { isFaceRequired }
                         )
                     }
+                    val startSigningWithSelectedLocation = {
+                        val savedLocation = selectedLocation
+                        if (savedLocation == null) isGetLocation = true
+                        else signHandler.startSigning(
+                            savedLocation,
+                            isSelfForSign,
+                            otherUserSessionForSignList,
+                            hapticFeedback,
+                            coroutineScope,
+                            snackbarHost
+                        )
+                    }
 
                     Column(modifier = Modifier.padding(8.dp, 4.dp, 8.dp, 0.dp)) {
                         Spacer(modifier = Modifier.height(6.dp))
@@ -521,6 +568,27 @@ fun LocationSignScreen(
                                         isDisplayFaceRecognitionImageNewFeatureTips
                                     )
                                 }
+                                if (selectedLocation != null) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                "选定的签到位置：",
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                            Text(selectedLocation!!.address)
+                                        }
+                                        Button(onClick = {
+                                            hapticFeedback.performHapticFeedback(
+                                                HapticFeedbackType.ContextClick
+                                            )
+                                            isGetLocation = true
+                                        }) {
+                                            Text("重新获取位置")
+                                        }
+                                    }
+                                }
                             },
                             faceRecognitionData = faceRecognitionData.takeIf { isFaceRequired },
                             isCloneSession = destination.isCloneSession,
@@ -532,7 +600,10 @@ fun LocationSignScreen(
                                     hapticFeedback,
                                     coroutineScope,
                                     snackbarHost
-                                )
+                                ).onFailure {
+                                    if (it is ChaoxingSigner.WrongPositionException) selectedLocation =
+                                        null
+                                }
                             }
                         ) { isSelf, otherUserSessionList, _ ->
                             isSigning.value = true
@@ -572,8 +643,7 @@ fun LocationSignScreen(
                                             )
                                 )
                                     isFaceImageCaptured = true
-                                else
-                                    isGetLocation = true
+                                else startSigningWithSelectedLocation()
                             }
                         }
                     }
@@ -615,7 +685,7 @@ fun LocationSignScreen(
                                     faceRecognitionData.newImagePhones.add(string)
                                 }
                             }
-                            isGetLocation = true
+                            startSigningWithSelectedLocation()
                             isFaceImageCaptured = false
                         }
                     }
@@ -639,9 +709,12 @@ fun LocationSignScreen(
                             isSigning.value = false
                             isGetLocation = false
                         }
-                        GetLocationComponent(signInfo, confirmButtonText = {
-                            Text("签到")
-                        }) { result ->
+                        GetLocationComponent(
+                            signInfo,
+                            classId = destination.classId,
+                            confirmButtonText = {
+                                Text("签到")
+                            }) { result ->
                             isGetLocation = false
                             signedLocation = result
                             signHandler.startSigning(

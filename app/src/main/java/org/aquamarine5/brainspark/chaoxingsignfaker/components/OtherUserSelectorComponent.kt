@@ -127,6 +127,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostS
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.OnlyAppDevelopedMode
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.displaySnackbar
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.getThisOrCauseNetworkExceptionMessage
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.isDevelopedMode
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.sentryReport
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
@@ -324,7 +325,10 @@ fun OtherUserSelectorComponent(
                                 }.onFailure {
                                     hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
                                     it.sentryReport()
-                                    errorMessage = "登录失败：" + (it.message ?: "未知错误")
+                                    errorMessage = "登录失败：" +
+                                            (it.getThisOrCauseNetworkExceptionMessage()
+                                                ?: it.message
+                                                ?: "未知错误")
                                 }
                             }
                         }, modifier = Modifier.fillMaxWidth()) { Text("重新登录") }

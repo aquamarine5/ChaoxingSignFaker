@@ -251,6 +251,7 @@ fun LoginPage(
                                     hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
                                     context.startActivity(Intent(Intent.ACTION_SEND).apply {
                                         setData("mailto:aquamarine5forever@gmail.com".toUri())
+                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                                         putExtra(Intent.EXTRA_EMAIL, "aquamarine5forever@gmail.com")
                                         putExtra(Intent.EXTRA_CC, "aquamarine5forever@gmail.com")
                                         putExtra(
