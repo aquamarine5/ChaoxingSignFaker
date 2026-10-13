@@ -54,6 +54,10 @@ fun Throwable.getNetworkExceptionMessage(): String? = when (this) {
     else -> null
 }
 
+fun Throwable.getThisOrCauseNetworkExceptionMessage(): String? =
+    generateSequence(this) { it.cause }
+        .firstNotNullOfOrNull { it.getNetworkExceptionMessage() }
+
 fun Response.checkResponseThrowException() {
     if (!isSuccessful) {
         throw ChaoxingHttpClient.ChaoxingNetworkException(
@@ -117,10 +121,17 @@ fun Throwable.toastReport(
     this.printStackTrace()
     hapticFeedback?.performHapticFeedback(HapticFeedbackType.Reject)
     val networkExceptionTips = this.getNetworkExceptionMessage()
+    val thisOrCauseNetworkExceptionTips = this.getThisOrCauseNetworkExceptionMessage()
     if (networkExceptionTips != null) {
         Toast.makeText(
             context,
             "${prefixTips?.plus(" ") ?: ""}$networkExceptionTips",
+            Toast.LENGTH_LONG
+        ).show()
+    } else if (thisOrCauseNetworkExceptionTips != null) {
+        Toast.makeText(
+            context,
+            "${prefixTips?.plus(" ") ?: ""}${this.getPredictableMessage()}$thisOrCauseNetworkExceptionTips",
             Toast.LENGTH_LONG
         ).show()
     } else if (this !is ChaoxingPredictableException) {
@@ -155,12 +166,26 @@ fun Throwable.snackbarReport(
     this.printStackTrace()
     hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
     val networkExceptionTips = this.getNetworkExceptionMessage()
+    val thisOrCauseNetworkExceptionTips = this.getThisOrCauseNetworkExceptionMessage()
     if (networkExceptionTips != null) {
         if (shouldDismiss)
             snackbarHostState?.currentSnackbarData?.dismiss()
         coroutineScope.launch {
             snackbarHostState?.showSnackbar(
                 "${prefixTips?.plus(" ") ?: ""}$networkExceptionTips",
+                actionLabel,
+                true,
+                duration
+            )?.apply {
+                onSnackbarResult?.invoke(this)
+            }
+        }
+    } else if (thisOrCauseNetworkExceptionTips != null) {
+        if (shouldDismiss)
+            snackbarHostState?.currentSnackbarData?.dismiss()
+        coroutineScope.launch {
+            snackbarHostState?.showSnackbar(
+                "${prefixTips?.plus(" ") ?: ""}${this@snackbarReport.getPredictableMessage()}$thisOrCauseNetworkExceptionTips",
                 actionLabel,
                 true,
                 duration
@@ -218,7 +243,7 @@ fun Throwable.sentryReport() {
     if (this is CancellationException) throw this
     if (this is ChaoxingPredictableException) return
     if (this is ActivityNotFoundException) return
-    if (getNetworkExceptionMessage() != null) return
+    if (getThisOrCauseNetworkExceptionMessage() != null) return
     Sentry.captureException(this)
 }
 

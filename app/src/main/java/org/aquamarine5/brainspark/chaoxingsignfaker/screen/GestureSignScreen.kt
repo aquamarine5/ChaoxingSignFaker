@@ -25,7 +25,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -39,6 +43,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -300,6 +305,38 @@ fun GestureSignScreen(
                                 fontSize = 16.sp,
                                 modifier = Modifier.padding(0.dp, 6.dp)
                             )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Card(
+                                shape = RoundedCornerShape(18.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = Color.DarkGray
+                                ),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 6.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .padding(10.dp, 12.dp)
+                                        .fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Icon(
+                                        painterResource(R.drawable.ic_face_slightly_frowning),
+                                        contentDescription = "Info",
+                                        tint = Color.White
+                                    )
+                                    Spacer(modifier = Modifier.width(9.dp))
+                                    Text(
+                                        "由于随地大小签是一个完整在本机发送网络请求的软件，无法做到暴力大量发送网络请求破解手势码，目前只有在知道手势码的情况下才可以进行签到。",
+                                        color = Color.White,
+                                        fontSize = 13.sp,
+                                        lineHeight = 18.sp,
+                                        fontWeight = FontWeight.W500
+                                    )
+                                }
+                            }
                             Spacer(modifier = Modifier.height(6.dp))
                             Column(
                                 modifier = Modifier

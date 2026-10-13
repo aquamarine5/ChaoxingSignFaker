@@ -738,6 +738,37 @@ fun QRCodeSignScreen(
                                             )
                                         }
                                     }
+                                    Card(
+                                        shape = RoundedCornerShape(18.dp),
+                                        colors = CardDefaults.cardColors(
+                                            containerColor = Color.DarkGray
+                                        ),
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(2.dp, 6.dp)
+                                    ) {
+                                        Row(
+                                            modifier = Modifier
+                                                .padding(10.dp, 12.dp)
+                                                .fillMaxWidth(),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Icon(
+                                                painterResource(R.drawable.ic_face_slightly_frowning),
+                                                contentDescription = "Info",
+                                                tint = Color.White
+                                            )
+                                            Spacer(modifier = Modifier.width(9.dp))
+                                            Text(
+                                                "由于随地大小签是一个完整在本机发送网络请求的软件，无法做到暴力大量发送网络请求破解签到码，目前只有在知道签到码的情况下才可以进行签到。",
+                                                color = Color.White,
+                                                fontSize = 13.sp,
+                                                lineHeight = 18.sp,
+                                                fontWeight = FontWeight.W500
+                                            )
+                                        }
+                                    }
                                     if (destination.startTime != null)
                                         SignPotentialWarningTips(
                                             destination.startTime,
