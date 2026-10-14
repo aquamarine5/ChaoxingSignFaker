@@ -433,8 +433,9 @@ fun QRCodeSignScreen(
                                 }.onFailure {
                                     if (it is ChaoxingQRCodeSigner.QRCodeExpiredException)
                                         expiredEnc = value.enc
-                                    if (it is ChaoxingSigner.WrongPositionException) locationData =
-                                        null
+                                    if (it is ChaoxingSigner.WrongPositionException &&
+                                        it.isAlreadyDisabledRandomizedLocation
+                                    ) locationData = null
                                 }
                             },
                             onSigningFinished = { _, name, isOtherUser ->
@@ -531,8 +532,9 @@ fun QRCodeSignScreen(
                                 }.onFailure {
                                     if (it is ChaoxingQRCodeSigner.QRCodeExpiredException)
                                         expiredEnc = value.enc
-                                    if (it is ChaoxingSigner.WrongPositionException) locationData =
-                                        null
+                                    if (it is ChaoxingSigner.WrongPositionException &&
+                                        it.isAlreadyDisabledRandomizedLocation
+                                    ) locationData = null
                                 }
 
                             },
@@ -791,8 +793,9 @@ fun QRCodeSignScreen(
                                         coroutineScope,
                                         snackbarHost
                                     ).onFailure {
-                                        if (it is ChaoxingSigner.WrongPositionException) locationData =
-                                            null
+                                        if (it is ChaoxingSigner.WrongPositionException &&
+                                            it.isAlreadyDisabledRandomizedLocation
+                                        ) locationData = null
                                     }
                                 }, isCloneSession = destination.isCloneSession,
                                 hasSignRealtimeParameter = signHandler.hasSignRealtimeParameter,
@@ -1015,7 +1018,12 @@ fun QRCodeSignScreen(
                                     classId = destination.classId,
                                     confirmButtonText = {
                                         Text("设置")
-                                    }) {
+                                    }) { location ->
+                                    location.saveSelectedLocation(
+                                        context, destination.classId, coroutineScope
+                                    ) {
+                                        locationData = it
+                                    }
                                     isMapGetting = false
                                     beginQRContinuousSigning()
                                 }

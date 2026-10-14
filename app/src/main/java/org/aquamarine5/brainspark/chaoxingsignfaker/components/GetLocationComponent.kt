@@ -317,9 +317,10 @@ fun GetLocationComponent(
                                             .build()
                                     )
 
-                                    if (clickedName == "未指定") {
+                                    if (marker == null) {
+                                        val rememberedLocation = rememberedSignedLocation
                                         val initialPosition =
-                                            rememberedSignedLocation?.let { remembered ->
+                                            rememberedLocation?.let { remembered ->
                                                 LatLng(remembered.latitude, remembered.longitude)
                                             } ?: LatLng(it.latitude, it.longitude)
                                         map.setMapStatus(
@@ -327,9 +328,10 @@ fun GetLocationComponent(
                                                 initialPosition
                                             )
                                         )
-                                        clickedPosition = LatLng(it.latitude, it.longitude)
-                                        clickedName = it.addrStr?.removePrefix("中国") ?: ""
-                                        clickedLabel = null
+                                        clickedPosition = initialPosition
+                                        clickedName = rememberedLocation?.address
+                                            ?: it.addrStr?.removePrefix("中国") ?: ""
+                                        clickedLabel = rememberedLocation?.label
                                     } else {
                                         map.animateMapStatus(
                                             MapStatusUpdateFactory.newLatLngZoom(
@@ -603,6 +605,20 @@ fun GetLocationComponent(
                         lastSignedLocationMarker,
                         isMarkerTitleVisible
                     )
+                }
+            }
+            LaunchedEffect(rememberedSignedLocation) {
+                rememberedSignedLocation?.let { last ->
+                    val rememberedPosition = LatLng(last.latitude, last.longitude)
+                    baiduMap.map.animateMapStatus(
+                        MapStatusUpdateFactory.newLatLng(rememberedPosition),
+                        1000
+                    )
+                    if (marker == null) {
+                        clickedPosition = rememberedPosition
+                        clickedName = last.address
+                        clickedLabel = last.label
+                    }
                 }
             }
             if (isShowFavoriteLocationDialog) {

@@ -20,3 +20,5 @@ app/build
 /.kotlin
 .idea/copilotDiffState.xml
 /native
+/.workbuddy
+analysis/IM_NOTIFICATION_RESEARCH.md

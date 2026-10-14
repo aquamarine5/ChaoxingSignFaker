@@ -130,7 +130,7 @@ protobuf {
 }
 
 dependencies {
-//    implementation 'io.hyphenate:hyphenate-chat:4.9.0.1'
+    implementation(libs.hyphenate.chat)
     implementation(libs.reorderable)
     implementation(libs.lbsyun.base)
     implementation libs.patternlocker

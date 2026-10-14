@@ -82,7 +82,10 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -93,6 +96,8 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.BuildConfig
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCourseHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingIMHelper
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingIMListener
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingLessonHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingRecommendHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingSignHelper
@@ -105,6 +110,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.components.QRCodeScanCompone
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SnackbarAlertDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingCourseClass
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCourseEntity
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingGroupSignActivityEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.RecommendActivityEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.SignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingQRCodeSigner
@@ -171,6 +177,7 @@ fun CourseListScreen(
     val snackbarHost = LocalSnackbarHostState.current
     var recommendActivities by remember { mutableStateOf<List<RecommendActivityEntity>?>(null) }
     var lessonSignActivities by remember { mutableStateOf<List<RecommendActivityEntity>?>(null) }
+    var imSignReminders by remember { mutableStateOf<List<ChaoxingGroupSignActivityEntity>?>(null) }
     var isFetchedFailure by remember { mutableStateOf<Result<*>?>(null) }
     val coroutineScope = rememberCoroutineScope()
     val activityTimeFormatter = remember {
@@ -190,6 +197,7 @@ fun CourseListScreen(
             activitiesData.clear()
             preferredClassIds.clear()
             lessonSignActivities = null
+            imSignReminders = null
             recommendActivities = null
             isFetchedFailure = null
             savedCourseCacheKey = courseCacheKey
@@ -311,6 +319,42 @@ fun CourseListScreen(
                         "检测课表签到事件失败",
                         hapticFeedback
                     )
+                }
+            }
+            disableCode {
+                launch {
+                    val httpClient =
+                        ChaoxingHttpClient.getClientInstanceOrClone(destination.isCloneSession)
+                            ?: return@launch
+                    val listenerScope: CoroutineScope = this
+                    val imUsername = httpClient.userEntity.uid.toString()
+                    val imPassword = ChaoxingIMHelper.resolveImPassword(
+                        httpClient.userEntity.imEncryptedPassword
+                    )
+                    runCatching {
+                        ChaoxingIMListener.ensureInit(context)
+                        withTimeout(20.seconds) {
+                            ChaoxingIMListener.ensureLogin(imUsername, imPassword)
+                        }
+                        ChaoxingIMListener.signReminderEvents.collect { event ->
+                            if (event.imUsername != imUsername) return@collect
+                            val entity = ChaoxingIMHelper.buildSignActivityEntity(
+                                listenerScope,
+                                event.activity,
+                                event.receivedTimestamp
+                            )
+                            imSignReminders =
+                                (imSignReminders.orEmpty() + entity).distinctBy { it.activeId }
+                        }
+                    }.onFailure {
+                        if (it is CancellationException) throw it
+                        it.snackbarReport(
+                            snackbarHost,
+                            coroutineScope,
+                            "监听 IM 签到提醒失败",
+                            hapticFeedback
+                        )
+                    }
                 }
             }
         }
@@ -679,132 +723,48 @@ fun CourseListScreen(
                                     }
                                     item {
                                         AnimatedVisibility(
+                                            imSignReminders?.isNotEmpty() == true,
+                                            enter = fadeIn() + slideInVertically(),
+                                            modifier = Modifier.padding(bottom = 8.dp)
+                                        ) {
+                                            SignActivityPromptCard(
+                                                title = "根据 IM 实时通知发现的签到提醒：",
+                                                items = imSignReminders?.map { item ->
+                                                    SignActivityPromptItem(
+                                                        item.courseName,
+                                                        item.startTimeTitle,
+                                                        item.title,
+                                                        ChaoxingSignHelper.getPredictedSignIconRes(
+                                                            item.activeTypeName
+                                                        ),
+                                                        item.signDestination
+                                                    )
+                                                } ?: emptyList(),
+                                                onNavigateToSignActivity = navToSignActivityDestination
+                                            )
+                                        }
+                                    }
+                                    item {
+                                        AnimatedVisibility(
                                             lessonSignActivities?.isNotEmpty() == true,
                                             enter = fadeIn() + slideInVertically(),
                                             modifier = Modifier.padding(bottom = 8.dp)
                                         ) {
-                                            Card(
-                                                modifier = Modifier.fillMaxWidth()
-                                            ) {
-                                                Column(
-                                                    modifier = Modifier.fillMaxWidth()
-                                                ) {
-                                                    lessonSignActivities?.forEach { item ->
-                                                        Row(
-                                                            verticalAlignment = Alignment.CenterVertically,
-                                                            modifier = Modifier
-                                                                .fillMaxWidth()
-                                                                .padding(16.dp, 8.dp)
-                                                        ) {
-                                                            Icon(
-                                                                painterResource(R.drawable.ic_lightbulb),
-                                                                null,
-                                                                modifier = Modifier
-                                                                    .size(36.dp)
-                                                                    .padding(2.dp)
-                                                            )
-                                                            Column(
-                                                                modifier = Modifier
-                                                                    .weight(1f)
-                                                                    .padding(start = 12.dp)
-                                                            ) {
-                                                                Text(
-                                                                    "根据当前课表推断的签到事件：",
-                                                                    fontSize = 14.sp,
-                                                                    lineHeight = 17.sp,
-                                                                    fontWeight = FontWeight.Bold
-                                                                )
-                                                                Text(
-                                                                    buildAnnotatedString {
-                                                                        withStyle(
-                                                                            SpanStyle(
-                                                                                fontWeight = FontWeight.Bold,
-                                                                                color = MaterialTheme.colorScheme.primary
-                                                                            )
-                                                                        ) {
-                                                                            append(item.className)
-                                                                        }
-                                                                        append(" 在 ")
-                                                                        withStyle(
-                                                                            SpanStyle(
-                                                                                fontFamily = FontGilroy
-                                                                            )
-                                                                        ) {
-                                                                            append(
-                                                                                activityTimeFormatter.format(
-                                                                                    Instant.ofEpochMilli(
-                                                                                        item.startTime
-                                                                                    )
-                                                                                )
-                                                                            )
-                                                                        }
-                                                                        append(" 的 ")
-                                                                        withStyle(SpanStyle(color = MaterialTheme.colorScheme.primary)) {
-                                                                            append(item.activityName)
-                                                                        }
-                                                                    },
-                                                                    fontSize = 14.sp,
-                                                                    lineHeight = 17.sp,
-                                                                    style = TextStyle.Default.copy(
-                                                                        lineBreak = LineBreak(
-                                                                            strategy = LineBreak.Strategy.HighQuality,
-                                                                            strictness = LineBreak.Strictness.Strict,
-                                                                            wordBreak = LineBreak.WordBreak.Default
-                                                                        )
-                                                                    )
-                                                                )
-                                                                Button(
-                                                                    onClick = {
-                                                                        hapticFeedback.performHapticFeedback(
-                                                                            HapticFeedbackType.ContextClick
-                                                                        )
-                                                                        coroutineScope.launch {
-                                                                            runCatching { item.destination.await() }
-                                                                                .onSuccess {
-                                                                                    navToSignActivityDestination(
-                                                                                        it
-                                                                                    )
-                                                                                }
-                                                                                .onFailure {
-                                                                                    it.snackbarReport(
-                                                                                        snackbarHost,
-                                                                                        coroutineScope,
-                                                                                        "获取签到活动信息失败",
-                                                                                        hapticFeedback
-                                                                                    )
-                                                                                }
-                                                                        }
-                                                                    },
-                                                                    shape = RoundedCornerShape(18.dp),
-                                                                    modifier = Modifier.fillMaxWidth()
-                                                                ) {
-                                                                    Row(
-                                                                        verticalAlignment = Alignment.CenterVertically,
-                                                                        horizontalArrangement = Arrangement.Center,
-                                                                        modifier = Modifier.fillMaxWidth()
-                                                                    ) {
-                                                                        Icon(
-                                                                            painter = painterResource(
-                                                                                R.drawable.ic_clipboard_pen_line
-                                                                            ),
-                                                                            null,
-                                                                            modifier = Modifier.size(
-                                                                                18.dp
-                                                                            )
-                                                                        )
-                                                                        Spacer(
-                                                                            modifier = Modifier.width(
-                                                                                10.dp
-                                                                            )
-                                                                        )
-                                                                        Text("前往签到")
-                                                                    }
-                                                                }
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            }
+                                            SignActivityPromptCard(
+                                                title = "根据当前课表推断的签到事件：",
+                                                items = lessonSignActivities?.map { item ->
+                                                    SignActivityPromptItem(
+                                                        item.className,
+                                                        activityTimeFormatter.format(
+                                                            Instant.ofEpochMilli(item.startTime)
+                                                        ),
+                                                        item.activityName,
+                                                        null,
+                                                        item.destination
+                                                    )
+                                                } ?: emptyList(),
+                                                onNavigateToSignActivity = navToSignActivityDestination
+                                            )
                                         }
                                     }
                                     item {
@@ -1121,11 +1081,147 @@ fun CourseListScreen(
                                 hapticFeedback
                             )
                             isQRCodeResolving.value = false
+                            delay(1.seconds)
                             isQRCodeScanPause.value = false
                         }
                     }
                 }
             ) {}
+        }
+    }
+}
+
+private data class SignActivityPromptItem(
+    val className: String,
+    val timeText: String,
+    val activityName: String,
+    val iconRes: Int?,
+    val destination: Deferred<SignDestination>
+)
+
+@Composable
+private fun SignActivityPromptCard(
+    title: String,
+    items: List<SignActivityPromptItem>,
+    onNavigateToSignActivity: (SignDestination) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val hapticFeedback = LocalHapticFeedback.current
+    val snackbarHost = LocalSnackbarHostState.current
+    val coroutineScope = rememberCoroutineScope()
+    Card(
+        modifier = modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            items.forEach { item ->
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp, 8.dp)
+                ) {
+                    Icon(
+                        item.iconRes?.let { painterResource(it) }
+                            ?: painterResource(R.drawable.ic_lightbulb),
+                        null,
+                        modifier = Modifier
+                            .size(36.dp)
+                            .padding(2.dp)
+                    )
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(start = 12.dp)
+                    ) {
+                        Text(
+                            title,
+                            fontSize = 14.sp,
+                            lineHeight = 17.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            buildAnnotatedString {
+                                withStyle(
+                                    SpanStyle(
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                ) {
+                                    append(item.className)
+                                }
+                                append(" 在 ")
+                                withStyle(
+                                    SpanStyle(
+                                        fontFamily = FontGilroy
+                                    )
+                                ) {
+                                    append(item.timeText)
+                                }
+                                append(" 的 ")
+                                withStyle(SpanStyle(color = MaterialTheme.colorScheme.primary)) {
+                                    append(item.activityName)
+                                }
+                            },
+                            fontSize = 14.sp,
+                            lineHeight = 17.sp,
+                            style = TextStyle.Default.copy(
+                                lineBreak = LineBreak(
+                                    strategy = LineBreak.Strategy.HighQuality,
+                                    strictness = LineBreak.Strictness.Strict,
+                                    wordBreak = LineBreak.WordBreak.Default
+                                )
+                            )
+                        )
+                        Button(
+                            onClick = {
+                                hapticFeedback.performHapticFeedback(
+                                    HapticFeedbackType.ContextClick
+                                )
+                                coroutineScope.launch {
+                                    runCatching { item.destination.await() }
+                                        .onSuccess {
+                                            onNavigateToSignActivity(it)
+                                        }
+                                        .onFailure {
+                                            it.snackbarReport(
+                                                snackbarHost,
+                                                coroutineScope,
+                                                "获取签到活动信息失败",
+                                                hapticFeedback
+                                            )
+                                        }
+                                }
+                            },
+                            shape = RoundedCornerShape(18.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Icon(
+                                    painter = painterResource(
+                                        R.drawable.ic_clipboard_pen_line
+                                    ),
+                                    null,
+                                    modifier = Modifier.size(
+                                        18.dp
+                                    )
+                                )
+                                Spacer(
+                                    modifier = Modifier.width(
+                                        10.dp
+                                    )
+                                )
+                                Text("前往签到")
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }
