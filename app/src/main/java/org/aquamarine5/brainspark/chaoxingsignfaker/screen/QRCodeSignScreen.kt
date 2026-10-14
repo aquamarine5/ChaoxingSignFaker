@@ -1016,6 +1016,7 @@ fun QRCodeSignScreen(
                                     confirmButtonText = {
                                         Text("设置")
                                     }) {
+                                    locationData = it
                                     isMapGetting = false
                                     beginQRContinuousSigning()
                                 }
