@@ -248,10 +248,8 @@ fun Throwable.sentryReport() {
 }
 
 val Throwable.isSessionObsoletedCausing: Boolean
-    get() = generateSequence(this) { it.cause }.any {
-        it is ChaoxingUserSessionOutdatedException ||
-                (it as? ChaoxingHttpClient.ChaoxingNetworkException)?.responseCode == 403
-    }
+    get() = generateSequence(this) { it.cause }
+        .any { it is ChaoxingUserSessionOutdatedException }
 
 fun Throwable.ifShouldDeselect(action: () -> Unit) {
     if (this is ChaoxingSigner.AlreadySignedException ||

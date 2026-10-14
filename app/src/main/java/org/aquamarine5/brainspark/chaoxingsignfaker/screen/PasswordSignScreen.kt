@@ -317,8 +317,9 @@ fun PasswordSignScreen(
                                         isCaptchaResolvedByModel = false
                                     )
                                 }.onFailure {
-                                    if (it is ChaoxingSigner.WrongPositionException) locationData =
-                                        null
+                                    if (it is ChaoxingSigner.WrongPositionException &&
+                                        it.isAlreadyDisabledRandomizedLocation
+                                    ) locationData = null
                                 }
                             },
                             onOtherUserSigning = { value, session, bypassChecking, _ ->
@@ -369,8 +370,9 @@ fun PasswordSignScreen(
                                             }
                                         }
                                 }.onFailure {
-                                    if (it is ChaoxingSigner.WrongPositionException) locationData =
-                                        null
+                                    if (it is ChaoxingSigner.WrongPositionException &&
+                                        it.isAlreadyDisabledRandomizedLocation
+                                    ) locationData = null
                                 }
                             },
                             onSigningFinished = { _, name, isOtherUser ->
@@ -431,8 +433,9 @@ fun PasswordSignScreen(
                                         coroutineScope,
                                         snackbarHost
                                     ).onFailure {
-                                        if (it is ChaoxingSigner.WrongPositionException) locationData =
-                                            null
+                                        if (it is ChaoxingSigner.WrongPositionException &&
+                                            it.isAlreadyDisabledRandomizedLocation
+                                        ) locationData = null
                                     }
                                 }, isCloneSession = destination.isCloneSession,
                                 suffixContent = {

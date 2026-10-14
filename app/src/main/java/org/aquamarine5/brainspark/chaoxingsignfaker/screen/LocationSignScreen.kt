@@ -716,6 +716,7 @@ fun LocationSignScreen(
                                 Text("签到")
                             }) { result ->
                             isGetLocation = false
+                            selectedLocation = result
                             signedLocation = result
                             signHandler.startSigning(
                                 result,

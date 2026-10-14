@@ -28,6 +28,7 @@ stackbricksConfig {
     ]
     changelog =
             "由于最近学习通更新频繁，导致随地大小签也需要频繁更新，请大家及时更新哦！以下是更新日志：\n" +
+                    "# 1.19.3 更新：\n1. <b>修复了需要获取位置信息的签到功能在某些情况下无法正常签到的问题</b>，感谢 <u>@yqi008748-cloud</u> 和 <u>yolo023</u> 发现问题。\n\n" +
                     "# 1.19.2 更新：\n1. <b>更新适配了学习通的新接口，修复了签到时部分用户遇到\"网络异常，访问被拒绝\"的问题。</b>\n\n"+
                     "# 1.19.1 更新：\n1. 支持了给每个账号绑定其设备ID，这样每次签到时不会提示\"更换了签到设备\"，更新到新版本之后请重新扫描代签用户的随地大小签二维码以绑定设备ID，绑定后在本机的学习通、随地大小签以及其他设备的随地大小签上签到时设备ID均一致，感谢 <u>@lzy24626</u> 发现问题。\n2. <b>修复了二维码签到在多班签到的情况下，会有一个班的学生在即使二维码已经刷新到最新状态时还是意外的无限进入二维码已过期的状态。</b>同时更新了二维码签到的逻辑，现在会持续扫描以避免二维码已过期就需要重新点击扫描的问题，感谢 <u>@abaguai00</u> 和 <u>@lietany9257</u> 发现此问题。\n3. 更新了选择用户页面的界面表现。\n4. 优化了网络客户端，减少了不必要的网络请求，同时现在每次的位置签到都会随机偏移坐标，感谢 <u>@1367367</u> 提供优化思路。\n5. 修复了已知问题。\n\n" +
                     "# 1.19.0 更新：\n1. <b>非！常！抱！歉！昨天晚上的更新导致部分用户在打开应用时直接卡死崩溃！更新此版本即可修复！如果你现在打不开设置页进行更新，可以等待下课后打开即可正常更新，本次问题造成的不便作者深表歉意。</b>\n\n" +
@@ -39,7 +40,7 @@ stackbricksConfig {
                     "# 1.15.* 更新：\n1. 支持克隆登录代签用户的账号以给他有你没有的课程签到。\n\n" +
                     "<g>lovely but not lonely, 20260926 life need pompompurin, @aquamarine5 Brainspark.</g>"
     requiredManifestVersion2MigrateForceInstall = true
-    forceInstallLessVersion = 1_1902_9900
+    forceInstallLessVersion = 1_1903_0000
     qiniuConfig {
         accessKey = project.findProperty("qiniu.accessKey") ?: ""
         secretKey = project.findProperty("qiniu.secretKey") ?: ""
@@ -60,8 +61,8 @@ android {
         applicationId = "org.aquamarine5.brainspark.chaoxingsignfaker"
         minSdk = 26
         targetSdk = 37
-        versionCode = 1_1902_9998
-        versionName = "1.19.2-stable-261013"
+        versionCode = 1_1903_0031
+        versionName = "1.19.3-stable-261014"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -130,7 +131,7 @@ protobuf {
 }
 
 dependencies {
-//    implementation 'io.hyphenate:hyphenate-chat:4.9.0.1'
+    implementation(libs.hyphenate.chat)
     implementation(libs.reorderable)
     implementation(libs.lbsyun.base)
     implementation libs.patternlocker

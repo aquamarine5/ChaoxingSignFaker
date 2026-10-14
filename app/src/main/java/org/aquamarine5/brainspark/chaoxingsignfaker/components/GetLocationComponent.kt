@@ -317,7 +317,7 @@ fun GetLocationComponent(
                                             .build()
                                     )
 
-                                    if (clickedName == "未指定") {
+                                    if (marker == null) {
                                         val rememberedLocation = rememberedSignedLocation
                                         val initialPosition =
                                             rememberedLocation?.let { remembered ->
@@ -587,9 +587,10 @@ fun GetLocationComponent(
                         rememberedSignedLocation = data.preferences.lastSignedLocation
                     }
                     rememberedSignedLocation?.let { last ->
+                        val rememberedPosition = LatLng(last.latitude, last.longitude)
                         lastSignedLocationMarker = baiduMap.map.addOverlay(
                             MarkerOptions()
-                                .position(LatLng(last.latitude, last.longitude))
+                                .position(rememberedPosition)
                                 .anchor(0.5f, 0.5f)
                                 .icon(lastSignedLocationBitmap)
                                 .extraInfo(Bundle().apply {
@@ -599,6 +600,15 @@ fun GetLocationComponent(
                                     )
                                 })
                         ) as Marker
+                        if (marker == null) {
+                            baiduMap.map.animateMapStatus(
+                                MapStatusUpdateFactory.newLatLng(rememberedPosition),
+                                1000
+                            )
+                            clickedPosition = rememberedPosition
+                            clickedName = last.address
+                            clickedLabel = last.label
+                        }
                     }
                     updateMarkerTitlesVisibility(
                         favoriteLocationMarkers,

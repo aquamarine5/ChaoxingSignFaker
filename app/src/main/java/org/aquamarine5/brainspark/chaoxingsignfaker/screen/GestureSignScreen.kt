@@ -461,8 +461,9 @@ fun GestureSignScreen(
                                         isCaptchaResolvedByModel = false
                                     )
                                 }.onFailure {
-                                    if (it is ChaoxingSigner.WrongPositionException) locationData =
-                                        null
+                                    if (it is ChaoxingSigner.WrongPositionException &&
+                                        it.isAlreadyDisabledRandomizedLocation
+                                    ) locationData = null
                                 }
                             }, onOtherUserSigning = { value, session, bypassChecking, _ ->
                                 runCatching {
@@ -512,8 +513,9 @@ fun GestureSignScreen(
                                             }
                                         }
                                 }.onFailure {
-                                    if (it is ChaoxingSigner.WrongPositionException) locationData =
-                                        null
+                                    if (it is ChaoxingSigner.WrongPositionException &&
+                                        it.isAlreadyDisabledRandomizedLocation
+                                    ) locationData = null
                                 }
                             },
                             onSigningFinished = { _, name, isOtherUser ->
@@ -590,8 +592,9 @@ fun GestureSignScreen(
                                         coroutineScope,
                                         snackbarHost
                                     ).onFailure {
-                                        if (it is ChaoxingSigner.WrongPositionException) locationData =
-                                            null
+                                        if (it is ChaoxingSigner.WrongPositionException &&
+                                            it.isAlreadyDisabledRandomizedLocation
+                                        ) locationData = null
                                     }
                                 }
                             ) { isSelf, otherUserSessionList, _ ->

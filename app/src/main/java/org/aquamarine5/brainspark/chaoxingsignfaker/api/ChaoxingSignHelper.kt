@@ -61,16 +61,18 @@ object ChaoxingSignHelper {
         }
     }
 
+    fun getPredictedSignIconRes(title: String): Int = when (title) {
+        "位置签到" -> R.drawable.ic_map_pin
+        "二维码签到" -> R.drawable.ic_scan_qr_code
+        "拍照签到" -> R.drawable.ic_square_mouse_pointer
+        "手势签到" -> R.drawable.ic_pattern_locking
+        "签到码签到" -> R.drawable.ic_binary
+        else -> R.drawable.ic_clipboard_pen_line
+    }
+
     @Composable
     fun getPredictedSignIcon(title: String): Painter {
-        val iconRes = when (title) {
-            "位置签到" -> R.drawable.ic_map_pin
-            "二维码签到" -> R.drawable.ic_scan_qr_code
-            "拍照签到" -> R.drawable.ic_square_mouse_pointer
-            "手势签到" -> R.drawable.ic_pattern_locking
-            "签到码签到" -> R.drawable.ic_binary
-            else -> R.drawable.ic_clipboard_pen_line
-        }
+        val iconRes = getPredictedSignIconRes(title)
         return painterCache.getOrPut(iconRes) {
             painterResource(id = iconRes)
         }

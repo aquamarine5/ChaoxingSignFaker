@@ -204,61 +204,83 @@ object ChaoxingIMHelper {
         }
     }
 
+    data class IMSignActivityInfo(
+        val activeId: Long,
+        val title: String,
+        val classId: Int,
+        val courseId: Long,
+        val courseName: String,
+        val startTimeTitle: String,
+        val activeTypeName: String
+    )
+
+    fun resolveImPassword(imEncryptedPassword: String): String =
+        if (imEncryptedPassword.length >= 16)
+            runCatching { desDecrypt(imEncryptedPassword) }.getOrElse { imEncryptedPassword }
+        else imEncryptedPassword
+
+    fun parseIMSignActivityInfo(attachObject: JSONObject): IMSignActivityInfo? {
+        if (attachObject.getInteger("attachmentType") != 15) return null
+        val signInfo = attachObject.getJSONObject("att_chat_course") ?: return null
+        val courseInfo = signInfo.getJSONObject("courseInfo") ?: return null
+        val activeId = signInfo.getLong("aid") ?: return null
+        if (activeId == 0L) return null
+        if (signInfo.getInteger("atype") != 2 && signInfo.getInteger("atype") != 74)
+            return null
+        return IMSignActivityInfo(
+            activeId,
+            signInfo.getString("title"),
+            courseInfo.getInteger("classid"),
+            courseInfo.getLongValue("courseid"),
+            courseInfo.getString("coursename"),
+            signInfo.getString("subTitle"),
+            signInfo.getString("atypeName")
+        )
+    }
+
+    fun buildSignActivityEntity(
+        scope: CoroutineScope,
+        activity: IMSignActivityInfo,
+        messageTimestamp: Long
+    ): ChaoxingGroupSignActivityEntity {
+        val destination =
+            scope.async(Dispatchers.IO, start = CoroutineStart.LAZY) {
+                ChaoxingSignHelper.getIMSignDestination(
+                    activity.activeTypeName,
+                    activity.activeId,
+                    activity.classId,
+                    activity.courseId
+                ) ?: throw ChaoxingIMConfigParseException(
+                    "atypeName",
+                    "未知签到类型: ${activity.activeTypeName}"
+                )
+            }
+        return ChaoxingGroupSignActivityEntity(
+            destination,
+            activity.title,
+            activity.activeId,
+            activity.classId,
+            activity.courseId,
+            activity.courseName,
+            activity.startTimeTitle,
+            activity.activeTypeName,
+            messageTimestamp
+        )
+    }
+
     fun parseIMMessageBody(
         scope: CoroutineScope,
-        imMessages: List<MessageBody>
-    ): List<ChaoxingGroupSignActivityEntity> {
-        val signActivities = mutableListOf<ChaoxingGroupSignActivityEntity>()
-        imMessages.forEach forEachImMessages@{
-            it.extList?.forEach { ext ->
-                if (ext.key == "attachment") {
-                    val attachObject = JSONObject.parseObject(ext.stringValue)
-                    if (attachObject.getInteger("attachmentType") == 15) {
-                        val signInfo = attachObject.getJSONObject("att_chat_course")
-                            ?: return@forEachImMessages
-                        val courseInfo =
-                            signInfo.getJSONObject("courseInfo") ?: return@forEachImMessages
-                        val activeId = signInfo.getLong("aid") ?: return@forEachImMessages
-                        if (activeId == 0L ||
-                            (signInfo.getInteger("atype") != 2 &&
-                                    signInfo.getInteger("atype") != 74)
-                        )
-                            return@forEachImMessages
-                        val classId = courseInfo.getInteger("classid")
-                        val courseId = courseInfo.getLongValue("courseid")
-                        val activeTypeName = signInfo.getString("atypeName")
-                        val destination =
-                            scope.async(Dispatchers.IO, start = CoroutineStart.LAZY) {
-                                ChaoxingSignHelper.getIMSignDestination(
-                                    activeTypeName,
-                                    activeId,
-                                    classId,
-                                    courseId
-                                ) ?: throw ChaoxingIMConfigParseException(
-                                    "atypeName",
-                                    "未知签到类型: $activeTypeName",
-                                    attachObject.toJSONString()
-                                )
-                            }
-                        signActivities.add(
-                            ChaoxingGroupSignActivityEntity(
-                                destination,
-                                signInfo.getString("title"),
-                                activeId,
-                                classId,
-                                courseId,
-                                courseInfo.getString("coursename"),
-                                signInfo.getString("subTitle"),
-                                activeTypeName
-                            )
-                        )
-                    }
-                    return@forEachImMessages
+        imMessages: List<Pair<Meta, MessageBody>>
+    ): List<ChaoxingGroupSignActivityEntity> =
+        imMessages.mapNotNull { (meta, messageBody) ->
+            messageBody.extList?.firstOrNull { it.key == "attachment" }?.let { ext ->
+                runCatching {
+                    parseIMSignActivityInfo(JSONObject.parseObject(ext.stringValue))
+                }.getOrNull()?.let { activity ->
+                    buildSignActivityEntity(scope, activity, meta.field4)
                 }
             }
         }
-        return signActivities
-    }
 
     suspend fun fetchIMHistoryMessages(
         imGroup: ChaoxingEasemobIMGroup,
@@ -287,14 +309,14 @@ object ChaoxingIMHelper {
                 val json = JSON.parseObject(responseBody)
                 val data = json.getJSONObject("data")
                 val messages = data.getJSONArray("msgs")
-                val resultList = mutableListOf<MessageBody>()
+                val resultList = mutableListOf<Pair<Meta, MessageBody>>()
                 for (i in messages.indices) {
                     val msgObj = messages.getJSONObject(i)
                     val msgStr = msgObj.getString("msg")
                     val msgBytes = Base64.decode(msgStr, Base64.DEFAULT)
                     val meta = Meta.parseFrom(msgBytes)
                     val messageBody = MessageBody.parseFrom(meta.field6)
-                    resultList.add(messageBody)
+                    resultList.add(meta to messageBody)
                 }
                 return@use parseIMMessageBody(scope, resultList).distinctBy { it.activeId }
             }
@@ -374,14 +396,14 @@ object ChaoxingIMHelper {
                 val json = JSON.parseObject(responseBody)
                 val data = json.getJSONObject("data")
                 val messages = data.getJSONArray("msgs")
-                val resultList = mutableListOf<MessageBody>()
+                val resultList = mutableListOf<Pair<Meta, MessageBody>>()
                 for (i in messages.indices) {
                     val msgObj = messages.getJSONObject(i)
                     val msgStr = msgObj.getString("msg")
                     val msgBytes = Base64.decode(msgStr, Base64.DEFAULT)
                     val meta = Meta.parseFrom(msgBytes)
                     val messageBody = MessageBody.parseFrom(meta.field6)
-                    resultList.add(messageBody)
+                    resultList.add(meta to messageBody)
                 }
                 return@use parseIMMessageBody(scope, resultList)
             }
