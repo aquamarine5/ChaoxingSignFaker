@@ -1018,12 +1018,8 @@ fun QRCodeSignScreen(
                                     classId = destination.classId,
                                     confirmButtonText = {
                                         Text("设置")
-                                    }) { location ->
-                                    location.saveSelectedLocation(
-                                        context, destination.classId, coroutineScope
-                                    ) {
-                                        locationData = it
-                                    }
+                                    }) {
+                                    locationData = it
                                     isMapGetting = false
                                     beginQRContinuousSigning()
                                 }
