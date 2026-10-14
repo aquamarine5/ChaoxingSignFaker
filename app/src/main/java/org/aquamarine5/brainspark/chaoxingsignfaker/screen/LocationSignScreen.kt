@@ -716,11 +716,7 @@ fun LocationSignScreen(
                                 Text("签到")
                             }) { result ->
                             isGetLocation = false
-                            result.saveSelectedLocation(
-                                context, destination.classId, coroutineScope
-                            ) {
-                                selectedLocation = it
-                            }
+                            selectedLocation = result
                             signedLocation = result
                             signHandler.startSigning(
                                 result,
