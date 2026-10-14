@@ -318,8 +318,9 @@ fun GetLocationComponent(
                                     )
 
                                     if (clickedName == "未指定") {
+                                        val rememberedLocation = rememberedSignedLocation
                                         val initialPosition =
-                                            rememberedSignedLocation?.let { remembered ->
+                                            rememberedLocation?.let { remembered ->
                                                 LatLng(remembered.latitude, remembered.longitude)
                                             } ?: LatLng(it.latitude, it.longitude)
                                         map.setMapStatus(
@@ -327,9 +328,10 @@ fun GetLocationComponent(
                                                 initialPosition
                                             )
                                         )
-                                        clickedPosition = LatLng(it.latitude, it.longitude)
-                                        clickedName = it.addrStr?.removePrefix("中国") ?: ""
-                                        clickedLabel = null
+                                        clickedPosition = initialPosition
+                                        clickedName = rememberedLocation?.address
+                                            ?: it.addrStr?.removePrefix("中国") ?: ""
+                                        clickedLabel = rememberedLocation?.label
                                     } else {
                                         map.animateMapStatus(
                                             MapStatusUpdateFactory.newLatLngZoom(
