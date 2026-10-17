@@ -206,12 +206,13 @@ fun FaceRecognitionComponent(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.Center
             ) {
-                Text("拍摄给 ${signUserName[faceImageCapturedIndex].second} 人脸识别的图片")
+                Text("拍摄给 ${signUserName.getOrNull(faceImageCapturedIndex)?.second.orEmpty()} 人脸识别的图片")
             }
         }) {
             onFinish(
-                it.mapIndexed { index, bitmap -> signUserName[index].first to bitmap }
-                    .associate { it },
+                it.mapIndexedNotNull { index, bitmap ->
+                    signUserName.getOrNull(index)?.let { it.first to bitmap }
+                }.toMap(),
                 false
             )
         }

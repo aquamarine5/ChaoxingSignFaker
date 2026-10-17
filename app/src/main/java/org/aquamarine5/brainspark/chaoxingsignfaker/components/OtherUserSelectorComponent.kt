@@ -596,9 +596,9 @@ fun OtherUserSelectorComponent(
 
         fun updateTagClickState() {
             tagContainedUserIndexList?.forEachIndexed { tagIndex, userIndexList ->
-                if (userIndexList.isNotEmpty()) {
+                if (userIndexList.isNotEmpty() && tagIndex < tagClickState.size) {
                     val allChecked = userIndexList.all { userIndex ->
-                        userSelections[userIndex + 1]
+                        userSelections.getOrNull(userIndex + 1) == true
                     }
                     tagClickState[tagIndex].value = allChecked
                 }
@@ -618,16 +618,16 @@ fun OtherUserSelectorComponent(
                 selfPhoneNumber = datastore.loginSession.phoneNumber
                 isIgnoreAllConsistentDeviceCodeComponents =
                     datastore.preferences.isIgnoreAllConsistentDeviceCodeComponents
+                val data = datastore.otherUsersList.filter {
+                    it.phoneNumber != datastore.loginSession.phoneNumber
+                }
                 tagContainedUserIndexList = datastore.tagsLibraryList.map { tagEntity ->
                     buildList {
-                        datastore.otherUsersList.mapIndexed { index, otherUserSession ->
+                        data.mapIndexed { index, otherUserSession ->
                             if (otherUserSession.tagsList.any { it == tagEntity.id })
                                 add(index)
                         }
                     }
-                }
-                val data = datastore.otherUsersList.filter {
-                    it.phoneNumber != datastore.loginSession.phoneNumber
                 }
                 if (faceRecognitionData?.imageIconList?.value?.isEmpty() == true) {
                     faceRecognitionData.imageIconList.value = buildList {
