@@ -122,9 +122,11 @@ fun SettingScreen(
         val hapticFeedback = LocalHapticFeedback.current
         val coroutineScope = rememberCoroutineScope()
         val snackbarHostState = LocalSnackbarHostState.current
-        val userEntity = remember { ChaoxingHttpClient.instance!!.userEntity }
         val displayUserEntity =
-            (ChaoxingHttpClient.cloneInstance ?: ChaoxingHttpClient.instance!!).userEntity
+            (ChaoxingHttpClient.cloneInstance ?: ChaoxingHttpClient.instance)?.userEntity
+
+        fun currentClientName() =
+            (ChaoxingHttpClient.cloneInstance ?: ChaoxingHttpClient.instance)?.name.orEmpty()
         var isShowSignoffDialog by remember { mutableStateOf(false) }
         var isBypassBlockedChecking by remember { mutableStateOf(false) }
         var isUnblockDialog by remember { mutableStateOf(false) }
@@ -231,7 +233,7 @@ fun SettingScreen(
                 override fun onChannelChanged(isTestChannel: Boolean) {
                     UMengHelper.onStackbricksTestChannelChangedEvent(
                         context,
-                        ChaoxingHttpClient.instance!!.name,
+                        currentClientName(),
                         isTestChannel
                     )
                 }
@@ -239,14 +241,14 @@ fun SettingScreen(
                 override fun onCheckUpdate(isTestChannel: Boolean) {
                     UMengHelper.onStackbricksCheckUpdateEvent(
                         context,
-                        ChaoxingHttpClient.instance!!.name
+                        currentClientName()
                     )
                 }
 
                 override fun onCheckUpdateOnLaunchChanged(isChecked: Boolean) {
                     UMengHelper.onStackbricksCheckOnLaunchChangedEvent(
                         context,
-                        ChaoxingHttpClient.instance!!.name,
+                        currentClientName(),
                         isChecked
                     )
                 }
@@ -262,13 +264,13 @@ fun SettingScreen(
                     if (isTestChannel)
                         UMengHelper.onStackbricksInstallTestChannelEvent(
                             context,
-                            ChaoxingHttpClient.instance!!.name,
+                            currentClientName(),
                             versionData
                         )
                     else
                         UMengHelper.onStackbricksInstallNewestEvent(
                             context,
-                            ChaoxingHttpClient.instance!!.name,
+                            currentClientName(),
                             versionData
                         )
                 }
@@ -311,42 +313,44 @@ fun SettingScreen(
                 }
             )
         }
-        Card(
-            shape = RoundedCornerShape(18.dp),
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFFF0ADA0))
-        ) {
-            Row(
-                modifier = Modifier
-                    .padding(24.dp, 8.dp)
-                    .padding(3.dp),
-                verticalAlignment = Alignment.CenterVertically
+        displayUserEntity?.let { entity ->
+            Card(
+                shape = RoundedCornerShape(18.dp),
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFF0ADA0))
             ) {
-                AsyncImage(
-                    displayUserEntity.pic,
-                    imageLoader = imageLoader,
-                    contentDescription = "头像",
+                Row(
                     modifier = Modifier
-                        .height(40.dp)
-                        .width(40.dp)
-                        .clip(
-                            RoundedCornerShape(5.dp)
-                        )
-                )
-                Text(
-                    "登录用户：${displayUserEntity.name}",
-                    modifier = Modifier
-                        .padding(8.dp, 0.dp)
-                        .weight(1f),
-                    fontWeight = FontWeight.Bold,
-                    color = if (isSystemInDarkTheme()) Color.Black else Color.White
-                )
-                IconButton(
-                    onClick = {
-                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                        isShowSignoffDialog = true
-                    }
-                ) { Icon(painterResource(R.drawable.ic_log_out), null, tint = Color.White) }
+                        .padding(24.dp, 8.dp)
+                        .padding(3.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    AsyncImage(
+                        entity.pic,
+                        imageLoader = imageLoader,
+                        contentDescription = "头像",
+                        modifier = Modifier
+                            .height(40.dp)
+                            .width(40.dp)
+                            .clip(
+                                RoundedCornerShape(5.dp)
+                            )
+                    )
+                    Text(
+                        "登录用户：${entity.name}",
+                        modifier = Modifier
+                            .padding(8.dp, 0.dp)
+                            .weight(1f),
+                        fontWeight = FontWeight.Bold,
+                        color = if (isSystemInDarkTheme()) Color.Black else Color.White
+                    )
+                    IconButton(
+                        onClick = {
+                            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                            isShowSignoffDialog = true
+                        }
+                    ) { Icon(painterResource(R.drawable.ic_log_out), null, tint = Color.White) }
+                }
             }
         }
         Spacer(modifier = Modifier.height(8.dp))
