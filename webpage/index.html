@@ -37,6 +37,10 @@
     <div onclick="download()" id="button">下载</div>
 
     <script>
+        const CDN_BASE = 'https://cdn2.aquamarine5.fun';
+        const LEGACY_QINIU_HOST = 'cdn.aquamarine5.fun';
+        const CONFIG_URL = CDN_BASE + '/chaoxingsignfaker_stackbricks_manifest.json';
+
         document.addEventListener('DOMContentLoaded', function () {
             if (window.location.href.indexOf("phone") > 0) {
                 document.getElementById('info').innerText = '请使用 随地大小签APP（ChaoxingSignFaker） 扫码。';
@@ -46,13 +50,43 @@
                 download();
             }, 1000);
 
-            window.location.href = "cxsignfaker://import" + window.location.href.split("cdn.aquamarine5.fun")[1];
+            const here = new URL(window.location.href);
+            window.location.href = "cxsignfaker://import" + here.pathname + here.search;
         });
+
+        function pickDownloadEntry(latest) {
+            if (!latest) {
+                return null;
+            }
+            if (latest.possibleDownloadPath && latest.possibleDownloadPath.length) {
+                return latest.possibleDownloadPath.find(
+                    function (path) { return path.authority.endsWith('.cloudflare'); }
+                ) || latest.possibleDownloadPath[0];
+            }
+            if (latest.downloadUrl) {
+                return {
+                    filename: latest.downloadUrl,
+                    authority: 'org.aquamarine5.brainspark.stackbricks.downloadpath.qiniu',
+                    additionalInformation: { host: LEGACY_QINIU_HOST, isHttps: false }
+                };
+            }
+            return null;
+        }
+
+        function resolveEntryUrl(entry) {
+            const additional = entry.additionalInformation || {};
+            const filename = entry.filename || entry.additionalInformation.filename;
+            if (entry.authority && entry.authority.endsWith('.qiniu')) {
+                const scheme = additional.isHttps === true ? 'https' : 'http';
+                return scheme + '://' + (additional.host || LEGACY_QINIU_HOST) + '/' + filename;
+            }
+            const base = (additional.baseUrl || CDN_BASE).replace(/\/+$/, '');
+            return base + '/' + filename;
+        }
 
         // 首先获取配置文件
         function download() {
-            const configUrl = 'http://cdn.aquamarine5.fun/chaoxingsignfaker_stackbricks_v2_manifest.json';
-            fetch(configUrl)
+            fetch(CONFIG_URL)
                 .then(response => {
                     if (!response.ok) {
                         console.error('获取配置文件失败');
@@ -61,14 +95,13 @@
                     return response.json();
                 })
                 .then(config => {
-                    if (!config.latestStable || !config.latestStable.downloadUrl) {
+                    const entry = pickDownloadEntry(config && config.latestStable);
+                    if (!entry) {
                         console.error('配置文件格式无效');
                         return;
                     }
 
-                    const downloadPath = config.latestStable.downloadUrl;
-                    window.location.href = `http://cdn.aquamarine5.fun/${downloadPath}`
-                    fetchData(downloadPath);
+                    window.location.href = resolveEntryUrl(entry);
                 })
         }
     </script>
