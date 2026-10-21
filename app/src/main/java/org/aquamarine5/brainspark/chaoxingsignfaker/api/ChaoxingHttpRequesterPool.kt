@@ -45,6 +45,14 @@ object ChaoxingHttpRequesterPool {
         }
     }
 
+    suspend fun invalidate(phoneNumber: String) {
+        sessionsMutex.withLock {
+            clients.remove(phoneNumber)
+            clientSessions.remove(phoneNumber)
+            cachedSessions = cachedSessions - phoneNumber
+        }
+    }
+
     suspend fun getRequester(context: Context, phoneNumber: String): ChaoxingHttpRequester {
         clients[phoneNumber]?.let { return it }
         val loadingMutex = loadingMutexes.getOrPut(phoneNumber) { Mutex() }

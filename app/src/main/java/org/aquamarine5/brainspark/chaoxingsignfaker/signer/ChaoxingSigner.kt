@@ -34,6 +34,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCaptchaDataEn
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationSignEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityStatus
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingQRCodeSigner.QRCodeExpiredException
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingDeviceCodeDuplicatedSignException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingFaceSignException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingParseDataException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingUserSessionOutdatedException
@@ -368,6 +369,9 @@ abstract class ChaoxingSigner(
         }
         if (result == "您已签到过了") {
             throw AlreadySignedException()
+        }
+        if (result.contains("同一设备不允许重复签到")) {
+            throw ChaoxingDeviceCodeDuplicatedSignException()
         }
         if (result.startsWith("validate")) {
             signEnc2 = result.removePrefix("validate_").ifBlank { null }

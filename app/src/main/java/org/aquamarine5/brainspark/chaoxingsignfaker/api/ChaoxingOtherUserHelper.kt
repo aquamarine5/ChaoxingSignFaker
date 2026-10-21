@@ -46,10 +46,11 @@ object ChaoxingOtherUserHelper {
         deviceCode: String?
     ): ChaoxingOtherUserSession {
         if (deviceCode.isNullOrEmpty()) return this
-        if (deviceCode == this.deviceCode && isNotRandomizedDeviceCode) return this
+        if (deviceCode == this.deviceCode && isNotRandomizedDeviceCode && !isDeviceCodeDuplicatedSignBefore) return this
         val updatedSession = toBuilder()
             .setDeviceCode(deviceCode)
             .setIsNotRandomizedDeviceCode(true)
+            .setIsDeviceCodeDuplicatedSignBefore(false)
             .build()
         context.chaoxingDataStore.updateData { datastore ->
             datastore.toBuilder().apply {
@@ -332,6 +333,7 @@ object ChaoxingOtherUserHelper {
                 .setName(sharedEntity.userName.ifEmpty { userEntity.name })
                 .setPuid(puid)
                 .setPhoneNumber(sharedEntity.phoneNumber)
+                .setIsDeviceCodeDuplicatedSignBefore(false)
                 .apply {
                     sharedEntity.deviceCode?.takeIf { it.isNotEmpty() }?.let { deviceCode ->
                         setDeviceCode(deviceCode)
@@ -388,6 +390,42 @@ object ChaoxingOtherUserHelper {
                 datastore.toBuilder().clearOtherUsers().addAllOtherUsers(updatedSessions).build()
             }
         }
+
+    suspend fun resetDeviceCodeOnDuplicatedSign(
+        context: Context,
+        phoneNumber: String
+    ): String = withContext(Dispatchers.IO) {
+        val deviceCode = ChaoxingDeviceInfoHelper.randomizedDeviceCode()
+        val isLoginSession =
+            context.chaoxingDataStore.data.first().loginSession.phoneNumber == phoneNumber
+        context.chaoxingDataStore.updateData { datastore ->
+            datastore.toBuilder().apply {
+                if (isLoginSession) {
+                    setLoginSession(
+                        loginSession.toBuilder()
+                            .setDeviceCode(deviceCode)
+                            .setIsNotRandomizedDeviceCode(false)
+                            .setIsDeviceCodeDuplicatedSignBefore(true)
+                            .build()
+                    )
+                } else {
+                    otherUsersList.indexOfFirst { it.phoneNumber == phoneNumber }
+                        .takeIf { it >= 0 }?.let { index ->
+                            setOtherUsers(
+                                index,
+                                getOtherUsers(index).toBuilder()
+                                    .setDeviceCode(deviceCode)
+                                    .setIsNotRandomizedDeviceCode(false)
+                                    .setIsDeviceCodeDuplicatedSignBefore(true)
+                                    .build()
+                            )
+                        }
+                }
+            }.build()
+        }
+        if (!isLoginSession) ChaoxingHttpRequesterPool.invalidate(phoneNumber)
+        deviceCode
+    }
 
     suspend fun ChaoxingOtherUserSession.getSessionPuid(context: Context): Int? {
         return if (this.hasPuid()) this.puid else this.cookiesList.firstOrNull { it.name == "_uid" }?.value?.toIntOrNull()

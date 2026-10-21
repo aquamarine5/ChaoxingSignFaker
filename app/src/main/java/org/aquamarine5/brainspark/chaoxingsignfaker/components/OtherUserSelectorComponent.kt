@@ -1110,12 +1110,17 @@ fun OtherUserSelectorComponent(
                                                     )
                                                 }
                                             if (!isIgnoreAllConsistentDeviceCodeComponents) {
+                                                val isDeviceCodeDuplicated =
+                                                    session.isDeviceCodeDuplicatedSignBefore
                                                 Icon(
                                                     painterResource(
-                                                        if (session.isNotRandomizedDeviceCode) R.drawable.ic_tablet_smartphone_check
+                                                        if (isDeviceCodeDuplicated) R.drawable.ic_tablet_smartphone_warning
+                                                        else if (session.isNotRandomizedDeviceCode) R.drawable.ic_tablet_smartphone_check
                                                         else R.drawable.ic_tablet_smartphone_x
                                                     ),
-                                                    contentDescription = if (session.isNotRandomizedDeviceCode) "已绑定统一设备码" else "使用固定随机设备码",
+                                                    contentDescription = if (isDeviceCodeDuplicated) "设备码重复签到后已回退为随机设备码"
+                                                    else if (session.isNotRandomizedDeviceCode) "已绑定统一设备码"
+                                                    else "使用固定随机设备码",
                                                     modifier = Modifier
                                                         .padding(start = 4.dp)
                                                         .size(14.dp),

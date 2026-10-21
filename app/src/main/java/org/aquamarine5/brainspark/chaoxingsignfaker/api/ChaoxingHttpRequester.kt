@@ -31,7 +31,7 @@ open class ChaoxingHttpRequester internal constructor(
     val phoneNumber: String,
     val name: String,
     val puid: Int,
-    val deviceCode: String,
+    var deviceCode: String,
     initialConfiguredFid: Int,
     internal val otherUserSession: ChaoxingOtherUserSession? = null,
 ) {

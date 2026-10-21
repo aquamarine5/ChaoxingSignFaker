@@ -1759,15 +1759,17 @@ fun OtherUserScreen(
                 Column {
                     LazyColumn(state = settingsLazyListState) {
                         item {
-                            val isDeviceCodeConsistent =
-                                otherUserSessions[selectedUserSettingDialogIndex!!].isNotRandomizedDeviceCode
+                            val session = otherUserSessions[selectedUserSettingDialogIndex!!]
+                            val isDeviceCodeConsistent = session.isNotRandomizedDeviceCode
+                            val isDeviceCodeDuplicated = session.isDeviceCodeDuplicatedSignBefore
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Icon(
                                     painterResource(
-                                        if (isDeviceCodeConsistent) R.drawable.ic_tablet_smartphone_check
+                                        if (isDeviceCodeDuplicated) R.drawable.ic_tablet_smartphone_warning
+                                        else if (isDeviceCodeConsistent) R.drawable.ic_tablet_smartphone_check
                                         else R.drawable.ic_tablet_smartphone_x
                                     ),
                                     contentDescription = null,
@@ -1780,8 +1782,11 @@ fun OtherUserScreen(
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
-                                    if (isDeviceCodeConsistent) "此用户已设置统一的设备码。"
-                                    else "此用户还没有设置统一的设备码，可能签到时在老师端会显示\"更改了签到设备\"。",
+                                    when {
+                                        isDeviceCodeDuplicated -> "此用户之前设置了设备码，但签到时仍然出现了同一个设备码重复签到的情况，为避免后续签到失败，已回退此用户的设备码为随机设备码。"
+                                        isDeviceCodeConsistent -> "此用户已设置统一的设备码。"
+                                        else -> "此用户还没有设置统一的设备码，可能签到时在老师端会显示\"更改了签到设备\"。"
+                                    },
                                     fontSize = 13.sp,
                                     lineHeight = 17.sp,
                                     modifier = Modifier.weight(1f)
@@ -2954,6 +2959,8 @@ fun OtherUserScreen(
                                             ) {
                                                 val isDeviceCodeConsistent =
                                                     user.isNotRandomizedDeviceCode
+                                                val isDeviceCodeDuplicated =
+                                                    user.isDeviceCodeDuplicatedSignBefore
                                                 val isDeviceCodeIconVisible =
                                                     !isIgnoreConsistentDeviceCodeComponents
                                                 Text(
@@ -2992,10 +2999,13 @@ fun OtherUserScreen(
                                                         ) {
                                                             Icon(
                                                                 painterResource(
-                                                                    if (isDeviceCodeConsistent) R.drawable.ic_tablet_smartphone_check
+                                                                    if (isDeviceCodeDuplicated) R.drawable.ic_tablet_smartphone_warning
+                                                                    else if (isDeviceCodeConsistent) R.drawable.ic_tablet_smartphone_check
                                                                     else R.drawable.ic_tablet_smartphone_x
                                                                 ),
-                                                                contentDescription = if (isDeviceCodeConsistent) "已绑定统一设备码" else "使用固定随机设备码",
+                                                                contentDescription = if (isDeviceCodeDuplicated) "设备码重复签到后已回退为随机设备码"
+                                                                else if (isDeviceCodeConsistent) "已绑定统一设备码"
+                                                                else "使用固定随机设备码",
                                                                 tint = if (isDeviceCodeConsistent) Color(
                                                                     0xFF4CAF50
                                                                 ) else Color(0xFFFF9800),
