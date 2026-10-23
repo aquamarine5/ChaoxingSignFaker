@@ -63,6 +63,9 @@ import okhttp3.Request
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.ui.theme.FontGilroy
+import org.aquamarine5.brainspark.chaoxingsignfaker.ui.theme.getBronzeColor
+import org.aquamarine5.brainspark.chaoxingsignfaker.ui.theme.getGoldColor
+import org.aquamarine5.brainspark.chaoxingsignfaker.ui.theme.getSilverColor
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.UMengHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.displaySnackbar
@@ -274,11 +277,21 @@ fun SponsorAlertDialog(onDismissRequest: () -> Unit) {
                 ) {
                     CircularProgressIndicator()
                 }
-            else
+            else {
+                val topThreeColors = listOf(
+                    getGoldColor(),
+                    getSilverColor(),
+                    getBronzeColor()
+                )
                 Text(
                     buildAnnotatedString {
                         sponsorList!!.forEachIndexed { index, it ->
-                            withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+                            withStyle(
+                                SpanStyle(
+                                    fontWeight = FontWeight.Bold,
+                                    color = topThreeColors.getOrNull(index) ?: Color.Unspecified
+                                )
+                            ) {
                                 append(it.first)
                             }
                             append(" 赞赏了 ")
@@ -301,6 +314,7 @@ fun SponsorAlertDialog(onDismissRequest: () -> Unit) {
                         .padding(8.dp)
                         .fillMaxWidth()
                 )
+            }
         }
     })
 }
