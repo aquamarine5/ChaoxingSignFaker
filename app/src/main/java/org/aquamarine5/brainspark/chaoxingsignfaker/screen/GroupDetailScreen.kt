@@ -36,6 +36,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -208,21 +209,32 @@ fun GroupDetailScreen(
                                             verticalAlignment = Alignment.CenterVertically,
                                             modifier = Modifier
                                                 .fillMaxWidth()
+                                                .alpha(
+                                                    if (message.isUnsupportedLegacySign) 0.5f else 1f
+                                                )
                                                 .clickable {
                                                     hapticFeedback.performHapticFeedback(
                                                         HapticFeedbackType.ContextClick
                                                     )
-                                                    coroutineScope.launch {
-                                                        runCatching { message.signDestination.await() }
-                                                            .onSuccess { onSignAction(it) }
-                                                            .onFailure {
-                                                                it.snackbarReport(
-                                                                    snackbarHostState,
-                                                                    coroutineScope,
-                                                                    "获取签到信息失败",
-                                                                    hapticFeedback
-                                                                )
-                                                            }
+                                                    if (message.isUnsupportedLegacySign) {
+                                                        coroutineScope.launch {
+                                                            snackbarHostState.showSnackbar(
+                                                                "当前软件暂不支持此类型旧版本签到，请期待后续版本更新。"
+                                                            )
+                                                        }
+                                                    } else {
+                                                        coroutineScope.launch {
+                                                            runCatching { message.signDestination.await() }
+                                                                .onSuccess { onSignAction(it) }
+                                                                .onFailure {
+                                                                    it.snackbarReport(
+                                                                        snackbarHostState,
+                                                                        coroutineScope,
+                                                                        "获取签到信息失败",
+                                                                        hapticFeedback
+                                                                    )
+                                                                }
+                                                        }
                                                     }
                                                 }) {
 
