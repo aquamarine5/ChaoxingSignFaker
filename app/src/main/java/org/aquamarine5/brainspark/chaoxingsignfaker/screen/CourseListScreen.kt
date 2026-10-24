@@ -416,7 +416,7 @@ fun CourseListScreen(
                 }
             }
         }, text = {
-            Column {
+            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                 Text(buildAnnotatedString {
                     append("检测到新版本：")
                     withStyle(
@@ -444,22 +444,20 @@ fun CourseListScreen(
                     ?: stackbricksService.internalVersionData?.changelog ?: "暂无更新日志")
                     .trimStart()
                 val changelogGray = MaterialTheme.colorScheme.onSurfaceVariant
-                Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-                    Text(
-                        remember(changelogRaw, changelogGray) {
-                            parseChangelogToAnnotatedString(changelogRaw, changelogGray)
-                        },
-                        modifier = Modifier
-                            .border(
-                                1.dp, MaterialTheme.colorScheme.primary,
-                                RoundedCornerShape(4.dp)
-                            )
-                            .padding(8.dp)
-                            .fillMaxWidth(),
-                        fontSize = 14.sp,
-                        lineHeight = 20.sp
-                    )
-                }
+                Text(
+                    remember(changelogRaw, changelogGray) {
+                        parseChangelogToAnnotatedString(changelogRaw, changelogGray)
+                    },
+                    modifier = Modifier
+                        .border(
+                            1.dp, MaterialTheme.colorScheme.primary,
+                            RoundedCornerShape(4.dp)
+                        )
+                        .padding(8.dp)
+                        .fillMaxWidth(),
+                    fontSize = 14.sp,
+                    lineHeight = 20.sp
+                )
             }
         }, title = {
             Text("有新版本可用！")
