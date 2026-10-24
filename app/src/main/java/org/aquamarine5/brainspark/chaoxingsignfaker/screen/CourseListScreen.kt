@@ -27,7 +27,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -84,8 +83,8 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -322,7 +321,7 @@ fun CourseListScreen(
                 }
             }
             disableCode {
-                launch {
+                this@withContext.launch {
                     val httpClient =
                         ChaoxingHttpClient.getClientInstanceOrClone(destination.isCloneSession)
                             ?: return@launch
@@ -417,7 +416,7 @@ fun CourseListScreen(
                 }
             }
         }, text = {
-            Column {
+            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                 Text(buildAnnotatedString {
                     append("检测到新版本：")
                     withStyle(
@@ -455,9 +454,7 @@ fun CourseListScreen(
                             RoundedCornerShape(4.dp)
                         )
                         .padding(8.dp)
-                        .fillMaxWidth()
-                        .heightIn(max = 320.dp)
-                        .verticalScroll(rememberScrollState()),
+                        .fillMaxWidth(),
                     fontSize = 14.sp,
                     lineHeight = 20.sp
                 )

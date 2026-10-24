@@ -211,7 +211,8 @@ object ChaoxingIMHelper {
         val courseId: Long,
         val courseName: String,
         val startTimeTitle: String,
-        val activeTypeName: String
+        val activeTypeName: String,
+        val isUnsupportedLegacySign: Boolean = false
     )
 
     fun resolveImPassword(imEncryptedPassword: String): String =
@@ -222,19 +223,20 @@ object ChaoxingIMHelper {
     fun parseIMSignActivityInfo(attachObject: JSONObject): IMSignActivityInfo? {
         if (attachObject.getInteger("attachmentType") != 15) return null
         val signInfo = attachObject.getJSONObject("att_chat_course") ?: return null
-        val courseInfo = signInfo.getJSONObject("courseInfo") ?: return null
         val activeId = signInfo.getLong("aid") ?: return null
         if (activeId == 0L) return null
         if (signInfo.getInteger("atype") != 2 && signInfo.getInteger("atype") != 74)
             return null
+        val courseInfo = signInfo.getJSONObject("courseInfo")
         return IMSignActivityInfo(
             activeId,
-            signInfo.getString("title"),
-            courseInfo.getInteger("classid"),
-            courseInfo.getLongValue("courseid"),
-            courseInfo.getString("coursename"),
-            signInfo.getString("subTitle"),
-            signInfo.getString("atypeName")
+            signInfo.getString("title") ?: "",
+            courseInfo?.getInteger("classid") ?: 0,
+            courseInfo?.getLongValue("courseid") ?: 0L,
+            courseInfo?.getString("coursename") ?: "",
+            signInfo.getString("subTitle") ?: "",
+            signInfo.getString("atypeName") ?: "",
+            isUnsupportedLegacySign = courseInfo == null
         )
     }
 
@@ -245,6 +247,8 @@ object ChaoxingIMHelper {
     ): ChaoxingGroupSignActivityEntity {
         val destination =
             scope.async(Dispatchers.IO, start = CoroutineStart.LAZY) {
+                if (activity.isUnsupportedLegacySign)
+                    throw ChaoxingSignHelper.ChaoxingUnsupportedSignTypeException()
                 ChaoxingSignHelper.getIMSignDestination(
                     activity.activeTypeName,
                     activity.activeId,
@@ -264,6 +268,7 @@ object ChaoxingIMHelper {
             activity.courseName,
             activity.startTimeTitle,
             activity.activeTypeName,
+            activity.isUnsupportedLegacySign,
             messageTimestamp
         )
     }

@@ -19,5 +19,6 @@ data class ChaoxingGroupSignActivityEntity(
     val courseName: String,
     val startTimeTitle: String,
     val activeTypeName: String,
+    val isUnsupportedLegacySign: Boolean = false,
     val messageTimestamp: Long = 0L
 )

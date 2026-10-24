@@ -596,9 +596,9 @@ fun OtherUserSelectorComponent(
 
         fun updateTagClickState() {
             tagContainedUserIndexList?.forEachIndexed { tagIndex, userIndexList ->
-                if (userIndexList.isNotEmpty()) {
+                if (userIndexList.isNotEmpty() && tagIndex < tagClickState.size) {
                     val allChecked = userIndexList.all { userIndex ->
-                        userSelections[userIndex + 1]
+                        userSelections.getOrNull(userIndex + 1) == true
                     }
                     tagClickState[tagIndex].value = allChecked
                 }
@@ -618,16 +618,16 @@ fun OtherUserSelectorComponent(
                 selfPhoneNumber = datastore.loginSession.phoneNumber
                 isIgnoreAllConsistentDeviceCodeComponents =
                     datastore.preferences.isIgnoreAllConsistentDeviceCodeComponents
+                val data = datastore.otherUsersList.filter {
+                    it.phoneNumber != datastore.loginSession.phoneNumber
+                }
                 tagContainedUserIndexList = datastore.tagsLibraryList.map { tagEntity ->
                     buildList {
-                        datastore.otherUsersList.mapIndexed { index, otherUserSession ->
+                        data.mapIndexed { index, otherUserSession ->
                             if (otherUserSession.tagsList.any { it == tagEntity.id })
                                 add(index)
                         }
                     }
-                }
-                val data = datastore.otherUsersList.filter {
-                    it.phoneNumber != datastore.loginSession.phoneNumber
                 }
                 if (faceRecognitionData?.imageIconList?.value?.isEmpty() == true) {
                     faceRecognitionData.imageIconList.value = buildList {
@@ -1110,12 +1110,17 @@ fun OtherUserSelectorComponent(
                                                     )
                                                 }
                                             if (!isIgnoreAllConsistentDeviceCodeComponents) {
+                                                val isDeviceCodeDuplicated =
+                                                    session.isDeviceCodeDuplicatedSignBefore
                                                 Icon(
                                                     painterResource(
-                                                        if (session.isNotRandomizedDeviceCode) R.drawable.ic_tablet_smartphone_check
+                                                        if (isDeviceCodeDuplicated) R.drawable.ic_tablet_smartphone_warning
+                                                        else if (session.isNotRandomizedDeviceCode) R.drawable.ic_tablet_smartphone_check
                                                         else R.drawable.ic_tablet_smartphone_x
                                                     ),
-                                                    contentDescription = if (session.isNotRandomizedDeviceCode) "已绑定统一设备码" else "使用固定随机设备码",
+                                                    contentDescription = if (isDeviceCodeDuplicated) "设备码重复签到后已回退为随机设备码"
+                                                    else if (session.isNotRandomizedDeviceCode) "已绑定统一设备码"
+                                                    else "使用固定随机设备码",
                                                     modifier = Modifier
                                                         .padding(start = 4.dp)
                                                         .size(14.dp),

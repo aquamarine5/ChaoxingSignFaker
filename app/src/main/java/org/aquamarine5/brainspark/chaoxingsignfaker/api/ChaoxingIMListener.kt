@@ -9,7 +9,6 @@ package org.aquamarine5.brainspark.chaoxingsignfaker.api
 import android.content.Context
 import com.alibaba.fastjson2.JSONObject
 import com.hyphenate.EMCallBack
-import com.hyphenate.EMMessageListener
 import com.hyphenate.chat.EMClient
 import com.hyphenate.chat.EMMessage
 import com.hyphenate.chat.EMOptions
@@ -18,9 +17,9 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.suspendCancellableCoroutine
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingParseDataException
-import org.json.JSONObject as OrgJsonObject
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
+import org.json.JSONObject as OrgJsonObject
 
 object ChaoxingIMListener {
     const val EASEMOB_APP_KEY = "cx-dev#cxstudy"
@@ -47,11 +46,11 @@ object ChaoxingIMListener {
             if (isSdkInitialized) return
             val options = EMOptions().apply {
                 appKey = EASEMOB_APP_KEY
-                setRequireAck(true)
-                setRequireDeliveryAck(false)
+                requireAck = true
+                requireDeliveryAck = false
                 setAutoDownloadThumbnail(false)
-                setDeleteMessagesAsExitGroup(true)
-                setAutoLogin(true)
+                isDeleteMessagesAsExitGroup = true
+                autoLogin = true
             }
             runCatching {
                 EMClient.getInstance().init(context.applicationContext, options)
@@ -70,7 +69,7 @@ object ChaoxingIMListener {
             return
         }
         if (client.isLoggedIn) client.logout(false)
-        suspendCancellableCoroutine<Unit> { continuation ->
+        suspendCancellableCoroutine { continuation ->
             client.login(imUsername, imPassword, object : EMCallBack {
                 override fun onSuccess() {
                     registerMessageListener()
@@ -91,11 +90,7 @@ object ChaoxingIMListener {
             if (isMessageListenerRegistered) return
             runCatching {
                 EMClient.getInstance().chatManager()
-                    .addMessageListener(object : EMMessageListener {
-                        override fun onMessageReceived(messages: MutableList<EMMessage>) {
-                            messages.forEach { handleMessage(it) }
-                        }
-                    })
+                    .addMessageListener { messages -> messages.forEach { handleMessage(it) } }
             }.onFailure {
                 throw ChaoxingParseDataException("注册环信消息监听器失败", throwable = it)
             }

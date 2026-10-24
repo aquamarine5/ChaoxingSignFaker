@@ -137,9 +137,10 @@ object ChaoxingActivityHelper {
             ).execute().use { response ->
                 response.checkResponseThrowException()
                 val responseBody = response.body.string()
-                val jsonResult = JSONObject.parseObject(responseBody)?.getJSONObject("data")
+                val fullJson = JSONObject.parseObject(responseBody)
+                val jsonResult = fullJson?.getJSONObject("data")
                     ?: throw ChaoxingParseDataException(
-                        "解析课程数据失败",
+                        fullJson?.getString("errorMsg") ?: "解析课程数据失败",
                         data = responseBody
                     )
                 val activeList = jsonResult.getJSONArray("activeList")?.map { activity ->
@@ -147,7 +148,7 @@ object ChaoxingActivityHelper {
                 }?.filter { activity ->
                     activity.getInteger("type") == 2 || activity.getInteger("type") == 74
                 } ?: throw ChaoxingParseDataException(
-                    "解析课程数据失败",
+                    fullJson.getString("errorMsg") ?: "解析课程数据失败",
                     data = jsonResult.toJSONString()
                 )
                 val signActivities = List(activeList.size) { i ->

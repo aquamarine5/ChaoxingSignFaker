@@ -24,6 +24,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignStatus
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.SignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.signer.ChaoxingQRCodeSigner.QRCodeExpiredException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingCaptchaCancelledException
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingDeviceCodeDuplicatedSignException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingFaceSignException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingPredictableException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingUserSessionOutdatedException
@@ -64,6 +65,29 @@ class ChaoxingSignHandler<in T>(
     val hasSignRealtimeParameter: Boolean
         get() = getSignRealtimeParameter != null
 
+    private suspend fun signSelfWithDeviceCodeReset(value: T): Result<ChaoxingSignResult> {
+        val result = onSelfSigning(value)
+        if (result.exceptionOrNull() !is ChaoxingDeviceCodeDuplicatedSignException) return result
+        val client = ChaoxingHttpClient.instance ?: return result
+        client.deviceCode = ChaoxingOtherUserHelper.resetDeviceCodeOnDuplicatedSign(
+            context,
+            client.phoneNumber
+        )
+        return onSelfSigning(value)
+    }
+
+    private suspend fun signOtherUserWithDeviceCodeReset(
+        value: T,
+        session: ChaoxingOtherUserSession,
+        bypassChecking: Boolean,
+        index: Int
+    ): Result<ChaoxingSignResult> {
+        val result = onOtherUserSigning(value, session, bypassChecking, index)
+        if (result.exceptionOrNull() !is ChaoxingDeviceCodeDuplicatedSignException) return result
+        ChaoxingOtherUserHelper.resetDeviceCodeOnDuplicatedSign(context, session.phoneNumber)
+        return onOtherUserSigning(value, session, bypassChecking, index)
+    }
+
     suspend fun retryOtherUserSigning(
         session: ChaoxingOtherUserSession,
         index: Int,
@@ -77,7 +101,7 @@ class ChaoxingSignHandler<in T>(
         return runCatching {
             val value = realtimeParameterProvider?.invoke() ?: fallbackValue
             ?: throw ChaoxingShouldSignOnceBeforeException()
-            onOtherUserSigning(value, session, bypassChecking, index).getOrThrow()
+            signOtherUserWithDeviceCodeReset(value, session, bypassChecking, index).getOrThrow()
                 .also { signResult ->
                     if (signResult.isCaptchaSigning && signResult.isCaptchaResolvedByModel)
                         signStatus[1 + index].markCaptchaResolvedByModel()
@@ -136,7 +160,7 @@ class ChaoxingSignHandler<in T>(
                     while (true) {
                         val value = getFreshEnc()
                         storedValue = value
-                        val result = onSelfSigning(value)
+                        val result = signSelfWithDeviceCodeReset(value)
                         val failure = result.exceptionOrNull()
                         if (failure is CancellationException) throw failure
                         if (result.isSuccess) {
@@ -222,7 +246,7 @@ class ChaoxingSignHandler<in T>(
                     while (true) {
                         val value = getFreshEnc()
                         storedValue = value
-                        val result = onOtherUserSigning(value, session, false, target)
+                        val result = signOtherUserWithDeviceCodeReset(value, session, false, target)
                         val failure = result.exceptionOrNull()
                         if (failure is CancellationException) throw failure
                         if (result.isSuccess) {
@@ -326,7 +350,7 @@ class ChaoxingSignHandler<in T>(
         coroutineScope.launch {
             if (isSelf) {
                 signStatus[0].loading()
-                onSelfSigning(value).onSuccess { signResult ->
+                signSelfWithDeviceCodeReset(value).onSuccess { signResult ->
                     isCaptchaSigning = signResult.isCaptchaSigning
                     isCaptchaResolvedByModel =
                         signResult.isCaptchaSigning && signResult.isCaptchaResolvedByModel
@@ -404,7 +428,7 @@ class ChaoxingSignHandler<in T>(
                 else if (isCaptchaResolvedByModel) delay(SHORT_SIGN_TIME_SPAN)
                 else if (isSelf && isFirstOtherUserForSign) delay(signTimeSpan)
                 isFirstOtherUserForSign = false
-                onOtherUserSigning(value, session, false, index).onSuccess {
+                signOtherUserWithDeviceCodeReset(value, session, false, index).onSuccess {
                     isCaptchaSigning = it.isCaptchaSigning
                     isCaptchaResolvedByModel = it.isCaptchaSigning && it.isCaptchaResolvedByModel
                     if (isCaptchaResolvedByModel)

@@ -157,6 +157,9 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.sentryReport
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.toastReport
 import org.aquamarine5.brainspark.stackbricks.StackbricksPolicy
 import org.aquamarine5.brainspark.stackbricks.StackbricksService
+import org.aquamarine5.brainspark.stackbricks.providers.cloudflare.CloudflareConfiguration
+import org.aquamarine5.brainspark.stackbricks.providers.cloudflare.CloudflareMessageProvider
+import org.aquamarine5.brainspark.stackbricks.providers.cloudflare.CloudflarePackageProvider
 import org.aquamarine5.brainspark.stackbricks.providers.qiniu.QiniuConfiguration
 import org.aquamarine5.brainspark.stackbricks.providers.qiniu.QiniuMessageProvider
 import org.aquamarine5.brainspark.stackbricks.providers.qiniu.QiniuPackageProvider
@@ -383,37 +386,47 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                     ) { innerPadding ->
+                        val state = rememberStackbricksStatus()
                         val stackbricksService = remember {
-                            QiniuConfiguration(
+                            val client = OkHttpClient.Builder()
+                                .callTimeout(20, TimeUnit.MINUTES)
+                                .readTimeout(20, TimeUnit.MINUTES)
+                                .writeTimeout(20, TimeUnit.MINUTES)
+                                .retryOnConnectionFailure(true)
+                                .build()
+                            val cloudflareConfiguration = CloudflareConfiguration(
+                                possibleConfigurations = listOf(
+                                    "cdn2.aquamarine5.fun" to "chaoxingsignfaker_stackbricks_manifest.json",
+                                ),
+                                defaultBaseUrl = "https://cdn2.aquamarine5.fun",
+                                okHttpClient = client
+                            )
+                            val qiniuConfiguration = QiniuConfiguration(
                                 possibleConfigurations = listOf(
                                     "cdn.aquamarine5.fun" to "chaoxingsignfaker_stackbricks_manifest.json",
-                                    "cdn.aquamarine5.fun" to "chaoxingsignfaker_stackbricks_v2_manifest.json",
                                     "cdn.aquamarine5.top" to "chaoxingsignfaker_stackbricks_manifest.json",
                                     "cdn.aquamarine5.vip" to "chaoxingsignfaker_stackbricks_manifest.json",
                                 ),
                                 referer = "http://cdn.aquamarine5.fun/",
-                                okHttpClient = OkHttpClient.Builder()
-                                    .callTimeout(20, TimeUnit.MINUTES)
-                                    .readTimeout(20, TimeUnit.MINUTES)
-                                    .writeTimeout(20, TimeUnit.MINUTES)
-                                    .retryOnConnectionFailure(true)
-                                    .build()
+                                okHttpClient = client
                             )
-                        }.let {
-                            val state = rememberStackbricksStatus()
-                            remember {
-                                StackbricksService(
-                                    this,
-                                    QiniuMessageProvider(it),
-                                    QiniuPackageProvider(it),
-                                    state,
-                                    stackbricksPolicy = StackbricksPolicy(
-                                        versionName = BuildConfig.VERSION_NAME,
-                                        isAllowedToDisableCheckUpdateOnLaunch = false,
-                                        isForceInstallValueCallback = false,
-                                    ),
-                                )
-                            }
+                            StackbricksService(
+                                this,
+                                possibleMessageProvider = listOf(
+                                    CloudflareMessageProvider(cloudflareConfiguration),
+                                    QiniuMessageProvider(qiniuConfiguration),
+                                ),
+                                possiblePackageProvider = listOf(
+                                    CloudflarePackageProvider(cloudflareConfiguration),
+                                    QiniuPackageProvider(qiniuConfiguration),
+                                ),
+                                state = state,
+                                stackbricksPolicy = StackbricksPolicy(
+                                    versionName = BuildConfig.VERSION_NAME,
+                                    isAllowedToDisableCheckUpdateOnLaunch = false,
+                                    isForceInstallValueCallback = false,
+                                ),
+                            )
                         }
                         Column(
                             modifier = Modifier

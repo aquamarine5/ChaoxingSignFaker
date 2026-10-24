@@ -20,6 +20,24 @@ val Pink40 = Color(0xFF7D5260)
 
 val Orange = Color(0xFFFCC307)
 
+val Gold = Color(0xFFD4AF37)
+val GoldDark = Color(0xFFFFD700)
+
+val Silver = Color(0xFF8C8C8C)
+val SilverDark = Color(0xFFE0E0E0)
+
+val Bronze = Color(0xFFB3672B)
+val BronzeDark = Color(0xFFE0A165)
+
+@Composable
+fun getGoldColor() = if (isSystemInDarkTheme()) GoldDark else Gold
+
+@Composable
+fun getSilverColor() = if (isSystemInDarkTheme()) SilverDark else Silver
+
+@Composable
+fun getBronzeColor() = if (isSystemInDarkTheme()) BronzeDark else Bronze
+
 @Composable
 fun getLowAttentionGrayColor() = if (isSystemInDarkTheme()) Color.DarkGray else Color.LightGray
 

@@ -131,6 +131,14 @@ fun CameraComponent(
             val lifecycleOwner = LocalLifecycleOwner.current
             val photoList = remember { mutableListOf<Bitmap>() }
             var needTakePictureCount by remember { mutableIntStateOf(pictureCount) }
+            var isPictureResultDelivered by remember { mutableStateOf(false) }
+            LaunchedEffect(pictureCount) {
+                if (pictureCount != needTakePictureCount) {
+                    photoList.clear()
+                    needTakePictureCount = pictureCount
+                    isPictureResultDelivered = false
+                }
+            }
             DisposableEffect(lifecycleOwner) {
                 future.addListener({
                     val cameraProvider = future.get()
@@ -153,6 +161,21 @@ fun CameraComponent(
                 modifier = Modifier.fillMaxSize()
             )
             var job: Job? = remember { null }
+
+            fun addCapturedPhoto(bitmap: Bitmap) {
+                if (isPictureResultDelivered || photoList.size >= pictureCount) return
+                photoList.add(bitmap)
+                job?.cancel()
+                takeImage = bitmap
+                needTakePictureCount = pictureCount - photoList.size
+                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                if (needTakePictureCount <= 0) {
+                    isPictureResultDelivered = true
+                    onPictureResult(photoList.toList())
+                } else {
+                    onNextPhoto?.invoke()
+                }
+            }
             Box(modifier = Modifier.align(Alignment.Center)) {
                 AnimatedContent(
                     takeProcessedImage,
@@ -201,16 +224,7 @@ fun CameraComponent(
                         val image = application.contentResolver.decodePhotoBitmap(uri)
                             ?.scaleDownToMaxDimension()
                             ?: error("无法读取图片")
-                        photoList.add(image)
-                        job?.cancel()
-                        takeImage = image
-                        needTakePictureCount--
-                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                        if (needTakePictureCount <= 0) {
-                            onPictureResult(photoList)
-                        } else {
-                            onNextPhoto?.invoke()
-                        }
+                        addCapturedPhoto(image)
                     }.onFailure {
                         it.snackbarReport(
                             snackbarHost,
@@ -231,16 +245,7 @@ fun CameraComponent(
                             val image = application.contentResolver.decodePhotoBitmap(uri)
                                 ?.scaleDownToMaxDimension()
                                 ?: throw ChaoxingPredictableException("无法读取图片")
-                            photoList.add(image)
-                            takeImage = image
-                            needTakePictureCount--
-                        }
-                        job?.cancel()
-                        hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                        if (needTakePictureCount <= 0) {
-                            onPictureResult(photoList)
-                        } else {
-                            onNextPhoto?.invoke()
+                            addCapturedPhoto(image)
                         }
                     }.onFailure {
                         it.snackbarReport(
@@ -413,16 +418,7 @@ fun CameraComponent(
                                 super.onCaptureSuccess(image)
                                 image.use {
                                     val bitmap = it.toBitmap().scaleDownToMaxDimension()
-                                    photoList.add(bitmap)
-                                    job?.cancel()
-                                    takeImage = bitmap
-                                    needTakePictureCount--
-                                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                                    if (needTakePictureCount <= 0) {
-                                        onPictureResult(photoList)
-                                    } else {
-                                        onNextPhoto?.invoke()
-                                    }
+                                    addCapturedPhoto(bitmap)
                                 }
                             }
 
