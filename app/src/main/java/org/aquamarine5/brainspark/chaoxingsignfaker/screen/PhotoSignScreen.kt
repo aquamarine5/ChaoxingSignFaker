@@ -75,6 +75,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerDia
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerParams
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NetworkExceptionComponent
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.OldSignVersionWarningTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NotReadyToSignNoticeComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.OtherUserSelectorComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SignOutRedirectTips
@@ -109,7 +110,9 @@ data class PhotoSignDestination(
     val startTime: Long?,
     override val endTime: Long?,
     val isLate: Boolean,
-    override val isCloneSession: Boolean
+    override val isCloneSession: Boolean,
+    override val isOldSignVersion: Boolean = false,
+    override val chatId: Long? = null
 ) : SignDestination {
     companion object {
         fun parseFromSignActivityEntity(
@@ -351,6 +354,8 @@ fun PhotoSignScreen(
                                     userSelections = userSelections,
                                     isSigning = isSigning,
                                     prefixTipsContent = {
+                                        if (destination.isOldSignVersion)
+                                            OldSignVersionWarningTips()
                                         if (signoffEntity != null)
                                             SignOutRedirectTips(
                                                 signoffEntity!!
@@ -590,6 +595,8 @@ fun PhotoSignScreen(
                                                     userSelections = userSelections,
                                                     isSigning = isSigning,
                                                     prefixTipsContent = {
+                                                        if (destination.isOldSignVersion)
+                                                            OldSignVersionWarningTips()
                                                         if (signoffEntity != null)
                                                             SignOutRedirectTips(
                                                                 signoffEntity!!

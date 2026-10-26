@@ -10,6 +10,7 @@ import android.content.Context
 import com.alibaba.fastjson2.JSONObject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import okhttp3.FormBody
 import okhttp3.Request
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingActivityHelper.NO_SIGN_OFF_EVENT
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpRequester
@@ -29,7 +30,9 @@ class ChaoxingLocationSigner(
     destination.classId,
     destination.courseId,
     destination.extContent,
-    baseSignInfo
+    baseSignInfo,
+    destination.isOldSignVersion,
+    destination.chatId
 ) {
     suspend fun getLocationSignInfo(): Pair<ChaoxingLocationDetailEntity, ChaoxingSignOutEntity> {
         getSignInfo().let { jsonResult ->
@@ -56,6 +59,27 @@ class ChaoxingLocationSigner(
         captchaValidate: String? = null
     ): Boolean =
         withContext(Dispatchers.IO) {
+            if (isOldSignVersion) {
+                return@withContext client.newCall(
+                    Request.Builder().url(URL_SIGN_OLD)
+                        .post(
+                            FormBody.Builder()
+                                .add("address", signLocation.address)
+                                .add("activeId", destination.activeId.toString())
+                                .add("uid", client.puid.toString())
+                                .add("clientip", "")
+                                .add("useragent", "")
+                                .add("latitude", signLocation.randomizedLatitude.toString())
+                                .add("longitude", signLocation.randomizedLongitude.toString())
+                                .add("fid", "")
+                                .add("ifTiJiao", "1")
+                                .build()
+                        ).build()
+                ).execute().use {
+                    it.checkResponseThrowException()
+                    return@use it.checkSignResult(signLocation)
+                }
+            }
             client.newCall(
                 Request.Builder().url(
                     URL_SIGN_NO_PARAMETER.newBuilder()

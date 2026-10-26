@@ -61,6 +61,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.components.FaceRecognitionCo
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.FaceRecognitionNewFeatureTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.GetLocationComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NetworkExceptionComponent
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.OldSignVersionWarningTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NotReadyToSignNoticeComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.OtherUserSelectorComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SaveFaceImagesDialog
@@ -102,7 +103,9 @@ data class GetLocationDestination(
     val startTime: Long?,
     override val endTime: Long?,
     val isLate: Boolean,
-    override val isCloneSession: Boolean
+    override val isCloneSession: Boolean,
+    override val isOldSignVersion: Boolean = false,
+    override val chatId: Long? = null
 ) : SignDestination {
     companion object {
         fun parseFromSignActivityEntity(
@@ -551,6 +554,8 @@ fun LocationSignScreen(
                             isSigning = isSigning,
                             userSelections = userSelections,
                             prefixTipsContent = {
+                                if (destination.isOldSignVersion)
+                                    OldSignVersionWarningTips()
                                 if (signoffData != null)
                                     SignOutRedirectTips(
                                         signoffData!!

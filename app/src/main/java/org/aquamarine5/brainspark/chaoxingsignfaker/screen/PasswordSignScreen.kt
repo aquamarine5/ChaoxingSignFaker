@@ -20,16 +20,21 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -52,10 +57,14 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
@@ -64,6 +73,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.serialization.Serializable
+import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCourseHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpRequesterPool
@@ -74,6 +84,8 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularPro
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.GetLocationComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NetworkExceptionComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NotReadyToSignNoticeComponent
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.OldSignVersionWarningTips
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.CommonCardTip
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.OtherUserSelectorComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SignOutRedirectTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SignPotentialWarningTips
@@ -107,7 +119,9 @@ data class PasswordSignDestination(
     val startTime: Long?,
     override val endTime: Long?,
     val isLate: Boolean,
-    override val isCloneSession: Boolean
+    override val isCloneSession: Boolean,
+    override val isOldSignVersion: Boolean = false,
+    override val chatId: Long? = null
 ) : SignDestination {
     companion object {
         fun parseFromSignActivityEntity(
@@ -270,6 +284,7 @@ fun PasswordSignScreen(
                     val isSigning = remember { mutableStateOf(false) }
                     var text by remember { mutableStateOf("") }
                     var locationData by remember { mutableStateOf<ChaoxingLocationSignEntity?>(null) }
+                    val isBypassSign = remember { mutableStateOf(false) }
                     LaunchedEffect(Unit) {
                         context.chaoxingDataStore.data.first().let { data ->
                             if (data.containsClassSelectedLocation(destination.classId)) {
@@ -412,6 +427,8 @@ fun PasswordSignScreen(
                                 userSelections = userSelections,
                                 isSigning = isSigning,
                                 prefixTipsContent = {
+                                    if (destination.isOldSignVersion)
+                                        OldSignVersionWarningTips()
                                     if (signoffData != null)
                                         SignOutRedirectTips(
                                             signoffData!!
@@ -467,16 +484,62 @@ fun PasswordSignScreen(
                                         }
                                     }
                                     Column {
-                                        Text(
-                                            "请输入数字签到码：",
-                                            fontWeight = FontWeight.Bold,
-                                            modifier = Modifier.padding(0.dp, 6.dp)
+                                        CommonCardTip(
+                                            icon = if (destination.isOldSignVersion) R.drawable.ic_face_slightly_smiling else R.drawable.ic_face_slightly_frowning,
+                                            containerColor = Color.DarkGray,
+                                            text = {
+                                                if (destination.isOldSignVersion) {
+                                                    Row(
+                                                        modifier = Modifier.fillMaxWidth(),
+                                                        verticalAlignment = Alignment.CenterVertically
+                                                    ) {
+                                                        Text(
+                                                            buildAnnotatedString {
+                                                                append("对于学习通的部分老版本签到，可以不输入签到码，点击")
+                                                                withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+                                                                    append("绕过")
+                                                                }
+                                                                append("按钮以直接进行签到")
+                                                            },
+                                                            color = Color.White,
+                                                            fontSize = 13.sp,
+                                                            lineHeight = 18.sp,
+                                                            fontWeight = FontWeight.W500,
+                                                            modifier = Modifier.weight(1f)
+                                                        )
+                                                        Spacer(modifier = Modifier.width(8.dp))
+                                                        Switch(
+                                                            checked = isBypassSign.value,
+                                                            onCheckedChange = {
+                                                                isBypassSign.value = it
+                                                                text = ""
+                                                                isCheckingSuccess = if (it) true else null
+                                                            }
+                                                        )
+                                                    }
+                                                } else {
+                                                    Text(
+                                                        "由于随地大小签是一个完整在本机发送网络请求的软件，无法做到暴力大量发送网络请求破解签到码，目前只有在知道签到码的情况下才可以进行签到。",
+                                                        color = Color.White,
+                                                        fontSize = 13.sp,
+                                                        lineHeight = 18.sp,
+                                                        fontWeight = FontWeight.W500,
+                                                        modifier = Modifier.fillMaxWidth()
+                                                    )
+                                                }
+                                            }
                                         )
-                                        Column(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            verticalArrangement = Arrangement.Center,
-                                            horizontalAlignment = Alignment.CenterHorizontally
-                                        ) {
+                                        AnimatedVisibility(visible = isBypassSign.value.not()) {
+                                            Column(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                verticalArrangement = Arrangement.Center,
+                                                horizontalAlignment = Alignment.CenterHorizontally
+                                            ) {
+                                            Text(
+                                                "请输入数字签到码：",
+                                                fontWeight = FontWeight.Bold,
+                                                modifier = Modifier.padding(0.dp, 6.dp)
+                                            )
                                             BasicTextField(
                                                 value = text,
                                                 singleLine = true,
@@ -626,6 +689,7 @@ fun PasswordSignScreen(
                                                     }
                                                 }
                                             )
+                                            }
                                         }
                                     }
                                 }

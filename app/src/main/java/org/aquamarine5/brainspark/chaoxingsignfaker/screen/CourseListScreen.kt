@@ -340,7 +340,8 @@ fun CourseListScreen(
                             val entity = ChaoxingIMHelper.buildSignActivityEntity(
                                 listenerScope,
                                 event.activity,
-                                event.receivedTimestamp
+                                event.receivedTimestamp,
+                                event.chatId
                             )
                             imSignReminders =
                                 (imSignReminders.orEmpty() + entity).distinctBy { it.activeId }

@@ -169,6 +169,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingOtherUserHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CameraComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.FacePhotoControlComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NewFeatureTipsCard
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.CommonCardTip
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.QRCodeScanComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.RequireLoginAlertDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SnackbarAlertDialog
@@ -252,7 +253,11 @@ private fun CollapsibleSettingsSection(
             )
         }
     }
-    AnimatedVisibility(visible = expanded) {
+    AnimatedVisibility(
+        visible = expanded,
+        enter = slideInHorizontally() + fadeIn(),
+        exit = slideOutHorizontally() + fadeOut()
+    ) {
         Column { content() }
     }
 }
@@ -573,36 +578,11 @@ fun OtherUserScreen(
             var phoneNumber by remember { mutableStateOf("") }
             var password by remember { mutableStateOf("") }
             Column {
-                Card(
-                    shape = RoundedCornerShape(18.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = Color(0xFFFCC307)
-                    ), modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(0.dp, 6.dp)
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(10.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Icon(
-                            painterResource(R.drawable.ic_triangle_alert),
-                            contentDescription = "Alert",
-                            tint = Color.White
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            "在添加他人账号前请先取得对方同意。",
-                            color = Color.White,
-                            fontSize = 13.sp,
-                            lineHeight = 18.sp,
-                            fontWeight = FontWeight.W500
-                        )
-                    }
-                }
+                CommonCardTip(
+                    icon = R.drawable.ic_triangle_alert,
+                    containerColor = Color(0xFFFCC307),
+                    text = "在添加他人账号前请先取得对方同意。"
+                )
                 OutlinedTextField(
                     value = phoneNumber,
                     onValueChange = { phoneNumber = it },
@@ -2520,36 +2500,11 @@ fun OtherUserScreen(
                     }
                 )
             }
-            Card(
-                shape = RoundedCornerShape(18.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = Color(0xFFFCC307)
-                ), modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(6.dp, 0.dp)
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(10.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Icon(
-                        painterResource(R.drawable.ic_triangle_alert),
-                        contentDescription = "Alert",
-                        tint = Color.White
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        "随意分享此二维码给他人会增加你的学习通账号风险，他人可以通过此二维码来控制你的账号，但这个分享行为只针对于学习通账号，并不会暴露你的实际密码。",
-                        color = Color.White,
-                        fontSize = 13.sp,
-                        lineHeight = 18.sp,
-                        fontWeight = FontWeight.W500
-                    )
-                }
-            }
+            CommonCardTip(
+                icon = R.drawable.ic_triangle_alert,
+                containerColor = Color(0xFFFCC307),
+                text = "随意分享此二维码给他人会增加你的学习通账号风险，他人可以通过此二维码来控制你的账号，但这个分享行为只针对于学习通账号，并不会暴露你的实际密码。"
+            )
             Spacer(modifier = Modifier.height(8.dp))
             SingleChoiceSegmentedButtonRow(
                 modifier = Modifier

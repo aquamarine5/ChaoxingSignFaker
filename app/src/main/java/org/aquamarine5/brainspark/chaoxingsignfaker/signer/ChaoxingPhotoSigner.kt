@@ -29,7 +29,9 @@ class ChaoxingPhotoSigner(
     photoActivityEntity.classId,
     photoActivityEntity.courseId,
     photoActivityEntity.extContent,
-    baseSignInfo
+    baseSignInfo,
+    photoActivityEntity.isOldSignVersion,
+    photoActivityEntity.chatId
 ) {
     class ChaoxingPhotoSignException(message: String, throwable: Throwable? = null) :
         ChaoxingParseDataException(message, throwable)
@@ -77,6 +79,21 @@ class ChaoxingPhotoSigner(
 
     suspend fun signByClick(captchaValidate: String? = null): Boolean =
         withContext(Dispatchers.IO) {
+            if (isOldSignVersion) {
+                return@withContext client.newCall(
+                    Request.Builder().url(
+                        buildOldSignUrlBuilder()
+                            .addQueryParameter("useragent", "")
+                            .addQueryParameter("latitude", "-1")
+                            .addQueryParameter("longitude", "-1")
+                            .addQueryParameter("fid", "0")
+                            .build()
+                    ).get().build()
+                ).execute().use {
+                    it.checkResponseThrowException()
+                    return@use it.checkSignResult()
+                }
+            }
             client.newCall(
                 Request.Builder().url(
                     URL_SIGN_NO_PARAMETER.newBuilder()
@@ -94,6 +111,22 @@ class ChaoxingPhotoSigner(
         captchaValidate: String? = null
     ): Boolean =
         withContext(Dispatchers.IO) {
+            if (isOldSignVersion) {
+                return@withContext client.newCall(
+                    Request.Builder().url(
+                        buildOldSignUrlBuilder()
+                            .addQueryParameter("useragent", "")
+                            .addQueryParameter("latitude", "-1")
+                            .addQueryParameter("longitude", "-1")
+                            .addQueryParameter("fid", "0")
+                            .addQueryParameter("objectId", objectId)
+                            .build()
+                    ).get().build()
+                ).execute().use {
+                    it.checkResponseThrowException()
+                    return@use it.checkSignResult()
+                }
+            }
             client.newCall(
                 Request.Builder().url(
                     URL_SIGN_NO_PARAMETER.newBuilder()

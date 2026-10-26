@@ -34,39 +34,12 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
 @Composable
 fun FaceRecognitionNewFeatureTips(isDisplayNewFeature: MutableState<Boolean>) {
     Column {
-        Card(
-            shape = RoundedCornerShape(18.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = Color(0xFF12AA9C)
-            ),
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(2.dp, 6.dp)
-                .zIndex(1f)
-        ) {
-            Row(
-                modifier = Modifier
-                    .padding(10.dp, 12.dp)
-                    .fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Spacer(modifier = Modifier.width(8.dp))
-                Icon(
-                    painterResource(R.drawable.ic_scan_face),
-                    contentDescription = null,
-                    tint = Color.White
-                )
-                Spacer(modifier = Modifier.width(9.dp))
-                Text(
-                    "感谢 @miloce 提供人脸识别技术支持。\n拍摄或上传人脸识别照片时，请选择竖屏正脸睁眼照片。",
-                    color = Color.White,
-                    fontSize = 13.sp,
-                    lineHeight = 18.sp,
-                    fontWeight = FontWeight.W500,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-        }
+        CommonCardTip(
+            icon = R.drawable.ic_scan_face,
+            containerColor = Color(0xFF12AA9C),
+            text = "感谢 @miloce 提供人脸识别技术支持。\n拍摄或上传人脸识别照片时，请选择竖屏正脸睁眼照片。",
+            modifier = Modifier.zIndex(1f)
+        )
         val context = LocalContext.current
         NewFeatureTipsCard(
             isDisplayNewFeature,

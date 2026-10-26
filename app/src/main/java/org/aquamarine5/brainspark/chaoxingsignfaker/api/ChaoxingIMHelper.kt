@@ -243,12 +243,16 @@ object ChaoxingIMHelper {
     fun buildSignActivityEntity(
         scope: CoroutineScope,
         activity: IMSignActivityInfo,
-        messageTimestamp: Long
+        messageTimestamp: Long,
+        chatId: Long? = null
     ): ChaoxingGroupSignActivityEntity {
         val destination =
             scope.async(Dispatchers.IO, start = CoroutineStart.LAZY) {
                 if (activity.isUnsupportedLegacySign)
-                    throw ChaoxingSignHelper.ChaoxingUnsupportedSignTypeException()
+                    return@async ChaoxingSignHelper.getLegacyIMSignDestination(
+                        activity.activeId,
+                        chatId
+                    )
                 ChaoxingSignHelper.getIMSignDestination(
                     activity.activeTypeName,
                     activity.activeId,
@@ -278,11 +282,12 @@ object ChaoxingIMHelper {
         imMessages: List<Pair<Meta, MessageBody>>
     ): List<ChaoxingGroupSignActivityEntity> =
         imMessages.mapNotNull { (meta, messageBody) ->
+            val chatId = messageBody.to?.name?.substringBefore("@")?.toLongOrNull()
             messageBody.extList?.firstOrNull { it.key == "attachment" }?.let { ext ->
                 runCatching {
                     parseIMSignActivityInfo(JSONObject.parseObject(ext.stringValue))
                 }.getOrNull()?.let { activity ->
-                    buildSignActivityEntity(scope, activity, meta.field4)
+                    buildSignActivityEntity(scope, activity, meta.field4, chatId)
                 }
             }
         }
