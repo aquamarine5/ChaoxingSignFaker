@@ -74,7 +74,7 @@ import org.aquamarine5.brainspark.stackbricks.StackbricksService
 
 @Serializable
 data class LoginDestination(
-    val isFailureNetworkRedirect: Boolean = false
+    val failureNetworkRedirectPhoneNumber: String? = null
 )
 
 @Composable
@@ -83,7 +83,9 @@ fun LoginPage(
     stackbricksService: StackbricksService,
     navToCourseListDestination: () -> Unit
 ) {
-    var phoneNumber by remember { mutableStateOf("") }
+    var phoneNumber by remember(destination.failureNetworkRedirectPhoneNumber) {
+    mutableStateOf(destination.failureNetworkRedirectPhoneNumber ?: "")
+}
     var password by remember { mutableStateOf("") }
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -179,7 +181,7 @@ fun LoginPage(
         }
         Spacer(modifier = Modifier.height(8.dp))
 
-        if (destination.isFailureNetworkRedirect) {
+        if (destination.failureNetworkRedirectPhoneNumber != null) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()

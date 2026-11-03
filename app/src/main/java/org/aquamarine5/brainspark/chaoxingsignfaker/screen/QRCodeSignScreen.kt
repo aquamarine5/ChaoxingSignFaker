@@ -36,7 +36,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RichTooltip
 import androidx.compose.material3.Text
 import androidx.compose.material3.TooltipAnchorPosition
@@ -1227,14 +1226,12 @@ fun QRCodeSignScreen(
                                             Spacer(modifier = Modifier.height(8.dp))
                                             val outerStatusIndex =
                                                 if (currentTarget == -1) 0 else currentTarget + 1
-                                            val outerIsSuccess =
+                                            val isOuterSuccess =
                                                 signStatus.getOrNull(outerStatusIndex)?.isSuccess?.value == true
-                                            val isOuterCaptchaResolvedByModel =
-                                                signStatus.getOrNull(outerStatusIndex)?.isCaptchaResolvedByModel?.value == true
                                             Row(
                                                 modifier = Modifier
                                                     .background(
-                                                        Color(0x88888888),
+                                                        Color(0xCCFFFFFF),
                                                         RoundedCornerShape(8.dp)
                                                     )
                                                     .border(
@@ -1275,16 +1272,7 @@ fun QRCodeSignScreen(
                                                 Spacer(modifier = Modifier.width(6.dp))
                                                 Text("签到中")
                                                 Spacer(modifier = Modifier.width(6.dp))
-                                                if (isOuterCaptchaResolvedByModel) {
-                                                    Icon(
-                                                        painterResource(R.drawable.ic_brain_circuit),
-                                                        contentDescription = "验证码由模型自动识别",
-                                                        tint = MaterialTheme.colorScheme.primary,
-                                                        modifier = Modifier.size(16.dp)
-                                                    )
-                                                    Spacer(modifier = Modifier.width(6.dp))
-                                                }
-                                                if (outerIsSuccess) {
+                                                if (isOuterSuccess) {
                                                     Icon(
                                                         painterResource(R.drawable.ic_check),
                                                         contentDescription = "已签到",

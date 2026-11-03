@@ -523,7 +523,7 @@ class MainActivity : ComponentActivity() {
                                                                 Toast.LENGTH_SHORT
                                                             ).show()
                                                         }
-                                                        LoginDestination(isFailureNetworkRedirect = true)
+                                                        LoginDestination(failureNetworkRedirectPhoneNumber = datastore.loginSession.phoneNumber)
                                                     }
                                                 }
                                             }
@@ -644,7 +644,7 @@ class MainActivity : ComponentActivity() {
                                                         }, navToLoginDestination = {
                                                             navController.navigate(
                                                                 LoginDestination(
-                                                                    true
+                                                                    failureNetworkRedirectPhoneNumber = ChaoxingHttpClient.instance?.phoneNumber
                                                                 )
                                                             ) {
                                                                 popUpTo<CourseListDestination> {
