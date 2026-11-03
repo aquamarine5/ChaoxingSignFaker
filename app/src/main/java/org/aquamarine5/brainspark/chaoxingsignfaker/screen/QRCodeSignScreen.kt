@@ -271,7 +271,7 @@ fun QRCodeSignScreen(
                 }
             }
         } else {
-            Crossfade(signActivityStatus, animationSpec = tween(700)) { c ->
+            Crossfade(signActivityStatus) { c ->
                 if (c != null && c != ChaoxingSignActivityStatus.READY_TO_SIGN) {
                     Box(
                         modifier = Modifier.padding(8.dp, 0.dp, 8.dp, 8.dp)

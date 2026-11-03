@@ -282,7 +282,7 @@ object ChaoxingSignHelper {
                         "",
                         result.getLong("starttime"),
                         endTime,
-                        if (endTime != null) System.currentTimeMillis() > endTime else false,
+                        endTime != null && System.currentTimeMillis() > endTime,
                         isCloneSession = false
                     )
 
@@ -293,7 +293,7 @@ object ChaoxingSignHelper {
                         "",
                         result.getLong("starttime"),
                         endTime,
-                        if (endTime != null) System.currentTimeMillis() > endTime else false,
+                        endTime != null && System.currentTimeMillis() > endTime,
                         isCloneSession = false
                     )
 
@@ -304,7 +304,7 @@ object ChaoxingSignHelper {
                         "",
                         result.getLong("starttime"),
                         endTime,
-                        if (endTime != null) System.currentTimeMillis() > endTime else false,
+                        endTime != null && System.currentTimeMillis() > endTime,
                         isCloneSession = false
                     )
 
@@ -315,7 +315,7 @@ object ChaoxingSignHelper {
                         "",
                         result.getLong("starttime"),
                         endTime,
-                        if (endTime != null) System.currentTimeMillis() > endTime else false,
+                        endTime != null && System.currentTimeMillis() > endTime,
                         isCloneSession = false
                     )
 
@@ -326,7 +326,7 @@ object ChaoxingSignHelper {
                         "",
                         result.getLong("starttime"),
                         endTime,
-                        if (endTime != null) System.currentTimeMillis() > endTime else false,
+                        endTime != null && System.currentTimeMillis() > endTime,
                         isCloneSession = false
                     )
 
