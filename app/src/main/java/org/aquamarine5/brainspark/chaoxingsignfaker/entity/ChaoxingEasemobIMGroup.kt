@@ -21,24 +21,6 @@ data class ChaoxingEasemobIMGroup(
     val id: String,
     val imageUrl: String?
 ) {
-    object ChaoxingEasemobIMGroupNavType : NavType<ChaoxingEasemobIMGroup>(false) {
-        override fun get(bundle: Bundle, key: String): ChaoxingEasemobIMGroup? {
-            return Json.decodeFromString(bundle.getString(key) ?: return null)
-        }
-
-        override fun parseValue(value: String): ChaoxingEasemobIMGroup {
-            return Json.decodeFromString(Uri.decode(value))
-        }
-
-        override fun serializeAsValue(value: ChaoxingEasemobIMGroup): String {
-            return Uri.encode(Json.encodeToString(value))
-        }
-
-        override fun put(bundle: Bundle, key: String, value: ChaoxingEasemobIMGroup) {
-            bundle.putString(key, Json.encodeToString(value))
-        }
-    }
-
     object ChaoxingEasemobIMGroupListNavType : NavType<List<ChaoxingEasemobIMGroup>>(false) {
         private val listSerializer = ListSerializer(serializer())
         override fun get(bundle: Bundle, key: String): List<ChaoxingEasemobIMGroup>? {

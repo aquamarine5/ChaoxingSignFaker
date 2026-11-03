@@ -739,6 +739,9 @@ class MainActivity : ComponentActivity() {
                                                             ) {
                                                                 popUpTo<CourseListDestination>()
                                                             }
+                                                        },
+                                                        navToGroupDetailDestination = {
+                                                            navController.navigate(it)
                                                         }) {
                                                         navController.navigateUp()
                                                     }

@@ -271,19 +271,22 @@ fun CourseListScreen(
                     )
                     ChaoxingHttpClient.getClientInstanceOrClone(destination.isCloneSession)
                         ?.let { httpClient ->
-                            ChaoxingCourseHelper.getAllCourse(
+                            val fetchedCourses = ChaoxingCourseHelper.getAllCourse(
                                 httpClient,
                                 context,
                                 destination.isCloneSession,
                                 navToLoginDestination
                             )
-                                .apply {
-                                    activitiesData.addAll(this.filter {
-                                        preferredClassIds.contains(it.classId)
-                                    }.map { it.apply { isPreferred.value = true } } + this.filter {
-                                        !preferredClassIds.contains(it.classId)
-                                    })
+                            activitiesData.addAll(fetchedCourses.filter {
+                                preferredClassIds.contains(it.classId)
+                            }.map { it.apply { isPreferred.value = true } } + fetchedCourses.filter {
+                                !preferredClassIds.contains(it.classId)
+                            })
+                            launch {
+                                runCatching {
+                                    ChaoxingIMHelper.refreshIMGroupClassIds(context, fetchedCourses)
                                 }
+                            }
                         }
                 }.onFailure {
                     it.snackbarReport(

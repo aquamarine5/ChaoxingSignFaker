@@ -6,6 +6,7 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.api
 
+import android.content.Context
 import android.util.Base64
 import com.alibaba.fastjson2.JSON
 import com.alibaba.fastjson2.JSONObject
@@ -15,21 +16,27 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import okhttp3.FormBody
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingIMGroupClass
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.easemob.MessageBody
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.easemob.Meta
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCourseEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingEasemobIMConfig
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingEasemobIMGroup
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingGroupSignActivityEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingIMConfig
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingIMGroup
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingParseDataException
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.checkResponseThrowException
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.requirePredictable
+import java.util.concurrent.TimeUnit
 import javax.crypto.Cipher
 import javax.crypto.spec.SecretKeySpec
 
@@ -61,6 +68,8 @@ object ChaoxingIMHelper {
     const val URL_MESSAGE_ROAMING =
         "https://a1-vip6.easecdn.com/cx-dev/cxstudy/users/%s/messageroaming"
     const val USER_AGENT_EASEMOB = "Easemob-SDK(Android) 4.9.0.1"
+
+    val IM_GROUP_CLASS_CACHE_INTERVAL = TimeUnit.DAYS.toMillis(1)
 
     val IM_ENCRYPTED_KEY = "SL2(M/eD".toByteArray(Charsets.UTF_8)
 
@@ -137,6 +146,66 @@ object ChaoxingIMHelper {
                 }
             }
         }
+    }
+
+    suspend fun updateIMGroupClassId(courses: List<ChaoxingCourseEntity>): List<ChaoxingIMGroupClass> {
+        val httpClient = ChaoxingHttpClient.instance
+        requirePredictable(httpClient != null) { "客户端未初始化，无法获取群聊列表" }
+        val imGroups = getEasemobIMGroups(httpClient, httpClient.getIMConfig())
+        val groupsByChatName = imGroups.groupBy { it.chatName }
+        return courses.groupBy { it.courseName }.mapNotNull { (courseName, matchedCourses) ->
+            val matchedGroups = groupsByChatName[courseName] ?: return@mapNotNull null
+            val chatIds = matchedGroups.mapNotNull { it.id.toLongOrNull() }.distinct()
+            if (chatIds.isEmpty()) return@mapNotNull null
+            ChaoxingIMGroupClass.newBuilder()
+                .addAllClassId(matchedCourses.map { it.classId.toLong() }.distinct())
+                .setCourseId(matchedCourses.first().courseId)
+                .addAllChatId(chatIds)
+                .setChatName(courseName)
+                .build()
+        }
+    }
+
+    suspend fun refreshIMGroupClassIds(
+        context: Context,
+        courses: List<ChaoxingCourseEntity>
+    ): List<ChaoxingIMGroupClass>? {
+        if (courses.isEmpty()) return null
+        val dataStoreData = context.chaoxingDataStore.data.first()
+        val lastUpdateTimestamp = dataStoreData.lastUpdateIMGroupClassTimestamp
+        if (lastUpdateTimestamp + IM_GROUP_CLASS_CACHE_INTERVAL > System.currentTimeMillis())
+            return null
+        val imGroupClassIds = updateIMGroupClassId(courses)
+        context.chaoxingDataStore.updateData { dataStore ->
+            dataStore.toBuilder()
+                .clearImGroupClassIds()
+                .addAllImGroupClassIds(imGroupClassIds)
+                .setLastUpdateIMGroupClassTimestamp(System.currentTimeMillis())
+                .build()
+        }
+        return imGroupClassIds
+    }
+
+    fun getEasemobIMGroupsByChatIds(
+        imGroupClasses: List<ChaoxingIMGroupClass>
+    ): List<ChaoxingEasemobIMGroup> {
+        val matchedGroupClass = imGroupClasses.firstOrNull { it.chatIdCount > 0 }
+            ?: return emptyList()
+        return matchedGroupClass.chatIdList.map {
+            ChaoxingEasemobIMGroup(matchedGroupClass.chatName, it.toString(), null)
+        }
+    }
+
+    suspend fun getEasemobIMGroupsByClassIds(
+        context: Context,
+        classIds: List<Long>
+    ): List<ChaoxingEasemobIMGroup> {
+        if (classIds.isEmpty()) return emptyList()
+        val targetClassIds = classIds.toSet()
+        val imGroupClasses = context.chaoxingDataStore.data.first().imGroupClassIdsList.filter {
+            it.classIdList.any { classId -> targetClassIds.contains(classId) }
+        }
+        return getEasemobIMGroupsByChatIds(imGroupClasses)
     }
 
     @Suppress("Deprecation")

@@ -30,7 +30,7 @@ okhttp = "5.5.1"
 patternlocker = "2.5.7"
 protobufJavalite = "4.36.2"
 reorderable = "3.1.0"
-stackbricks = "3.0.0-alpha1"
+stackbricks = "3.0.1"
 ui = "0.2.0"
 
 [libraries]
