@@ -80,7 +80,6 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.zIndex
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
@@ -627,96 +626,60 @@ fun CourseListScreen(
                                         Spacer(modifier = Modifier.height(4.dp))
                                     }
                                     item {
-                                        Card(modifier = Modifier.zIndex(1f)) {
-                                            Row(
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .padding(16.dp, 8.dp)
+                                        Row(
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            OutlinedButton(
+                                                onClick = {
+                                                    hapticFeedback.performHapticFeedback(
+                                                        HapticFeedbackType.ContextClick
+                                                    )
+                                                    navToGroupDestination(destination.isCloneSession)
+                                                },
+                                                shape = RoundedCornerShape(18.dp),
+                                                modifier = Modifier.weight(1f)
                                             ) {
-                                                Icon(
-                                                    painterResource(R.drawable.ic_circle_question_mark),
-                                                    null,
-                                                    modifier = Modifier
-                                                        .size(36.dp)
-                                                        .padding(2.dp)
-                                                )
                                                 Column(
-                                                    modifier = Modifier.padding(
-                                                        start = 12.dp
-                                                    )
+                                                    horizontalAlignment = Alignment.CenterHorizontally
                                                 ) {
-                                                    Text(
-                                                        "找不到要签到的班级或者签到的活动？可能老师是在群聊里面发起的签到",
-                                                        fontSize = 14.sp,
-                                                        lineHeight = 17.sp,
-                                                        style = TextStyle.Default.copy(
-                                                            lineBreak = LineBreak(
-                                                                strategy = LineBreak.Strategy.HighQuality,
-                                                                strictness = LineBreak.Strictness.Strict,
-                                                                wordBreak = LineBreak.WordBreak.Default
-                                                            )
-                                                        )
+                                                    Icon(
+                                                        painter = painterResource(R.drawable.ic_users_round),
+                                                        contentDescription = null,
+                                                        modifier = Modifier.size(24.dp)
                                                     )
-                                                    OutlinedButton(
-                                                        onClick = {
-                                                            hapticFeedback.performHapticFeedback(
-                                                                HapticFeedbackType.ContextClick
-                                                            )
-                                                            navToGroupDestination(destination.isCloneSession)
-                                                        },
-                                                        shape = RoundedCornerShape(18.dp),
-                                                        modifier = Modifier
-                                                            .fillMaxWidth()
-                                                    ) {
-                                                        Row(
-                                                            verticalAlignment = Alignment.CenterVertically,
-                                                            horizontalArrangement = Arrangement.Center,
-                                                            modifier = Modifier.fillMaxWidth()
-                                                        ) {
-                                                            Icon(
-                                                                painter = painterResource(R.drawable.ic_users_round),
-                                                                null,
-                                                                modifier = Modifier.size(18.dp)
-                                                            )
-                                                            Spacer(modifier = Modifier.width(10.dp))
-                                                            Text(
-                                                                "从群聊列表查找签到",
-                                                                color = MaterialTheme.colorScheme.primary
-                                                            )
-                                                        }
-                                                    }
                                                     Spacer(modifier = Modifier.height(2.dp))
-                                                    OutlinedButton(
-                                                        onClick = {
-                                                            hapticFeedback.performHapticFeedback(
-                                                                HapticFeedbackType.ContextClick
-                                                            )
-                                                            isQRCodeScanPause.value = false
-                                                            isQRCodeResolving.value = false
-                                                            isQRCodeScanning = true
-                                                        },
-                                                        shape = RoundedCornerShape(18.dp),
-                                                        modifier = Modifier
-                                                            .fillMaxWidth()
-                                                    ) {
-                                                        Row(
-                                                            verticalAlignment = Alignment.CenterVertically,
-                                                            horizontalArrangement = Arrangement.Center,
-                                                            modifier = Modifier.fillMaxWidth()
-                                                        ) {
-                                                            Icon(
-                                                                painter = painterResource(R.drawable.ic_scan_qr_code),
-                                                                null,
-                                                                modifier = Modifier.size(18.dp)
-                                                            )
-                                                            Spacer(modifier = Modifier.width(10.dp))
-                                                            Text(
-                                                                "扫描签到二维码",
-                                                                color = MaterialTheme.colorScheme.primary
-                                                            )
-                                                        }
-                                                    }
+                                                    Text(
+                                                        "从群聊列表查找签到",
+                                                        color = MaterialTheme.colorScheme.primary
+                                                    )
+                                                }
+                                            }
+                                            OutlinedButton(
+                                                onClick = {
+                                                    hapticFeedback.performHapticFeedback(
+                                                        HapticFeedbackType.ContextClick
+                                                    )
+                                                    isQRCodeScanPause.value = false
+                                                    isQRCodeResolving.value = false
+                                                    isQRCodeScanning = true
+                                                },
+                                                shape = RoundedCornerShape(18.dp),
+                                                modifier = Modifier.weight(1f)
+                                            ) {
+                                                Column(
+                                                    horizontalAlignment = Alignment.CenterHorizontally
+                                                ) {
+                                                    Icon(
+                                                        painter = painterResource(R.drawable.ic_scan_qr_code),
+                                                        contentDescription = null,
+                                                        modifier = Modifier.size(24.dp)
+                                                    )
+                                                    Spacer(modifier = Modifier.height(2.dp))
+                                                    Text(
+                                                        "扫描签到二维码跳转",
+                                                        color = MaterialTheme.colorScheme.primary
+                                                    )
                                                 }
                                             }
                                         }
