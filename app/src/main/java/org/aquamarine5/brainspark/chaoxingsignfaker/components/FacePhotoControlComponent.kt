@@ -95,7 +95,6 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.scaleDownToMaxDime
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
 
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FacePhotoControlComponent(
     phoneNumber: String,
