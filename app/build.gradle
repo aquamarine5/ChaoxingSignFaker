@@ -46,6 +46,11 @@ stackbricksConfig {
             configFilePath = "chaoxingsignfaker_stackbricks_manifest.json"
             referer = project.findProperty("qiniu.referer") ?: ""
         }
+        qiniuManifestConfig {
+            host = "cdn.aquamarine5.fun"
+            configFilePath = "chaoxingsignfaker_stackbricks_v2_manifest.json"
+            referer = project.findProperty("qiniu.referer") ?: ""
+        }
     }
     changelog =
             "由于最近学习通更新频繁，导致随地大小签也需要频繁更新，请大家及时更新哦！以下是更新日志：\n" +

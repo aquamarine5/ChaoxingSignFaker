@@ -162,7 +162,6 @@ import org.aquamarine5.brainspark.stackbricks.providers.cloudflare.CloudflareMes
 import org.aquamarine5.brainspark.stackbricks.providers.cloudflare.CloudflarePackageProvider
 import org.aquamarine5.brainspark.stackbricks.providers.qiniu.QiniuConfiguration
 import org.aquamarine5.brainspark.stackbricks.providers.qiniu.QiniuMessageProvider
-import org.aquamarine5.brainspark.stackbricks.providers.qiniu.QiniuPackageProvider
 import org.aquamarine5.brainspark.stackbricks.rememberStackbricksStatus
 import java.security.MessageDigest
 import java.util.concurrent.TimeUnit
@@ -244,6 +243,18 @@ class MainActivity : ComponentActivity() {
                 mutableStateOf(false)
             }
             var destination by remember { mutableStateOf<Any?>(null) }
+            LaunchedEffect(destination) {
+                val loginDestination = destination as? LoginDestination ?: return@LaunchedEffect
+                if (ChaoxingHttpClient.instance != null) return@LaunchedEffect
+                if (navController.currentBackStackEntry?.destination?.hasRoute(LoginDestination::class) == true) return@LaunchedEffect
+                runCatching {
+                    navController.navigate(loginDestination) {
+                        popUpTo(navController.graph.id) { inclusive = true }
+                    }
+                }.onFailure {
+                    it.sentryReport()
+                }
+            }
             val snackbarHostState = remember { SnackbarHostState() }
             ChaoxingSignFakerTheme {
                 CompositionLocalProvider(LocalSnackbarHostState provides snackbarHostState) {
@@ -413,12 +424,12 @@ class MainActivity : ComponentActivity() {
                             StackbricksService(
                                 this,
                                 possibleMessageProvider = listOf(
-                                    CloudflareMessageProvider(cloudflareConfiguration),
                                     QiniuMessageProvider(qiniuConfiguration),
+                                    CloudflareMessageProvider(cloudflareConfiguration),
                                 ),
                                 possiblePackageProvider = listOf(
                                     CloudflarePackageProvider(cloudflareConfiguration),
-                                    QiniuPackageProvider(qiniuConfiguration),
+//                                    QiniuPackageProvider(qiniuConfiguration),
                                 ),
                                 state = state,
                                 stackbricksPolicy = StackbricksPolicy(
@@ -466,7 +477,8 @@ class MainActivity : ComponentActivity() {
                                         }
                                         initializeClientInfo(
                                             datastore.preferences.customizedUserAgent,
-                                            datastore.preferences.customizedPackageName
+                                            datastore.preferences.customizedPackageName,
+                                            datastore.loginSession.uniqueId
                                         )
                                         isDevelopedMode = datastore.preferences.isDevelopedMode
                                         isAlwaysForceSign = datastore.preferences.alwaysForceSign

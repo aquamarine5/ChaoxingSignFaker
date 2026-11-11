@@ -24,7 +24,6 @@ import okhttp3.Cookie
 import okhttp3.CookieJar
 import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
-import org.aquamarine5.brainspark.chaoxingsignfaker.components.chaoxingUserAgent
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingSignFakerDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.HttpCookie
@@ -141,6 +140,19 @@ object ChaoxingOtherUserHelper {
         password: String
     ): ChaoxingOtherUserSession =
         withContext(Dispatchers.IO) {
+            val sessionForLogin = session.toBuilder()
+                .setUniqueId(
+                    session.uniqueId.takeIf { it.isNotEmpty() }
+                        ?: ChaoxingDeviceInfoHelper.randomUniqueId()
+                )
+                .setDeviceModel(
+                    session.deviceModel.takeIf { it.isNotEmpty() }
+                        ?: ChaoxingDeviceInfoHelper.randomDeviceModel()
+                ).build()
+            val sessionUserAgent = ChaoxingHttpRequester.userAgentWith(
+                sessionForLogin.uniqueId,
+                sessionForLogin.deviceModel
+            )
             val tempOkHttpClient =
                 (ChaoxingHttpClient.instance?.okHttpClient ?: OkHttpClient()).newBuilder()
                     .cookieJar(object : CookieJar {
@@ -164,19 +176,19 @@ object ChaoxingOtherUserHelper {
                     }).addInterceptor { chain ->
                         chain.proceed(
                             chain.request().newBuilder()
-                                .header("User-Agent", chaoxingUserAgent).build()
+                                .header("User-Agent", sessionUserAgent).build()
                         )
                     }.retryOnConnectionFailure(true).build()
 
             ChaoxingHttpClient.login(
                 tempOkHttpClient,
-                session.phoneNumber,
+                sessionForLogin.phoneNumber,
                 password,
                 context,
                 isSaveToDataStore = false,
                 isEncryptedPassword = false
             )
-            val newSession = session.toBuilder()
+            val newSession = sessionForLogin.toBuilder()
                 .setPassword(password.replace(" ", "+"))
                 .setIsObsoleteSession(false)
                 .clearCookies().addAllCookies(
@@ -286,6 +298,16 @@ object ChaoxingOtherUserHelper {
                 )
             }
 
+            val sessionUniqueId = existedSession?.uniqueId?.takeIf { it.isNotEmpty() }
+                ?: sharedEntity.uniqueId?.takeIf { it.isNotEmpty() }
+                ?: ChaoxingDeviceInfoHelper.randomUniqueId()
+            val sessionDeviceModel = existedSession?.deviceModel?.takeIf { it.isNotEmpty() }
+                ?: sharedEntity.deviceModel?.takeIf { it.isNotEmpty() }
+                ?: ChaoxingDeviceInfoHelper.randomDeviceModel()
+            val sessionUserAgent = ChaoxingHttpRequester.userAgentWith(
+                sessionUniqueId,
+                sessionDeviceModel
+            )
             val tempOkHttpClient =
                 (ChaoxingHttpClient.instance?.okHttpClient ?: OkHttpClient()).newBuilder()
                     .cookieJar(object : CookieJar {
@@ -309,7 +331,7 @@ object ChaoxingOtherUserHelper {
                     }).addInterceptor { chain ->
                         chain.proceed(
                             chain.request().newBuilder()
-                                .header("User-Agent", chaoxingUserAgent).build()
+                                .header("User-Agent", sessionUserAgent).build()
                         )
                     }.retryOnConnectionFailure(true).build()
 
@@ -333,6 +355,8 @@ object ChaoxingOtherUserHelper {
                 .setName(sharedEntity.userName.ifEmpty { userEntity.name })
                 .setPuid(puid)
                 .setPhoneNumber(sharedEntity.phoneNumber)
+                .setUniqueId(sessionUniqueId)
+                .setDeviceModel(sessionDeviceModel)
                 .setIsDeviceCodeDuplicatedSignBefore(false)
                 .apply {
                     sharedEntity.deviceCode?.takeIf { it.isNotEmpty() }?.let { deviceCode ->

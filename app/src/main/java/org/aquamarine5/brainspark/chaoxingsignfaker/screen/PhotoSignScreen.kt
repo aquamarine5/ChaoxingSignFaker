@@ -83,6 +83,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.components.SignPotentialWarn
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SnackbarAlertDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SponsorPopupDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.cloneSessionGuard
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.httpClientGuard
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityStatus
@@ -143,12 +144,13 @@ fun PhotoSignScreen(
     navToOtherUserDestination: () -> Unit
 ) {
     if (!cloneSessionGuard(destination.isCloneSession, onCloneInvalid = navBack)) return
+    val client = httpClientGuard(onNavigateBack = navBack) ?: return
     val snackbarHost = LocalSnackbarHostState.current
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
-    val signer = remember {
+    val signer = remember(client) {
         ChaoxingPhotoSigner(
-            ChaoxingHttpClient.instance!!,
+            client,
             destination
         )
     }

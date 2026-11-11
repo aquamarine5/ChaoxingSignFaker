@@ -145,6 +145,7 @@ message ChaoxingLoginSession{
   bool isNotRandomizedDeviceCode = 8;
   string name = 9;
   bool isDeviceCodeDuplicatedSignBefore = 10;
+  optional string uniqueId = 11;
 }
 
 message ChaoxingOtherUserSession{
@@ -160,6 +161,8 @@ message ChaoxingOtherUserSession{
   optional string deviceCode = 10;
   bool isNotRandomizedDeviceCode = 11;
   bool isDeviceCodeDuplicatedSignBefore = 12;
+  optional string uniqueId = 13;
+  optional string deviceModel = 14;
 }
 
 message HttpCookie{
