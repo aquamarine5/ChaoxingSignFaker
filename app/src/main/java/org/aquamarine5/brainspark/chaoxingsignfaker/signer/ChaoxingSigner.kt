@@ -115,8 +115,6 @@ abstract class ChaoxingSigner(
         .addQueryParameter("isTeacherViewOpen", "0")
         .build()
 
-    fun getOldPreSignUrl(): HttpUrl = buildOldPreSignUrl(activeId, chatId, client.puid)
-
     protected fun buildOldSignUrlBuilder(): HttpUrl.Builder = URL_SIGN_OLD.newBuilder()
         .addQueryParameter("activeId", activeId.toString())
         .addQueryParameter("uid", client.puid.toString())
@@ -244,7 +242,8 @@ abstract class ChaoxingSigner(
     private fun requestPreSign(): Response =
         if (isOldSignVersion)
             client.newCall(
-                Request.Builder().get().url(getOldPreSignUrl()).build()
+                Request.Builder().get().url(buildOldPreSignUrl(activeId, chatId, client.puid))
+                    .build()
             ).execute()
         else
             client.newCall(

@@ -6,7 +6,6 @@
 
 package org.aquamarine5.brainspark.chaoxingsignfaker.components
 
-import android.os.Build
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -50,152 +49,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingDeviceInfoHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingClientInfo
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.displaySnackbar
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.isDevelopedMode
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
 
-lateinit var chaoxingUserAgent: String
-lateinit var chaoxingApplicationPackageName: String
-lateinit var chaoxingClientIdentity: String
-
-private const val CUSTOM_CLIENT_IDENTITY = "@@custom"
-
-enum class ChaoxingClientInfo(
-    val packageName: String,
-    val identity: String,
-    val displayName: String,
-    val deviceModel: String,
-    private val httpAgent: String,
-    private val productId: String,
-    private val versionName: String,
-    private val versionCode: String,
-    private val apiVersion: String,
-    /** 无会话时的兜底 uniqueId；正常请求始终优先使用会话里持久化的值。 */
-    private val uniqueId: String,
-    private val isAzeroth: Boolean = false
-) {
-    DEFAULT(
-        "com.chaoxing.mobile",
-        "@@default",
-        "学习通",
-        "SM-N9006",
-        "Dalvik/2.1.0 (Linux; U; Android 12; SM-N9006 Build/8aba9e4.0)",
-        "3",
-        "6.7.5",
-        "10941",
-        "314",
-        "68f184fd763546c1a04ab3a09b3deebb"
-    ),
-    XUEZAIXIDIAN(
-        "com.chaoxing.mobile.xuezaixidian",
-        "@@xuezaixidian",
-        "学在西电",
-        "23113RKC6C",
-        "Mozilla/5.0 (Linux; Android 16; 23113RKC6C Build/BP2A.250605.031.A3; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/147.0.7727.137 Mobile Safari/537.36",
-        "1000149",
-        "6.3.7",
-        "6005",
-        "249",
-        "f8777230ca1e45b2831ec7e36a9da1ea"
-    ),
-    DEVICE(
-        "com.chaoxing.mobile",
-        "@@device",
-        "跟随本机设备",
-        ChaoxingDeviceInfoHelper.sanitizeUserAgentToken(Build.MODEL, "Android"),
-        ChaoxingDeviceInfoHelper.localHttpAgent(),
-        "3",
-        "6.7.5",
-        "10941",
-        "314",
-        ChaoxingDeviceInfoHelper.randomUniqueId()
-    );
-
-    val subtitle: String
-        get() = if (this == DEVICE) deviceModel else packageName
-
-    val usesLocalDeviceModel: Boolean
-        get() = this == DEVICE
-
-    val userAgent: String
-        get() = resolveUserAgent()
-
-    private fun overrideDeviceModel(sessionDeviceModel: String?): String? =
-        sessionDeviceModel?.takeIf { it.isNotEmpty() && usesLocalDeviceModel }
-
-    fun resolveDeviceModel(sessionDeviceModel: String? = null): String =
-        overrideDeviceModel(sessionDeviceModel) ?: deviceModel
-
-    fun resolveUserAgent(
-        sessionUniqueId: String? = null,
-        sessionDeviceModel: String? = null
-    ): String {
-        val overrideModel = overrideDeviceModel(sessionDeviceModel)
-        val resolvedModel = overrideModel ?: deviceModel
-        val resolvedHttpAgent = if (overrideModel == null) {
-            httpAgent
-        } else {
-            ChaoxingDeviceInfoHelper.localHttpAgentFor(resolvedModel)
-        }
-        return ChaoxingDeviceInfoHelper.buildUserAgent(
-            httpAgent = resolvedHttpAgent,
-            deviceModel = resolvedModel,
-            packageName = packageName,
-            productId = productId,
-            versionName = versionName,
-            versionCode = versionCode,
-            apiVersion = apiVersion,
-            uniqueId = sessionUniqueId?.takeIf { it.isNotEmpty() } ?: uniqueId,
-            isAzeroth = isAzeroth
-        )
-    }
-
-    companion object {
-        fun fromIdentity(identity: String): ChaoxingClientInfo? {
-            if (identity == CUSTOM_CLIENT_IDENTITY) return null
-            if (identity.isBlank()) return DEFAULT
-            return entries.find { it.identity == identity }
-        }
-    }
-}
-
-
-fun initializeClientInfo(
-    userAgent: String,
-    packageName: String,
-    sessionUniqueId: String? = null
-) {
-    if (!ChaoxingDeviceInfoHelper.isValidUserAgent(userAgent)) {
-        chaoxingUserAgent = ChaoxingClientInfo.DEFAULT.resolveUserAgent(sessionUniqueId)
-        chaoxingClientIdentity = ChaoxingClientInfo.DEFAULT.identity
-        chaoxingApplicationPackageName = packageName.ifBlank {
-            ChaoxingClientInfo.DEFAULT.packageName
-        }
-        return
-    }
-    ChaoxingClientInfo.fromIdentity(userAgent).let {
-        if (it == null) {
-            chaoxingUserAgent = userAgent.ifBlank {
-                ChaoxingClientInfo.DEFAULT.resolveUserAgent()
-            }
-            chaoxingClientIdentity = CUSTOM_CLIENT_IDENTITY
-            chaoxingApplicationPackageName = packageName.ifBlank {
-                ChaoxingClientInfo.DEFAULT.packageName
-            }
-        } else {
-            chaoxingUserAgent = it.resolveUserAgent(sessionUniqueId)
-            chaoxingClientIdentity = it.identity
-            chaoxingApplicationPackageName = it.packageName
-        }
-    }
-}
+lateinit var chaoxingClientInfo: ChaoxingClientInfo
 
 @Composable
 private fun ClientOptionRow(
@@ -286,14 +151,16 @@ fun CustomizeClientCard(onClose: (() -> Unit)? = null) {
         var isSchoolExpanded by remember(client) { mutableStateOf(false) }
         var isSaving by remember { mutableStateOf(false) }
         var selectedOption by remember {
-            mutableStateOf(ChaoxingClientInfo.fromIdentity(chaoxingClientIdentity))
+            mutableStateOf(chaoxingClientInfo.takeIf { !it.isCustom })
         }
         var customUserAgent by remember {
-            mutableStateOf(if (selectedOption == null) chaoxingUserAgent else "")
+            mutableStateOf(
+                if (selectedOption == null) chaoxingClientInfo.userAgentTemplate else ""
+            )
         }
         var customPackageName by remember {
             mutableStateOf(
-                if (selectedOption == null) chaoxingApplicationPackageName
+                if (selectedOption == null) chaoxingClientInfo.packageName
                 else ChaoxingClientInfo.DEFAULT.packageName
             )
         }
@@ -364,10 +231,10 @@ fun CustomizeClientCard(onClose: (() -> Unit)? = null) {
                 }
                 Text("如果你的学校使用了定制版的学习通，可以在这里选择对应的选项来模拟此客户端，或者输入完整的 UserAgent 来模拟其他版本的客户端。")
                 Spacer(modifier = Modifier.height(16.dp))
-                ChaoxingClientInfo.entries.forEach { info ->
+                ChaoxingClientInfo.presets.forEach { info ->
                     ClientOptionRow(
                         title = info.displayName,
-                        subtitle = info.subtitle,
+                        subtitle = info.packageName,
                         isSelected = selectedOption == info,
                         isEnabled = !isSaving,
                         onSelect = { selectedOption = info }
@@ -470,10 +337,9 @@ fun CustomizeClientCard(onClose: (() -> Unit)? = null) {
                                         .build()
                                 }.build()
                             }
-                            initializeClientInfo(
+                            chaoxingClientInfo = ChaoxingClientInfo.resolve(
                                 userAgentPreference,
-                                packageNamePreference,
-                                context.chaoxingDataStore.data.first().loginSession.uniqueId
+                                packageNamePreference
                             )
                         }
                         isSaving = false

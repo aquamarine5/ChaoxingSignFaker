@@ -19,7 +19,7 @@ import com.umeng.commonsdk.UMConfigure
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeout
-import org.aquamarine5.brainspark.chaoxingsignfaker.components.chaoxingApplicationPackageName
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.chaoxingClientInfo
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.requirePredictable
 import java.io.ByteArrayOutputStream
@@ -44,6 +44,8 @@ object ChaoxingDeviceInfoHelper {
     private const val UA_SCHILD_SALT = "ipL\$TkeiEmfy1gTXb2XHrdLN0a@7c^vu"
     private const val UA_CHANNEL_KALIMDOR = "@Kalimdor"
     private const val UA_CHANNEL_AZEROTH = "@Azeroth"
+    private val UA_DEVICE_SEGMENT = Regex("\\(device:[^)]*\\)")
+    private val UA_BUILD_MODEL_SEGMENT = Regex("(Android [^;)]*;\\s*)[^;)]*(\\s+Build/)")
 
     fun buildEncryptedDeviceInfo(context: Context, deviceModel: String? = null): String =
         encryptByRsa(
@@ -150,13 +152,13 @@ object ChaoxingDeviceInfoHelper {
             }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 context.packageManager.getPackageInfo(
-                    chaoxingApplicationPackageName,
+                    chaoxingClientInfo.packageName,
                     PackageManager.PackageInfoFlags.of(packageInfoFlags.toLong())
                 )
             } else {
                 @Suppress("DEPRECATION")
                 context.packageManager.getPackageInfo(
-                    chaoxingApplicationPackageName,
+                    chaoxingClientInfo.packageName,
                     packageInfoFlags
                 )
             }
@@ -166,7 +168,7 @@ object ChaoxingDeviceInfoHelper {
             Settings.Secure.ANDROID_ID
         ).orEmpty()
         val deviceUniqueId =
-            sha256("${chaoxingApplicationPackageName}:$androidId:${Build.FINGERPRINT}")
+            sha256("${chaoxingClientInfo.packageName}:$androidId:${Build.FINGERPRINT}")
         val metrics = context.resources.displayMetrics
         val resolvedModel = deviceModel?.takeIf { it.isNotEmpty() }
         return JSONObject()
@@ -180,7 +182,7 @@ object ChaoxingDeviceInfoHelper {
             .fluentPut("os_name", "android")
             .fluentPut("os_ver", Build.VERSION.RELEASE.orEmpty())
             .fluentPut("os_lang", Locale.getDefault().toLanguageTag())
-            .fluentPut("brand", resolvedModel?.let { brandOfModel(it) } ?: Build.BRAND.orEmpty())
+            .fluentPut("brand", Build.BRAND.orEmpty())
             .fluentPut("board", Build.BOARD.orEmpty())
             .fluentPut("hardware", Build.HARDWARE.orEmpty())
             .fluentPut("model", resolvedModel ?: Build.MODEL.orEmpty())
@@ -609,47 +611,89 @@ object ChaoxingDeviceInfoHelper {
         "PMS110",
     )
 
-    private val deviceModels: List<Pair<String, String>> =
-        vivo.map { it to "vivo" } +
-        iqoo.map { it to "iQOO" } +
-        huawei.map { it to "HUAWEI" } +
-        honor.map { it to "HONOR" } +
-        oppo.map { it to "OPPO" } +
-        samsung.map { it to "samsung" } +
-        xiaomi.map { it to "Xiaomi" } +
-        redmi.map { it to "Redmi" } +
-        oneplus.map { it to "OnePlus" }
+    private val deviceModels: List<String> =
+        vivo + iqoo + huawei + honor + oppo + samsung + xiaomi + redmi + oneplus
 
-    fun randomDevice(): Pair<String, String> = deviceModels.random()
-
-    fun randomDeviceModel(): String = randomDevice().first
-
-    fun brandOfModel(model: String): String? =
-        deviceModels.firstOrNull { it.first == model }?.second
+    fun randomDeviceModel(): String = deviceModels.random()
 
     fun randomUniqueId(): String = UUID.randomUUID().toString().replace("-", "")
 
-    fun sanitizeUserAgentToken(value: String, fallback: String): String =
-        value.filter { it.code in 0x20..0x7E }.ifBlank { fallback }
+    suspend fun getOrRandomUniqueId(context: Context, phoneNumber: String): String {
+        val dataStore = context.chaoxingDataStore.data.first()
+        val isLoginIdentity = dataStore.loginSession.phoneNumber == phoneNumber
+        val index = dataStore.otherUsersList.indexOfFirst { it.phoneNumber == phoneNumber }
+        val storedUniqueId = when {
+            isLoginIdentity -> dataStore.loginSession.uniqueId
+            index >= 0 -> dataStore.getOtherUsers(index).uniqueId
+            else -> ""
+        }
+        if (storedUniqueId.isNotEmpty()) return storedUniqueId
+        val generated = randomUniqueId()
+        context.chaoxingDataStore.updateData { current ->
+            if (current.loginSession.phoneNumber == phoneNumber) {
+                if (current.loginSession.uniqueId.isNotEmpty()) return@updateData current
+                return@updateData current.toBuilder()
+                    .setLoginSession(current.loginSession.toBuilder().setUniqueId(generated))
+                    .build()
+            }
+            val currentIndex =
+                current.otherUsersList.indexOfFirst { it.phoneNumber == phoneNumber }
+            if (currentIndex < 0 || current.getOtherUsers(currentIndex).uniqueId.isNotEmpty())
+                return@updateData current
+            current.toBuilder().setOtherUsers(
+                currentIndex,
+                current.getOtherUsers(currentIndex).toBuilder().setUniqueId(generated)
+            ).build()
+        }
+        return generated
+    }
+
+    suspend fun getOrRandomDeviceModel(context: Context, phoneNumber: String): String {
+        val dataStore = context.chaoxingDataStore.data.first()
+        if (dataStore.loginSession.phoneNumber == phoneNumber) return localDeviceModel()
+        val index = dataStore.otherUsersList.indexOfFirst { it.phoneNumber == phoneNumber }
+        val storedDeviceModel = if (index >= 0) dataStore.getOtherUsers(index).deviceModel else ""
+        if (storedDeviceModel.isNotEmpty()) return storedDeviceModel
+        val generated = randomDeviceModel()
+        if (index < 0) return generated
+        context.chaoxingDataStore.updateData { current ->
+            val currentIndex =
+                current.otherUsersList.indexOfFirst { it.phoneNumber == phoneNumber }
+            if (currentIndex < 0 || current.getOtherUsers(currentIndex).deviceModel.isNotEmpty())
+                return@updateData current
+            current.toBuilder().setOtherUsers(
+                currentIndex,
+                current.getOtherUsers(currentIndex).toBuilder().setDeviceModel(generated)
+            ).build()
+        }
+        return generated
+    }
 
     fun isValidUserAgent(userAgent: String): Boolean =
         userAgent.all { it.code in 0x20..0x7E }
 
-    fun localHttpAgent(): String {
-        val systemAgent = System.getProperty("http.agent", "").orEmpty()
-        if (systemAgent.isNotBlank() && systemAgent.all { it.code in 0x20..0x7E }) return systemAgent
-        val model = sanitizeUserAgentToken(Build.MODEL, "Android")
-        return "Dalvik/2.1.0 (Linux; U; Android ${Build.VERSION.RELEASE}; $model Build/${Build.ID})"
+    fun localDeviceModel(): String =
+        Build.MODEL.filter { it.code in 0x20..0x7E }.ifBlank { "Android" }
+
+    fun systemHttpAgentTemplate(): String {
+        val fallback =
+            "Dalvik/2.1.0 (Linux; U; Android ${Build.VERSION.RELEASE}; {model} Build/${Build.ID})"
+        val agent = System.getProperty("http.agent", "").orEmpty()
+        if (agent.isBlank() || agent.any { it.code !in 0x20..0x7E }) return fallback
+        val model = localDeviceModel()
+        val modelSegment = Regex("(Android [^;)]*;\\s*)${Regex.escape(model)}(\\s+Build/)")
+        if (!modelSegment.containsMatchIn(agent)) return fallback
+        return agent.replace(modelSegment) { match ->
+            match.groupValues[1] + "{model}" + match.groupValues[2]
+        }
     }
 
-    fun localHttpAgentFor(model: String): String {
-        val systemAgent = localHttpAgent()
-        val realModel = sanitizeUserAgentToken(Build.MODEL, "")
-        if (realModel.isNotEmpty() && systemAgent.contains(realModel)) {
-            return systemAgent.replace(realModel, model)
-        }
-        return "Dalvik/2.1.0 (Linux; U; Android ${Build.VERSION.RELEASE}; $model Build/${Build.ID})"
-    }
+    fun overrideDeviceModel(userAgent: String, model: String): String =
+        userAgent
+            .replace(UA_DEVICE_SEGMENT, "(device:$model)")
+            .replace(UA_BUILD_MODEL_SEGMENT) { match ->
+                match.groupValues[1] + model + match.groupValues[2]
+            }
 
     fun buildUserAgent(
         httpAgent: String,
@@ -667,11 +711,9 @@ object ChaoxingDeviceInfoHelper {
         val core = "(device:$deviceModel) Language/$language $packageName/" +
                 "ChaoXingStudy_${productId}_${versionName}" +
                 "_android_phone_${versionCode}_$apiVersion ($channel)_$uniqueId"
-        val schild = md5Hex("(schild:$UA_SCHILD_SALT) $core")
+        val schild = MessageDigest.getInstance("MD5")
+            .digest("(schild:$UA_SCHILD_SALT) $core".toByteArray())
+            .joinToString("") { "%02x".format(it) }
         return "$httpAgent (schild:$schild) $core"
     }
-
-    private fun md5Hex(text: String): String =
-        MessageDigest.getInstance("MD5").digest(text.toByteArray())
-            .joinToString("") { "%02x".format(it) }
 }

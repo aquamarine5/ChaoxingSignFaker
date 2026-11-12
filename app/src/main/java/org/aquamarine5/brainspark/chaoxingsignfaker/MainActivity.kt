@@ -106,7 +106,8 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularPro
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CloneSessionTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.FavoriteLocationSettingComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.FavoriteLocationSettingDestination
-import org.aquamarine5.brainspark.chaoxingsignfaker.components.initializeClientInfo
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.chaoxingClientInfo
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingClientInfo
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCourseEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingEasemobIMGroup
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
@@ -214,6 +215,9 @@ class MainActivity : ComponentActivity() {
             } else
                 options.environment = "stable"
             val ignoreExceptions = listOf(
+                "ChaoxingGetUserInfoException",
+                "NoAvailableManifestException",
+                "NoAvailablePackageException",
                 "ForgottenCoroutineScopeException",
                 "LeftCompositionCancellationException",
                 "SocketTimeoutException",
@@ -475,10 +479,9 @@ class MainActivity : ComponentActivity() {
                                             LocationClient.setAgreePrivacy(true)
                                             SDKInitializer.setAgreePrivacy(applicationContext, true)
                                         }
-                                        initializeClientInfo(
+                                        chaoxingClientInfo = ChaoxingClientInfo.resolve(
                                             datastore.preferences.customizedUserAgent,
-                                            datastore.preferences.customizedPackageName,
-                                            datastore.loginSession.uniqueId
+                                            datastore.preferences.customizedPackageName
                                         )
                                         isDevelopedMode = datastore.preferences.isDevelopedMode
                                         isAlwaysForceSign = datastore.preferences.alwaysForceSign

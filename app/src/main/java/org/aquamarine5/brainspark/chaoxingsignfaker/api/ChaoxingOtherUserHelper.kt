@@ -24,6 +24,7 @@ import okhttp3.Cookie
 import okhttp3.CookieJar
 import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.chaoxingClientInfo
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingSignFakerDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.HttpCookie
@@ -142,14 +143,12 @@ object ChaoxingOtherUserHelper {
         withContext(Dispatchers.IO) {
             val sessionForLogin = session.toBuilder()
                 .setUniqueId(
-                    session.uniqueId.takeIf { it.isNotEmpty() }
-                        ?: ChaoxingDeviceInfoHelper.randomUniqueId()
+                    ChaoxingDeviceInfoHelper.getOrRandomUniqueId(context, session.phoneNumber)
                 )
                 .setDeviceModel(
-                    session.deviceModel.takeIf { it.isNotEmpty() }
-                        ?: ChaoxingDeviceInfoHelper.randomDeviceModel()
+                    ChaoxingDeviceInfoHelper.getOrRandomDeviceModel(context, session.phoneNumber)
                 ).build()
-            val sessionUserAgent = ChaoxingHttpRequester.userAgentWith(
+            val sessionUserAgent = chaoxingClientInfo.resolveUserAgent(
                 sessionForLogin.uniqueId,
                 sessionForLogin.deviceModel
             )
@@ -304,7 +303,7 @@ object ChaoxingOtherUserHelper {
             val sessionDeviceModel = existedSession?.deviceModel?.takeIf { it.isNotEmpty() }
                 ?: sharedEntity.deviceModel?.takeIf { it.isNotEmpty() }
                 ?: ChaoxingDeviceInfoHelper.randomDeviceModel()
-            val sessionUserAgent = ChaoxingHttpRequester.userAgentWith(
+            val sessionUserAgent = chaoxingClientInfo.resolveUserAgent(
                 sessionUniqueId,
                 sessionDeviceModel
             )

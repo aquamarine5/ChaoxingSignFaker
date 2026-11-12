@@ -19,9 +19,7 @@ import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingOtherUserHelper.getSessionPuid
-import org.aquamarine5.brainspark.chaoxingsignfaker.components.ChaoxingClientInfo
-import org.aquamarine5.brainspark.chaoxingsignfaker.components.chaoxingClientIdentity
-import org.aquamarine5.brainspark.chaoxingsignfaker.components.chaoxingUserAgent
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.chaoxingClientInfo
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingLoginSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingSignFakerDataStore
@@ -36,11 +34,11 @@ open class ChaoxingHttpRequester internal constructor(
     var deviceCode: String,
     initialConfiguredFid: Int,
     internal val otherUserSession: ChaoxingOtherUserSession? = null,
-    internal val sessionUniqueId: String? = null,
-    internal val sessionDeviceModel: String? = null,
+    internal val sessionUniqueId: String,
+    internal val sessionDeviceModel: String,
 ) {
     val userAgent: String
-        get() = resolveUserAgentText(sessionUniqueId, sessionDeviceModel)
+        get() = chaoxingClientInfo.resolveUserAgent(sessionUniqueId, sessionDeviceModel)
 
     var configuredFid by mutableIntStateOf(initialConfiguredFid)
         protected set
@@ -149,82 +147,10 @@ open class ChaoxingHttpRequester internal constructor(
                     }
                 }
 
-        /** 用户手填了整串 UA 时不改写它，原样使用。 */
-        private fun isCustomClient(): Boolean =
-            ChaoxingClientInfo.fromIdentity(chaoxingClientIdentity) == null
-
-        internal fun resolveUserAgentText(
-            sessionUniqueId: String?,
-            sessionDeviceModel: String? = null
-        ): String =
-            ChaoxingClientInfo.fromIdentity(chaoxingClientIdentity)
-                ?.resolveUserAgent(sessionUniqueId, sessionDeviceModel)
-                ?: chaoxingUserAgent
-
-        internal suspend fun newSessionUserAgent(
+        internal suspend fun newSessionUniqueId(
             context: Context,
             phoneNumber: String
-        ): Pair<String?, String> {
-            if (isCustomClient()) return null to chaoxingUserAgent
-            val uniqueId = resolveUniqueId(context, phoneNumber)
-            return uniqueId to resolveUserAgentText(uniqueId)
-        }
-
-        private suspend fun resolveUniqueId(context: Context, phoneNumber: String): String {
-            val loginSession = context.chaoxingDataStore.data.first().loginSession
-            return loginSession.uniqueId
-                .takeIf { it.isNotEmpty() && loginSession.phoneNumber == phoneNumber }
-                ?: ChaoxingDeviceInfoHelper.randomUniqueId()
-        }
-
-        internal fun userAgentWith(uniqueId: String, deviceModel: String? = null): String =
-            resolveUserAgentText(uniqueId, deviceModel)
-
-        private suspend fun ChaoxingOtherUserSession.resolveDeviceModel(context: Context): String =
-            deviceModel.takeIf { it.isNotEmpty() }
-                ?: ChaoxingDeviceInfoHelper.randomDeviceModel().also { generated ->
-                    context.chaoxingDataStore.updateData { dataStore ->
-                        dataStore.toBuilder().apply {
-                            otherUsersList.indexOfFirst { it.phoneNumber == this@resolveDeviceModel.phoneNumber }
-                                .takeIf { it >= 0 }?.let { index ->
-                                    setOtherUsers(
-                                        index,
-                                        getOtherUsers(index).toBuilder().setDeviceModel(generated)
-                                    )
-                                }
-                        }.build()
-                    }
-                }
-
-        private suspend fun ChaoxingLoginSession.commitUniqueId(context: Context): String? {
-            uniqueId.takeIf { it.isNotEmpty() }?.let { return it }
-            if (phoneNumber.isEmpty()) return null
-            val generated = ChaoxingDeviceInfoHelper.randomUniqueId()
-            context.chaoxingDataStore.updateData { dataStore ->
-                if (dataStore.loginSession.phoneNumber != phoneNumber) return@updateData dataStore
-                dataStore.toBuilder()
-                    .setLoginSession(dataStore.loginSession.toBuilder().setUniqueId(generated))
-                    .build()
-            }
-            return generated
-        }
-
-        private suspend fun ChaoxingOtherUserSession.commitUniqueId(context: Context): String {
-            uniqueId.takeIf { it.isNotEmpty() }?.let { return it }
-            val generated = ChaoxingDeviceInfoHelper.randomUniqueId()
-            context.chaoxingDataStore.updateData { dataStore ->
-                dataStore.toBuilder().apply {
-                    otherUsersList.indexOfFirst { it.phoneNumber == this@commitUniqueId.phoneNumber }
-                        .takeIf { it >= 0 }?.let { index ->
-                            setOtherUsers(
-                                index,
-                                getOtherUsers(index).toBuilder().setUniqueId(generated)
-                            )
-                        }
-                }.build()
-            }
-            return generated
-        }
+        ): String = ChaoxingDeviceInfoHelper.getOrRandomUniqueId(context, phoneNumber)
 
         private suspend fun resolveOtherUserIdentity(
             okHttpClient: OkHttpClient,
@@ -298,8 +224,10 @@ open class ChaoxingHttpRequester internal constructor(
             session: ChaoxingOtherUserSession,
             context: Context,
         ): ChaoxingHttpRequester {
-            val sessionUniqueId = session.commitUniqueId(context)
-            val sessionDeviceModel = session.resolveDeviceModel(context)
+            val sessionUniqueId =
+                ChaoxingDeviceInfoHelper.getOrRandomUniqueId(context, session.phoneNumber)
+            val sessionDeviceModel =
+                ChaoxingDeviceInfoHelper.getOrRandomDeviceModel(context, session.phoneNumber)
             val baseClient = ChaoxingHttpClient.instance?.okHttpClient ?: OkHttpClient()
             val okHttpClient = baseClient.newBuilder().cookieJar(object : CookieJar {
                 private val cookieStore: MutableMap<String, List<Cookie>> = mutableMapOf()
@@ -329,12 +257,15 @@ open class ChaoxingHttpRequester internal constructor(
                     chain.request().run {
                         val currentUserAgent = header("User-Agent")
                         if (currentUserAgent == null ||
-                            currentUserAgent == chaoxingUserAgent ||
-                            currentUserAgent.contains("/ChaoxingStudy_", ignoreCase = true)
+                            currentUserAgent.contains("/ChaoxingStudy_", ignoreCase = true) ||
+                            currentUserAgent == ChaoxingHttpClient.instance?.userAgent
                         ) {
                             newBuilder().header(
                                 "User-Agent",
-                                resolveUserAgentText(sessionUniqueId, sessionDeviceModel)
+                                chaoxingClientInfo.resolveUserAgent(
+                                    sessionUniqueId,
+                                    sessionDeviceModel
+                                )
                             ).build()
                         } else {
                             this
@@ -377,7 +308,10 @@ open class ChaoxingHttpRequester internal constructor(
             context: Context,
         ): ChaoxingHttpRequester {
             val session = dataStore.loginSession
-            val sessionUniqueId = session.commitUniqueId(context)
+            val sessionUniqueId = session.phoneNumber.takeIf { it.isNotEmpty() }
+                ?.let { ChaoxingDeviceInfoHelper.getOrRandomUniqueId(context, it) }
+                .orEmpty()
+            val sessionDeviceModel = ChaoxingDeviceInfoHelper.localDeviceModel()
             val okHttpClient = OkHttpClient.Builder().cookieJar(object : CookieJar {
                 private val cookieStore: MutableMap<String, List<Cookie>> = mutableMapOf()
                 private var chaoxingCookieSession: List<Cookie> = listOf()
@@ -406,12 +340,15 @@ open class ChaoxingHttpRequester internal constructor(
                     chain.request().run {
                         val currentUserAgent = header("User-Agent")
                         if (currentUserAgent == null ||
-                            currentUserAgent == chaoxingUserAgent ||
-                            currentUserAgent.contains("/ChaoxingStudy_", ignoreCase = true)
+                            currentUserAgent.contains("/ChaoxingStudy_", ignoreCase = true) ||
+                            currentUserAgent == ChaoxingHttpClient.instance?.userAgent
                         ) {
                             newBuilder().header(
                                 "User-Agent",
-                                resolveUserAgentText(sessionUniqueId)
+                                chaoxingClientInfo.resolveUserAgent(
+                                    sessionUniqueId,
+                                    sessionDeviceModel
+                                )
                             ).build()
                         } else {
                             this
@@ -441,6 +378,7 @@ open class ChaoxingHttpRequester internal constructor(
                     ?: ChaoxingDeviceInfoHelper.getCachedLocalMachineDeviceCode(context),
                 resolvedFid,
                 sessionUniqueId = sessionUniqueId,
+                sessionDeviceModel = sessionDeviceModel,
             )
         }
     }
