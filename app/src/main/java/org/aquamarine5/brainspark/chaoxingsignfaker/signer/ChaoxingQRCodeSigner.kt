@@ -34,7 +34,9 @@ class ChaoxingQRCodeSigner(
     qrCodeActivityEntity.classId,
     qrCodeActivityEntity.courseId,
     qrCodeActivityEntity.extContent,
-    baseSignInfo
+    baseSignInfo,
+    qrCodeActivityEntity.isOldSignVersion,
+    qrCodeActivityEntity.chatId
 ) {
     companion object {
         fun parseQRCode(qrcode: Barcode): ChaoxingQRCodeParseResult {
@@ -118,6 +120,22 @@ class ChaoxingQRCodeSigner(
         captchaValidate: String? = null
     ): Boolean =
         withContext(Dispatchers.IO) {
+            if (isOldSignVersion) {
+                return@withContext client.newCall(
+                    Request.Builder().url(
+                        buildOldSignUrlBuilder()
+                            .addQueryParameter("enc", parseResult.enc)
+                            .addQueryParameter("useragent", "")
+                            .addQueryParameter("latitude", "-1")
+                            .addQueryParameter("longitude", "-1")
+                            .addQueryParameter("fid", "0")
+                            .build()
+                    ).build()
+                ).execute().use {
+                    it.checkResponseThrowException()
+                    return@use it.checkSignResult(position)
+                }
+            }
             client.newCall(
                 Request.Builder().url(
                     URL_SIGN_NO_PARAMETER.newBuilder()

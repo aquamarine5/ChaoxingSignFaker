@@ -95,7 +95,6 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.scaleDownToMaxDime
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
 
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FacePhotoControlComponent(
     phoneNumber: String,
@@ -325,39 +324,11 @@ fun FacePhotoControlComponent(
                 },
                 title = { Text("是否删除照片？") },
                 text = {
-                    Card(
-                        shape = RoundedCornerShape(18.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = Color(
-                                0xFFFCC307
-                            )
-                        ),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(0.dp, 6.dp),
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(10.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Spacer(Modifier.width(4.dp))
-                            Icon(
-                                painterResource(R.drawable.ic_triangle_alert),
-                                contentDescription = "Alert",
-                                tint = Color.White,
-                            )
-                            Spacer(Modifier.width(8.dp))
-                            Text(
-                                "在此删除照片并不会在其他已经导入你的人脸识别照片的设备上一并删除。",
-                                color = Color.White,
-                                fontSize = 13.sp,
-                                lineHeight = 18.sp,
-                                fontWeight = FontWeight.W500,
-                            )
-                        }
-                    }
+                    CommonCardTip(
+                        icon = R.drawable.ic_triangle_alert,
+                        containerColor = Color(0xFFFCC307),
+                        text = "在此删除照片并不会在其他已经导入你的人脸识别照片的设备上一并删除。"
+                    )
                 },
                 confirmButton = {
                     Button(onClick = {

@@ -18,6 +18,8 @@ data class ChaoxingOtherUserSharedEntity(
     val userName: String,
     val faceObjectIds: List<String> = emptyList(),
     val deviceCode: String? = null,
+    val uniqueId: String? = null,
+    val deviceModel: String? = null,
 ) {
     companion object {
         fun parseFromQRCode(qrcode: Barcode): ChaoxingOtherUserSharedEntity {

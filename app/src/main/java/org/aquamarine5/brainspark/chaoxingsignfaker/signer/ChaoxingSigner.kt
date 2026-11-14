@@ -50,7 +50,9 @@ abstract class ChaoxingSigner(
     val classId: Int,
     val courseId: Long,
     val extContent: String,
-    baseSignInfo: JSONObject? = null
+    baseSignInfo: JSONObject? = null,
+    val isOldSignVersion: Boolean = false,
+    val chatId: Long? = null
 ) {
     companion object {
         val URL_PERSIGN =
@@ -61,6 +63,10 @@ abstract class ChaoxingSigner(
             "https://mobilelearn.chaoxing.com/pptSign/analysis?vs=1&DB_STRATEGY=RANDOM".toHttpUrl()
         val URL_AFTER_ANALYSIS2 =
             "https://mobilelearn.chaoxing.com/pptSign/analysis2?DB_STRATEGY=RANDOM".toHttpUrl()
+        val URL_PRESIGN_OLD =
+            "https://mobilelearn.chaoxing.com/sign/preStuSign".toHttpUrl()
+        val URL_SIGN_OLD =
+            "https://mobilelearn.chaoxing.com/sign/stuSignajax".toHttpUrl()
         val URL_CAPTCHA_CONF =
             "https://captcha.chaoxing.com/captcha/get/conf?callback=cx_captcha_function".toHttpUrl()
         val URL_CAPTCHA_RESULT =
@@ -78,6 +84,21 @@ abstract class ChaoxingSigner(
         private val PRIMARY_ATTEND_STATUS_PATTERN =
             """"primaryAttend"\s*:\s*\{[^{}]*?"status"\s*:\s*(\d+)""".toRegex()
         private val SIGN_STATUS_PATTERN = """signstatus\s*=\s*(\d+)""".toRegex()
+
+        fun buildOldPreSignUrl(activeId: Long, chatId: Long?, puid: Int): HttpUrl =
+            URL_PRESIGN_OLD.newBuilder()
+                .addQueryParameter("activeId", activeId.toString())
+                .addQueryParameter("code", "")
+                .addQueryParameter("uid", puid.toString())
+                .addQueryParameter("courseId", "null")
+                .addQueryParameter("classId", "0")
+                .addQueryParameter("general", "0")
+                .addQueryParameter("chatId", (chatId ?: 0L).toString())
+                .addQueryParameter("appType", "0")
+                .addQueryParameter("tid", "null")
+                .addQueryParameter("atype", "null")
+                .addQueryParameter("sys", "0")
+                .build()
     }
 
     private var storageSignInfo: JSONObject? = baseSignInfo
@@ -93,6 +114,11 @@ abstract class ChaoxingSigner(
         .addQueryParameter("uid", client.puid.toString())
         .addQueryParameter("isTeacherViewOpen", "0")
         .build()
+
+    protected fun buildOldSignUrlBuilder(): HttpUrl.Builder = URL_SIGN_OLD.newBuilder()
+        .addQueryParameter("activeId", activeId.toString())
+        .addQueryParameter("uid", client.puid.toString())
+        .addQueryParameter("clientip", "")
 
     var signEnc2: String? = null
         protected set
@@ -160,7 +186,7 @@ abstract class ChaoxingSigner(
             ChaoxingSignActivityStatus.EXPIRED -> throw SignExpiredException()
             ChaoxingSignActivityStatus.ALREADY_SIGNED -> throw PredictedAlreadySignedException()
             else -> {
-                if (ChaoxingCourseHelper.checkClassValid(client, classId) == false)
+                if (!isOldSignVersion && ChaoxingCourseHelper.checkClassValid(client, classId) == false)
                     throw SignActivityNoPermissionException()
             }
         }
@@ -168,6 +194,9 @@ abstract class ChaoxingSigner(
 
     open suspend fun getSignInfo(): JSONObject = withContext(Dispatchers.IO) {
         storageSignInfo?.let { return@withContext it }
+        if (isOldSignVersion) {
+            return@withContext JSONObject().apply { storageSignInfo = this }
+        }
         client.newCall(
             Request.Builder().get().url(
                 URL_SIGN_INFO.newBuilder()
@@ -210,13 +239,20 @@ abstract class ChaoxingSigner(
             } else handlePreSignResponse(response)
         }
 
-    private fun requestPreSign(): Response = client.newCall(
-        Request.Builder().post(
-            FormBody.Builder().addEncoded("ext", extContent).build()
-        ).url(
-            getPreSignUrl()
-        ).build()
-    ).execute()
+    private fun requestPreSign(): Response =
+        if (isOldSignVersion)
+            client.newCall(
+                Request.Builder().get().url(buildOldPreSignUrl(activeId, chatId, client.puid))
+                    .build()
+            ).execute()
+        else
+            client.newCall(
+                Request.Builder().post(
+                    FormBody.Builder().addEncoded("ext", extContent).build()
+                ).url(
+                    getPreSignUrl()
+                ).build()
+            ).execute()
 
     private suspend fun handlePreSignResponse(
         response: Response
@@ -226,7 +262,7 @@ abstract class ChaoxingSigner(
         if (it.code == 302 || body.contains("校验失败，未查询到活动数据")) {
             throw SignActivityNoPermissionException()
         }
-        postAnalysis()
+        if (!isOldSignVersion) postAnalysis()
         return@use if (checkExpiredSign(body)) {
             ChaoxingSignActivityStatus.EXPIRED
         } else if (checkAlreadySign(body)) {

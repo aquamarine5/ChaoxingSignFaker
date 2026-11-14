@@ -62,6 +62,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.components.FaceRecognitionNe
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.GetLocationComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NetworkExceptionComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NotReadyToSignNoticeComponent
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.OldSignVersionWarningTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.OtherUserSelectorComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SaveFaceImagesDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SaveFavoriteLocationDialog
@@ -69,6 +70,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.components.SignOutRedirectTi
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SignPotentialWarningTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SponsorPopupDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.cloneSessionGuard
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.httpClientGuard
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.toChaoxingLocation
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.toChaoxingLocationSignEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
@@ -102,7 +104,9 @@ data class GetLocationDestination(
     val startTime: Long?,
     override val endTime: Long?,
     val isLate: Boolean,
-    override val isCloneSession: Boolean
+    override val isCloneSession: Boolean,
+    override val isOldSignVersion: Boolean = false,
+    override val chatId: Long? = null
 ) : SignDestination {
     companion object {
         fun parseFromSignActivityEntity(
@@ -136,12 +140,13 @@ fun LocationSignScreen(
             onCloneInvalid = navToCourseDetailDestination
         )
     ) return
+    val client = httpClientGuard(onNavigateBack = navToCourseDetailDestination) ?: return
     var signActivityStatus by remember { mutableStateOf<ChaoxingSignActivityStatus?>(null) }
     var isSignForOther by remember { mutableStateOf(false) }
     var signInfo by remember { mutableStateOf<ChaoxingLocationDetailEntity?>(null) }
-    val signer = remember {
+    val signer = remember(client) {
         ChaoxingLocationSigner(
-            ChaoxingHttpClient.instance!!,
+            client,
             destination
         )
     }
@@ -247,7 +252,7 @@ fun LocationSignScreen(
                 isFetchedFailure = null
             }
         } else {
-            Crossfade(signActivityStatus, animationSpec = tween(700)) { c ->
+            Crossfade(signActivityStatus) { c ->
                 if (c != null && c != ChaoxingSignActivityStatus.READY_TO_SIGN) {
                     Box(modifier = Modifier.padding(8.dp, 0.dp, 8.dp, 8.dp)) {
                         NotReadyToSignNoticeComponent(
@@ -551,6 +556,8 @@ fun LocationSignScreen(
                             isSigning = isSigning,
                             userSelections = userSelections,
                             prefixTipsContent = {
+                                if (destination.isOldSignVersion)
+                                    OldSignVersionWarningTips()
                                 if (signoffData != null)
                                     SignOutRedirectTips(
                                         signoffData!!

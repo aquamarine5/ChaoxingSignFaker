@@ -15,4 +15,6 @@ interface SignDestination {
     val courseId: Long
     val endTime: Long?
     val isCloneSession: Boolean
+    val isOldSignVersion: Boolean get() = false
+    val chatId: Long? get() = null
 }

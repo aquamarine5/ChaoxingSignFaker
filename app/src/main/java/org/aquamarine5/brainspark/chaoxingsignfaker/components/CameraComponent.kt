@@ -88,14 +88,18 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.ui.theme.FontGilroy
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingPredictableException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.decodeCapturedBitmap
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.decodePhotoBitmap
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.readJpegBytes
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.scaleDownToMaxDimension
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
+import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.Duration.Companion.milliseconds
 
 @OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
@@ -132,6 +136,7 @@ fun CameraComponent(
             val photoList = remember { mutableListOf<Bitmap>() }
             var needTakePictureCount by remember { mutableIntStateOf(pictureCount) }
             var isPictureResultDelivered by remember { mutableStateOf(false) }
+            var isCapturing by remember { mutableStateOf(false) }
             LaunchedEffect(pictureCount) {
                 if (pictureCount != needTakePictureCount) {
                     photoList.clear()
@@ -411,18 +416,45 @@ fun CameraComponent(
             }
             Surface(
                 onClick = {
+                    if (isCapturing || isPictureResultDelivered) return@Surface
+                    isCapturing = true
                     imageCapture.takePicture(
                         ContextCompat.getMainExecutor(application),
                         object : ImageCapture.OnImageCapturedCallback() {
                             override fun onCaptureSuccess(image: ImageProxy) {
-                                super.onCaptureSuccess(image)
-                                image.use {
-                                    val bitmap = it.toBitmap().scaleDownToMaxDimension()
-                                    addCapturedPhoto(bitmap)
+                                val jpegBytes = runCatching {
+                                    image.use { it.readJpegBytes() }
+                                }.getOrElse {
+                                    isCapturing = false
+                                    it.snackbarReport(
+                                        snackbarHost,
+                                        coroutineScope,
+                                        "拍照失败",
+                                        hapticFeedback
+                                    )
+                                    return
+                                }
+                                coroutineScope.launch(Dispatchers.IO) {
+                                    val result = runCatching {
+                                        jpegBytes.decodeCapturedBitmap().scaleDownToMaxDimension()
+                                    }
+                                    withContext(Dispatchers.Main) {
+                                        isCapturing = false
+                                        result.onSuccess { addCapturedPhoto(it) }.onFailure {
+                                            if (it is CancellationException) throw it
+                                            it.snackbarReport(
+                                                snackbarHost,
+                                                coroutineScope,
+                                                "照片解析失败，请重新拍摄",
+                                                hapticFeedback
+                                            )
+                                        }
+                                    }
                                 }
                             }
 
                             override fun onError(exception: ImageCaptureException) {
+                                isCapturing = false
                                 exception.snackbarReport(
                                     snackbarHost,
                                     coroutineScope,

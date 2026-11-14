@@ -32,13 +32,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RichTooltip
 import androidx.compose.material3.Text
 import androidx.compose.material3.TooltipAnchorPosition
@@ -67,7 +64,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import coil3.compose.AsyncImage
 import kotlinx.coroutines.CancellableContinuation
@@ -91,12 +87,14 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingSignHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerParams
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.CommonCardTip
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.FaceRecognitionComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.FaceRecognitionNewFeatureTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.GetLocationComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NetworkExceptionComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NewFeatureTipsCard
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NotReadyToSignNoticeComponent
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.OldSignVersionWarningTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.OtherUserSelectorComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.QRCodeScanComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SaveFaceImagesDialog
@@ -104,6 +102,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.components.SignOutRedirectTi
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SignPotentialWarningTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SponsorPopupDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.cloneSessionGuard
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.httpClientGuard
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.toChaoxingLocationSignEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationSignEntity
@@ -142,7 +141,9 @@ data class QRCodeSignDestination(
     val startTime: Long?,
     override val endTime: Long?,
     val isLate: Boolean,
-    override val isCloneSession: Boolean
+    override val isCloneSession: Boolean,
+    override val isOldSignVersion: Boolean = false,
+    override val chatId: Long? = null
 ) : SignDestination {
     companion object {
         fun parseFromSignActivityEntity(
@@ -173,12 +174,13 @@ fun QRCodeSignScreen(
     navBack: () -> Unit
 ) {
     if (!cloneSessionGuard(destination.isCloneSession, onCloneInvalid = navBack)) return
+    val client = httpClientGuard(onNavigateBack = navBack) ?: return
     var signActivityStatus by remember { mutableStateOf<ChaoxingSignActivityStatus?>(null) }
     var isCurrentAlreadySigned by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
-    val signer = remember {
+    val signer = remember(client) {
         ChaoxingQRCodeSigner(
-            ChaoxingHttpClient.instance!!,
+            client,
             destination
         )
     }
@@ -271,7 +273,7 @@ fun QRCodeSignScreen(
                 }
             }
         } else {
-            Crossfade(signActivityStatus, animationSpec = tween(700)) { c ->
+            Crossfade(signActivityStatus) { c ->
                 if (c != null && c != ChaoxingSignActivityStatus.READY_TO_SIGN) {
                     Box(
                         modifier = Modifier.padding(8.dp, 0.dp, 8.dp, 8.dp)
@@ -703,74 +705,19 @@ fun QRCodeSignScreen(
                                 userSelections = userSelections,
                                 faceRecognitionData = faceRecognitionData.takeIf { isFaceRequired },
                                 prefixTipsContent = {
+                                    if (destination.isOldSignVersion)
+                                        OldSignVersionWarningTips()
                                     if (signoffData != null)
                                         SignOutRedirectTips(
                                             signoffData!!
                                         ) {
                                             navToOtherSign(it)
                                         }
-                                    Card(
-                                        shape = RoundedCornerShape(18.dp),
-                                        colors = CardDefaults.cardColors(
-                                            containerColor = Color.DarkGray
-                                        ),
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(2.dp, 6.dp)
-                                    ) {
-                                        Row(
-                                            modifier = Modifier
-                                                .padding(10.dp, 12.dp)
-                                                .fillMaxWidth(),
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Spacer(modifier = Modifier.width(8.dp))
-                                            Icon(
-                                                painterResource(R.drawable.ic_info),
-                                                contentDescription = "Info",
-                                                tint = Color.White
-                                            )
-                                            Spacer(modifier = Modifier.width(9.dp))
-                                            Text(
-                                                "自己不在课堂现场时，必须需要另一名在场的用户为你代签，随地大小签不支持破解二维码签到。",
-                                                color = Color.White,
-                                                fontSize = 13.sp,
-                                                lineHeight = 18.sp,
-                                                fontWeight = FontWeight.W500
-                                            )
-                                        }
-                                    }
-                                    Card(
-                                        shape = RoundedCornerShape(18.dp),
-                                        colors = CardDefaults.cardColors(
-                                            containerColor = Color.DarkGray
-                                        ),
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(2.dp, 6.dp)
-                                    ) {
-                                        Row(
-                                            modifier = Modifier
-                                                .padding(10.dp, 12.dp)
-                                                .fillMaxWidth(),
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Spacer(modifier = Modifier.width(8.dp))
-                                            Icon(
-                                                painterResource(R.drawable.ic_face_slightly_frowning),
-                                                contentDescription = "Info",
-                                                tint = Color.White
-                                            )
-                                            Spacer(modifier = Modifier.width(9.dp))
-                                            Text(
-                                                "由于随地大小签是一个完整在本机发送网络请求的软件，无法做到暴力大量发送网络请求破解签到码，目前只有在知道签到码的情况下才可以进行签到。",
-                                                color = Color.White,
-                                                fontSize = 13.sp,
-                                                lineHeight = 18.sp,
-                                                fontWeight = FontWeight.W500
-                                            )
-                                        }
-                                    }
+                                    CommonCardTip(
+                                        R.drawable.ic_info,
+                                        Color.DarkGray,
+                                        "自己不在课堂现场时，必须需要另一名在场的用户为你代签，随地大小签不支持破解二维码签到。",
+                                    )
                                     if (destination.startTime != null)
                                         SignPotentialWarningTips(
                                             destination.startTime,
@@ -1281,14 +1228,12 @@ fun QRCodeSignScreen(
                                             Spacer(modifier = Modifier.height(8.dp))
                                             val outerStatusIndex =
                                                 if (currentTarget == -1) 0 else currentTarget + 1
-                                            val outerIsSuccess =
+                                            val isOuterSuccess =
                                                 signStatus.getOrNull(outerStatusIndex)?.isSuccess?.value == true
-                                            val isOuterCaptchaResolvedByModel =
-                                                signStatus.getOrNull(outerStatusIndex)?.isCaptchaResolvedByModel?.value == true
                                             Row(
                                                 modifier = Modifier
                                                     .background(
-                                                        Color(0x88888888),
+                                                        Color(0xCCFFFFFF),
                                                         RoundedCornerShape(8.dp)
                                                     )
                                                     .border(
@@ -1329,16 +1274,7 @@ fun QRCodeSignScreen(
                                                 Spacer(modifier = Modifier.width(6.dp))
                                                 Text("签到中")
                                                 Spacer(modifier = Modifier.width(6.dp))
-                                                if (isOuterCaptchaResolvedByModel) {
-                                                    Icon(
-                                                        painterResource(R.drawable.ic_brain_circuit),
-                                                        contentDescription = "验证码由模型自动识别",
-                                                        tint = MaterialTheme.colorScheme.primary,
-                                                        modifier = Modifier.size(16.dp)
-                                                    )
-                                                    Spacer(modifier = Modifier.width(6.dp))
-                                                }
-                                                if (outerIsSuccess) {
+                                                if (isOuterSuccess) {
                                                     Icon(
                                                         painterResource(R.drawable.ic_check),
                                                         contentDescription = "已签到",

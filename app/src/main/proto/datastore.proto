@@ -39,6 +39,15 @@ message ChaoxingSignFakerDataStore{
   ChaoxingClassSchedule classSchedule = 30;
   map<uint32, ChaoxingLocation> classRememberedLocation = 31;
   map<uint32, ChaoxingLocation> classSelectedLocation = 32;
+  repeated ChaoxingIMGroupClass imGroupClassIds = 33;
+  uint64 lastUpdateIMGroupClassTimestamp = 34;
+}
+
+message ChaoxingIMGroupClass{
+  repeated uint64 classId = 1;
+  uint64 courseId = 2;
+  repeated uint64 chatId = 3;
+  string chatName = 4;
 }
 
 message ChaoxingClassSchedule{
@@ -136,6 +145,7 @@ message ChaoxingLoginSession{
   bool isNotRandomizedDeviceCode = 8;
   string name = 9;
   bool isDeviceCodeDuplicatedSignBefore = 10;
+  optional string uniqueId = 11;
 }
 
 message ChaoxingOtherUserSession{
@@ -151,6 +161,8 @@ message ChaoxingOtherUserSession{
   optional string deviceCode = 10;
   bool isNotRandomizedDeviceCode = 11;
   bool isDeviceCodeDuplicatedSignBefore = 12;
+  optional string uniqueId = 13;
+  optional string deviceModel = 14;
 }
 
 message HttpCookie{

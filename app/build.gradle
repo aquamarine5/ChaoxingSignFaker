@@ -7,9 +7,9 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
-    id("org.aquamarine5.brainspark.stackbricks-gradle-plugin") version "3.0.0-beta1"
+    id("org.aquamarine5.brainspark.stackbricks-gradle-plugin") version "3.0.0"
     id("com.google.protobuf") version "0.9.6"
-    id "io.sentry.android.gradle" version "6.24.0"
+    id "io.sentry.android.gradle" version "6.25.0"
     id("org.jetbrains.kotlin.plugin.serialization") version "2.4.21"
 }
 
@@ -46,9 +46,15 @@ stackbricksConfig {
             configFilePath = "chaoxingsignfaker_stackbricks_manifest.json"
             referer = project.findProperty("qiniu.referer") ?: ""
         }
+        qiniuManifestConfig {
+            host = "cdn.aquamarine5.fun"
+            configFilePath = "chaoxingsignfaker_stackbricks_v2_manifest.json"
+            referer = project.findProperty("qiniu.referer") ?: ""
+        }
     }
     changelog =
             "由于最近学习通更新频繁，导致随地大小签也需要频繁更新，请大家及时更新哦！以下是更新日志：\n" +
+                    "# 1.20.0 更新：\n1. 测试性的加入了旧版本学习通签到的支持。\n\n"+
                     "# 1.19.4 更新：\n1. 当出现了\"同一设备不允许重复签到\"的异常时，现在会自动回退到随机的设备码进行重新签到。\n\n"+
                     "# 1.19.3 更新：\n1. <b>修复了需要获取位置信息的签到功能在某些情况下无法正常签到的问题</b>，感谢 <u>@yqi008748-cloud</u> 和 <u>yolo023</u> 发现问题。\n\n" +
                     "# 1.19.2 更新：\n1. <b>更新适配了学习通的新接口，修复了签到时部分用户遇到\"网络异常，访问被拒绝\"的问题。</b>\n\n"+
@@ -60,7 +66,7 @@ stackbricksConfig {
                     "# 1.17.* 更新：\n1. 支持存储自己和代签用户的人脸识别照片，就不用每次自己找了。\n2. 没有代签用户的人脸识别照片时，可以自动获取一张用于签到。\n3. 现在自己的代签二维码会附带自己的人脸识别照片，重新扫描其他人的新版本二维码时会把你的照片下载到他的设备上存储。\n4. 修复了超级多Bug。\n\n" +
                     "# 1.16.* 更新：\n1. 由于学习通更新导致原接口失效，修复了获取群聊列表失败的问题。\n\n" +
                     "# 1.15.* 更新：\n1. 支持克隆登录代签用户的账号以给他有你没有的课程签到。\n\n" +
-                    "<g>lovely but not lonely, 20260926 life need pompompurin, @aquamarine5 Brainspark.</g>"
+                    "<g>lovely but not lonely, 20261026 life need pompompurin, @aquamarine5 Brainspark.</g>"
     requiredManifestVersion2MigrateForceInstall = true
     forceInstallLessVersion = 1_1903_0000
 }
@@ -76,8 +82,8 @@ android {
         applicationId = "org.aquamarine5.brainspark.chaoxingsignfaker"
         minSdk = 26
         targetSdk = 37
-        versionCode = 1_1904_0069
-        versionName = "1.19.4-stable-261024"
+        versionCode = 1_2000_0666
+        versionName = "1.20.0-beta1-261112"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

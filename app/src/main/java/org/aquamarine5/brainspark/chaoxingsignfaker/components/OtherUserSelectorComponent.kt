@@ -774,7 +774,8 @@ fun OtherUserSelectorComponent(
                             Icon(
                                 painterResource(R.drawable.ic_lightbulb),
                                 contentDescription = "Help",
-                                tint = Color.White
+                                tint = Color.White,
+                                modifier = Modifier.size(40.dp)
                             )
                             Spacer(modifier = Modifier.width(10.5.dp))
                             Text(

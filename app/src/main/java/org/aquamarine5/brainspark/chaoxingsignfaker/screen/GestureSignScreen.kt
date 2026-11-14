@@ -26,10 +26,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -48,7 +45,10 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -69,14 +69,17 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingSignHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerParams
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.CommonCardTip
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.GetLocationComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NetworkExceptionComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NotReadyToSignNoticeComponent
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.OldSignVersionWarningTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.OtherUserSelectorComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SignOutRedirectTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SignPotentialWarningTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SponsorPopupDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.cloneSessionGuard
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.httpClientGuard
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.toChaoxingLocationSignEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationSignEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
@@ -106,7 +109,9 @@ data class GestureSignDestination(
     val startTime: Long?,
     override val endTime: Long?,
     val isLate: Boolean,
-    override val isCloneSession: Boolean
+    override val isCloneSession: Boolean,
+    override val isOldSignVersion: Boolean = false,
+    override val chatId: Long? = null
 ) : SignDestination {
     companion object {
         fun parseFromSignActivityEntity(
@@ -141,11 +146,12 @@ fun GestureSignScreen(
             onCloneInvalid = navToCourseDetailDestination
         )
     ) return
+    val client = httpClientGuard(onNavigateBack = navToCourseDetailDestination) ?: return
     var signActivityStatus by remember { mutableStateOf<ChaoxingSignActivityStatus?>(null) }
     var isSignForOther by remember { mutableStateOf(false) }
-    val signer = remember {
+    val signer = remember(client) {
         ChaoxingGestureSigner(
-            ChaoxingHttpClient.instance!!,
+            client,
             destination
         )
     }
@@ -236,7 +242,7 @@ fun GestureSignScreen(
                 isFetchedFailure = null
             }
         } else {
-            Crossfade(signActivityStatus, animationSpec = tween(700)) { c ->
+            Crossfade(signActivityStatus) { c ->
                 if (c != null && c != ChaoxingSignActivityStatus.READY_TO_SIGN) {
                     Box(modifier = Modifier.padding(8.dp, 0.dp, 8.dp, 8.dp)) {
                         NotReadyToSignNoticeComponent(
@@ -306,37 +312,49 @@ fun GestureSignScreen(
                                 modifier = Modifier.padding(0.dp, 6.dp)
                             )
                             Spacer(modifier = Modifier.height(6.dp))
-                            Card(
-                                shape = RoundedCornerShape(18.dp),
-                                colors = CardDefaults.cardColors(
-                                    containerColor = Color.DarkGray
-                                ),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 6.dp)
-                            ) {
-                                Row(
-                                    modifier = Modifier
-                                        .padding(10.dp, 12.dp)
-                                        .fillMaxWidth(),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Icon(
-                                        painterResource(R.drawable.ic_face_slightly_frowning),
-                                        contentDescription = "Info",
-                                        tint = Color.White
-                                    )
-                                    Spacer(modifier = Modifier.width(9.dp))
-                                    Text(
-                                        "由于随地大小签是一个完整在本机发送网络请求的软件，无法做到暴力大量发送网络请求破解手势码，目前只有在知道手势码的情况下才可以进行签到。",
-                                        color = Color.White,
-                                        fontSize = 13.sp,
-                                        lineHeight = 18.sp,
-                                        fontWeight = FontWeight.W500
-                                    )
+                            CommonCardTip(
+                                icon = if (destination.isOldSignVersion) R.drawable.ic_face_slightly_smiling else R.drawable.ic_face_slightly_frowning,
+                                containerColor = Color.DarkGray,
+                                text = {
+                                    if (destination.isOldSignVersion) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(
+                                                buildAnnotatedString {
+                                                    append("对于学习通的部分老版本签到，可以不绘制手势，点击")
+                                                    withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+                                                        append("绕过")
+                                                    }
+                                                    append("按钮以直接进行签到")
+                                                },
+                                                color = Color.White,
+                                                fontSize = 13.sp,
+                                                lineHeight = 18.sp,
+                                                fontWeight = FontWeight.W500,
+                                                modifier = Modifier.weight(1f)
+                                            )
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Button(onClick = {
+                                                text = ""
+                                                isCheckingStatus = true
+                                            }) {
+                                                Text("绕过")
+                                            }
+                                        }
+                                    } else {
+                                        Text(
+                                            "由于随地大小签是一个完整在本机发送网络请求的软件，无法做到暴力大量发送网络请求破解手势码，目前只有在知道手势码的情况下才可以进行签到。",
+                                            color = Color.White,
+                                            fontSize = 13.sp,
+                                            lineHeight = 18.sp,
+                                            fontWeight = FontWeight.W500,
+                                            modifier = Modifier.fillMaxWidth()
+                                        )
+                                    }
                                 }
-                            }
+                            )
                             Spacer(modifier = Modifier.height(6.dp))
                             Column(
                                 modifier = Modifier
@@ -552,6 +570,8 @@ fun GestureSignScreen(
                                 isCloneSession = destination.isCloneSession,
                                 isSigning = isSigning,
                                 prefixTipsContent = {
+                                    if (destination.isOldSignVersion)
+                                        OldSignVersionWarningTips()
                                     if (signoffData != null)
                                         SignOutRedirectTips(
                                             signoffData!!

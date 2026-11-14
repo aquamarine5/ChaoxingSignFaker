@@ -224,6 +224,40 @@ object ChaoxingSignHelper {
         }
     }
 
+    suspend fun getLegacyIMSignDestination(activeId: Long, chatId: Long?): SignDestination =
+        withContext(Dispatchers.IO) {
+            val client = ChaoxingHttpClient.instance!!
+            val pageBody = client.newCall(
+                Request.Builder().get().url(
+                    ChaoxingSigner.buildOldPreSignUrl(activeId, chatId, client.puid)
+                ).build()
+            ).execute().use {
+                it.checkResponseThrowException()
+                it.body.string()
+            }
+            when {
+                pageBody.contains("拍照") -> PhotoSignDestination(
+                    activeId, 0, 0, "", null, null, false,
+                    isCloneSession = false, isOldSignVersion = true, chatId = chatId
+                )
+
+                pageBody.contains("位置") -> GetLocationDestination(
+                    activeId, 0, 0, "", null, null, false,
+                    isCloneSession = false, isOldSignVersion = true, chatId = chatId
+                )
+
+                pageBody.contains("二维码") -> QRCodeSignDestination(
+                    activeId, 0, 0, "", null, null, false,
+                    isCloneSession = false, isOldSignVersion = true, chatId = chatId
+                )
+
+                else -> GestureSignDestination(
+                    activeId, 0, 0, "", null, null, false,
+                    isCloneSession = false, isOldSignVersion = true, chatId = chatId
+                )
+            }
+        }
+
     suspend fun getRedirectDestination(
         activeId: Long,
         classId: Int,
@@ -248,7 +282,7 @@ object ChaoxingSignHelper {
                         "",
                         result.getLong("starttime"),
                         endTime,
-                        if (endTime != null) System.currentTimeMillis() > endTime else false,
+                        endTime != null && System.currentTimeMillis() > endTime,
                         isCloneSession = false
                     )
 
@@ -259,7 +293,7 @@ object ChaoxingSignHelper {
                         "",
                         result.getLong("starttime"),
                         endTime,
-                        if (endTime != null) System.currentTimeMillis() > endTime else false,
+                        endTime != null && System.currentTimeMillis() > endTime,
                         isCloneSession = false
                     )
 
@@ -270,7 +304,7 @@ object ChaoxingSignHelper {
                         "",
                         result.getLong("starttime"),
                         endTime,
-                        if (endTime != null) System.currentTimeMillis() > endTime else false,
+                        endTime != null && System.currentTimeMillis() > endTime,
                         isCloneSession = false
                     )
 
@@ -281,7 +315,7 @@ object ChaoxingSignHelper {
                         "",
                         result.getLong("starttime"),
                         endTime,
-                        if (endTime != null) System.currentTimeMillis() > endTime else false,
+                        endTime != null && System.currentTimeMillis() > endTime,
                         isCloneSession = false
                     )
 
@@ -292,7 +326,7 @@ object ChaoxingSignHelper {
                         "",
                         result.getLong("starttime"),
                         endTime,
-                        if (endTime != null) System.currentTimeMillis() > endTime else false,
+                        endTime != null && System.currentTimeMillis() > endTime,
                         isCloneSession = false
                     )
 

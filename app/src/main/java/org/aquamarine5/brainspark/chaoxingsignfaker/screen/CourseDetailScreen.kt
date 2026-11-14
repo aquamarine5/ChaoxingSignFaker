@@ -22,7 +22,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -50,11 +52,13 @@ import kotlinx.serialization.Serializable
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingActivityHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingIMHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CourseSignActivityColumnCard
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NetworkExceptionComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCourseActivitiesEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCourseEntity
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingEasemobIMGroup
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.checkPredictable
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.requirePredictable
@@ -76,6 +80,7 @@ fun CourseDetailScreen(
     destination: CourseDetailDestination,
     navToSignerDestination: (Any) -> Unit,
     navToNonCloningListDestination: () -> Unit,
+    navToGroupDetailDestination: (GroupDetailDestination) -> Unit,
     navToListDestination: () -> Unit
 ) {
     var activitiesData by remember { mutableStateOf<ChaoxingCourseActivitiesEntity?>(null) }
@@ -101,6 +106,17 @@ fun CourseDetailScreen(
         return
     }
     val isCloneSession = courseEntity.isCloneSession
+    var imGroupsForCourse by remember { mutableStateOf<List<ChaoxingEasemobIMGroup>>(emptyList()) }
+    LaunchedEffect(Unit) {
+        runCatching {
+            ChaoxingIMHelper.getEasemobIMGroupsByClassIds(
+                context,
+                courses.map { it.classId.toLong() }
+            )
+        }.onSuccess {
+            imGroupsForCourse = it
+        }
+    }
     LaunchedEffect(Unit) {
         isFetchedFailure = runCatching {
             if (activitiesData == null) {
@@ -190,6 +206,33 @@ fun CourseDetailScreen(
                     lineHeight = 16.sp,
                     color = Color.Gray
                 )
+            }
+        }
+
+        if (imGroupsForCourse.isNotEmpty()) {
+            Button(
+                onClick = {
+                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                    navToGroupDetailDestination(GroupDetailDestination(imGroupsForCourse))
+                },
+                shape = RoundedCornerShape(18.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_users_round),
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text("找不到签到？去对应的群聊看看")
+                }
             }
         }
 

@@ -19,7 +19,7 @@ import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingOtherUserHelper.getSessionPuid
-import org.aquamarine5.brainspark.chaoxingsignfaker.components.chaoxingUserAgent
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.chaoxingClientInfo
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingLoginSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserSession
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingSignFakerDataStore
@@ -34,7 +34,12 @@ open class ChaoxingHttpRequester internal constructor(
     var deviceCode: String,
     initialConfiguredFid: Int,
     internal val otherUserSession: ChaoxingOtherUserSession? = null,
+    internal val sessionUniqueId: String,
+    internal val sessionDeviceModel: String,
 ) {
+    val userAgent: String
+        get() = chaoxingClientInfo.resolveUserAgent(sessionUniqueId, sessionDeviceModel)
+
     var configuredFid by mutableIntStateOf(initialConfiguredFid)
         protected set
 
@@ -117,6 +122,8 @@ open class ChaoxingHttpRequester internal constructor(
             deviceCode = deviceCode,
             initialConfiguredFid = effectiveConfiguredFid,
             okHttpClient = okHttpClient,
+            sessionUniqueId = sessionUniqueId,
+            sessionDeviceModel = sessionDeviceModel,
         )
     }
 
@@ -139,6 +146,11 @@ open class ChaoxingHttpRequester internal constructor(
                         }.build()
                     }
                 }
+
+        internal suspend fun newSessionUniqueId(
+            context: Context,
+            phoneNumber: String
+        ): String = ChaoxingDeviceInfoHelper.getOrRandomUniqueId(context, phoneNumber)
 
         private suspend fun resolveOtherUserIdentity(
             okHttpClient: OkHttpClient,
@@ -212,6 +224,10 @@ open class ChaoxingHttpRequester internal constructor(
             session: ChaoxingOtherUserSession,
             context: Context,
         ): ChaoxingHttpRequester {
+            val sessionUniqueId =
+                ChaoxingDeviceInfoHelper.getOrRandomUniqueId(context, session.phoneNumber)
+            val sessionDeviceModel =
+                ChaoxingDeviceInfoHelper.getOrRandomDeviceModel(context, session.phoneNumber)
             val baseClient = ChaoxingHttpClient.instance?.okHttpClient ?: OkHttpClient()
             val okHttpClient = baseClient.newBuilder().cookieJar(object : CookieJar {
                 private val cookieStore: MutableMap<String, List<Cookie>> = mutableMapOf()
@@ -239,8 +255,18 @@ open class ChaoxingHttpRequester internal constructor(
             }).addInterceptor { chain ->
                 chain.proceed(
                     chain.request().run {
-                        if (headers.none { it.first == "User-Agent" }) {
-                            newBuilder().header("User-Agent", chaoxingUserAgent).build()
+                        val currentUserAgent = header("User-Agent")
+                        if (currentUserAgent == null ||
+                            currentUserAgent.contains("/ChaoxingStudy_", ignoreCase = true) ||
+                            currentUserAgent == ChaoxingHttpClient.instance?.userAgent
+                        ) {
+                            newBuilder().header(
+                                "User-Agent",
+                                chaoxingClientInfo.resolveUserAgent(
+                                    sessionUniqueId,
+                                    sessionDeviceModel
+                                )
+                            ).build()
                         } else {
                             this
                         }
@@ -272,6 +298,8 @@ open class ChaoxingHttpRequester internal constructor(
                 session.resolveDeviceCode(context),
                 resolvedFid,
                 session,
+                sessionUniqueId,
+                sessionDeviceModel,
             )
         }
 
@@ -279,6 +307,11 @@ open class ChaoxingHttpRequester internal constructor(
             dataStore: ChaoxingSignFakerDataStore,
             context: Context,
         ): ChaoxingHttpRequester {
+            val session = dataStore.loginSession
+            val sessionUniqueId = session.phoneNumber.takeIf { it.isNotEmpty() }
+                ?.let { ChaoxingDeviceInfoHelper.getOrRandomUniqueId(context, it) }
+                .orEmpty()
+            val sessionDeviceModel = ChaoxingDeviceInfoHelper.localDeviceModel()
             val okHttpClient = OkHttpClient.Builder().cookieJar(object : CookieJar {
                 private val cookieStore: MutableMap<String, List<Cookie>> = mutableMapOf()
                 private var chaoxingCookieSession: List<Cookie> = listOf()
@@ -305,8 +338,18 @@ open class ChaoxingHttpRequester internal constructor(
             }).addInterceptor { chain ->
                 chain.proceed(
                     chain.request().run {
-                        if (headers.none { it.first == "User-Agent" }) {
-                            newBuilder().header("User-Agent", chaoxingUserAgent).build()
+                        val currentUserAgent = header("User-Agent")
+                        if (currentUserAgent == null ||
+                            currentUserAgent.contains("/ChaoxingStudy_", ignoreCase = true) ||
+                            currentUserAgent == ChaoxingHttpClient.instance?.userAgent
+                        ) {
+                            newBuilder().header(
+                                "User-Agent",
+                                chaoxingClientInfo.resolveUserAgent(
+                                    sessionUniqueId,
+                                    sessionDeviceModel
+                                )
+                            ).build()
                         } else {
                             this
                         }
@@ -316,7 +359,7 @@ open class ChaoxingHttpRequester internal constructor(
                 cookieJar.saveFromResponse(
                     HttpUrl.Builder().scheme("https").host("chaoxing.com")
                         .encodedPath("/fanyalogin").build(),
-                    dataStore.loginSession.cookiesList.map { cookie ->
+                    session.cookiesList.map { cookie ->
                         Cookie.Builder()
                             .name(cookie.name)
                             .value(cookie.value)
@@ -325,7 +368,6 @@ open class ChaoxingHttpRequester internal constructor(
                     }
                 )
             }
-            val session = dataStore.loginSession
             val (resolvedPuid, resolvedFid) = resolveLoginIdentity(okHttpClient, session, context)
             return ChaoxingHttpRequester(
                 okHttpClient,
@@ -335,6 +377,8 @@ open class ChaoxingHttpRequester internal constructor(
                 session.deviceCode.takeIf { it.isNotEmpty() }
                     ?: ChaoxingDeviceInfoHelper.getCachedLocalMachineDeviceCode(context),
                 resolvedFid,
+                sessionUniqueId = sessionUniqueId,
+                sessionDeviceModel = sessionDeviceModel,
             )
         }
     }

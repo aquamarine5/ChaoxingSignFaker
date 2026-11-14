@@ -106,7 +106,8 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularPro
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CloneSessionTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.FavoriteLocationSettingComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.FavoriteLocationSettingDestination
-import org.aquamarine5.brainspark.chaoxingsignfaker.components.initializeClientInfo
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.chaoxingClientInfo
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingClientInfo
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCourseEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingEasemobIMGroup
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
@@ -162,7 +163,6 @@ import org.aquamarine5.brainspark.stackbricks.providers.cloudflare.CloudflareMes
 import org.aquamarine5.brainspark.stackbricks.providers.cloudflare.CloudflarePackageProvider
 import org.aquamarine5.brainspark.stackbricks.providers.qiniu.QiniuConfiguration
 import org.aquamarine5.brainspark.stackbricks.providers.qiniu.QiniuMessageProvider
-import org.aquamarine5.brainspark.stackbricks.providers.qiniu.QiniuPackageProvider
 import org.aquamarine5.brainspark.stackbricks.rememberStackbricksStatus
 import java.security.MessageDigest
 import java.util.concurrent.TimeUnit
@@ -215,6 +215,9 @@ class MainActivity : ComponentActivity() {
             } else
                 options.environment = "stable"
             val ignoreExceptions = listOf(
+                "ChaoxingGetUserInfoException",
+                "NoAvailableManifestException",
+                "NoAvailablePackageException",
                 "ForgottenCoroutineScopeException",
                 "LeftCompositionCancellationException",
                 "SocketTimeoutException",
@@ -244,6 +247,18 @@ class MainActivity : ComponentActivity() {
                 mutableStateOf(false)
             }
             var destination by remember { mutableStateOf<Any?>(null) }
+            LaunchedEffect(destination) {
+                val loginDestination = destination as? LoginDestination ?: return@LaunchedEffect
+                if (ChaoxingHttpClient.instance != null) return@LaunchedEffect
+                if (navController.currentBackStackEntry?.destination?.hasRoute(LoginDestination::class) == true) return@LaunchedEffect
+                runCatching {
+                    navController.navigate(loginDestination) {
+                        popUpTo(navController.graph.id) { inclusive = true }
+                    }
+                }.onFailure {
+                    it.sentryReport()
+                }
+            }
             val snackbarHostState = remember { SnackbarHostState() }
             ChaoxingSignFakerTheme {
                 CompositionLocalProvider(LocalSnackbarHostState provides snackbarHostState) {
@@ -413,12 +428,12 @@ class MainActivity : ComponentActivity() {
                             StackbricksService(
                                 this,
                                 possibleMessageProvider = listOf(
-                                    CloudflareMessageProvider(cloudflareConfiguration),
                                     QiniuMessageProvider(qiniuConfiguration),
+                                    CloudflareMessageProvider(cloudflareConfiguration),
                                 ),
                                 possiblePackageProvider = listOf(
                                     CloudflarePackageProvider(cloudflareConfiguration),
-                                    QiniuPackageProvider(qiniuConfiguration),
+//                                    QiniuPackageProvider(qiniuConfiguration),
                                 ),
                                 state = state,
                                 stackbricksPolicy = StackbricksPolicy(
@@ -464,7 +479,7 @@ class MainActivity : ComponentActivity() {
                                             LocationClient.setAgreePrivacy(true)
                                             SDKInitializer.setAgreePrivacy(applicationContext, true)
                                         }
-                                        initializeClientInfo(
+                                        chaoxingClientInfo = ChaoxingClientInfo.resolve(
                                             datastore.preferences.customizedUserAgent,
                                             datastore.preferences.customizedPackageName
                                         )
@@ -523,7 +538,7 @@ class MainActivity : ComponentActivity() {
                                                                 Toast.LENGTH_SHORT
                                                             ).show()
                                                         }
-                                                        LoginDestination(isFailureNetworkRedirect = true)
+                                                        LoginDestination(failureNetworkRedirectPhoneNumber = datastore.loginSession.phoneNumber)
                                                     }
                                                 }
                                             }
@@ -644,7 +659,7 @@ class MainActivity : ComponentActivity() {
                                                         }, navToLoginDestination = {
                                                             navController.navigate(
                                                                 LoginDestination(
-                                                                    true
+                                                                    failureNetworkRedirectPhoneNumber = ChaoxingHttpClient.instance?.phoneNumber
                                                                 )
                                                             ) {
                                                                 popUpTo<CourseListDestination> {
@@ -739,6 +754,9 @@ class MainActivity : ComponentActivity() {
                                                             ) {
                                                                 popUpTo<CourseListDestination>()
                                                             }
+                                                        },
+                                                        navToGroupDetailDestination = {
+                                                            navController.navigate(it)
                                                         }) {
                                                         navController.navigateUp()
                                                     }
