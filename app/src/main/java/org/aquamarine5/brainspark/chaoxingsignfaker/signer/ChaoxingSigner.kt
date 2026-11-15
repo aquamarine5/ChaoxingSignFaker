@@ -30,6 +30,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCourseHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingFaceHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpRequester
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.toOriginSignHost
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCaptchaDataEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationSignEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityStatus
@@ -103,7 +104,11 @@ abstract class ChaoxingSigner(
 
     private var storageSignInfo: JSONObject? = baseSignInfo
 
-    protected fun getPreSignUrl(): HttpUrl = URL_PERSIGN.newBuilder()
+    protected fun getPreSignUrl(): HttpUrl = buildPreSignUrl()
+
+    protected fun getOriginPreSignUrl(): HttpUrl = buildPreSignUrl().toOriginSignHost()
+
+    private fun buildPreSignUrl(): HttpUrl = URL_PERSIGN.newBuilder()
         .addQueryParameter("courseId", courseId.toString())
         .addQueryParameter("classId", classId.toString())
         .addQueryParameter("activePrimaryId", activeId.toString())
@@ -441,7 +446,7 @@ abstract class ChaoxingSigner(
                     .addQueryParameter("_", System.currentTimeMillis().toString())
                     .build()
             ).header(
-                "Referer", getPreSignUrl().toString()
+                "Referer", getOriginPreSignUrl().toString()
             ).build()
         ).execute().use {
             it.checkResponseThrowException()
@@ -485,7 +490,7 @@ abstract class ChaoxingSigner(
         getCaptchaData(context) {
             client.newCall(
                 Request.Builder().get().url(it).header(
-                    "Referer", getPreSignUrl().toString()
+                    "Referer", getOriginPreSignUrl().toString()
                 ).build()
             ).execute().use { response ->
                 val jsonResult = JSONObject.parseObject(
@@ -552,7 +557,7 @@ abstract class ChaoxingSigner(
                             return super.shouldInterceptRequest(view, request)
                         }
                     }
-                    webview?.loadUrl(getPreSignUrl().toString())
+                    webview?.loadUrl(getOriginPreSignUrl().toString())
                 }
             job.invokeOnCompletion {
                 if (job.isCancelled)
@@ -586,7 +591,7 @@ abstract class ChaoxingSigner(
                     .addQueryParameter("captchaKey", captchaKey)
                     .addQueryParameter("token", token)
                     .addQueryParameter(
-                        "referer", getPreSignUrl().toString()
+                        "referer", getOriginPreSignUrl().toString()
                     )
                     .addQueryParameter("iv", iv)
                     .addQueryParameter("_", System.currentTimeMillis().toString())

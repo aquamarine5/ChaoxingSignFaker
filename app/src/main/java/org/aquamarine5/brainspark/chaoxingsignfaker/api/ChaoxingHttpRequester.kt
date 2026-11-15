@@ -45,7 +45,12 @@ open class ChaoxingHttpRequester internal constructor(
 
     var storageCloudToken: String? = null
 
-    fun newCall(request: Request): Call = okHttpClient.newCall(request)
+    private val routedHttpClient: OkHttpClient by lazy {
+        if (ChaoxingSignRoute in okHttpClient.interceptors) okHttpClient
+        else okHttpClient.newBuilder().addInterceptor(ChaoxingSignRoute).build()
+    }
+
+    fun newCall(request: Request): Call = routedHttpClient.newCall(request)
 
     suspend fun reLogin(context: Context): Boolean {
         val dataStore = context.chaoxingDataStore.data.first()
