@@ -37,7 +37,6 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -276,10 +275,12 @@ fun GestureSignScreen(
                 } else if (c == ChaoxingSignActivityStatus.READY_TO_SIGN) {
                     var isCheckingStatus by remember { mutableStateOf(false) }
                     var text by remember { mutableStateOf("") }
-                    val isDisplayAutoFetchGestureTips = rememberSaveable { mutableStateOf(true) }
+                    val isDisplayAutoFetchGestureTips = remember { mutableStateOf(false) }
                     var locationData by remember { mutableStateOf<ChaoxingLocationSignEntity?>(null) }
                     LaunchedEffect(Unit) {
                         context.chaoxingDataStore.data.first().let { data ->
+                            isDisplayAutoFetchGestureTips.value =
+                                !data.learntTooltips.fetchGestureSignCodeDirectly
                             if (data.containsClassSelectedLocation(destination.classId)) {
                                 locationData = data.getClassSelectedLocationOrThrow(
                                     destination.classId
@@ -335,7 +336,15 @@ fun GestureSignScreen(
                                     isDisplayAutoFetchGestureTips,
                                     tipsText = "在新版本中，我们破解了手势签到的签到图案，现在支持一键获取手势图案了！",
                                     modifier = Modifier.padding(12.dp, 0.dp)
-                                ) { }
+                                ) {
+                                    context.chaoxingDataStore.updateData {
+                                        it.toBuilder().setLearntTooltips(
+                                            it.learntTooltips.toBuilder()
+                                                .setFetchGestureSignCodeDirectly(true)
+                                                .build()
+                                        ).build()
+                                    }
+                                }
                             }
                             if (destination.isOldSignVersion) {
                                 CommonCardTip(

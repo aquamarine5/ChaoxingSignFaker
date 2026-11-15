@@ -109,6 +109,7 @@ message LearntTooltip{
   bool saveFaceRecognitionImagesToLocal = 10;
   bool qrCodeSupportKeepScanning = 11;
   bool supportConsistentDeviceCodeInOtherSession = 12;
+  bool fetchGestureSignCodeDirectly = 13;
 }
 
 message OtherUserTagType{
