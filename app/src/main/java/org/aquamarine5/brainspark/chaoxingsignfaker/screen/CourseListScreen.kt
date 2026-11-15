@@ -35,6 +35,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.InlineTextContent
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.foundation.text.appendInlineContent
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -650,8 +651,12 @@ fun CourseListScreen(
                                                     )
                                                     Spacer(modifier = Modifier.height(2.dp))
                                                     Text(
-                                                        "从群聊列表查找签到",
-                                                        color = MaterialTheme.colorScheme.primary
+                                                        "从群聊列表\n查找签到",
+                                                        color = MaterialTheme.colorScheme.primary,
+                                                        autoSize = TextAutoSize.StepBased(
+                                                            minFontSize = 10.sp,
+                                                            maxFontSize = 14.sp
+                                                        )
                                                     )
                                                 }
                                             }
@@ -677,8 +682,12 @@ fun CourseListScreen(
                                                     )
                                                     Spacer(modifier = Modifier.height(2.dp))
                                                     Text(
-                                                        "扫描签到二维码跳转",
-                                                        color = MaterialTheme.colorScheme.primary
+                                                        "扫描签到二维码\n快速跳转",
+                                                        color = MaterialTheme.colorScheme.primary,
+                                                        autoSize = TextAutoSize.StepBased(
+                                                            minFontSize = 10.sp,
+                                                            maxFontSize = 14.sp
+                                                        )
                                                     )
                                                 }
                                             }
