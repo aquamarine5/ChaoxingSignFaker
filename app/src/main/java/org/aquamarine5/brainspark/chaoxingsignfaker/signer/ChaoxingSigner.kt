@@ -56,7 +56,7 @@ abstract class ChaoxingSigner(
 ) {
     companion object {
         val URL_PERSIGN =
-            "https://mobilelearn.chaoxing.com/newsign/preSign".toHttpUrl()
+            "https://data-xxt.aichaoxing.com/newsign/preSign".toHttpUrl()
         val URL_SIGN_INFO =
             "https://mobilelearn.chaoxing.com/v2/apis/active/getPPTActiveInfo".toHttpUrl()
         val URL_ANALYSIS =
