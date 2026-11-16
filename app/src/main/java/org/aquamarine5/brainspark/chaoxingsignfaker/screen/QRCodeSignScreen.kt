@@ -143,7 +143,8 @@ data class QRCodeSignDestination(
     val isLate: Boolean,
     override val isCloneSession: Boolean,
     override val isOldSignVersion: Boolean = false,
-    override val chatId: Long? = null
+    override val chatId: Long? = null,
+    val staticQRCode: String? = null
 ) : SignDestination {
     companion object {
         fun parseFromSignActivityEntity(
@@ -370,7 +371,14 @@ fun QRCodeSignScreen(
                             context = context,
                             signTimeSpan = ChaoxingSignHandler.SHORT_SIGN_TIME_SPAN,
                             getSignRealtimeParameter = {
-                                suspendCancellableCoroutine { continuation ->
+                                val staticQRCode = destination.staticQRCode
+                                if (staticQRCode != null)
+                                    ChaoxingQRCodeParseResult(
+                                        destination.activeId,
+                                        staticQRCode,
+                                        null
+                                    )
+                                else suspendCancellableCoroutine { continuation ->
                                     getQRCodeContinuation?.cancel()
                                     getQRCodeContinuation = continuation
                                     isQRCodeScanPause.value = false
@@ -582,6 +590,9 @@ fun QRCodeSignScreen(
                     }
 
                     fun beginQRContinuousSigning() {
+                        val staticParseResult = destination.staticQRCode?.let {
+                            ChaoxingQRCodeParseResult(destination.activeId, it, null)
+                        }
                         encWaiter?.cancel()
                         encWaiter = null
                         getQRCodeContinuation?.cancel()
@@ -611,7 +622,7 @@ fun QRCodeSignScreen(
                         isQRCodeScanPause.value = false
                         isQRCodeParsing.value = false
                         isQRCodeIllegal = false
-                        isQRCodeScanning = true
+                        isQRCodeScanning = staticParseResult == null
                         coroutineScope.launch(Dispatchers.IO) {
                             runCatching {
                                 val avatars = targets.map { target ->
@@ -631,14 +642,17 @@ fun QRCodeSignScreen(
                             }
                         }
                         continuousJob?.cancel()
-                        expiredRefreshJob = coroutineScope.launch {
-                            while (isQrContinuousActive) {
-                                delay(1.5.seconds)
-                                val current = latestEnc
-                                if (current == null || current.enc != expiredEnc) continue
-                                val isExpired = signer.isQRCodeExpired(current)
-                                if (isExpired == true) expiredEnc = current.enc
-                                reportQRCodeExpiredTips()
+                        if (staticParseResult == null) {
+                            expiredRefreshJob = coroutineScope.launch {
+                                while (isQrContinuousActive) {
+                                    delay(1.5.seconds)
+                                    val current = latestEnc ?: continue
+                                    val currentEnc = current.enc ?: continue
+                                    if (currentEnc != expiredEnc) continue
+                                    val isExpired = signer.isQRCodeExpired(current)
+                                    if (isExpired == true) expiredEnc = currentEnc
+                                    reportQRCodeExpiredTips()
+                                }
                             }
                         }
                         continuousJob = signHandler.startContinuousSigning(
@@ -648,18 +662,23 @@ fun QRCodeSignScreen(
                             coroutineScope,
                             snackbarHost,
                             getFreshEnc = {
-                                var parseResult: ChaoxingQRCodeParseResult
-                                do {
-                                    parseResult = latestEnc?.takeIf { it.enc != expiredEnc }
-                                        ?: suspendCancellableCoroutine<ChaoxingQRCodeParseResult> { continuation ->
-                                            encWaiter?.cancel()
-                                            encWaiter = continuation
-                                            continuation.invokeOnCancellation {
-                                                if (encWaiter == continuation) encWaiter = null
-                                            }
+                                if (staticParseResult != null) staticParseResult
+                                else {
+                                    var parseResult: ChaoxingQRCodeParseResult
+                                    do {
+                                        parseResult = latestEnc?.takeIf {
+                                            it.enc == null || it.enc != expiredEnc
                                         }
-                                } while (parseResult.enc == expiredEnc)
-                                parseResult
+                                            ?: suspendCancellableCoroutine<ChaoxingQRCodeParseResult> { continuation ->
+                                                encWaiter?.cancel()
+                                                encWaiter = continuation
+                                                continuation.invokeOnCancellation {
+                                                    if (encWaiter == continuation) encWaiter = null
+                                                }
+                                            }
+                                    } while (parseResult.enc != null && parseResult.enc == expiredEnc)
+                                    parseResult
+                                }
                             },
                             onCurrentTargetChanged = {
                                 qrCurrentTarget = it

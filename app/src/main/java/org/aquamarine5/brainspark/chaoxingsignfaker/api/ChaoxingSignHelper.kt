@@ -337,14 +337,11 @@ object ChaoxingSignHelper {
             }
         }
 
-    suspend fun getScannedQRCodeDestination(
+    private suspend fun fetchScannedSignActivityInfo(
         client: ChaoxingHttpRequester,
-        parseResult: ChaoxingQRCodeParseResult,
-        isCloneSession: Boolean
-    ): SignDestination = withContext(Dispatchers.IO) {
-        val activeId = parseResult.aid
-        requirePredictable(activeId != null) { "二维码中未包含签到活动 ID" }
-        val result = client.newCall(
+        activeId: Long
+    ): JSONObject? = withContext(Dispatchers.IO) {
+        client.newCall(
             Request.Builder().get().url(
                 ChaoxingSigner.URL_SIGN_INFO.newBuilder()
                     .addQueryParameter("activeId", activeId.toString())
@@ -353,14 +350,37 @@ object ChaoxingSignHelper {
         ).execute().use {
             it.checkResponseThrowException()
             JSONObject.parseObject(it.body.string()).getJSONObject("data")
-                ?: throw ChaoxingPredictableException("获取签到活动信息失败，请确认二维码是否为有效的签到二维码")
         }
+    }
+
+    suspend fun getScannedQRCodeDestination(
+        client: ChaoxingHttpRequester,
+        parseResult: ChaoxingQRCodeParseResult,
+        isCloneSession: Boolean
+    ): SignDestination = withContext(Dispatchers.IO) {
+        val activeId = parseResult.aid
+        requirePredictable(activeId != null) { "二维码中未包含签到活动 ID" }
+        val result = fetchScannedSignActivityInfo(client, activeId)
+            ?: throw ChaoxingPredictableException("获取签到活动信息失败，请确认二维码是否为有效的签到二维码")
         val classId = result.getIntValue("clazzid")
         val courseId = result.getLong("courseId")?.takeIf { it != 0L }
             ?: ChaoxingCourseHelper.getCourseIdFromClassId(client, classId).getOrNull() ?: 0L
         val startTime = result.getLong("starttime")
         val endTime = result.getLong("endtime")
         val isLate = endTime != null && System.currentTimeMillis() > endTime
+        if (parseResult.isStaticQRCode) {
+            return@withContext QRCodeSignDestination(
+                activeId,
+                classId,
+                courseId,
+                "",
+                startTime,
+                endTime,
+                isLate,
+                isCloneSession,
+                staticQRCode = parseResult.code
+            )
+        }
         when (result.getInteger("otherId")) {
             0 -> PhotoSignDestination(
                 activeId,

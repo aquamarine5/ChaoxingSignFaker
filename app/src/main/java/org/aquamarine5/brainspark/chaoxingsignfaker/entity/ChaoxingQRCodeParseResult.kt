@@ -12,5 +12,7 @@ import androidx.compose.runtime.Immutable
 data class ChaoxingQRCodeParseResult(
     val aid: Long?,
     val code: String?,
-    val enc: String
-)
+    val enc: String?
+) {
+    val isStaticQRCode: Boolean get() = enc.isNullOrBlank()
+}

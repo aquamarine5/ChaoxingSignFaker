@@ -106,6 +106,8 @@ class ChaoxingPasswordSigner(
                     .addEnc2Parameter(signEnc2)
                     .addValidateQueryParameter(captchaValidate)
                     .build()
+            ).header(
+                "Referer", getOriginPreSignUrl().toString()
             ).build()
         ).execute().use {
             it.checkResponseThrowException()

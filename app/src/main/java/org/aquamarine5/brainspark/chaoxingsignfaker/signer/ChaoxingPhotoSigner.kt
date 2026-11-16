@@ -99,6 +99,8 @@ class ChaoxingPhotoSigner(
                     URL_SIGN_NO_PARAMETER.newBuilder()
                         .addPhotoSignParameter(null, captchaValidate)
                         .build()
+                ).header(
+                    "Referer", getOriginPreSignUrl().toString()
                 ).get().build()
             ).execute().use {
                 it.checkResponseThrowException()
@@ -132,6 +134,8 @@ class ChaoxingPhotoSigner(
                     URL_SIGN_NO_PARAMETER.newBuilder()
                         .addPhotoSignParameter(objectId, captchaValidate)
                         .build()
+                ).header(
+                    "Referer", getOriginPreSignUrl().toString()
                 ).get().build()
             ).execute().use {
                 it.checkResponseThrowException()

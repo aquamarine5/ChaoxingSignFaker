@@ -394,6 +394,11 @@ abstract class ChaoxingSigner(
             throw ChaoxingFaceSignException(result.removePrefix("[face]"))
         if (result == "success2")
             throw SignAlreadyEndedException()
+        if (result == "fail-need-qrcode")
+            throw ChaoxingParseDataException(
+                "签到失败：服务端要求提交二维码参数（enc），请重新扫描老师展示的二维码",
+                data = result
+            )
         if (result == "签到失败，请重新扫描。")
             throw QRCodeExpiredException()
         if (result.startsWith("checkFace_")) {

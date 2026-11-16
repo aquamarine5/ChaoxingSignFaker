@@ -106,6 +106,8 @@ class ChaoxingLocationSigner(
                             isCourseIdParameterAdded = true
                         )
                         .build()
+                ).header(
+                    "Referer", getOriginPreSignUrl().toString()
                 ).get().build()
             ).execute().use {
                 it.checkResponseThrowException()
