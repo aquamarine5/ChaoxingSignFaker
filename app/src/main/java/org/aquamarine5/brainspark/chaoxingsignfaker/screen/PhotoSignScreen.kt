@@ -288,7 +288,7 @@ fun PhotoSignScreen(
                                                     .let { client ->
                                                         ChaoxingPhotoSigner(
                                                             client,
-                                                            if (isAlwaysForceSign || bypassChecking) destination.copy(
+                                                            if (isAlwaysForceSign || bypassChecking || (destination.isOldSignVersion && destination.courseId > 0L)) destination.copy(
                                                                 classId = ChaoxingCourseHelper.getClassIdFromCourseId(
                                                                     client,
                                                                     destination.courseId
@@ -503,7 +503,7 @@ fun PhotoSignScreen(
                                                         ).let { client ->
                                                             ChaoxingPhotoSigner(
                                                                 client,
-                                                                if (isAlwaysForceSign || bypassChecking) destination.copy(
+                                                                if (isAlwaysForceSign || bypassChecking || (destination.isOldSignVersion && destination.courseId > 0L)) destination.copy(
                                                                     classId = ChaoxingCourseHelper.getClassIdFromCourseId(
                                                                         client,
                                                                         destination.courseId

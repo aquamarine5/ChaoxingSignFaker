@@ -86,13 +86,19 @@ abstract class ChaoxingSigner(
             """"primaryAttend"\s*:\s*\{[^{}]*?"status"\s*:\s*(\d+)""".toRegex()
         private val SIGN_STATUS_PATTERN = """signstatus\s*=\s*(\d+)""".toRegex()
 
-        fun buildOldPreSignUrl(activeId: Long, chatId: Long?, puid: Int): HttpUrl =
+        fun buildOldPreSignUrl(
+            activeId: Long,
+            chatId: Long?,
+            puid: Int,
+            classId: Int = 0,
+            courseId: Long = 0L
+        ): HttpUrl =
             URL_PRESIGN_OLD.newBuilder()
                 .addQueryParameter("activeId", activeId.toString())
                 .addQueryParameter("code", "")
                 .addQueryParameter("uid", puid.toString())
-                .addQueryParameter("courseId", "null")
-                .addQueryParameter("classId", "0")
+                .addQueryParameter("courseId", courseId.toString())
+                .addQueryParameter("classId", classId.toString())
                 .addQueryParameter("general", "0")
                 .addQueryParameter("chatId", (chatId ?: 0L).toString())
                 .addQueryParameter("appType", "0")
@@ -124,6 +130,10 @@ abstract class ChaoxingSigner(
         .addQueryParameter("activeId", activeId.toString())
         .addQueryParameter("uid", client.puid.toString())
         .addQueryParameter("clientip", "")
+        .apply {
+            if (courseId > 0L) addQueryParameter("courseId", courseId.toString())
+            if (classId > 0) addQueryParameter("classId", classId.toString())
+        }
 
     var signEnc2: String? = null
         protected set
@@ -247,7 +257,9 @@ abstract class ChaoxingSigner(
     private fun requestPreSign(): Response =
         if (isOldSignVersion)
             client.newCall(
-                Request.Builder().get().url(buildOldPreSignUrl(activeId, chatId, client.puid))
+                Request.Builder().get().url(
+                    buildOldPreSignUrl(activeId, chatId, client.puid, classId, courseId)
+                )
                     .build()
             ).execute()
         else

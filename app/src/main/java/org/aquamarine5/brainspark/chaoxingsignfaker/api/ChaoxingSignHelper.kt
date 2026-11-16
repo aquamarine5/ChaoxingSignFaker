@@ -227,9 +227,23 @@ object ChaoxingSignHelper {
     suspend fun getLegacyIMSignDestination(activeId: Long, chatId: Long?): SignDestination =
         withContext(Dispatchers.IO) {
             val client = ChaoxingHttpClient.instance!!
+            val activityInfo = runCatching {
+                fetchScannedSignActivityInfo(client, activeId)
+            }.getOrNull()
+            val classId = activityInfo?.getIntValue("clazzid") ?: 0
+            val courseId = activityInfo?.getLong("courseId")?.takeIf { it != 0L }
+                ?: classId.takeIf { it > 0 }?.let {
+                    ChaoxingCourseHelper.getCourseIdFromClassId(client, it).getOrNull()
+                } ?: 0L
             val pageBody = client.newCall(
                 Request.Builder().get().url(
-                    ChaoxingSigner.buildOldPreSignUrl(activeId, chatId, client.puid)
+                    ChaoxingSigner.buildOldPreSignUrl(
+                        activeId,
+                        chatId,
+                        client.puid,
+                        classId,
+                        courseId
+                    )
                 ).build()
             ).execute().use {
                 it.checkResponseThrowException()
@@ -237,22 +251,22 @@ object ChaoxingSignHelper {
             }
             when {
                 pageBody.contains("拍照") -> PhotoSignDestination(
-                    activeId, 0, 0, "", null, null, false,
+                    activeId, classId, courseId, "", null, null, false,
                     isCloneSession = false, isOldSignVersion = true, chatId = chatId
                 )
 
                 pageBody.contains("位置") -> GetLocationDestination(
-                    activeId, 0, 0, "", null, null, false,
+                    activeId, classId, courseId, "", null, null, false,
                     isCloneSession = false, isOldSignVersion = true, chatId = chatId
                 )
 
                 pageBody.contains("二维码") -> QRCodeSignDestination(
-                    activeId, 0, 0, "", null, null, false,
+                    activeId, classId, courseId, "", null, null, false,
                     isCloneSession = false, isOldSignVersion = true, chatId = chatId
                 )
 
                 else -> GestureSignDestination(
-                    activeId, 0, 0, "", null, null, false,
+                    activeId, classId, courseId, "", null, null, false,
                     isCloneSession = false, isOldSignVersion = true, chatId = chatId
                 )
             }
