@@ -63,7 +63,8 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
 @Immutable
 @Serializable
 data class GroupDetailDestination(
-    val groups: List<ChaoxingEasemobIMGroup>
+    val groups: List<ChaoxingEasemobIMGroup>,
+    val isCloneSession: Boolean = false
 )
 
 @Composable
@@ -88,7 +89,8 @@ fun GroupDetailScreen(
                     groupDetail.groups,
                     ChaoxingHttpClient.instance!!,
                     ChaoxingHttpClient.instance!!.getIMConfig(),
-                    coroutineScope
+                    coroutineScope,
+                    groupDetail.isCloneSession
                 )
             }.onFailure {
                 it.snackbarReport(
@@ -113,7 +115,8 @@ fun GroupDetailScreen(
                                     groupDetail.groups,
                                     ChaoxingHttpClient.instance!!,
                                     ChaoxingHttpClient.instance!!.getIMConfig(),
-                                    coroutineScope
+                                    coroutineScope,
+                                    groupDetail.isCloneSession
                                 )
                             }.onFailure {
                                 it.snackbarReport(

@@ -313,20 +313,23 @@ object ChaoxingIMHelper {
         scope: CoroutineScope,
         activity: IMSignActivityInfo,
         messageTimestamp: Long,
-        chatId: Long? = null
+        chatId: Long? = null,
+        isCloneSession: Boolean = false
     ): ChaoxingGroupSignActivityEntity {
         val destination =
             scope.async(Dispatchers.IO, start = CoroutineStart.LAZY) {
                 if (activity.isUnsupportedLegacySign)
                     return@async ChaoxingSignHelper.getLegacyIMSignDestination(
                         activity.activeId,
-                        chatId
+                        chatId,
+                        isCloneSession
                     )
                 ChaoxingSignHelper.getIMSignDestination(
                     activity.activeTypeName,
                     activity.activeId,
                     activity.classId,
-                    activity.courseId
+                    activity.courseId,
+                    isCloneSession
                 ) ?: throw ChaoxingIMConfigParseException(
                     "atypeName",
                     "未知签到类型: ${activity.activeTypeName}"
@@ -348,7 +351,8 @@ object ChaoxingIMHelper {
 
     fun parseIMMessageBody(
         scope: CoroutineScope,
-        imMessages: List<Pair<Meta, MessageBody>>
+        imMessages: List<Pair<Meta, MessageBody>>,
+        isCloneSession: Boolean = false
     ): List<ChaoxingGroupSignActivityEntity> =
         imMessages.mapNotNull { (meta, messageBody) ->
             val chatId = messageBody.to?.name?.substringBefore("@")?.toLongOrNull()
@@ -356,7 +360,7 @@ object ChaoxingIMHelper {
                 runCatching {
                     parseIMSignActivityInfo(JSONObject.parseObject(ext.stringValue))
                 }.getOrNull()?.let { activity ->
-                    buildSignActivityEntity(scope, activity, meta.field4, chatId)
+                    buildSignActivityEntity(scope, activity, meta.field4, chatId, isCloneSession)
                 }
             }
         }
@@ -365,7 +369,8 @@ object ChaoxingIMHelper {
         imGroup: ChaoxingEasemobIMGroup,
         httpClient: ChaoxingHttpClient,
         imConfig: ChaoxingEasemobIMConfig,
-        scope: CoroutineScope
+        scope: CoroutineScope,
+        isCloneSession: Boolean = false
     ): List<ChaoxingGroupSignActivityEntity> {
         return withContext(Dispatchers.IO) {
             httpClient.newCall(
@@ -397,7 +402,7 @@ object ChaoxingIMHelper {
                     val messageBody = MessageBody.parseFrom(meta.field6)
                     resultList.add(meta to messageBody)
                 }
-                return@use parseIMMessageBody(scope, resultList).distinctBy { it.activeId }
+                return@use parseIMMessageBody(scope, resultList, isCloneSession).distinctBy { it.activeId }
             }
         }
     }
@@ -417,12 +422,13 @@ object ChaoxingIMHelper {
         imGroups: List<ChaoxingEasemobIMGroup>,
         httpClient: ChaoxingHttpClient,
         imConfig: ChaoxingEasemobIMConfig,
-        scope: CoroutineScope
+        scope: CoroutineScope,
+        isCloneSession: Boolean = false
     ): List<ChaoxingGroupSignActivityEntity> {
         return coroutineScope {
             imGroups.map { group ->
                 async {
-                    fetchIMHistoryMessages(group, httpClient, imConfig, scope)
+                    fetchIMHistoryMessages(group, httpClient, imConfig, scope, isCloneSession)
                 }
             }.awaitAll()
         }.flatten()
@@ -449,7 +455,8 @@ object ChaoxingIMHelper {
         imGroup: ChaoxingIMGroup,
         httpClient: ChaoxingHttpClient,
         imConfig: ChaoxingIMConfig,
-        scope: CoroutineScope
+        scope: CoroutineScope,
+        isCloneSession: Boolean = false
     ): List<ChaoxingGroupSignActivityEntity> {
         return withContext(Dispatchers.IO) {
             httpClient.newCall(
@@ -484,7 +491,7 @@ object ChaoxingIMHelper {
                     val messageBody = MessageBody.parseFrom(meta.field6)
                     resultList.add(meta to messageBody)
                 }
-                return@use parseIMMessageBody(scope, resultList)
+                return@use parseIMMessageBody(scope, resultList, isCloneSession)
             }
         }
     }

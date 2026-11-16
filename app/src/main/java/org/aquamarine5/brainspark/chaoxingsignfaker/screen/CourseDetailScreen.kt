@@ -213,7 +213,9 @@ fun CourseDetailScreen(
             Button(
                 onClick = {
                     hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                    navToGroupDetailDestination(GroupDetailDestination(imGroupsForCourse))
+                    navToGroupDetailDestination(
+                        GroupDetailDestination(imGroupsForCourse, isCloneSession)
+                    )
                 },
                 shape = RoundedCornerShape(18.dp),
                 modifier = Modifier

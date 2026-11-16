@@ -76,6 +76,7 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.LineBreak
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.IntOffset
@@ -344,7 +345,8 @@ fun CourseListScreen(
                                 listenerScope,
                                 event.activity,
                                 event.receivedTimestamp,
-                                event.chatId
+                                event.chatId,
+                                destination.isCloneSession
                             )
                             imSignReminders =
                                 (imSignReminders.orEmpty() + entity).distinctBy { it.activeId }
@@ -653,6 +655,7 @@ fun CourseListScreen(
                                                     Text(
                                                         "从群聊列表\n查找签到",
                                                         color = MaterialTheme.colorScheme.primary,
+                                                        textAlign = TextAlign.Center,
                                                         autoSize = TextAutoSize.StepBased(
                                                             minFontSize = 10.sp,
                                                             maxFontSize = 14.sp
@@ -684,6 +687,7 @@ fun CourseListScreen(
                                                     Text(
                                                         "扫描签到二维码\n快速跳转",
                                                         color = MaterialTheme.colorScheme.primary,
+                                                        textAlign = TextAlign.Center,
                                                         autoSize = TextAutoSize.StepBased(
                                                             minFontSize = 10.sp,
                                                             maxFontSize = 14.sp
