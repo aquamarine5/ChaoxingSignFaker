@@ -34,7 +34,8 @@ fun CommonCardTip(
     @DrawableRes icon: Int,
     containerColor: Color,
     text: @Composable () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    contentColor: Color = Color.White
 ) {
     Card(
         shape = RoundedCornerShape(18.dp),
@@ -55,7 +56,7 @@ fun CommonCardTip(
             Icon(
                 painterResource(icon),
                 contentDescription = "Warning",
-                tint = Color.White,
+                tint = contentColor,
                 modifier = Modifier.size(40.dp)
             )
             Spacer(modifier = Modifier.width(9.dp))
@@ -69,14 +70,16 @@ fun CommonCardTip(
     @DrawableRes icon: Int,
     containerColor: Color,
     text: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    contentColor: Color = Color.White
 ) = CommonCardTip(
     icon = icon,
     containerColor = containerColor,
+    contentColor = contentColor,
     text = {
         Text(
             text,
-            color = Color.White,
+            color = contentColor,
             fontSize = 13.sp,
             lineHeight = 18.sp,
             fontWeight = FontWeight.W500,
@@ -90,5 +93,6 @@ fun CommonCardTip(
 fun OldSignVersionWarningTips() = CommonCardTip(
     icon = R.drawable.ic_warning,
     containerColor = Orange,
+    contentColor = Color.Black,
     text = "目前随地大小签测试性的支持了旧版本的签到，可能存在各种问题。由于旧版本签到的测试样本不足，如果在使用期间遇到任何问题，请发送邮件给aquamarine5forever@gmail.com"
 )

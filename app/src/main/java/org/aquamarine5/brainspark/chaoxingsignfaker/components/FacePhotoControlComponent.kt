@@ -86,6 +86,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingFaceHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpRequesterPool
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingFaceRecognitionImage
+import org.aquamarine5.brainspark.chaoxingsignfaker.ui.theme.Orange
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingFaceImageException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
@@ -326,7 +327,8 @@ fun FacePhotoControlComponent(
                 text = {
                     CommonCardTip(
                         icon = R.drawable.ic_triangle_alert,
-                        containerColor = Color(0xFFFCC307),
+                        containerColor = Orange,
+                        contentColor = Color.Black,
                         text = "在此删除照片并不会在其他已经导入你的人脸识别照片的设备上一并删除。"
                     )
                 },

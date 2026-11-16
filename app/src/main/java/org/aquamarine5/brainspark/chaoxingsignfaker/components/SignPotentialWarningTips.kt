@@ -51,13 +51,13 @@ fun SignPotentialWarningTips(
                         "此签到已经在 ${dateFormatter.format(Instant.ofEpochMilli(endTime))} 截止，现在签到可能会记为迟到。"
                     else
                         "此签到已经截止或未开始，现在签到可能会记为迟到。",
-                    color = Color.White,
+                    color = Color.Black,
                     fontSize = 13.sp,
                     lineHeight = 18.sp,
                     fontWeight = FontWeight.W500,
                     modifier = Modifier.fillMaxWidth()
                 )
-            })
+            }, contentColor = Color.Black)
         else
             if (System.currentTimeMillis() - startTime > 6.hours.inWholeMilliseconds)
                 CommonCardTip(R.drawable.ic_clock_fading, Orange, {
@@ -82,12 +82,12 @@ fun SignPotentialWarningTips(
                             }
                             append(" 小时，请确认没有选择错签到事件。")
                         },
-                        color = Color.White,
+                        color = Color.Black,
                         fontSize = 13.sp,
                         lineHeight = 18.sp,
                         fontWeight = FontWeight.W500,
                         modifier = Modifier.fillMaxWidth()
                     )
-                })
+                }, contentColor = Color.Black)
     }
 }

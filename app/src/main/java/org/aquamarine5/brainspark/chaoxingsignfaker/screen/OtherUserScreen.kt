@@ -180,6 +180,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingImportOtherUs
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingOtherUserSharedEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ImportOtherUserResult
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.getResultTips
+import org.aquamarine5.brainspark.chaoxingsignfaker.ui.theme.Orange
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingUserSessionOutdatedException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.UMengHelper
@@ -580,7 +581,8 @@ fun OtherUserScreen(
             Column {
                 CommonCardTip(
                     icon = R.drawable.ic_triangle_alert,
-                    containerColor = Color(0xFFFCC307),
+                    containerColor = Orange,
+                    contentColor = Color.Black,
                     text = "在添加他人账号前请先取得对方同意。"
                 )
                 OutlinedTextField(
@@ -2502,7 +2504,8 @@ fun OtherUserScreen(
             }
             CommonCardTip(
                 icon = R.drawable.ic_triangle_alert,
-                containerColor = Color(0xFFFCC307),
+                containerColor = Orange,
+                contentColor = Color.Black,
                 text = "随意分享此二维码给他人会增加你的学习通账号风险，他人可以通过此二维码来控制你的账号，但这个分享行为只针对于学习通账号，并不会暴露你的实际密码。"
             )
             Spacer(modifier = Modifier.height(8.dp))
@@ -3053,7 +3056,7 @@ fun OtherUserScreen(
                                                         Icon(
                                                             painterResource(R.drawable.ic_triangle_alert),
                                                             null,
-                                                            tint = Color(0xFFFCC307),
+                                                            tint = Orange,
                                                             modifier = Modifier.size(24.dp)
                                                         )
                                                     }

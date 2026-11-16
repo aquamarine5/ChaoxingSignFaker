@@ -119,6 +119,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserS
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.OtherUserTagType
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignResult
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignStatus
+import org.aquamarine5.brainspark.chaoxingsignfaker.ui.theme.Orange
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.TAG_COLOR_UNSPECIFIED
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.FaceRecognitionData
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.FaceRecognitionImageStatus
@@ -1181,7 +1182,7 @@ fun OtherUserSelectorComponent(
                                                 Icon(
                                                     painterResource(R.drawable.ic_triangle_alert),
                                                     null,
-                                                    tint = Color(0xFFFCC307),
+                                                    tint = Orange,
                                                     modifier = Modifier
                                                         .size(24.dp)
                                                 )

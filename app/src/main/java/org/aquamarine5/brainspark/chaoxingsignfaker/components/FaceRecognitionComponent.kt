@@ -52,6 +52,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.R
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingFaceHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpRequesterPool
+import org.aquamarine5.brainspark.chaoxingsignfaker.ui.theme.Orange
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingFaceImageException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.randomizeStylizeImage
@@ -84,7 +85,7 @@ fun FaceRecognitionComponent(
                 Icon(
                     painterResource(R.drawable.ic_triangle_alert),
                     contentDescription = "警告",
-                    tint = Color(0xFFFCC307),
+                    tint = Orange,
                     modifier = Modifier.size(40.dp)
                 )
             },
