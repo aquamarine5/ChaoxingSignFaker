@@ -195,7 +195,9 @@ class ChaoxingHttpClient internal constructor(
             }
         }
 
-        @Deprecated("Use ChaoxingDeviceInfoHelper.randomizedDeviceCode() instead")
+        @Deprecated("Use ChaoxingDeviceInfoHelper.randomizedDeviceCode() instead",
+            ReplaceWith("ChaoxingDeviceInfoHelper.randomizedDeviceCode()")
+        )
         fun generateDeviceCode(): String = ChaoxingDeviceInfoHelper.randomizedDeviceCode()
 
         private fun checkPasswordIllegalThrowException(password: String) {
@@ -221,8 +223,7 @@ class ChaoxingHttpClient internal constructor(
             context: Context
         ): ChaoxingHttpClient = withContext(Dispatchers.IO) {
             checkPasswordIllegalThrowException(password)
-            val sessionUniqueId =
-                ChaoxingHttpRequester.newSessionUniqueId(context, phoneNumber)
+            val sessionUniqueId = newSessionUniqueId(context, phoneNumber)
             val sessionDeviceModel = ChaoxingDeviceInfoHelper.localDeviceModel()
             val cookieJar: CookieJar = object : CookieJar {
                 private val cookieStore: MutableMap<String, List<Cookie>> = mutableMapOf()

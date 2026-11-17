@@ -45,6 +45,7 @@ import java.util.Locale
 import java.util.UUID
 import kotlin.time.Duration.Companion.seconds
 
+
 abstract class ChaoxingSigner(
     val client: ChaoxingHttpRequester,
     val activeId: Long,
@@ -109,6 +110,20 @@ abstract class ChaoxingSigner(
     }
 
     private var storageSignInfo: JSONObject? = baseSignInfo
+
+    protected fun Request.Builder.postSignForm(): Request.Builder {
+        val url = build().url
+        val formBuilder = FormBody.Builder()
+        url.queryParameterNames.forEach { name ->
+            url.queryParameterValues(name).forEach { value ->
+                formBuilder.add(name, value ?: "")
+            }
+        }
+        return url(url.newBuilder().query(null).build())
+            .header("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
+            .header("X-Requested-With", "XMLHttpRequest")
+            .post(formBuilder.build())
+    }
 
     protected fun getPreSignUrl(): HttpUrl = buildPreSignUrl()
 
@@ -201,7 +216,11 @@ abstract class ChaoxingSigner(
             ChaoxingSignActivityStatus.EXPIRED -> throw SignExpiredException()
             ChaoxingSignActivityStatus.ALREADY_SIGNED -> throw PredictedAlreadySignedException()
             else -> {
-                if (!isOldSignVersion && ChaoxingCourseHelper.checkClassValid(client, classId) == false)
+                if (!isOldSignVersion && ChaoxingCourseHelper.checkClassValid(
+                        client,
+                        classId
+                    ) == false
+                )
                     throw SignActivityNoPermissionException()
             }
         }

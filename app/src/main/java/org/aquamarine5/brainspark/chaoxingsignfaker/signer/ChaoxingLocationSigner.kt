@@ -108,7 +108,7 @@ class ChaoxingLocationSigner(
                         .build()
                 ).header(
                     "Referer", getOriginPreSignUrl().toString()
-                ).get().build()
+                ).postSignForm().build()
             ).execute().use {
                 it.checkResponseThrowException()
                 return@use it.checkSignResult(signLocation)

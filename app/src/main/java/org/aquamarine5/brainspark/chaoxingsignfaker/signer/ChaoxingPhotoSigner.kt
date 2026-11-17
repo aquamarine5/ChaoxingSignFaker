@@ -101,7 +101,7 @@ class ChaoxingPhotoSigner(
                         .build()
                 ).header(
                     "Referer", getOriginPreSignUrl().toString()
-                ).get().build()
+                ).postSignForm().build()
             ).execute().use {
                 it.checkResponseThrowException()
                 return@use it.checkSignResult()
@@ -136,7 +136,7 @@ class ChaoxingPhotoSigner(
                         .build()
                 ).header(
                     "Referer", getOriginPreSignUrl().toString()
-                ).get().build()
+                ).postSignForm().build()
             ).execute().use {
                 it.checkResponseThrowException()
                 return@use it.checkSignResult()

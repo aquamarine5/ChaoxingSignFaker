@@ -180,7 +180,7 @@ class ChaoxingQRCodeSigner(
                         .build()
                 ).header(
                     "Referer", getOriginPreSignUrl().toString()
-                ).build()
+                ).postSignForm().build()
             ).execute().use {
                 it.checkResponseThrowException()
                 return@use it.checkSignResult(position)
