@@ -54,7 +54,7 @@ stackbricksConfig {
     }
     changelog =
             "由于最近学习通更新频繁，导致随地大小签也需要频繁更新，请大家及时更新哦！以下是更新日志：\n" +
-                    "# 1.20.0 更新：\n1. 测试性的加入了旧版本学习通签到的支持。\n\n"+
+                    "# 1.20.0 更新：\n\n<b>由于此版本更新底层接口较多，可能遇到一些意外的BUG。</b>\n1. 测试性的加入了旧版本群聊内学习通签到的支持。\n2. 如果您在最近遇到了\"签到环境异常\"的问题，请尝试更新到此版本。\n\n"+
                     "# 1.19.4 更新：\n1. 当出现了\"同一设备不允许重复签到\"的异常时，现在会自动回退到随机的设备码进行重新签到。\n\n"+
                     "# 1.19.3 更新：\n1. <b>修复了需要获取位置信息的签到功能在某些情况下无法正常签到的问题</b>，感谢 <u>@yqi008748-cloud</u> 和 <u>yolo023</u> 发现问题。\n\n" +
                     "# 1.19.2 更新：\n1. <b>更新适配了学习通的新接口，修复了签到时部分用户遇到\"网络异常，访问被拒绝\"的问题。</b>\n\n"+
@@ -82,8 +82,8 @@ android {
         applicationId = "org.aquamarine5.brainspark.chaoxingsignfaker"
         minSdk = 26
         targetSdk = 37
-        versionCode = 1_2000_0746
-        versionName = "1.20.0-beta3-261116"
+        versionCode = 1_2000_0911
+        versionName = "1.20.0-rc1-261117"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

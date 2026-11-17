@@ -567,6 +567,10 @@ class MainActivity : ComponentActivity() {
                                     }
                                     var showExitCloneDialog by remember { mutableStateOf(false) }
                                     val navBackStackEntry by navController.currentBackStackEntryAsState()
+                                    val isInSignGraph =
+                                        navBackStackEntry?.destination?.hierarhierarchychy?.any {
+                                            it.hasRoute(SignGraphDestination::class)
+                                        } == true
                                     BackHandler(
                                         enabled = isCloning &&
                                                 navBackStackEntry?.destination?.hasRoute(
@@ -578,7 +582,7 @@ class MainActivity : ComponentActivity() {
                                     }
                                     Column(modifier = Modifier.fillMaxSize()) {
                                         AnimatedVisibility(
-                                            isCloning,
+                                            isCloning && isInSignGraph,
                                             enter = slideInVertically(
                                                 animationSpec = tween(300), initialOffsetY = { -it }
                                             ) + fadeIn(
