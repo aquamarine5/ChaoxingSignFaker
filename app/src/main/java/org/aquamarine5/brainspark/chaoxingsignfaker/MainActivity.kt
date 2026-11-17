@@ -568,7 +568,7 @@ class MainActivity : ComponentActivity() {
                                     var showExitCloneDialog by remember { mutableStateOf(false) }
                                     val navBackStackEntry by navController.currentBackStackEntryAsState()
                                     val isInSignGraph =
-                                        navBackStackEntry?.destination?.hierarhierarchychy?.any {
+                                        navBackStackEntry?.destination?.hierarchy?.any {
                                             it.hasRoute(SignGraphDestination::class)
                                         } == true
                                     BackHandler(
