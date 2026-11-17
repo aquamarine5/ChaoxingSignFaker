@@ -231,7 +231,7 @@ object ChaoxingSignHelper {
         isCloneSession: Boolean = false
     ): SignDestination =
         withContext(Dispatchers.IO) {
-            val client = ChaoxingHttpClient.instance!!
+            val client = ChaoxingHttpClient.getClientInstanceOrClone(isCloneSession)!!
             val activityInfo = runCatching {
                 fetchScannedSignActivityInfo(client, activeId)
             }.getOrNull()
@@ -284,7 +284,7 @@ object ChaoxingSignHelper {
         isCloneSession: Boolean = false
     ): SignDestination =
         withContext(Dispatchers.IO) {
-            ChaoxingHttpClient.instance!!.newCall(
+            ChaoxingHttpClient.getClientInstanceOrClone(isCloneSession)!!.newCall(
                 Request.Builder().get().url(
                     ChaoxingSigner.URL_SIGN_INFO.newBuilder()
                         .addQueryParameter("activeId", activeId.toString())

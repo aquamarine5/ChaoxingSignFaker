@@ -189,11 +189,11 @@ object ChaoxingIMHelper {
     fun getEasemobIMGroupsByChatIds(
         imGroupClasses: List<ChaoxingIMGroupClass>
     ): List<ChaoxingEasemobIMGroup> {
-        val matchedGroupClass = imGroupClasses.firstOrNull { it.chatIdCount > 0 }
-            ?: return emptyList()
-        return matchedGroupClass.chatIdList.map {
-            ChaoxingEasemobIMGroup(matchedGroupClass.chatName, it.toString(), null)
-        }
+        return imGroupClasses.filter { it.chatIdCount > 0 }.flatMap { imGroupClass ->
+            imGroupClass.chatIdList.map { chatId ->
+                ChaoxingEasemobIMGroup(imGroupClass.chatName, chatId.toString(), null)
+            }
+        }.distinctBy { it.id }
     }
 
     suspend fun getEasemobIMGroupsByClassIds(

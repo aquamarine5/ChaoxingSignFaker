@@ -83,12 +83,13 @@ fun GroupDetailScreen(
         val snackbarHostState = LocalSnackbarHostState.current
         val hapticFeedback = LocalHapticFeedback.current
         var isFetchedFailure by remember { mutableStateOf<Result<*>?>(null) }
+        val httpClient = ChaoxingHttpClient.getClientInstanceOrClone(groupDetail.isCloneSession)!!
         LaunchedEffect(Unit) {
             isFetchedFailure = runCatching {
                 messages = ChaoxingIMHelper.fetchIMHistoryMessages(
                     groupDetail.groups,
-                    ChaoxingHttpClient.instance!!,
-                    ChaoxingHttpClient.instance!!.getIMConfig(),
+                    httpClient,
+                    httpClient.getIMConfig(),
                     coroutineScope,
                     groupDetail.isCloneSession
                 )
@@ -113,8 +114,8 @@ fun GroupDetailScreen(
                             isFetchedFailure = runCatching {
                                 messages = ChaoxingIMHelper.fetchIMHistoryMessages(
                                     groupDetail.groups,
-                                    ChaoxingHttpClient.instance!!,
-                                    ChaoxingHttpClient.instance!!.getIMConfig(),
+                                    httpClient,
+                                    httpClient.getIMConfig(),
                                     coroutineScope,
                                     groupDetail.isCloneSession
                                 )

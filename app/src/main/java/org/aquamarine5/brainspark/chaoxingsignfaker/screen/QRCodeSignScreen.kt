@@ -18,6 +18,7 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -1249,21 +1250,28 @@ fun QRCodeSignScreen(
                                                 if (currentTarget == -1) 0 else currentTarget + 1
                                             val isOuterSuccess =
                                                 signStatus.getOrNull(outerStatusIndex)?.isSuccess?.value == true
+                                            val isDarkTheme = isSystemInDarkTheme()
+                                            val queueChipBackground =
+                                                if (isDarkTheme) Color(0xCC1C1C1C) else Color(0xCCFFFFFF)
+                                            val queueChipBorder =
+                                                if (isDarkTheme) Color(0xFFBBBBBB) else Color(0xFF444444)
+                                            val queueChipContent =
+                                                if (isDarkTheme) Color.White else Color.Black
                                             Row(
                                                 modifier = Modifier
                                                     .background(
-                                                        Color(0xCCFFFFFF),
+                                                        queueChipBackground,
                                                         RoundedCornerShape(8.dp)
                                                     )
                                                     .border(
-                                                        BorderStroke(2.dp, Color(0xFF444444)),
+                                                        BorderStroke(2.dp, queueChipBorder),
                                                         RoundedCornerShape(8.dp)
                                                     )
                                                     .padding(10.dp),
                                                 verticalAlignment = Alignment.CenterVertically,
                                                 horizontalArrangement = Arrangement.Center
                                             ) {
-                                                Text("为")
+                                                Text("为", color = queueChipContent)
                                                 Spacer(modifier = Modifier.width(6.dp))
                                                 Crossfade(targetState = qrCurrentTarget) { target ->
                                                     val currentPos =
@@ -1287,11 +1295,11 @@ fun QRCodeSignScreen(
                                                                 .clip(RoundedCornerShape(5.dp))
                                                         )
                                                         Spacer(modifier = Modifier.width(6.dp))
-                                                        Text(currentName)
+                                                        Text(currentName, color = queueChipContent)
                                                     }
                                                 }
                                                 Spacer(modifier = Modifier.width(6.dp))
-                                                Text("签到中")
+                                                Text("签到中", color = queueChipContent)
                                                 Spacer(modifier = Modifier.width(6.dp))
                                                 if (isOuterSuccess) {
                                                     Icon(
@@ -1303,6 +1311,7 @@ fun QRCodeSignScreen(
                                                 } else {
                                                     CircularProgressIndicator(
                                                         modifier = Modifier.size(20.dp),
+                                                        color = queueChipContent,
                                                         strokeWidth = 2.dp
                                                     )
                                                 }
