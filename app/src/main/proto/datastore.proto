@@ -164,6 +164,7 @@ message ChaoxingOtherUserSession{
   bool isDeviceCodeDuplicatedSignBefore = 12;
   optional string uniqueId = 13;
   optional string deviceModel = 14;
+  bool isEnhancedDeviceInformation = 15;
 }
 
 message HttpCookie{

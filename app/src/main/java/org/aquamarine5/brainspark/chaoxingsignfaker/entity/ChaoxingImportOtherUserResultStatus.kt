@@ -13,7 +13,8 @@ typealias ImportOtherUserResult = Triple<ChaoxingImportOtherUserResultStatus, St
 enum class ChaoxingImportOtherUserResultStatus {
     SUCCESS,
     EXISTED_BUT_UPDATE_PASSWORD,
-    EXISTED_BUT_UPDATE_FACE_IMAGES
+    EXISTED_BUT_UPDATE_FACE_IMAGES,
+    EXISTED_BUT_UPDATE_DEVICE_INFORMATION
 }
 
 fun ImportOtherUserResult.getResultTips(): String =
@@ -21,4 +22,5 @@ fun ImportOtherUserResult.getResultTips(): String =
         ChaoxingImportOtherUserResultStatus.SUCCESS -> "$second(手机号:${third.phoneNumber}) 用户成功导入"
         ChaoxingImportOtherUserResultStatus.EXISTED_BUT_UPDATE_PASSWORD -> "已更新 $second(手机号:${third.phoneNumber}) 密码"
         ChaoxingImportOtherUserResultStatus.EXISTED_BUT_UPDATE_FACE_IMAGES -> "已添加 $second(手机号:${third.phoneNumber}) 的人脸照片信息"
+        ChaoxingImportOtherUserResultStatus.EXISTED_BUT_UPDATE_DEVICE_INFORMATION -> "已更新 $second(手机号:${third.phoneNumber}) 的设备信息"
     }

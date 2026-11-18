@@ -36,12 +36,16 @@ data class ChaoxingOtherUserSharedEntity(
                     ?.distinct()
                     .orEmpty()
                 val deviceCode = url.queryParameter("dc")?.takeIf { it.isNotEmpty() }
+                val uniqueId = url.queryParameter("uid")?.takeIf { it.isNotEmpty() }
+                val deviceModel = url.queryParameter("dm")?.takeIf { it.isNotEmpty() }
                 ChaoxingOtherUserSharedEntity(
                     phoneNumber,
                     password,
                     userName,
                     faceObjectIds,
                     deviceCode,
+                    uniqueId,
+                    deviceModel,
                 )
             }.getOrElse {
                 throw ChaoxingOtherUserHelper.NotAvailableQRCodeException("此二维码不能作用于添加用户")

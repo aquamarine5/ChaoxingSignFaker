@@ -223,7 +223,7 @@ class ChaoxingHttpClient internal constructor(
             context: Context
         ): ChaoxingHttpClient = withContext(Dispatchers.IO) {
             checkPasswordIllegalThrowException(password)
-            val sessionUniqueId = newSessionUniqueId(context, phoneNumber)
+            val sessionUniqueId = ChaoxingDeviceInfoHelper.getOrRandomUniqueId(context, phoneNumber)
             val sessionDeviceModel = ChaoxingDeviceInfoHelper.localDeviceModel()
             val cookieJar: CookieJar = object : CookieJar {
                 private val cookieStore: MutableMap<String, List<Cookie>> = mutableMapOf()

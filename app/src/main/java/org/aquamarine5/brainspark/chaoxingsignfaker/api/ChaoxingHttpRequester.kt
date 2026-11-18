@@ -152,11 +152,6 @@ open class ChaoxingHttpRequester internal constructor(
                     }
                 }
 
-        internal suspend fun newSessionUniqueId(
-            context: Context,
-            phoneNumber: String
-        ): String = ChaoxingDeviceInfoHelper.getOrRandomUniqueId(context, phoneNumber)
-
         private suspend fun resolveOtherUserIdentity(
             okHttpClient: OkHttpClient,
             session: ChaoxingOtherUserSession,

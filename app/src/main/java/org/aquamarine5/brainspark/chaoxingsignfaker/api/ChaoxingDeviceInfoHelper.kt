@@ -675,6 +675,31 @@ object ChaoxingDeviceInfoHelper {
         return generated
     }
 
+    suspend fun getOrRandomDeviceCode(context: Context, phoneNumber: String): String {
+        val dataStore = context.chaoxingDataStore.data.first()
+        if (dataStore.loginSession.phoneNumber == phoneNumber)
+            return getCachedLocalMachineDeviceCode(context)
+        val index = dataStore.otherUsersList.indexOfFirst { it.phoneNumber == phoneNumber }
+        if (index < 0) return getCachedLocalMachineDeviceCode(context)
+        val storedDeviceCode = dataStore.getOtherUsers(index).deviceCode
+        if (storedDeviceCode.isNotEmpty()) return storedDeviceCode
+        val generated = randomizedDeviceCode()
+        context.chaoxingDataStore.updateData { current ->
+            val currentIndex =
+                current.otherUsersList.indexOfFirst { it.phoneNumber == phoneNumber }
+            if (currentIndex < 0 || current.getOtherUsers(currentIndex).deviceCode.isNotEmpty())
+                return@updateData current
+            current.toBuilder().setOtherUsers(
+                currentIndex,
+                current.getOtherUsers(currentIndex).toBuilder()
+                    .setDeviceCode(generated)
+                    .setIsNotRandomizedDeviceCode(false)
+                    .build()
+            ).build()
+        }
+        return generated
+    }
+
     fun isValidUserAgent(userAgent: String): Boolean =
         userAgent.all { it.code in 0x20..0x7E }
 
