@@ -41,7 +41,7 @@ object ChaoxingDeviceInfoHelper {
     private const val RSA_PLAIN_BLOCK_SIZE = 117
     private const val DEVICE_FLAG_INFO_KEY = "QrCbNY@MuK1X8HGw"
     private val INVALID_UNIQUE_ID_REGEX = Regex("^0{16,64}$")
-    private const val UA_SCHILD_SALT = "ipL\$TkeiEmfy1gTXb2XHrdLN0a@7c^vu"
+    private const val UA_SCHILD_SALT = $$"ipL$TkeiEmfy1gTXb2XHrdLN0a@7c^vu"
     private const val UA_CHANNEL_KALIMDOR = "@Kalimdor"
     private const val UA_CHANNEL_AZEROTH = "@Azeroth"
     private val UA_DEVICE_SEGMENT = Regex("\\(device:[^)]*\\)")
@@ -97,15 +97,21 @@ object ChaoxingDeviceInfoHelper {
         context.chaoxingDataStore.data.first().loginSession.deviceCode.takeIf { it.isNotEmpty() }
             ?.let { return it }
         val generatedDeviceCode = getLocalMachineDeviceCode(context)
-        if (generatedDeviceCode.isEmpty()) return ""
+        val isNotRandomizedDeviceCode = generatedDeviceCode.isNotEmpty()
+        val deviceCode = if (isNotRandomizedDeviceCode) {
+            generatedDeviceCode
+        } else {
+            context.chaoxingDataStore.data.first().loginSession.deviceCode.takeIf { it.isNotEmpty() }
+                ?: randomizedDeviceCode()
+        }
         return context.chaoxingDataStore.updateData { currentDataStore ->
             if (currentDataStore.loginSession.deviceCode.isNotEmpty()) {
                 currentDataStore
             } else {
                 currentDataStore.toBuilder().setLoginSession(
                     currentDataStore.loginSession.toBuilder()
-                        .setDeviceCode(generatedDeviceCode)
-                        .setIsNotRandomizedDeviceCode(true)
+                        .setDeviceCode(deviceCode)
+                        .setIsNotRandomizedDeviceCode(isNotRandomizedDeviceCode)
                         .build()
                 ).build()
             }
