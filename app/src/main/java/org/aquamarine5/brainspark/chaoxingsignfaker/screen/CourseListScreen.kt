@@ -35,6 +35,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.InlineTextContent
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.foundation.text.appendInlineContent
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -75,12 +76,12 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.LineBreak
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.zIndex
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
@@ -271,19 +272,22 @@ fun CourseListScreen(
                     )
                     ChaoxingHttpClient.getClientInstanceOrClone(destination.isCloneSession)
                         ?.let { httpClient ->
-                            ChaoxingCourseHelper.getAllCourse(
+                            val fetchedCourses = ChaoxingCourseHelper.getAllCourse(
                                 httpClient,
                                 context,
                                 destination.isCloneSession,
                                 navToLoginDestination
                             )
-                                .apply {
-                                    activitiesData.addAll(this.filter {
-                                        preferredClassIds.contains(it.classId)
-                                    }.map { it.apply { isPreferred.value = true } } + this.filter {
-                                        !preferredClassIds.contains(it.classId)
-                                    })
+                            activitiesData.addAll(fetchedCourses.filter {
+                                preferredClassIds.contains(it.classId)
+                            }.map { it.apply { isPreferred.value = true } } + fetchedCourses.filter {
+                                !preferredClassIds.contains(it.classId)
+                            })
+                            launch {
+                                runCatching {
+                                    ChaoxingIMHelper.refreshIMGroupClassIds(context, fetchedCourses)
                                 }
+                            }
                         }
                 }.onFailure {
                     it.snackbarReport(
@@ -340,7 +344,9 @@ fun CourseListScreen(
                             val entity = ChaoxingIMHelper.buildSignActivityEntity(
                                 listenerScope,
                                 event.activity,
-                                event.receivedTimestamp
+                                event.receivedTimestamp,
+                                event.chatId,
+                                destination.isCloneSession
                             )
                             imSignReminders =
                                 (imSignReminders.orEmpty() + entity).distinctBy { it.activeId }
@@ -623,96 +629,70 @@ fun CourseListScreen(
                                         Spacer(modifier = Modifier.height(4.dp))
                                     }
                                     item {
-                                        Card(modifier = Modifier.zIndex(1f)) {
-                                            Row(
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .padding(16.dp, 8.dp)
-                                            ) {
-                                                Icon(
-                                                    painterResource(R.drawable.ic_circle_question_mark),
-                                                    null,
-                                                    modifier = Modifier
-                                                        .size(36.dp)
-                                                        .padding(2.dp)
-                                                )
-                                                Column(
-                                                    modifier = Modifier.padding(
-                                                        start = 12.dp
+                                        Row(
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            OutlinedButton(
+                                                onClick = {
+                                                    hapticFeedback.performHapticFeedback(
+                                                        HapticFeedbackType.ContextClick
                                                     )
+                                                    navToGroupDestination(destination.isCloneSession)
+                                                },
+                                                shape = RoundedCornerShape(18.dp),
+                                                modifier = Modifier.weight(1f)
+                                            ) {
+                                                Column(
+                                                    horizontalAlignment = Alignment.CenterHorizontally
                                                 ) {
+                                                    Icon(
+                                                        painter = painterResource(R.drawable.ic_users_round),
+                                                        contentDescription = null,
+                                                        modifier = Modifier.size(24.dp)
+                                                    )
+                                                    Spacer(modifier = Modifier.height(2.dp))
                                                     Text(
-                                                        "找不到要签到的班级或者签到的活动？可能老师是在群聊里面发起的签到",
-                                                        fontSize = 14.sp,
-                                                        lineHeight = 17.sp,
-                                                        style = TextStyle.Default.copy(
-                                                            lineBreak = LineBreak(
-                                                                strategy = LineBreak.Strategy.HighQuality,
-                                                                strictness = LineBreak.Strictness.Strict,
-                                                                wordBreak = LineBreak.WordBreak.Default
-                                                            )
+                                                        "从群聊列表\n查找签到",
+                                                        color = MaterialTheme.colorScheme.primary,
+                                                        textAlign = TextAlign.Center,
+                                                        autoSize = TextAutoSize.StepBased(
+                                                            minFontSize = 10.sp,
+                                                            maxFontSize = 14.sp
                                                         )
                                                     )
-                                                    OutlinedButton(
-                                                        onClick = {
-                                                            hapticFeedback.performHapticFeedback(
-                                                                HapticFeedbackType.ContextClick
-                                                            )
-                                                            navToGroupDestination(destination.isCloneSession)
-                                                        },
-                                                        shape = RoundedCornerShape(18.dp),
-                                                        modifier = Modifier
-                                                            .fillMaxWidth()
-                                                    ) {
-                                                        Row(
-                                                            verticalAlignment = Alignment.CenterVertically,
-                                                            horizontalArrangement = Arrangement.Center,
-                                                            modifier = Modifier.fillMaxWidth()
-                                                        ) {
-                                                            Icon(
-                                                                painter = painterResource(R.drawable.ic_users_round),
-                                                                null,
-                                                                modifier = Modifier.size(18.dp)
-                                                            )
-                                                            Spacer(modifier = Modifier.width(10.dp))
-                                                            Text(
-                                                                "从群聊列表查找签到",
-                                                                color = MaterialTheme.colorScheme.primary
-                                                            )
-                                                        }
-                                                    }
+                                                }
+                                            }
+                                            OutlinedButton(
+                                                onClick = {
+                                                    hapticFeedback.performHapticFeedback(
+                                                        HapticFeedbackType.ContextClick
+                                                    )
+                                                    isQRCodeScanPause.value = false
+                                                    isQRCodeResolving.value = false
+                                                    isQRCodeScanning = true
+                                                },
+                                                shape = RoundedCornerShape(18.dp),
+                                                modifier = Modifier.weight(1f)
+                                            ) {
+                                                Column(
+                                                    horizontalAlignment = Alignment.CenterHorizontally
+                                                ) {
+                                                    Icon(
+                                                        painter = painterResource(R.drawable.ic_scan_qr_code),
+                                                        contentDescription = null,
+                                                        modifier = Modifier.size(24.dp)
+                                                    )
                                                     Spacer(modifier = Modifier.height(2.dp))
-                                                    OutlinedButton(
-                                                        onClick = {
-                                                            hapticFeedback.performHapticFeedback(
-                                                                HapticFeedbackType.ContextClick
-                                                            )
-                                                            isQRCodeScanPause.value = false
-                                                            isQRCodeResolving.value = false
-                                                            isQRCodeScanning = true
-                                                        },
-                                                        shape = RoundedCornerShape(18.dp),
-                                                        modifier = Modifier
-                                                            .fillMaxWidth()
-                                                    ) {
-                                                        Row(
-                                                            verticalAlignment = Alignment.CenterVertically,
-                                                            horizontalArrangement = Arrangement.Center,
-                                                            modifier = Modifier.fillMaxWidth()
-                                                        ) {
-                                                            Icon(
-                                                                painter = painterResource(R.drawable.ic_scan_qr_code),
-                                                                null,
-                                                                modifier = Modifier.size(18.dp)
-                                                            )
-                                                            Spacer(modifier = Modifier.width(10.dp))
-                                                            Text(
-                                                                "扫描签到二维码",
-                                                                color = MaterialTheme.colorScheme.primary
-                                                            )
-                                                        }
-                                                    }
+                                                    Text(
+                                                        "扫描签到二维码\n快速跳转",
+                                                        color = MaterialTheme.colorScheme.primary,
+                                                        textAlign = TextAlign.Center,
+                                                        autoSize = TextAutoSize.StepBased(
+                                                            minFontSize = 10.sp,
+                                                            maxFontSize = 14.sp
+                                                        )
+                                                    )
                                                 }
                                             }
                                         }

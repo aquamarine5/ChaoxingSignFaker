@@ -27,7 +27,8 @@ object ChaoxingIMListener {
     data class IMSignReminderEvent(
         val imUsername: String,
         val activity: ChaoxingIMHelper.IMSignActivityInfo,
-        val receivedTimestamp: Long
+        val receivedTimestamp: Long,
+        val chatId: Long? = null
     )
 
     private val _signReminderEvents =
@@ -127,7 +128,8 @@ object ChaoxingIMListener {
             IMSignReminderEvent(
                 imUsername,
                 activity,
-                System.currentTimeMillis()
+                System.currentTimeMillis(),
+                message.to?.substringBefore("@")?.toLongOrNull()
             )
         )
     }

@@ -16,6 +16,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationSignE
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignOutEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.GestureSignDestination
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.checkResponseThrowException
+import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.requirePredictable
 
 class ChaoxingGestureSigner(
     client: ChaoxingHttpRequester,
@@ -27,11 +28,33 @@ class ChaoxingGestureSigner(
     destination.classId,
     destination.courseId,
     destination.extContent,
-    baseSignInfo
+    baseSignInfo,
+    destination.isOldSignVersion,
+    destination.chatId
 ) {
     companion object {
         private val URL_CHECK_GESTURE =
             "https://mobilelearn.chaoxing.com/widget/sign/pcStuSignController/checkSignCode".toHttpUrl()
+        private val URL_WEIXIN_PRESIGN =
+            "https://mobilewx.chaoxing.com/widget/weixin/sign/stuSignController/preSign".toHttpUrl()
+        private val SIGN_CODE_PATTERN = """id="signCode"\s+value="([^"]+)""".toRegex()
+    }
+
+    suspend fun getGestureSignCode(): String = withContext(Dispatchers.IO) {
+        if (isOldSignVersion) return@withContext ""
+        client.newCall(
+            Request.Builder().get().url(
+                URL_WEIXIN_PRESIGN.newBuilder()
+                    .addQueryParameter("activeId", activeId.toString())
+                    .addQueryParameter("puid", client.puid.toString())
+                    .build()
+            ).build()
+        ).execute().use {
+            it.checkResponseThrowException()
+            val signCode = SIGN_CODE_PATTERN.find(it.body.string())?.groupValues?.get(1)
+            requirePredictable(!signCode.isNullOrBlank()) { "未能从微信签到页获取手势图案" }
+            signCode
+        }
     }
 
     suspend fun getGestureSignInfo(): ChaoxingSignOutEntity = withContext(Dispatchers.IO) {
@@ -49,6 +72,7 @@ class ChaoxingGestureSigner(
     }
 
     suspend fun checkSignGesture(gestureOrderCode: String): Boolean = withContext(Dispatchers.IO) {
+        if (isOldSignVersion) return@withContext true
         client.newCall(
             Request.Builder().url(
                 URL_CHECK_GESTURE.newBuilder()
@@ -67,6 +91,16 @@ class ChaoxingGestureSigner(
         position: ChaoxingLocationSignEntity? = null,
         captchaValidate: String? = null
     ): Boolean = withContext(Dispatchers.IO) {
+        if (isOldSignVersion) {
+            return@withContext client.newCall(
+                Request.Builder().url(
+                    buildOldSignUrlBuilder().build()
+                ).build()
+            ).execute().use {
+                it.checkResponseThrowException()
+                return@use it.checkSignResult()
+            }
+        }
         client.newCall(
             Request.Builder().url(
                 URL_SIGN_NO_PARAMETER.newBuilder()
@@ -92,7 +126,9 @@ class ChaoxingGestureSigner(
                     .addEnc2Parameter(signEnc2)
                     .addValidateQueryParameter(captchaValidate)
                     .build()
-            ).build()
+            ).header(
+                "Referer", getOriginPreSignUrl().toString()
+            ).postSignForm().build()
         ).execute().use {
             it.checkResponseThrowException()
             return@use it.checkSignResult(position)

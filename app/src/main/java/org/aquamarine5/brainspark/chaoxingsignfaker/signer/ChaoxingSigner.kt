@@ -30,6 +30,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingCourseHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingFaceHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpRequester
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.toOriginSignHost
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingCaptchaDataEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationSignEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityStatus
@@ -44,23 +45,30 @@ import java.util.Locale
 import java.util.UUID
 import kotlin.time.Duration.Companion.seconds
 
+
 abstract class ChaoxingSigner(
     val client: ChaoxingHttpRequester,
     val activeId: Long,
     val classId: Int,
     val courseId: Long,
     val extContent: String,
-    baseSignInfo: JSONObject? = null
+    baseSignInfo: JSONObject? = null,
+    val isOldSignVersion: Boolean = false,
+    val chatId: Long? = null
 ) {
     companion object {
         val URL_PERSIGN =
-            "https://mobilelearn.chaoxing.com/newsign/preSign".toHttpUrl()
+            "https://data-xxt.aichaoxing.com/newsign/preSign".toHttpUrl()
         val URL_SIGN_INFO =
             "https://mobilelearn.chaoxing.com/v2/apis/active/getPPTActiveInfo".toHttpUrl()
         val URL_ANALYSIS =
             "https://mobilelearn.chaoxing.com/pptSign/analysis?vs=1&DB_STRATEGY=RANDOM".toHttpUrl()
         val URL_AFTER_ANALYSIS2 =
             "https://mobilelearn.chaoxing.com/pptSign/analysis2?DB_STRATEGY=RANDOM".toHttpUrl()
+        val URL_PRESIGN_OLD =
+            "https://mobilelearn.chaoxing.com/sign/preStuSign".toHttpUrl()
+        val URL_SIGN_OLD =
+            "https://mobilelearn.chaoxing.com/sign/stuSignajax".toHttpUrl()
         val URL_CAPTCHA_CONF =
             "https://captcha.chaoxing.com/captcha/get/conf?callback=cx_captcha_function".toHttpUrl()
         val URL_CAPTCHA_RESULT =
@@ -78,11 +86,50 @@ abstract class ChaoxingSigner(
         private val PRIMARY_ATTEND_STATUS_PATTERN =
             """"primaryAttend"\s*:\s*\{[^{}]*?"status"\s*:\s*(\d+)""".toRegex()
         private val SIGN_STATUS_PATTERN = """signstatus\s*=\s*(\d+)""".toRegex()
+
+        fun buildOldPreSignUrl(
+            activeId: Long,
+            chatId: Long?,
+            puid: Int,
+            classId: Int = 0,
+            courseId: Long = 0L
+        ): HttpUrl =
+            URL_PRESIGN_OLD.newBuilder()
+                .addQueryParameter("activeId", activeId.toString())
+                .addQueryParameter("code", "")
+                .addQueryParameter("uid", puid.toString())
+                .addQueryParameter("courseId", courseId.toString())
+                .addQueryParameter("classId", classId.toString())
+                .addQueryParameter("general", "0")
+                .addQueryParameter("chatId", (chatId ?: 0L).toString())
+                .addQueryParameter("appType", "0")
+                .addQueryParameter("tid", "null")
+                .addQueryParameter("atype", "null")
+                .addQueryParameter("sys", "0")
+                .build()
     }
 
     private var storageSignInfo: JSONObject? = baseSignInfo
 
-    protected fun getPreSignUrl(): HttpUrl = URL_PERSIGN.newBuilder()
+    protected fun Request.Builder.postSignForm(): Request.Builder {
+        val url = build().url
+        val formBuilder = FormBody.Builder()
+        url.queryParameterNames.forEach { name ->
+            url.queryParameterValues(name).forEach { value ->
+                formBuilder.add(name, value ?: "")
+            }
+        }
+        return url(url.newBuilder().query(null).build())
+            .header("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
+            .header("X-Requested-With", "XMLHttpRequest")
+            .post(formBuilder.build())
+    }
+
+    protected fun getPreSignUrl(): HttpUrl = buildPreSignUrl()
+
+    protected fun getOriginPreSignUrl(): HttpUrl = buildPreSignUrl().toOriginSignHost()
+
+    private fun buildPreSignUrl(): HttpUrl = URL_PERSIGN.newBuilder()
         .addQueryParameter("courseId", courseId.toString())
         .addQueryParameter("classId", classId.toString())
         .addQueryParameter("activePrimaryId", activeId.toString())
@@ -93,6 +140,15 @@ abstract class ChaoxingSigner(
         .addQueryParameter("uid", client.puid.toString())
         .addQueryParameter("isTeacherViewOpen", "0")
         .build()
+
+    protected fun buildOldSignUrlBuilder(): HttpUrl.Builder = URL_SIGN_OLD.newBuilder()
+        .addQueryParameter("activeId", activeId.toString())
+        .addQueryParameter("uid", client.puid.toString())
+        .addQueryParameter("clientip", "")
+        .apply {
+            if (courseId > 0L) addQueryParameter("courseId", courseId.toString())
+            if (classId > 0) addQueryParameter("classId", classId.toString())
+        }
 
     var signEnc2: String? = null
         protected set
@@ -160,7 +216,11 @@ abstract class ChaoxingSigner(
             ChaoxingSignActivityStatus.EXPIRED -> throw SignExpiredException()
             ChaoxingSignActivityStatus.ALREADY_SIGNED -> throw PredictedAlreadySignedException()
             else -> {
-                if (ChaoxingCourseHelper.checkClassValid(client, classId) == false)
+                if (!isOldSignVersion && ChaoxingCourseHelper.checkClassValid(
+                        client,
+                        classId
+                    ) == false
+                )
                     throw SignActivityNoPermissionException()
             }
         }
@@ -168,6 +228,9 @@ abstract class ChaoxingSigner(
 
     open suspend fun getSignInfo(): JSONObject = withContext(Dispatchers.IO) {
         storageSignInfo?.let { return@withContext it }
+        if (isOldSignVersion) {
+            return@withContext JSONObject().apply { storageSignInfo = this }
+        }
         client.newCall(
             Request.Builder().get().url(
                 URL_SIGN_INFO.newBuilder()
@@ -210,13 +273,22 @@ abstract class ChaoxingSigner(
             } else handlePreSignResponse(response)
         }
 
-    private fun requestPreSign(): Response = client.newCall(
-        Request.Builder().post(
-            FormBody.Builder().addEncoded("ext", extContent).build()
-        ).url(
-            getPreSignUrl()
-        ).build()
-    ).execute()
+    private fun requestPreSign(): Response =
+        if (isOldSignVersion)
+            client.newCall(
+                Request.Builder().get().url(
+                    buildOldPreSignUrl(activeId, chatId, client.puid, classId, courseId)
+                )
+                    .build()
+            ).execute()
+        else
+            client.newCall(
+                Request.Builder().post(
+                    FormBody.Builder().addEncoded("ext", extContent).build()
+                ).url(
+                    getPreSignUrl()
+                ).build()
+            ).execute()
 
     private suspend fun handlePreSignResponse(
         response: Response
@@ -226,7 +298,7 @@ abstract class ChaoxingSigner(
         if (it.code == 302 || body.contains("校验失败，未查询到活动数据")) {
             throw SignActivityNoPermissionException()
         }
-        postAnalysis()
+        if (!isOldSignVersion) postAnalysis()
         return@use if (checkExpiredSign(body)) {
             ChaoxingSignActivityStatus.EXPIRED
         } else if (checkAlreadySign(body)) {
@@ -353,6 +425,11 @@ abstract class ChaoxingSigner(
             throw ChaoxingFaceSignException(result.removePrefix("[face]"))
         if (result == "success2")
             throw SignAlreadyEndedException()
+        if (result == "fail-need-qrcode")
+            throw ChaoxingParseDataException(
+                "签到失败：服务端要求提交二维码参数（enc），请重新扫描老师展示的二维码",
+                data = result
+            )
         if (result == "签到失败，请重新扫描。")
             throw QRCodeExpiredException()
         if (result.startsWith("checkFace_")) {
@@ -405,7 +482,7 @@ abstract class ChaoxingSigner(
                     .addQueryParameter("_", System.currentTimeMillis().toString())
                     .build()
             ).header(
-                "Referer", getPreSignUrl().toString()
+                "Referer", getOriginPreSignUrl().toString()
             ).build()
         ).execute().use {
             it.checkResponseThrowException()
@@ -449,7 +526,7 @@ abstract class ChaoxingSigner(
         getCaptchaData(context) {
             client.newCall(
                 Request.Builder().get().url(it).header(
-                    "Referer", getPreSignUrl().toString()
+                    "Referer", getOriginPreSignUrl().toString()
                 ).build()
             ).execute().use { response ->
                 val jsonResult = JSONObject.parseObject(
@@ -516,7 +593,7 @@ abstract class ChaoxingSigner(
                             return super.shouldInterceptRequest(view, request)
                         }
                     }
-                    webview?.loadUrl(getPreSignUrl().toString())
+                    webview?.loadUrl(getOriginPreSignUrl().toString())
                 }
             job.invokeOnCompletion {
                 if (job.isCancelled)
@@ -550,7 +627,7 @@ abstract class ChaoxingSigner(
                     .addQueryParameter("captchaKey", captchaKey)
                     .addQueryParameter("token", token)
                     .addQueryParameter(
-                        "referer", getPreSignUrl().toString()
+                        "referer", getOriginPreSignUrl().toString()
                     )
                     .addQueryParameter("iv", iv)
                     .addQueryParameter("_", System.currentTimeMillis().toString())

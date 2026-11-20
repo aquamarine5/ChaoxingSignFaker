@@ -28,7 +28,9 @@ class ChaoxingPasswordSigner(
     destination.classId,
     destination.courseId,
     destination.extContent,
-    baseSignInfo
+    baseSignInfo,
+    destination.isOldSignVersion,
+    destination.chatId
 ) {
     companion object {
         private val URL_CHECK_SIGN_CODE =
@@ -69,6 +71,16 @@ class ChaoxingPasswordSigner(
         position: ChaoxingLocationSignEntity? = null,
         captchaValidate: String? = null
     ): Boolean = withContext(Dispatchers.IO) {
+        if (isOldSignVersion) {
+            return@withContext client.newCall(
+                Request.Builder().url(
+                    buildOldSignUrlBuilder().build()
+                ).build()
+            ).execute().use {
+                it.checkResponseThrowException()
+                return@use it.checkSignResult()
+            }
+        }
         client.newCall(
             Request.Builder().url(
                 URL_SIGN_NO_PARAMETER.newBuilder()
@@ -94,7 +106,9 @@ class ChaoxingPasswordSigner(
                     .addEnc2Parameter(signEnc2)
                     .addValidateQueryParameter(captchaValidate)
                     .build()
-            ).build()
+            ).header(
+                "Referer", getOriginPreSignUrl().toString()
+            ).postSignForm().build()
         ).execute().use {
             it.checkResponseThrowException()
             return@use it.checkSignResult(position)

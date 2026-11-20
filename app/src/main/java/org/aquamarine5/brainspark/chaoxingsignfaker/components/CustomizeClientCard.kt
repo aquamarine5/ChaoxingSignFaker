@@ -51,70 +51,51 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import org.aquamarine5.brainspark.chaoxingsignfaker.R
+import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingDeviceInfoHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
+import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingClientInfo
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.chaoxingDataStore
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.displaySnackbar
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.isDevelopedMode
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
 
-lateinit var chaoxingUserAgent: String
-lateinit var chaoxingApplicationPackageName: String
-lateinit var chaoxingClientIdentity: String
+lateinit var chaoxingClientInfo: ChaoxingClientInfo
 
-private const val CUSTOM_CLIENT_IDENTITY = "@@custom"
-
-enum class ChaoxingClientInfo(
-    val userAgent: String,
-    val packageName: String,
-    val identity: String
+@Composable
+private fun ClientOptionRow(
+    title: String,
+    subtitle: String,
+    isSelected: Boolean,
+    isEnabled: Boolean,
+    onSelect: () -> Unit
 ) {
-    DEFAULT(
-        "Dalvik/2.1.0 (Linux; U; Android 12; SM-N9006 Build/8aba9e4.0) (schild:2d97f7b9439f21333c946878fc4d6ccb) (device:SM-N9006) Language/zh_CN com.chaoxing.mobile/ChaoXingStudy_3_6.7.5_android_phone_10941_314 (@Kalimdor)_68f184fd763546c1a04ab3a09b3deebb",
-        "com.chaoxing.mobile",
-        "@@default"
-    ),
-    XUEZAIXIDIAN(
-        "Mozilla/5.0 (Linux; Android 16; 23113RKC6C Build/BP2A.250605.031.A3; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/147.0.7727.137 Mobile Safari/537.36 (schild:be536573b69ec1ae359e359d11f7f3e3) (device:23113RKC6C) Language/zh_CN com.chaoxing.mobile.xuezaixidian/ChaoXingStudy_1000149_6.3.7_android_phone_6005_249 (@Kalimdor)_f8777230ca1e45b2831ec7e36a9da1ea",
-        "com.chaoxing.mobile.xuezaixidian",
-        "@@xuezaixidian"
-    );
-
-    companion object {
-        fun fromIdentity(identity: String): ChaoxingClientInfo? {
-            if (identity == CUSTOM_CLIENT_IDENTITY) return null
-            if (identity.isBlank()) return DEFAULT
-            return entries.find { it.identity == identity }
-        }
-    }
-}
-
-
-private fun isValidUserAgent(userAgent: String): Boolean =
-    userAgent.all { it.code in 0x20..0x7E }
-
-fun initializeClientInfo(userAgent: String, packageName: String) {
-    if (!isValidUserAgent(userAgent)) {
-        chaoxingUserAgent = ChaoxingClientInfo.DEFAULT.userAgent
-        chaoxingClientIdentity = ChaoxingClientInfo.DEFAULT.identity
-        chaoxingApplicationPackageName = packageName.ifBlank {
-            ChaoxingClientInfo.DEFAULT.packageName
-        }
-        return
-    }
-    ChaoxingClientInfo.fromIdentity(userAgent).let {
-        if (it == null) {
-            chaoxingUserAgent = userAgent.ifBlank {
-                ChaoxingClientInfo.DEFAULT.userAgent
+    val hapticFeedback = LocalHapticFeedback.current
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        RadioButton(
+            selected = isSelected,
+            enabled = isEnabled,
+            onClick = {
+                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                onSelect()
             }
-            chaoxingClientIdentity = CUSTOM_CLIENT_IDENTITY
-            chaoxingApplicationPackageName = packageName.ifBlank {
-                ChaoxingClientInfo.DEFAULT.packageName
-            }
-        } else {
-            chaoxingUserAgent = it.userAgent
-            chaoxingClientIdentity = it.identity
-            chaoxingApplicationPackageName = it.packageName
+        )
+        Column(
+            modifier = Modifier
+                .clickable(enabled = isEnabled) { onSelect() }
+                .fillMaxWidth()
+        ) {
+            Text(title)
+            Text(
+                subtitle,
+                fontSize = 11.sp,
+                color = Color.Gray,
+                lineHeight = 12.sp,
+                fontFamily = FontFamily.Monospace
+            )
         }
     }
 }
@@ -170,14 +151,16 @@ fun CustomizeClientCard(onClose: (() -> Unit)? = null) {
         var isSchoolExpanded by remember(client) { mutableStateOf(false) }
         var isSaving by remember { mutableStateOf(false) }
         var selectedOption by remember {
-            mutableStateOf(ChaoxingClientInfo.fromIdentity(chaoxingClientIdentity))
+            mutableStateOf(chaoxingClientInfo.takeIf { !it.isCustom })
         }
         var customUserAgent by remember {
-            mutableStateOf(if (selectedOption == null) chaoxingUserAgent else "")
+            mutableStateOf(
+                if (selectedOption == null) chaoxingClientInfo.userAgentTemplate else ""
+            )
         }
         var customPackageName by remember {
             mutableStateOf(
-                if (selectedOption == null) chaoxingApplicationPackageName
+                if (selectedOption == null) chaoxingClientInfo.packageName
                 else ChaoxingClientInfo.DEFAULT.packageName
             )
         }
@@ -248,61 +231,14 @@ fun CustomizeClientCard(onClose: (() -> Unit)? = null) {
                 }
                 Text("如果你的学校使用了定制版的学习通，可以在这里选择对应的选项来模拟此客户端，或者输入完整的 UserAgent 来模拟其他版本的客户端。")
                 Spacer(modifier = Modifier.height(16.dp))
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    RadioButton(
-                        selected = selectedOption == ChaoxingClientInfo.DEFAULT,
-                        enabled = !isSaving,
-                        onClick = {
-                            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                            selectedOption = ChaoxingClientInfo.DEFAULT
-                        }
+                ChaoxingClientInfo.presets.forEach { info ->
+                    ClientOptionRow(
+                        title = info.displayName,
+                        subtitle = info.packageName,
+                        isSelected = selectedOption == info,
+                        isEnabled = !isSaving,
+                        onSelect = { selectedOption = info }
                     )
-                    Column(
-                        modifier = Modifier
-                            .clickable(enabled = !isSaving) {
-                                selectedOption = ChaoxingClientInfo.DEFAULT
-                            }
-                            .fillMaxWidth()) {
-                        Text("学习通")
-                        Text(
-                            ChaoxingClientInfo.DEFAULT.packageName,
-                            fontSize = 11.sp,
-                            color = Color.Gray,
-                            lineHeight = 12.sp,
-                            fontFamily = FontFamily.Monospace
-                        )
-                    }
-                }
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    RadioButton(
-                        selected = selectedOption == ChaoxingClientInfo.XUEZAIXIDIAN,
-                        enabled = !isSaving,
-                        onClick = {
-                            hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                            selectedOption = ChaoxingClientInfo.XUEZAIXIDIAN
-                        }
-                    )
-                    Column(
-                        modifier = Modifier
-                            .clickable(enabled = !isSaving) {
-                                selectedOption = ChaoxingClientInfo.XUEZAIXIDIAN
-                            }
-                            .fillMaxWidth()) {
-                        Text("学在西电")
-                        Text(
-                            ChaoxingClientInfo.XUEZAIXIDIAN.packageName,
-                            fontSize = 11.sp,
-                            color = Color.Gray,
-                            lineHeight = 12.sp,
-                            fontFamily = FontFamily.Monospace
-                        )
-                    }
                 }
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -329,8 +265,8 @@ fun CustomizeClientCard(onClose: (() -> Unit)? = null) {
                         enabled = !isSaving,
                         onValueChange = { customUserAgent = it },
                         label = { Text("输入自定义 UserAgent") },
-                        isError = !isValidUserAgent(customUserAgent),
-                        supportingText = if (!isValidUserAgent(customUserAgent)) {
+                        isError = !ChaoxingDeviceInfoHelper.isValidUserAgent(customUserAgent),
+                        supportingText = if (!ChaoxingDeviceInfoHelper.isValidUserAgent(customUserAgent)) {
                             { Text("UserAgent只能包含可打印ASCII字符") }
                         } else null,
                         modifier = Modifier
@@ -371,10 +307,10 @@ fun CustomizeClientCard(onClose: (() -> Unit)? = null) {
             val snackbarHostState = LocalSnackbarHostState.current
             Button(
                 enabled = !isSaving &&
-                        (selectedOption != null || isValidUserAgent(customUserAgent)),
+                        (selectedOption != null || ChaoxingDeviceInfoHelper.isValidUserAgent(customUserAgent)),
                 onClick = {
                     if (isSaving) return@Button
-                    if (selectedOption == null && !isValidUserAgent(customUserAgent)) {
+                    if (selectedOption == null && !ChaoxingDeviceInfoHelper.isValidUserAgent(customUserAgent)) {
                         snackbarHostState.displaySnackbar(
                             "UserAgent只能包含可打印ASCII字符",
                             coroutineScope
@@ -401,7 +337,10 @@ fun CustomizeClientCard(onClose: (() -> Unit)? = null) {
                                         .build()
                                 }.build()
                             }
-                            initializeClientInfo(userAgentPreference, packageNamePreference)
+                            chaoxingClientInfo = ChaoxingClientInfo.resolve(
+                                userAgentPreference,
+                                packageNamePreference
+                            )
                         }
                         isSaving = false
                         result.getOrElse { exception ->

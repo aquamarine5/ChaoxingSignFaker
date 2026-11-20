@@ -119,6 +119,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.ChaoxingOtherUserS
 import org.aquamarine5.brainspark.chaoxingsignfaker.datastore.OtherUserTagType
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignResult
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignStatus
+import org.aquamarine5.brainspark.chaoxingsignfaker.ui.theme.Orange
 import org.aquamarine5.brainspark.chaoxingsignfaker.screen.TAG_COLOR_UNSPECIFIED
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.FaceRecognitionData
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.FaceRecognitionImageStatus
@@ -774,7 +775,8 @@ fun OtherUserSelectorComponent(
                             Icon(
                                 painterResource(R.drawable.ic_lightbulb),
                                 contentDescription = "Help",
-                                tint = Color.White
+                                tint = Color.White,
+                                modifier = Modifier.size(40.dp)
                             )
                             Spacer(modifier = Modifier.width(10.5.dp))
                             Text(
@@ -1112,21 +1114,28 @@ fun OtherUserSelectorComponent(
                                             if (!isIgnoreAllConsistentDeviceCodeComponents) {
                                                 val isDeviceCodeDuplicated =
                                                     session.isDeviceCodeDuplicatedSignBefore
+                                                val isDeviceInformationOutdated =
+                                                    session.isNotRandomizedDeviceCode && !session.isEnhancedDeviceInformation
                                                 Icon(
                                                     painterResource(
                                                         if (isDeviceCodeDuplicated) R.drawable.ic_tablet_smartphone_warning
+                                                        else if (isDeviceInformationOutdated) R.drawable.ic_tablet_smartphone_info
                                                         else if (session.isNotRandomizedDeviceCode) R.drawable.ic_tablet_smartphone_check
                                                         else R.drawable.ic_tablet_smartphone_x
                                                     ),
                                                     contentDescription = if (isDeviceCodeDuplicated) "设备码重复签到后已回退为随机设备码"
+                                                    else if (isDeviceInformationOutdated) "设备信息未同步，需要重新导入此用户以更新"
                                                     else if (session.isNotRandomizedDeviceCode) "已绑定统一设备码"
                                                     else "使用固定随机设备码",
                                                     modifier = Modifier
                                                         .padding(start = 4.dp)
                                                         .size(14.dp),
-                                                    tint = if (session.isNotRandomizedDeviceCode) Color(
-                                                        0xFF4CAF50
-                                                    ) else Color(0xFFFF9800)
+                                                    tint = when {
+                                                        isDeviceCodeDuplicated -> Color(0xFFFF9800)
+                                                        isDeviceInformationOutdated -> Color(0xFFC08EAF)
+                                                        session.isNotRandomizedDeviceCode -> Color(0xFF4CAF50)
+                                                        else -> Color(0xFFFF9800)
+                                                    }
                                                 )
                                             }
                                             if (signStatus[i].isCaptchaResolvedByModel.value) {
@@ -1180,7 +1189,7 @@ fun OtherUserSelectorComponent(
                                                 Icon(
                                                     painterResource(R.drawable.ic_triangle_alert),
                                                     null,
-                                                    tint = Color(0xFFFCC307),
+                                                    tint = Orange,
                                                     modifier = Modifier
                                                         .size(24.dp)
                                                 )

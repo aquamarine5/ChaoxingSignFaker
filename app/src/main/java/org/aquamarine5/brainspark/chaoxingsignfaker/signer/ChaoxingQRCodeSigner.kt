@@ -34,20 +34,34 @@ class ChaoxingQRCodeSigner(
     qrCodeActivityEntity.classId,
     qrCodeActivityEntity.courseId,
     qrCodeActivityEntity.extContent,
-    baseSignInfo
+    baseSignInfo,
+    qrCodeActivityEntity.isOldSignVersion,
+    qrCodeActivityEntity.chatId
 ) {
     companion object {
+        private const val SIGNIN_PREFIX = "SIGNIN:"
+
+        private fun String.toSignParameterMap(): Map<String, String> =
+            removePrefix(SIGNIN_PREFIX).substringBefore("-")
+                .split("&")
+                .mapNotNull { parameter ->
+                    val name = parameter.substringBefore("=", "").trim()
+                    val value = parameter.substringAfter("=", "").trim()
+                    if (name.isBlank() || value.isBlank()) null else name.lowercase() to value
+                }
+                .toMap()
+
         fun parseQRCode(qrcode: Barcode): ChaoxingQRCodeParseResult {
             val rawValue = qrcode.rawValue ?: qrcode.url?.url
             ?: throw QRCodeParseException(qrcode.rawValue ?: "null")
-            if (rawValue.startsWith("SIGNIN:")) {
-                val content = rawValue.removePrefix("SIGNIN:").substringBefore("-")
-                val enc = content.substringAfter("&enc=", "").substringBefore("&")
-                if (enc.isBlank()) throw QRCodeParseException(rawValue)
-                val signDetail = content.substringBefore("&enc=")
+            if (rawValue.startsWith(SIGNIN_PREFIX)) {
+                val parameters = rawValue.toSignParameterMap()
+                val enc = parameters["enc"]?.takeIf { it.isNotBlank() }
+                val code = (parameters["code"] ?: parameters["c"])?.takeIf { it.isNotBlank() }
+                if (enc == null && code == null) throw QRCodeParseException(rawValue)
                 return ChaoxingQRCodeParseResult(
-                    signDetail.substringBefore("&").substringAfter("=", "").toLongOrNull(),
-                    signDetail.substringAfterLast("=", "").takeIf { it.isNotBlank() },
+                    parameters["aid"]?.toLongOrNull() ?: parameters["id"]?.toLongOrNull(),
+                    code,
                     enc
                 )
             }
@@ -118,10 +132,28 @@ class ChaoxingQRCodeSigner(
         captchaValidate: String? = null
     ): Boolean =
         withContext(Dispatchers.IO) {
+            val enc = parseResult.enc
+            if (isOldSignVersion) {
+                return@withContext client.newCall(
+                    Request.Builder().url(
+                        buildOldSignUrlBuilder()
+                            .apply { if (enc != null) addQueryParameter("enc", enc) }
+                            .addQueryParameter("useragent", "")
+                            .addQueryParameter("latitude", "-1")
+                            .addQueryParameter("longitude", "-1")
+                            .addQueryParameter("fid", "0")
+                            .build()
+                    ).build()
+                ).execute().use {
+                    it.checkResponseThrowException()
+                    return@use it.checkSignResult(position)
+                }
+            }
+            val urlBuilder = URL_SIGN_NO_PARAMETER.newBuilder()
+            if (enc != null) urlBuilder.addQueryParameter("enc", enc)
             client.newCall(
                 Request.Builder().url(
-                    URL_SIGN_NO_PARAMETER.newBuilder()
-                        .addQueryParameter("enc", parseResult.enc)
+                    urlBuilder
                         .addQueryParameter("name", client.name)
                         .addQueryParameter(
                             "activeId", (parseResult.aid ?: activeId).toString()
@@ -146,7 +178,9 @@ class ChaoxingQRCodeSigner(
                             isCourseIdParameterAdded = true
                         )
                         .build()
-                ).build()
+                ).header(
+                    "Referer", getOriginPreSignUrl().toString()
+                ).postSignForm().build()
             ).execute().use {
                 it.checkResponseThrowException()
                 return@use it.checkSignResult(position)

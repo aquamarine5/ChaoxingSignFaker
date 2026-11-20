@@ -13,12 +13,14 @@ import android.graphics.ImageDecoder
 import android.graphics.Matrix
 import android.net.Uri
 import android.os.Build
+import androidx.camera.core.ImageProxy
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.core.graphics.scale
 import coil3.ImageLoader
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
+import java.nio.ByteBuffer
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
@@ -121,6 +123,58 @@ fun ContentResolver.decodePhotoBitmap(uri: Uri): Bitmap? {
             null,
             BitmapFactory.Options().apply { inSampleSize = sampleSize })
     }
+}
+
+fun ImageProxy.readJpegBytes(): ByteArray {
+    requirePredictable(planes.isNotEmpty()) { "拍摄的照片数据为空" }
+    val buffer = planes[0].buffer.duplicate().apply { rewind() }
+    val bytes = ByteArray(buffer.remaining())
+    buffer.get(bytes)
+    requirePredictable(bytes.size >= 4) { "拍摄的照片数据为空" }
+    return bytes
+}
+
+fun ByteArray.decodeCapturedBitmap(maxDimension: Int = MAX_DECODE_DIMENSION): Bitmap {
+    val jpeg = trimJpegPadding()
+    val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+    BitmapFactory.decodeByteArray(jpeg, 0, jpeg.size, bounds)
+    var sampleSize = 1
+    if (bounds.outWidth > 0 && bounds.outHeight > 0) {
+        while (maxOf(bounds.outWidth, bounds.outHeight) / sampleSize > maxDimension) {
+            sampleSize *= 2
+        }
+    }
+    BitmapFactory.decodeByteArray(
+        jpeg,
+        0,
+        jpeg.size,
+        BitmapFactory.Options().apply { inSampleSize = sampleSize }
+    )?.let { return it }
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+        runCatching {
+            ImageDecoder.decodeBitmap(ImageDecoder.createSource(ByteBuffer.wrap(jpeg))) { decoder, info, _ ->
+                decoder.isMutableRequired = true
+                val largestDimension = maxOf(info.size.width, info.size.height)
+                if (largestDimension > maxDimension) {
+                    val ratio = maxDimension / largestDimension.toFloat()
+                    decoder.setTargetSize(
+                        (info.size.width * ratio).toInt().coerceAtLeast(1),
+                        (info.size.height * ratio).toInt().coerceAtLeast(1)
+                    )
+                }
+            }
+        }.getOrNull()?.let { return it }
+    }
+    throw ChaoxingPredictableException("无法解析拍摄的照片，请重新拍摄")
+}
+
+private fun ByteArray.trimJpegPadding(): ByteArray {
+    for (index in size - 2 downTo 1) {
+        if (this[index] == 0xFF.toByte() && this[index + 1] == 0xD9.toByte()) {
+            return if (index + 2 == size) this else copyOf(index + 2)
+        }
+    }
+    return this
 }
 
 @OptIn(ExperimentalContracts::class)

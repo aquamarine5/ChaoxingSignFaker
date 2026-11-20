@@ -26,10 +26,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -48,7 +45,10 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -69,14 +69,18 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingSignHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CaptchaHandlerParams
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CenterCircularProgressIndicator
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.CommonCardTip
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.GetLocationComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NetworkExceptionComponent
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.NewFeatureTipsCard
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NotReadyToSignNoticeComponent
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.OldSignVersionWarningTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.OtherUserSelectorComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SignOutRedirectTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SignPotentialWarningTips
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.SponsorPopupDialog
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.cloneSessionGuard
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.httpClientGuard
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.toChaoxingLocationSignEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingLocationSignEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingSignActivityEntity
@@ -106,7 +110,9 @@ data class GestureSignDestination(
     val startTime: Long?,
     override val endTime: Long?,
     val isLate: Boolean,
-    override val isCloneSession: Boolean
+    override val isCloneSession: Boolean,
+    override val isOldSignVersion: Boolean = false,
+    override val chatId: Long? = null
 ) : SignDestination {
     companion object {
         fun parseFromSignActivityEntity(
@@ -141,11 +147,13 @@ fun GestureSignScreen(
             onCloneInvalid = navToCourseDetailDestination
         )
     ) return
+    val client = httpClientGuard(onNavigateBack = navToCourseDetailDestination) ?: return
     var signActivityStatus by remember { mutableStateOf<ChaoxingSignActivityStatus?>(null) }
+    var isWeChatSignForbidden by remember { mutableStateOf(false) }
     var isSignForOther by remember { mutableStateOf(false) }
-    val signer = remember {
+    val signer = remember(client) {
         ChaoxingGestureSigner(
-            ChaoxingHttpClient.instance!!,
+            client,
             destination
         )
     }
@@ -181,12 +189,16 @@ fun GestureSignScreen(
                         client,
                         destination
                     ).let {
+                        isWeChatSignForbidden =
+                            it.getSignInfo().getInteger("openCheckWeChatFlag") == 1
                         signActivityStatus = it.preSign(context)
                         isMapRequired = it.isPositionRequired()
                         it.getGestureSignInfo()
                     }
                 }
             } else {
+                isWeChatSignForbidden =
+                    signer.getSignInfo().getInteger("openCheckWeChatFlag") == 1
                 signActivityStatus = signer.preSign(context)
                 isMapRequired = signer.isPositionRequired()
                 signer.getGestureSignInfo()
@@ -214,12 +226,16 @@ fun GestureSignScreen(
                                     client,
                                     destination
                                 ).let {
+                                    isWeChatSignForbidden =
+                                        it.getSignInfo().getInteger("openCheckWeChatFlag") == 1
                                     signActivityStatus = it.preSign(context)
                                     isMapRequired = it.isPositionRequired()
                                     it.getGestureSignInfo()
                                 }
                             }
                         } else {
+                            isWeChatSignForbidden =
+                                signer.getSignInfo().getInteger("openCheckWeChatFlag") == 1
                             signActivityStatus = signer.preSign(context)
                             isMapRequired = signer.isPositionRequired()
                             signer.getGestureSignInfo()
@@ -236,7 +252,7 @@ fun GestureSignScreen(
                 isFetchedFailure = null
             }
         } else {
-            Crossfade(signActivityStatus, animationSpec = tween(700)) { c ->
+            Crossfade(signActivityStatus) { c ->
                 if (c != null && c != ChaoxingSignActivityStatus.READY_TO_SIGN) {
                     Box(modifier = Modifier.padding(8.dp, 0.dp, 8.dp, 8.dp)) {
                         NotReadyToSignNoticeComponent(
@@ -259,9 +275,12 @@ fun GestureSignScreen(
                 } else if (c == ChaoxingSignActivityStatus.READY_TO_SIGN) {
                     var isCheckingStatus by remember { mutableStateOf(false) }
                     var text by remember { mutableStateOf("") }
+                    val isDisplayAutoFetchGestureTips = remember { mutableStateOf(false) }
                     var locationData by remember { mutableStateOf<ChaoxingLocationSignEntity?>(null) }
                     LaunchedEffect(Unit) {
                         context.chaoxingDataStore.data.first().let { data ->
+                            isDisplayAutoFetchGestureTips.value =
+                                !data.learntTooltips.fetchGestureSignCodeDirectly
                             if (data.containsClassSelectedLocation(destination.classId)) {
                                 locationData = data.getClassSelectedLocationOrThrow(
                                     destination.classId
@@ -306,36 +325,60 @@ fun GestureSignScreen(
                                 modifier = Modifier.padding(0.dp, 6.dp)
                             )
                             Spacer(modifier = Modifier.height(6.dp))
-                            Card(
-                                shape = RoundedCornerShape(18.dp),
-                                colors = CardDefaults.cardColors(
-                                    containerColor = Color.DarkGray
-                                ),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 6.dp)
-                            ) {
-                                Row(
-                                    modifier = Modifier
-                                        .padding(10.dp, 12.dp)
-                                        .fillMaxWidth(),
-                                    verticalAlignment = Alignment.CenterVertically
+                            if (isWeChatSignForbidden) {
+                                CommonCardTip(
+                                    icon = R.drawable.ic_face_slightly_frowning,
+                                    containerColor = Color.DarkGray,
+                                    text = "新版本中获取手势签到图案的方法依赖于微信客户端，由于老师在发布签到时禁止了通过微信进行签到，故此签到仍然无法破解获取手势码。"
+                                )
+                            } else {
+                                NewFeatureTipsCard(
+                                    isDisplayAutoFetchGestureTips,
+                                    tipsText = "在新版本中，我们破解了手势签到的签到图案，现在支持一键获取手势图案了！",
+                                    modifier = Modifier.padding(12.dp, 0.dp)
                                 ) {
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Icon(
-                                        painterResource(R.drawable.ic_face_slightly_frowning),
-                                        contentDescription = "Info",
-                                        tint = Color.White
-                                    )
-                                    Spacer(modifier = Modifier.width(9.dp))
-                                    Text(
-                                        "由于随地大小签是一个完整在本机发送网络请求的软件，无法做到暴力大量发送网络请求破解手势码，目前只有在知道手势码的情况下才可以进行签到。",
-                                        color = Color.White,
-                                        fontSize = 13.sp,
-                                        lineHeight = 18.sp,
-                                        fontWeight = FontWeight.W500
-                                    )
+                                    context.chaoxingDataStore.updateData {
+                                        it.toBuilder().setLearntTooltips(
+                                            it.learntTooltips.toBuilder()
+                                                .setFetchGestureSignCodeDirectly(true)
+                                                .build()
+                                        ).build()
+                                    }
                                 }
+                            }
+                            if (destination.isOldSignVersion) {
+                                CommonCardTip(
+                                    icon = R.drawable.ic_face_slightly_smiling,
+                                    containerColor = Color.DarkGray,
+                                    text = {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(
+                                                buildAnnotatedString {
+                                                    append("对于学习通的部分老版本签到，可以不绘制手势，点击")
+                                                    withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+                                                        append("绕过")
+                                                    }
+                                                    append("按钮以直接进行签到")
+                                                },
+                                                color = Color.White,
+                                                fontSize = 13.sp,
+                                                lineHeight = 18.sp,
+                                                fontWeight = FontWeight.W500,
+                                                modifier = Modifier.weight(1f)
+                                            )
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Button(onClick = {
+                                                text = ""
+                                                isCheckingStatus = true
+                                            }) {
+                                                Text("绕过")
+                                            }
+                                        }
+                                    }
+                                )
                             }
                             Spacer(modifier = Modifier.height(6.dp))
                             Column(
@@ -429,6 +472,33 @@ fun GestureSignScreen(
                                 ) { view ->
                                     view.requestLayout()
                                 }
+                                if (!isWeChatSignForbidden) {
+                                    Spacer(modifier = Modifier.height(12.dp))
+                                    Button(onClick = {
+                                        coroutineScope.launch {
+                                            runCatching {
+                                                text = signer.getGestureSignCode()
+                                                hapticFeedback.performHapticFeedback(
+                                                    HapticFeedbackType.Confirm
+                                                )
+                                                isCheckingStatus = true
+                                                snackbarHost.displaySnackbar(
+                                                    "手势图案获取成功",
+                                                    coroutineScope
+                                                )
+                                            }.onFailure {
+                                                it.snackbarReport(
+                                                    snackbarHost,
+                                                    coroutineScope,
+                                                    "获取手势图案失败",
+                                                    hapticFeedback
+                                                )
+                                            }
+                                        }
+                                    }) {
+                                        Text("自动获取手势图案")
+                                    }
+                                }
                             }
                         }
                     }
@@ -474,7 +544,7 @@ fun GestureSignScreen(
                                         .let { client ->
                                             ChaoxingGestureSigner(
                                                 client,
-                                                if (isAlwaysForceSign || bypassChecking) destination.copy(
+                                                if (isAlwaysForceSign || bypassChecking || (destination.isOldSignVersion && destination.courseId > 0L)) destination.copy(
                                                     classId = ChaoxingCourseHelper.getClassIdFromCourseId(
                                                         client,
                                                         destination.courseId
@@ -552,6 +622,8 @@ fun GestureSignScreen(
                                 isCloneSession = destination.isCloneSession,
                                 isSigning = isSigning,
                                 prefixTipsContent = {
+                                    if (destination.isOldSignVersion)
+                                        OldSignVersionWarningTips()
                                     if (signoffData != null)
                                         SignOutRedirectTips(
                                             signoffData!!

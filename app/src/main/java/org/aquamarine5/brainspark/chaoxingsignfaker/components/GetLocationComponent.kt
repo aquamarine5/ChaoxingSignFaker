@@ -533,27 +533,10 @@ fun GetLocationComponent(
                             Text("位置描述")
                         })
                         Spacer(modifier = Modifier.height(3.dp))
-                        Card(
-                            shape = RoundedCornerShape(18.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = Color(83, 83, 83)
-                            ), modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(3.dp, 3.dp)
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(10.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Icon(
-                                    painterResource(R.drawable.ic_info),
-                                    contentDescription = "Info",
-                                    tint = Color.White
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
+                        CommonCardTip(
+                            icon = R.drawable.ic_info,
+                            containerColor = Color(83, 83, 83),
+                            text = {
                                 Text(
                                     buildAnnotatedString {
                                         append("位置描述和选择的签到位置")
@@ -565,10 +548,11 @@ fun GetLocationComponent(
                                     color = Color.White,
                                     fontSize = 13.sp,
                                     lineHeight = 18.sp,
-                                    fontWeight = FontWeight.W500
+                                    fontWeight = FontWeight.W500,
+                                    modifier = Modifier.fillMaxWidth()
                                 )
                             }
-                        }
+                        )
                     }
                 })
             }

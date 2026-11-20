@@ -23,7 +23,9 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -167,6 +169,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpClient
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingHttpRequesterPool
 import org.aquamarine5.brainspark.chaoxingsignfaker.api.ChaoxingOtherUserHelper
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.CameraComponent
+import org.aquamarine5.brainspark.chaoxingsignfaker.components.CommonCardTip
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.FacePhotoControlComponent
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.NewFeatureTipsCard
 import org.aquamarine5.brainspark.chaoxingsignfaker.components.QRCodeScanComponent
@@ -179,6 +182,7 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingImportOtherUs
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ChaoxingOtherUserSharedEntity
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.ImportOtherUserResult
 import org.aquamarine5.brainspark.chaoxingsignfaker.entity.getResultTips
+import org.aquamarine5.brainspark.chaoxingsignfaker.ui.theme.Orange
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.ChaoxingUserSessionOutdatedException
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.LocalSnackbarHostState
 import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.UMengHelper
@@ -203,7 +207,7 @@ object OtherUserGraphDestination
 
 const val TAG_COLOR_UNSPECIFIED = -1L
 
-private suspend fun syncFaceImagesUpdatedSession(
+private suspend fun syncUpdatedOtherUserSession(
     context: Context,
     result: ImportOtherUserResult,
     otherUserSessions: MutableList<ChaoxingOtherUserSession>
@@ -252,7 +256,11 @@ private fun CollapsibleSettingsSection(
             )
         }
     }
-    AnimatedVisibility(visible = expanded) {
+    AnimatedVisibility(
+        visible = expanded,
+        enter = slideInVertically(initialOffsetY = { -it }) + fadeIn(),
+        exit = slideOutVertically(targetOffsetY = { -it }) + fadeOut()
+    ) {
         Column { content() }
     }
 }
@@ -573,36 +581,12 @@ fun OtherUserScreen(
             var phoneNumber by remember { mutableStateOf("") }
             var password by remember { mutableStateOf("") }
             Column {
-                Card(
-                    shape = RoundedCornerShape(18.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = Color(0xFFFCC307)
-                    ), modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(0.dp, 6.dp)
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(10.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Icon(
-                            painterResource(R.drawable.ic_triangle_alert),
-                            contentDescription = "Alert",
-                            tint = Color.White
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            "在添加他人账号前请先取得对方同意。",
-                            color = Color.White,
-                            fontSize = 13.sp,
-                            lineHeight = 18.sp,
-                            fontWeight = FontWeight.W500
-                        )
-                    }
-                }
+                CommonCardTip(
+                    icon = R.drawable.ic_triangle_alert,
+                    containerColor = Orange,
+                    contentColor = Color.Black,
+                    text = "在添加他人账号前请先取得对方同意。"
+                )
                 OutlinedTextField(
                     value = phoneNumber,
                     onValueChange = { phoneNumber = it },
@@ -724,8 +708,9 @@ fun OtherUserScreen(
                                         if (index != -1) otherUserSessions[index] = updatedSession
                                     }
 
-                                    ChaoxingImportOtherUserResultStatus.EXISTED_BUT_UPDATE_FACE_IMAGES -> {
-                                        syncFaceImagesUpdatedSession(
+                                    ChaoxingImportOtherUserResultStatus.EXISTED_BUT_UPDATE_FACE_IMAGES,
+                                    ChaoxingImportOtherUserResultStatus.EXISTED_BUT_UPDATE_DEVICE_INFORMATION -> {
+                                        syncUpdatedOtherUserSession(
                                             context,
                                             result,
                                             otherUserSessions
@@ -1709,7 +1694,7 @@ fun OtherUserScreen(
                 }
             }, title = {
                 if (selectedUserSettingDialogIndex != null)
-                    Text("设置 ${otherUserSessions[selectedUserSettingDialogIndex!!].name} 用户")
+                    Text("设置${otherUserSessions[selectedUserSettingDialogIndex!!].name}用户")
             }, text = { dialogSnackbarHost ->
                 LaunchedEffect(settingsPhoneNumber, isSchoolSectionExpanded, schoolLoadAttempt) {
                     if (!isSchoolSectionExpanded || settingsClient != null) return@LaunchedEffect
@@ -1762,6 +1747,8 @@ fun OtherUserScreen(
                             val session = otherUserSessions[selectedUserSettingDialogIndex!!]
                             val isDeviceCodeConsistent = session.isNotRandomizedDeviceCode
                             val isDeviceCodeDuplicated = session.isDeviceCodeDuplicatedSignBefore
+                            val isDeviceInformationOutdated =
+                                session.isNotRandomizedDeviceCode && !session.isEnhancedDeviceInformation
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier.fillMaxWidth()
@@ -1769,21 +1756,26 @@ fun OtherUserScreen(
                                 Icon(
                                     painterResource(
                                         if (isDeviceCodeDuplicated) R.drawable.ic_tablet_smartphone_warning
+                                        else if (isDeviceInformationOutdated) R.drawable.ic_tablet_smartphone_info
                                         else if (isDeviceCodeConsistent) R.drawable.ic_tablet_smartphone_check
                                         else R.drawable.ic_tablet_smartphone_x
                                     ),
                                     contentDescription = null,
-                                    tint = if (isDeviceCodeConsistent) Color(0xFF4CAF50) else Color(
-                                        0xFFFF9800
-                                    ),
+                                    tint = when {
+                                        isDeviceCodeDuplicated -> Color(0xFFFF9800)
+                                        isDeviceInformationOutdated -> Color(0xFFC08EAF)
+                                        isDeviceCodeConsistent -> Color(0xFF4CAF50)
+                                        else -> Color(0xFFFF9800)
+                                    },
                                     modifier = Modifier
-                                        .size(24.dp)
+                                        .size(28.dp)
                                         .padding(end = 3.dp)
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
                                     when {
                                         isDeviceCodeDuplicated -> "此用户之前设置了设备码，但签到时仍然出现了同一个设备码重复签到的情况，为避免后续签到失败，已回退此用户的设备码为随机设备码。"
+                                        isDeviceInformationOutdated -> "在随地大小签版本更新后，支持同步了更多的设备信息，需要重新导入此用户以更新。"
                                         isDeviceCodeConsistent -> "此用户已设置统一的设备码。"
                                         else -> "此用户还没有设置统一的设备码，可能签到时在老师端会显示\"更改了签到设备\"。"
                                     },
@@ -1807,6 +1799,7 @@ fun OtherUserScreen(
                                     )
                                 }
                             }
+                            HorizontalDivider(modifier = Modifier.padding(top = 6.dp))
                         }
                         item {
                             CollapsibleSettingsSection(
@@ -2118,6 +2111,10 @@ fun OtherUserScreen(
                                 .orEmpty()
                             val deviceCode =
                                 url.queryParameter("dc")?.takeIf { it.isNotEmpty() }
+                            val uniqueId =
+                                url.queryParameter("uid")?.takeIf { it.isNotEmpty() }
+                            val deviceModel =
+                                url.queryParameter("dm")?.takeIf { it.isNotEmpty() }
                             if (phone == null || pwd == null || name == null) {
                                 hapticFeedback.performHapticFeedback(HapticFeedbackType.Reject)
                                 Toast.makeText(context, "链接格式错误", Toast.LENGTH_SHORT).show()
@@ -2133,6 +2130,8 @@ fun OtherUserScreen(
                                             name,
                                             faceObjectIds,
                                             deviceCode,
+                                            uniqueId,
+                                            deviceModel,
                                         )
                                     )
                                 }.onSuccess { result ->
@@ -2162,8 +2161,9 @@ fun OtherUserScreen(
                                                 updatedSession
                                         }
 
-                                        ChaoxingImportOtherUserResultStatus.EXISTED_BUT_UPDATE_FACE_IMAGES ->
-                                            syncFaceImagesUpdatedSession(
+                                        ChaoxingImportOtherUserResultStatus.EXISTED_BUT_UPDATE_FACE_IMAGES,
+                                        ChaoxingImportOtherUserResultStatus.EXISTED_BUT_UPDATE_DEVICE_INFORMATION ->
+                                            syncUpdatedOtherUserSession(
                                                 context,
                                                 result,
                                                 otherUserSessions
@@ -2520,37 +2520,13 @@ fun OtherUserScreen(
                     }
                 )
             }
-            Card(
-                shape = RoundedCornerShape(18.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = Color(0xFFFCC307)
-                ), modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(6.dp, 0.dp)
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(10.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Icon(
-                        painterResource(R.drawable.ic_triangle_alert),
-                        contentDescription = "Alert",
-                        tint = Color.White
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        "随意分享此二维码给他人会增加你的学习通账号风险，他人可以通过此二维码来控制你的账号，但这个分享行为只针对于学习通账号，并不会暴露你的实际密码。",
-                        color = Color.White,
-                        fontSize = 13.sp,
-                        lineHeight = 18.sp,
-                        fontWeight = FontWeight.W500
-                    )
-                }
-            }
-            Spacer(modifier = Modifier.height(8.dp))
+            CommonCardTip(
+                icon = R.drawable.ic_triangle_alert,
+                containerColor = Orange,
+                contentColor = Color.Black,
+                text = "随意分享此二维码给他人会增加你的学习通账号风险，他人可以通过此二维码来控制你的账号，但这个分享行为只针对于学习通账号，并不会暴露你的实际密码。"
+            )
+            Spacer(modifier = Modifier.height(3.dp))
             SingleChoiceSegmentedButtonRow(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -2961,6 +2937,8 @@ fun OtherUserScreen(
                                                     user.isNotRandomizedDeviceCode
                                                 val isDeviceCodeDuplicated =
                                                     user.isDeviceCodeDuplicatedSignBefore
+                                                val isDeviceInformationOutdated =
+                                                    user.isNotRandomizedDeviceCode && !user.isEnhancedDeviceInformation
                                                 val isDeviceCodeIconVisible =
                                                     !isIgnoreConsistentDeviceCodeComponents
                                                 Text(
@@ -3000,15 +2978,20 @@ fun OtherUserScreen(
                                                             Icon(
                                                                 painterResource(
                                                                     if (isDeviceCodeDuplicated) R.drawable.ic_tablet_smartphone_warning
+                                                                    else if (isDeviceInformationOutdated) R.drawable.ic_tablet_smartphone_info
                                                                     else if (isDeviceCodeConsistent) R.drawable.ic_tablet_smartphone_check
                                                                     else R.drawable.ic_tablet_smartphone_x
                                                                 ),
                                                                 contentDescription = if (isDeviceCodeDuplicated) "设备码重复签到后已回退为随机设备码"
+                                                                else if (isDeviceInformationOutdated) "设备信息未同步，需要重新导入此用户以更新"
                                                                 else if (isDeviceCodeConsistent) "已绑定统一设备码"
                                                                 else "使用固定随机设备码",
-                                                                tint = if (isDeviceCodeConsistent) Color(
-                                                                    0xFF4CAF50
-                                                                ) else Color(0xFFFF9800),
+                                                                tint = when {
+                                                                    isDeviceCodeDuplicated -> Color(0xFFFF9800)
+                                                                    isDeviceInformationOutdated -> Color(0xFFC08EAF)
+                                                                    isDeviceCodeConsistent -> Color(0xFF4CAF50)
+                                                                    else -> Color(0xFFFF9800)
+                                                                },
                                                                 modifier = Modifier
                                                                     .padding(start = 2.dp)
                                                                     .size(14.dp)
@@ -3098,7 +3081,7 @@ fun OtherUserScreen(
                                                         Icon(
                                                             painterResource(R.drawable.ic_triangle_alert),
                                                             null,
-                                                            tint = Color(0xFFFCC307),
+                                                            tint = Orange,
                                                             modifier = Modifier.size(24.dp)
                                                         )
                                                     }
@@ -3323,8 +3306,9 @@ fun OtherUserScreen(
                                                 updatedSession
                                         }
 
-                                        ChaoxingImportOtherUserResultStatus.EXISTED_BUT_UPDATE_FACE_IMAGES -> {
-                                            syncFaceImagesUpdatedSession(
+                                        ChaoxingImportOtherUserResultStatus.EXISTED_BUT_UPDATE_FACE_IMAGES,
+                                        ChaoxingImportOtherUserResultStatus.EXISTED_BUT_UPDATE_DEVICE_INFORMATION -> {
+                                            syncUpdatedOtherUserSession(
                                                 context,
                                                 result,
                                                 otherUserSessions

@@ -98,6 +98,8 @@ class ImportOtherUserActivity : ComponentActivity() {
                         ?.distinct()
                         .orEmpty()
                     val deviceCode = data?.getQueryParameter("dc")?.takeIf { it.isNotEmpty() }
+                    val uniqueId = data?.getQueryParameter("uid")?.takeIf { it.isNotEmpty() }
+                    val deviceModel = data?.getQueryParameter("dm")?.takeIf { it.isNotEmpty() }
                     Crossfade(errorTips) {
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
@@ -135,6 +137,8 @@ class ImportOtherUserActivity : ComponentActivity() {
                                                         name,
                                                         faceObjectIds,
                                                         deviceCode,
+                                                        uniqueId,
+                                                        deviceModel,
                                                     )
                                                 )
                                             }.onSuccess { result ->

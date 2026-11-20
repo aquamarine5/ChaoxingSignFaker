@@ -338,7 +338,12 @@ fun GroupListScreen(
                                 Button(
                                     onClick = {
                                         hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                                        navToGroupDetail(GroupDetailDestination(group))
+                                        navToGroupDetail(
+                                            GroupDetailDestination(
+                                                group,
+                                                destination.isCloneSession
+                                            )
+                                        )
                                     }, shape = RoundedCornerShape(18.dp),
                                     modifier = Modifier
                                         .fillMaxWidth()

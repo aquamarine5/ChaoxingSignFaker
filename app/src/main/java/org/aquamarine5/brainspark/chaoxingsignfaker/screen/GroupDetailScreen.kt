@@ -36,7 +36,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -64,7 +63,8 @@ import org.aquamarine5.brainspark.chaoxingsignfaker.utilities.snackbarReport
 @Immutable
 @Serializable
 data class GroupDetailDestination(
-    val groups: List<ChaoxingEasemobIMGroup>
+    val groups: List<ChaoxingEasemobIMGroup>,
+    val isCloneSession: Boolean = false
 )
 
 @Composable
@@ -83,13 +83,15 @@ fun GroupDetailScreen(
         val snackbarHostState = LocalSnackbarHostState.current
         val hapticFeedback = LocalHapticFeedback.current
         var isFetchedFailure by remember { mutableStateOf<Result<*>?>(null) }
+        val httpClient = ChaoxingHttpClient.getClientInstanceOrClone(groupDetail.isCloneSession)!!
         LaunchedEffect(Unit) {
             isFetchedFailure = runCatching {
                 messages = ChaoxingIMHelper.fetchIMHistoryMessages(
                     groupDetail.groups,
-                    ChaoxingHttpClient.instance!!,
-                    ChaoxingHttpClient.instance!!.getIMConfig(),
-                    coroutineScope
+                    httpClient,
+                    httpClient.getIMConfig(),
+                    coroutineScope,
+                    groupDetail.isCloneSession
                 )
             }.onFailure {
                 it.snackbarReport(
@@ -112,9 +114,10 @@ fun GroupDetailScreen(
                             isFetchedFailure = runCatching {
                                 messages = ChaoxingIMHelper.fetchIMHistoryMessages(
                                     groupDetail.groups,
-                                    ChaoxingHttpClient.instance!!,
-                                    ChaoxingHttpClient.instance!!.getIMConfig(),
-                                    coroutineScope
+                                    httpClient,
+                                    httpClient.getIMConfig(),
+                                    coroutineScope,
+                                    groupDetail.isCloneSession
                                 )
                             }.onFailure {
                                 it.snackbarReport(
@@ -209,32 +212,21 @@ fun GroupDetailScreen(
                                             verticalAlignment = Alignment.CenterVertically,
                                             modifier = Modifier
                                                 .fillMaxWidth()
-                                                .alpha(
-                                                    if (message.isUnsupportedLegacySign) 0.5f else 1f
-                                                )
                                                 .clickable {
                                                     hapticFeedback.performHapticFeedback(
                                                         HapticFeedbackType.ContextClick
                                                     )
-                                                    if (message.isUnsupportedLegacySign) {
-                                                        coroutineScope.launch {
-                                                            snackbarHostState.showSnackbar(
-                                                                "当前软件暂不支持此类型旧版本签到，请期待后续版本更新。"
-                                                            )
-                                                        }
-                                                    } else {
-                                                        coroutineScope.launch {
-                                                            runCatching { message.signDestination.await() }
-                                                                .onSuccess { onSignAction(it) }
-                                                                .onFailure {
-                                                                    it.snackbarReport(
-                                                                        snackbarHostState,
-                                                                        coroutineScope,
-                                                                        "获取签到信息失败",
-                                                                        hapticFeedback
-                                                                    )
-                                                                }
-                                                        }
+                                                    coroutineScope.launch {
+                                                        runCatching { message.signDestination.await() }
+                                                            .onSuccess { onSignAction(it) }
+                                                            .onFailure {
+                                                                it.snackbarReport(
+                                                                    snackbarHostState,
+                                                                    coroutineScope,
+                                                                    "获取签到信息失败",
+                                                                    hapticFeedback
+                                                                )
+                                                            }
                                                     }
                                                 }) {
 

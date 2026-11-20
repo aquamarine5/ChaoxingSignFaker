@@ -30,6 +30,7 @@
 -dontnote com.baidu.location.**
 -dontwarn com.baidu.location.**
 -keep class org.aquamarine5.brainspark.stackbricks.NoAvailableManifestException
+-keepnames class * extends java.lang.Throwable
 -keep class androidx.compose.runtime.LeftCompositionCancellationException
 -keep class androidx.compose.runtime.ForgottenCoroutineScopeException
 -keep class androidx.datastore.*.** {*;}
